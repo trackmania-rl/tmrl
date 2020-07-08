@@ -15,12 +15,13 @@ https://nicholastsmith.wordpress.com/2017/08/10/poe-ai-part-4-real-time-screen-c
 https://python-mss.readthedocs.io/examples.html#fps
 """
 
-def screen_record( Vis = False, Fps = False, ai=False):
+
+def screen_record(Vis=False, Fps=False, ai=False):
     monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
     sct = mss.mss()
     last_time = time.time()
-    nb=0
-    action=[]
+    nb = 0
+    action = []
     digits = load_digits()
     while(True):
         img = np.asarray(sct.grab(monitor))
