@@ -17,10 +17,10 @@ SendInput = ctypes.windll.user32.SendInput
 
 # constants:
 
-W = 0x11
-A = 0x1E
-S = 0x1F
-D = 0x20
+W = 0x26
+A = 0x28
+S = 0x25
+D = 0x27
 
 # C struct redefinitions
 
@@ -198,7 +198,7 @@ class TMInterface():
         returns the observation, the reward, and a done signal for end of episode
         """
         img = np.asarray(self.sct.grab(self.monitor))
-        speed, img = get_speed(img, self.digits)
+        speed = get_speed(img, self.digits)
         self.img = img  # for render()
         rew = speed
         obs = {'speed': speed,
@@ -257,11 +257,11 @@ class TMRLEnv(Env):
             self._at_thread.start()  # dummy start for later call to join()
         self.act_in_obs = config["act_in_obs"] if "act_in_obs" in config else True
         self.reset_act_buf = config["reset_act_buf"] if "reset_act_buf" in config else True
+        self.interface = TMInterface()
         self.action_space = self._get_action_space()
         self.observation_space = self._get_observation_space()
         self.current_step = 0
         self.initialized = False
-        self.interface = TMInterface()
         # state variables:
         self.default_action = self.interface.get_default_action()
         self.last_action = self.default_action
@@ -319,12 +319,12 @@ class TMRLEnv(Env):
         Returns:
             observation of this step()
         """
-        o, r = self.interface.get_obs_rew_done()
-        d = (self.current_step >= self.ep_max_length)
+        o, r, d = self.interface.get_obs_rew_done()
+        if not d:
+            d = (self.current_step >= self.ep_max_length)
         elt = {'obs': o}
         if self.act_in_obs:
-            self.act_buffer.append(act)
-            elt['act'] = np.array(self.act_buffer)
+            elt['act'] = np.array(act)
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
         numpyze_dict(elt)
@@ -340,10 +340,8 @@ class TMRLEnv(Env):
         if not self.initialized:
             self._initialize()
         self.current_step = 0
-        self._reset_obj_alt()
-        self._reset_states()
-        self._reset_action_buffer()
-        return self._get_obs(act=self.default_action)
+        obs, _, _ = self._get_obs_rew_done(act=self.default_action)
+        return obs
 
     def step(self, action):
         """
@@ -360,7 +358,7 @@ class TMRLEnv(Env):
         self.current_step += 1
         if not self.real_time:
             self._run_time_step(action)
-        obs, rew, done = self.get_obs_rew_done(action)  # TODO : threading must be modified so observation capture is handled correctly in the RTRL delay
+        obs, rew, done = self._get_obs_rew_done(action)  # TODO : threading must be modified so observation capture is handled correctly in the RTRL delay
         info = {}
         if self.real_time:
             self._run_time_step(action)
