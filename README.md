@@ -2,5 +2,6 @@
 Trackmania RL
 
 ## authors:
-Edouard Geze
-Yann Bouteiller
+
+- Edouard Geze
+- Yann Bouteiller
