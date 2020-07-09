@@ -1,4 +1,6 @@
 # import library
+# http://www.flint.jp/misc/?q=dik&lang=en  key indicator
+
 from pynput.keyboard import Key, Controller
 import time
 import ctypes

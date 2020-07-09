@@ -4,7 +4,7 @@ import mss
 import cv2
 import sys
 from dummy_ai import middle_ai, get_speed, forward_ai ,radar, road
-from key_event import move, move_fast
+from key_event import move_fast
 from tool import load_digits, stackImages, dileted_canny
 """
 to capture images there is :
@@ -24,33 +24,21 @@ def screen_record(tool):
     digits = load_digits()
     road_point=(400,500)
     while(True):
-        im_to_vis=[]
-        img = np.asarray(sct.grab(monitor))
-        im_to_vis.append(img)
+        img = np.asarray(sct.grab(monitor))[:,:,:3]
 
         # get information
         if "get_speed" in tool:
             speed = get_speed(img, digits)
-            print(speed)
 
-        if "road" in tool:
-            canny = dileted_canny(img)
-            area = road(canny, road_point)
-            im_to_vis.append(canny)
-
-            mask=np.array(img)
-            mask[:,:,2]=mask[:,:,2]+area
-            im_to_vis.append(mask)
-
-        if "radar" in tool:
+        if "radar" in tool: # change dileted_canny to get better radar
             canny = dileted_canny(img)
             area = road(canny, road_point)
             rad, distances = radar(area, road_point, img)
-            im_to_vis.append(rad)
 
+            mask = np.array(img)
+            mask[:, :, 2] = mask[:, :, 2] + area
 
             # the stream can be optimized
-
         #run ai
         if "middle_ai" in tool:
             action = middle_ai(img)
@@ -60,10 +48,7 @@ def screen_record(tool):
         #execution
         move_fast(action)
 
-
-
         # feature for human
-
         if "fps" in tool:
             nb = nb + 1
             if nb == 100:
@@ -71,7 +56,8 @@ def screen_record(tool):
                 last_time = time.time()
                 nb = 0
         if "vis" in tool:
-            imgStacked = stackImages(0.7, (im_to_vis))
+            imgStacked = stackImages(0.7, ([[img,rad],[canny,mask]]))
+            cv2.putText(imgStacked, "%d"%speed, (50, 50), cv2.FONT_HERSHEY_SIMPLEX ,1, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.imshow("PipeLine", imgStacked)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

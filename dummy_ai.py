@@ -1,10 +1,6 @@
 import cv2
 import numpy as np
-from imutils.perspective import four_point_transform
-from imutils import contours
-import imutils
 from skimage.segmentation import flood_fill
-from tool import dileted_canny
 import math
 
 
@@ -50,9 +46,6 @@ def get_speed(img,digits):
     best2=100000000
     best3=100000000
     for idx, num in enumerate(digits):
-        #print("num",num)
-        #print("img2",img2)
-        #print("dif",np.bitwise_xor(img2,num))
         if np.sum(np.bitwise_xor(img1,num))<best1:
             best1=np.sum(np.bitwise_xor(img1,num))
             num1 = idx
