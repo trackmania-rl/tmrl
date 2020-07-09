@@ -1,10 +1,12 @@
-
 import cv2
 import numpy as np
 from imutils.perspective import four_point_transform
 from imutils import contours
 import imutils
-import cv2
+from skimage.segmentation import flood_fill
+from tool import dileted_canny
+import math
+
 
 def middle_ai(img):
     """
@@ -26,7 +28,7 @@ def middle_ai(img):
         direction.append("left")
         if np.random.random_sample() > 0:
             direction.append("backward")
-    return img, direction
+    return direction
 
 def get_speed(img,digits):
 
@@ -72,8 +74,34 @@ def get_speed(img,digits):
 
     #print(best1,best2,best3)
     speed= 100*num1+10*num2+num3
-    return speed,img2
-
+    return speed
 
 def forward_ai():
     return  ["forward"]
+
+def radar(area, road_point, im):
+    img=np.array(im)
+    Distances=[]
+    color = (255,0, 0)
+    thickness = 4
+    for angle in range(90,290, 20):
+        x=road_point[0]
+        y=road_point[1]
+        dx = math.cos(math.radians(angle))
+        dy = math.sin(math.radians(angle))
+        lenght= False
+        dist=20
+        while lenght== False:
+            newx=int(x+dist*dx)
+            newy=int(y+dist*dy)
+            if area[newx,newy]==0 or newx==0 or newy==0 or newy==area.shape[1]-1:  #and area[int(x+(dist+1)*dx),int(y+(dist+1)*dy)]==0 to be sure that it's not noise
+                lenght = True
+                Distances.append([dist,angle-90])
+                img = cv2.line(img, (road_point[1],road_point[0]), (newy,newx), color, thickness)
+            dist=dist+1
+    return img, Distances
+
+def road(img, road_point):
+    img = flood_fill(img, road_point, 125)
+    img[img!=125]=0
+    return img

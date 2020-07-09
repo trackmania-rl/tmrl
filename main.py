@@ -13,7 +13,7 @@ if __name__ == '__main__':
     #time.sleep(2)
     print("Go")
     #screen_record(Vis=False, Fps =True, ai = "middle_ai")
-    screen_record(Vis=True, Fps=False, ai="get_speed")
+    screen_record(tool=["fps","vis","get_speed", "road", "radar"])
 
 """
     while True:
