@@ -17,10 +17,12 @@ SendInput = ctypes.windll.user32.SendInput
 
 # constants:
 
-W = 0x26
-A = 0x28
-S = 0x25
-D = 0x27
+W = 0x11
+A = 0x1E
+S = 0x1F
+D = 0x20
+BACKSPACE = 0x0E
+ENTER = 0x1C
 
 # C struct redefinitions
 
@@ -182,9 +184,20 @@ class TMInterface():
             actions.append("backward")
         if control[2] > 0.5:
             actions.append("right")
-        elif control[1] > 0.5:
+        elif control[3] > 0.5:
             actions.append("left")
         apply_control(actions)  # TODO: format this
+    
+    def reset(self):
+        PressKey(ENTER)
+        ReleaseKey(ENTER)
+        # time.sleep(0.1)
+        img = np.asarray(self.sct.grab(self.monitor))
+        speed = get_speed(img, self.digits)
+        self.img = img  # for render()
+        obs = {'speed': speed,
+               'img': img}
+        return obs
 
     def wait(self):
         """
@@ -322,7 +335,7 @@ class TMRLEnv(Env):
         o, r, d = self.interface.get_obs_rew_done()
         if not d:
             d = (self.current_step >= self.ep_max_length)
-        elt = {'obs': o}
+        elt = o
         if self.act_in_obs:
             elt['act'] = np.array(act)
         if self.obs_prepro_func:
@@ -340,8 +353,13 @@ class TMRLEnv(Env):
         if not self.initialized:
             self._initialize()
         self.current_step = 0
-        obs, _, _ = self._get_obs_rew_done(act=self.default_action)
-        return obs
+        elt = self.interface.reset()
+        if self.act_in_obs:
+            elt['act'] = np.array(self.default_action)
+        if self.obs_prepro_func:
+            elt = self.obs_prepro_func(elt)
+        numpyze_dict(elt)
+        return elt
 
     def step(self, action):
         """
