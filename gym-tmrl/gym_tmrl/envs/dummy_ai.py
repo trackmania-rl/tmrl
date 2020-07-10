@@ -26,48 +26,7 @@ def middle_ai(img):
             direction.append("backward")
     return direction
 
-def get_speed(img,digits):
 
-    img1 =np.array(img[464:, 887:908])
-    img2 = np.array(img[464:, 909:930])
-    img3 = np.array(img[464:, 930:951])
-
-    img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    img1[img1 > 250] = 255
-    img1[img1 <= 250] = 0
-    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    img2[img2 > 250] = 255
-    img2[img2 <= 250] = 0
-    img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2GRAY)
-    img3[img3 > 250] = 255
-    img3[img3 <= 250] = 0
-    # compare digit with the others mean iou
-    best1=100000000
-    best2=100000000
-    best3=100000000
-    for idx, num in enumerate(digits):
-        if np.sum(np.bitwise_xor(img1,num))<best1:
-            best1=np.sum(np.bitwise_xor(img1,num))
-            num1 = idx
-        if np.sum(np.bitwise_xor(img2,num))<best2:
-            best2=np.sum(np.bitwise_xor(img2,num))
-            num2 = idx
-        if np.sum(np.bitwise_xor(img3,num))<best3:
-            best3=np.sum(np.bitwise_xor(img3,num))
-            num3 = idx
-        if np.max(img1)==0:
-            best1 = 0
-            num1 = 0
-        if np.max(img2)==0:
-            best2 = 0
-            num2 = 0
-        if np.max(img3)==0:
-            best3 = 0
-            num3 = 0
-
-    #print(best1,best2,best3)
-    speed= 100*num1+10*num2+num3
-    return speed
 
 def forward_ai():
     return  ["forward"]

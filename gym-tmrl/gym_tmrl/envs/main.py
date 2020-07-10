@@ -1,6 +1,5 @@
 # import library
 
-import time
 from read_game import screen_record
 
 if __name__ == '__main__':

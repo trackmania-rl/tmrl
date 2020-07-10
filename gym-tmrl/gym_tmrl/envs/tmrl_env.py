@@ -1,4 +1,5 @@
 # This is an environment for trackmania
+# http://www.flint.jp/misc/?q=dik&lang=en  key indicator
 
 from gym import Env
 import gym.spaces as spaces
@@ -10,150 +11,11 @@ import cv2
 import mss
 import sys
 
+from tools import load_digits, get_speed
+from key_event import apply_control, keyres
+
 # from pynput.keyboard import Key, Controller
 import ctypes
-
-SendInput = ctypes.windll.user32.SendInput
-
-# constants:
-
-W = 0x11
-A = 0x1E
-S = 0x1F
-D = 0x20
-BACKSPACE = 0x0E
-ENTER = 0x1C
-
-# C struct redefinitions
-
-PUL = ctypes.POINTER(ctypes.c_ulong)
-
-
-class KeyBdInput(ctypes.Structure):
-    _fields_ = [("wVk", ctypes.c_ushort),
-                ("wScan", ctypes.c_ushort),
-                ("dwFlags", ctypes.c_ulong),
-                ("time", ctypes.c_ulong),
-                ("dwExtraInfo", PUL)]
-
-
-class HardwareInput(ctypes.Structure):
-    _fields_ = [("uMsg", ctypes.c_ulong),
-                ("wParamL", ctypes.c_short),
-                ("wParamH", ctypes.c_ushort)]
-
-
-class MouseInput(ctypes.Structure):
-    _fields_ = [("dx", ctypes.c_long),
-                ("dy", ctypes.c_long),
-                ("mouseData", ctypes.c_ulong),
-                ("dwFlags", ctypes.c_ulong),
-                ("time", ctypes.c_ulong),
-                ("dwExtraInfo", PUL)]
-
-
-class Input_I(ctypes.Union):
-    _fields_ = [("ki", KeyBdInput),
-                ("mi", MouseInput),
-                ("hi", HardwareInput)]
-
-
-class Input(ctypes.Structure):
-    _fields_ = [("type", ctypes.c_ulong),
-                ("ii", Input_I)]
-
-# Key Functions
-
-
-def PressKey(hexKeyCode):
-    extra = ctypes.c_ulong(0)
-    ii_ = Input_I()
-    ii_.ki = KeyBdInput(0, hexKeyCode, 0x0008, 0, ctypes.pointer(extra))
-    x = Input(ctypes.c_ulong(1), ii_)
-    ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
-
-
-def ReleaseKey(hexKeyCode):
-    extra = ctypes.c_ulong(0)
-    ii_ = Input_I()
-    ii_.ki = KeyBdInput(0, hexKeyCode, 0x0008 | 0x0002, 0, ctypes.pointer(extra))
-    x = Input(ctypes.c_ulong(1), ii_)
-    ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
-
-
-def apply_control(action):
-    if "forward" in action:
-        PressKey(W)
-    else:
-        ReleaseKey(W)
-    if "backward" in action:
-        PressKey(S)
-    else:
-        ReleaseKey(S)
-    if "left" in action:
-        PressKey(A)
-    else:
-        ReleaseKey(A)
-    if "right" in action:
-        PressKey(D)
-    else:
-        ReleaseKey(D)
-
-
-def load_digits():
-    zero = cv2.imread('digits/0.png', 0)
-    One = cv2.imread('digits/1.png', 0)
-    Two = cv2.imread('digits/2.png', 0)
-    Three = cv2.imread('digits/3.png', 0)
-    four = cv2.imread('digits/4.png', 0)
-    five = cv2.imread('digits/5.png', 0)
-    six = cv2.imread('digits/6.png', 0)
-    seven = cv2.imread('digits/7.png', 0)
-    eight = cv2.imread('digits/8.png', 0)
-    nine = cv2.imread('digits/9.png', 0)
-    digits = np.array([zero, One, Two, Three, four, five, six, seven, eight, nine])
-    return digits
-
-
-def get_speed(img, digits):
-    img1 = np.array(img[464:, 887:908])
-    img2 = np.array(img[464:, 909:930])
-    img3 = np.array(img[464:, 930:951])
-
-    img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-    img1[img1 > 250] = 255
-    img1[img1 <= 250] = 0
-    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    img2[img2 > 250] = 255
-    img2[img2 <= 250] = 0
-    img3 = cv2.cvtColor(img3, cv2.COLOR_BGR2GRAY)
-    img3[img3 > 250] = 255
-    img3[img3 <= 250] = 0
-    # compare digit with the others mean iou
-    best1 = 100000000
-    best2 = 100000000
-    best3 = 100000000
-    for idx, num in enumerate(digits):
-        if np.sum(np.bitwise_xor(img1, num)) < best1:
-            best1 = np.sum(np.bitwise_xor(img1, num))
-            num1 = idx
-        if np.sum(np.bitwise_xor(img2, num)) < best2:
-            best2 = np.sum(np.bitwise_xor(img2, num))
-            num2 = idx
-        if np.sum(np.bitwise_xor(img3, num)) < best3:
-            best3 = np.sum(np.bitwise_xor(img3, num))
-            num3 = idx
-        if np.max(img1) == 0:
-            best1 = 0
-            num1 = 0
-        if np.max(img2) == 0:
-            best2 = 0
-            num2 = 0
-        if np.max(img3) == 0:
-            best3 = 0
-            num3 = 0
-    speed = 100 * num1 + 10 * num2 + num3
-    return speed
 
 
 class TMInterface():
@@ -189,8 +51,7 @@ class TMInterface():
         apply_control(actions)  # TODO: format this
     
     def reset(self):
-        PressKey(ENTER)
-        ReleaseKey(ENTER)
+        keyres()
         # time.sleep(0.1)
         img = np.asarray(self.sct.grab(self.monitor))
         speed = get_speed(img, self.digits)

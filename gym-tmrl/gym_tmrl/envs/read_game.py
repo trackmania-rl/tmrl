@@ -2,7 +2,6 @@ import numpy as np
 import time
 import mss
 import cv2
-import sys
 from dummy_ai import middle_ai, get_speed, forward_ai ,radar, road
 from key_event import move_fast
 from tool import load_digits, stackImages, dileted_canny
