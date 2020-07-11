@@ -75,16 +75,14 @@ class TMInterface():
         speed = get_speed(img, self.digits)
         self.img = img  # for render()
         rew = speed
-        obs = {'speed': speed,
-               'img': img}
+        obs = (speed, img)
         done = False  # TODO: True if race complete
         return obs, rew, done
 
     def get_observation_space(self):
-        elt = {}
-        elt['speed'] = spaces.Box(low=0, high=1000, shape=(1,))
-        elt['img'] = spaces.Box(low=0, high=255, shape=(self.monitor["width"], self.monitor["height"],))
-        return spaces.Dict(elt)
+        speed = spaces.Box(low=0, high=1000, shape=(1,))
+        img = spaces.Box(low=0, high=255, shape=(self.monitor["width"], self.monitor["height"],))
+        return spaces.Tuple((speed, img))
 
     def get_action_space(self):
         return spaces.Box(low=0.0, high=1.0, shape=(4,))
@@ -101,8 +99,17 @@ def numpyze_dict(d):
         d[k] = np.array(i)
 
 
+DEFAULT_CONFIG_DICT = {
+    "forced_sleep_time": 0.1,
+    "ep_max_length": 100,
+    "real_time": False,
+    "act_threading": False,
+    "act_in_obs": False,
+}
+
+
 class TMRLEnv(Env):
-    def __init__(self, config):
+    def __init__(self, config=DEFAULT_CONFIG_DICT):
         """
         :param ep_max_length: (int) the max length of each episodes in timesteps
         :param real_time: bool: whether to use the RTRL setting
