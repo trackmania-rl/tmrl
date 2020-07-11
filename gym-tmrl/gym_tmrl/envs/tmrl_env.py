@@ -11,8 +11,8 @@ import cv2
 import mss
 import sys
 
-from tools import load_digits, get_speed
-from key_event import apply_control, keyres
+from gym_tmrl.envs.tools import load_digits, get_speed
+from gym_tmrl.envs.key_event import apply_control, keyres
 
 # from pynput.keyboard import Key, Controller
 import ctypes
