@@ -1,6 +1,6 @@
 # import library
 
-from read_game import screen_record
+from gym_tmrl.envs.read_game import screen_record
 
 if __name__ == '__main__':
     print("Wait 2 sec")

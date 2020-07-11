@@ -2,9 +2,9 @@ import numpy as np
 import time
 import mss
 import cv2
-from dummy_ai import middle_ai, get_speed, forward_ai ,radar, road
-from key_event import move_fast
-from tool import load_digits, stackImages, dileted_canny
+from gym_tmrl.envs.dummy_ai import middle_ai, forward_ai
+from gym_tmrl.envs.key_event import apply_control
+from gym_tmrl.envs.tools import load_digits, stackImages, dileted_canny, get_speed, radar, road
 """
 to capture images there is :
 https://stackoverflow.com/questions/35097837/capture-video-data-from-screen-in-python
@@ -45,7 +45,7 @@ def screen_record(tool):
             action = forward_ai()
 
         #execution
-        move_fast(action)
+        apply_control(action)
 
         # feature for human
         if "fps" in tool:
@@ -55,7 +55,7 @@ def screen_record(tool):
                 last_time = time.time()
                 nb = 0
         if "vis" in tool:
-            imgStacked = stackImages(0.7, ([[img,rad],[canny,mask]]))
+            imgStacked = stackImages(0.7, ([[img,rad],[canny,area]]))
             cv2.putText(imgStacked, "%d"%speed, (50, 50), cv2.FONT_HERSHEY_SIMPLEX ,1, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.imshow("PipeLine", imgStacked)
             if cv2.waitKey(1) & 0xFF == ord('q'):
