@@ -72,7 +72,7 @@ def get_speed(img, digits):
     img3[img3 > 250] = 255
     img3[img3 <= 250] = 0
 
-    best1, best2, best3 = np.inf, np.inf, np.inf
+    best1, best2, best3 = 100000, 100000, 100000
     for idx, num in enumerate(digits):
         if np.sum(np.bitwise_xor(img1, num)) < best1:
             best1 = np.sum(np.bitwise_xor(img1, num))
