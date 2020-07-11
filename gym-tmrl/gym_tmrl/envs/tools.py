@@ -1,17 +1,18 @@
 import numpy as np
 import cv2
+import os
 
 def load_digits():
-    zero = cv2.imread('gym_tmrl/envs/digits/0.png', 0)
-    One = cv2.imread('gym_tmrl/envs/digits/1.png', 0)
-    Two = cv2.imread('gym_tmrl/envs/digits/2.png', 0)
-    Three = cv2.imread('gym_tmrl/envs/digits/3.png', 0)
-    four = cv2.imread('gym_tmrl/envs/digits/4.png', 0)
-    five = cv2.imread('gym_tmrl/envs/digits/5.png', 0)
-    six = cv2.imread('gym_tmrl/envs/digits/6.png', 0)
-    seven = cv2.imread('gym_tmrl/envs/digits/7.png', 0)
-    eight = cv2.imread('gym_tmrl/envs/digits/8.png', 0)
-    nine = cv2.imread('gym_tmrl/envs/digits/9.png', 0)
+    zero = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/0.png', 0)
+    One = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/1.png', 0)
+    Two = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/2.png', 0)
+    Three = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/3.png', 0)
+    four = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/4.png', 0)
+    five = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/5.png', 0)
+    six = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/6.png', 0)
+    seven = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/7.png', 0)
+    eight = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/8.png', 0)
+    nine = cv2.imread('gym-tmrl/gym_tmrl/envs/digits/9.png', 0)
     digits = np.array([zero, One, Two, Three, four, five, six, seven, eight, nine])
     return digits
 
