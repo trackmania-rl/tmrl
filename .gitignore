@@ -124,5 +124,4 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-*.ipynb
 *.pth
