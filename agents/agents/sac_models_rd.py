@@ -169,6 +169,11 @@ class TMModule(Module):
         
         self.act_dim = action_space.shape[0]
         print(f"DEBUG: self.act_dim:{self.act_dim}")
+        
+        # image input (convolution)
+        # input: 958 * 490
+        
+        assert False
 
         if self.is_Q_network:
             self.lin = Linear(hidden_units + self.act_dim, hidden_units)

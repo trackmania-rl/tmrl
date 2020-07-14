@@ -51,13 +51,15 @@ class TMInterface():
         apply_control(actions)  # TODO: format this
     
     def reset(self):
+        """
+        obs must be a list of numpy arrays
+        """
         keyres()
         # time.sleep(0.1)
         img = np.asarray(self.sct.grab(self.monitor))
-        speed = get_speed(img, self.digits)
+        speed = np.array([get_speed(img, self.digits), ])
         self.img = img  # for render()
-        obs = {'speed': speed,
-               'img': img}
+        obs = [speed, img]
         return obs
 
     def wait(self):
@@ -70,18 +72,22 @@ class TMInterface():
     def get_obs_rew_done(self):
         """
         returns the observation, the reward, and a done signal for end of episode
+        obs must be a list of numpy arrays
         """
         img = np.asarray(self.sct.grab(self.monitor))
-        speed = get_speed(img, self.digits)
+        speed = np.array([get_speed(img, self.digits), ])
         self.img = img  # for render()
         rew = speed
-        obs = (speed, img)
+        obs = [speed, img]
         done = False  # TODO: True if race complete
         return obs, rew, done
 
     def get_observation_space(self):
+        """
+        must be a Tuple
+        """
         speed = spaces.Box(low=0, high=1000, shape=(1,))
-        img = spaces.Box(low=0, high=255, shape=(self.monitor["width"], self.monitor["height"],))
+        img = spaces.Box(low=0, high=255, shape=(self.monitor["height"], self.monitor["width"], 4))
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):
@@ -92,11 +98,6 @@ class TMInterface():
         initial action at episode start
         """
         return np.array([0.0, 0.0, 0.0, 0.0])
-
-
-def numpyze_dict(d):
-    for k, i in d.items():
-        d[k] = np.array(i)
 
 
 DEFAULT_CONFIG_DICT = {
@@ -180,6 +181,7 @@ class TMRLEnv(Env):
         return self.interface.get_action_space()
 
     def _get_observation_space(self):
+        # TODO: add action
         return self.interface.get_observation_space()
 
     def __send_act_and_wait(self, action):
@@ -205,10 +207,9 @@ class TMRLEnv(Env):
             d = (self.current_step >= self.ep_max_length)
         elt = o
         if self.act_in_obs:
-            elt['act'] = np.array(act)
+            elt = elt + [np.array(act), ]
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
-        numpyze_dict(elt)
         return elt, r, d
 
     def reset(self):
@@ -223,10 +224,9 @@ class TMRLEnv(Env):
         self.current_step = 0
         elt = self.interface.reset()
         if self.act_in_obs:
-            elt['act'] = np.array(self.default_action)
+            elt = elt + [np.array(self.default_action), ]
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
-        numpyze_dict(elt)
         return elt
 
     def step(self, action):
