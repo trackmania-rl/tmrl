@@ -7,7 +7,6 @@ from pathlib import Path
 
 def load_digits():
     p = Path(os.path.dirname(os.path.realpath(__file__))) / 'digits'
-    print(f"DEBUG: {str(p / '0.png')}")
     zero = cv2.imread(str(p / '0.png'), 0)
     One = cv2.imread(str(p / '1.png'), 0)
     Two = cv2.imread(str(p / '2.png'), 0)
