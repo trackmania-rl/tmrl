@@ -1,8 +1,0 @@
-# these prevent caching
-.git/logs/
-.git/hooks/
-.git/index
-.git/FETCH_HEAD
-.git/ORIG_HEAD
-.git/refs/remotes/origin/HEAD
-.git/config

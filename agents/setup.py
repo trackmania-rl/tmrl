@@ -11,7 +11,7 @@ setup(
     name='agents',
     version="0.1",
     description='',
-    author='Simon Ramstedt',
+    author='Simon Ramstedt, Yann Bouteiller',
     author_email='simonramstedt@gmail.com',
     url='https://github.com/rmst/agents',
     download_url='',
