@@ -41,13 +41,13 @@ class TMInterface():
         """
         actions = []
         if control[0] > 0.5:
-            actions.append("forward")
+            actions.append("f")
         elif control[1] > 0.5:
-            actions.append("backward")
+            actions.append("b")
         if control[2] > 0.5:
-            actions.append("right")
+            actions.append("r")
         elif control[3] > 0.5:
-            actions.append("left")
+            actions.append("l")
         apply_control(actions)  # TODO: format this
     
     def reset(self):
@@ -244,7 +244,7 @@ class TMRLEnv(Env):
         self.current_step += 1
         if not self.real_time:
             self._run_time_step(action)
-        obs, rew, done = self._get_obs_rew_done(action)  # TODO : threading must be modified so observation capture is handled correctly in the RTRL delay
+        obs, rew, done = self._get_obs_rew_done(action)  # TODO : threading must be modified so observation capture is handled correctly in the RTRL setting
         info = {}
         if self.real_time:
             self._run_time_step(action)
