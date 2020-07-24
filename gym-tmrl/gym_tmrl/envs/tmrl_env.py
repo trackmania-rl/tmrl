@@ -50,15 +50,24 @@ class TMInterface():
             actions.append("l")
         apply_control(actions)  # TODO: format this
     
+    def grab_img_and_speed(self):
+        img = np.asarray(self.sct.grab(self.monitor))[:,:,:3]
+        speed = np.array([get_speed(img, self.digits), ], dtype='float32')
+        img = cv2.resize(img, (32,32))
+        img = np.moveaxis(img, -1, 0)
+        img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
+        print(f"DEBUG: Env: captured speed:{speed}")
+        speed = speed / 1000.0  # normalized, but not centered
+        self.img = img  # for render()
+        return img, speed
+    
     def reset(self):
         """
         obs must be a list of numpy arrays
         """
         keyres()
         # time.sleep(0.1)
-        img = np.asarray(self.sct.grab(self.monitor))
-        speed = np.array([get_speed(img, self.digits), ])
-        self.img = img  # for render()
+        img, speed = self.grab_img_and_speed()
         obs = [speed, img]
         return obs
 
@@ -74,20 +83,19 @@ class TMInterface():
         returns the observation, the reward, and a done signal for end of episode
         obs must be a list of numpy arrays
         """
-        img = np.asarray(self.sct.grab(self.monitor))
-        speed = np.array([get_speed(img, self.digits), ])
-        self.img = img  # for render()
-        rew = speed
+        img, speed = self.grab_img_and_speed()
+        rew = speed[0]
         obs = [speed, img]
         done = False  # TODO: True if race complete
+        
         return obs, rew, done
 
     def get_observation_space(self):
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0, high=1000, shape=(1,))
-        img = spaces.Box(low=0, high=255, shape=(self.monitor["height"], self.monitor["width"], 4))
+        speed = spaces.Box(low=0.0, high=1.0, shape=(1,))
+        img = spaces.Box(low=0.0, high=1.0, shape=(3, 32, 32))
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):
@@ -210,6 +218,7 @@ class TMRLEnv(Env):
             elt = elt + [np.array(act), ]
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
+        elt = tuple(elt)
         return elt, r, d
 
     def reset(self):
@@ -227,6 +236,7 @@ class TMRLEnv(Env):
             elt = elt + [np.array(self.default_action), ]
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
+        elt = tuple(elt)
         return elt
 
     def step(self, action):
