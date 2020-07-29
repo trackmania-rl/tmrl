@@ -157,6 +157,8 @@ class TMModule(Module):
         """
         super().__init__()
         assert isinstance(observation_space, gym.spaces.Tuple)
+        
+        torch.autograd.set_detect_anomaly(True)
 
         # print(f"DEBUG: observation_space:{observation_space}")
         # print(f"DEBUG: action_space:{action_space}")

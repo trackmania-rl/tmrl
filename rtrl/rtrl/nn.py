@@ -36,86 +36,90 @@ def copy_shared(model_a):
 
 
 class PopArt(Module):
-  """PopArt http://papers.nips.cc/paper/6076-learning-values-across-many-orders-of-magnitude"""
-  def __init__(self, output_layer, beta: float = 0.0003, zero_debias: bool = True, start_pop: int = 8):
-    # zero_debias=True and start_pop=8 seem to improve things a little but (False, 0) works as well
-    super().__init__()
-    self.start_pop = start_pop
-    self.beta = beta
-    self.zero_debias = zero_debias
-    self.output_layers = output_layer if isinstance(output_layer, (tuple, list, torch.nn.ModuleList)) else (output_layer,)
-    shape = self.output_layers[0].bias.shape
-    device = self.output_layers[0].bias.device
-    assert all(shape == x.bias.shape for x in self.output_layers)
-    self.mean = Parameter(torch.zeros(shape, device=device), requires_grad=False)
-    self.mean_square = Parameter(torch.ones(shape, device=device), requires_grad=False)
-    self.std = Parameter(torch.ones(shape, device=device), requires_grad=False)
-    self.updates = 0
+    """PopArt http://papers.nips.cc/paper/6076-learning-values-across-many-orders-of-magnitude"""
 
-  @torch.no_grad()
-  def update(self, targets):
-    beta = max(1/(self.updates+1), self.beta) if self.zero_debias else self.beta
-    # note that for beta = 1/self.updates the resulting mean, std would be the true mean and std over all past data
-    
-    new_mean = (1 - beta) * self.mean + beta * targets.mean(0)
-    new_mean_square = (1 - beta) * self.mean_square + beta * (targets * targets).mean(0)
-    new_std = (new_mean_square - new_mean * new_mean).sqrt().clamp(0.0001, 1e6)
+    def __init__(self, output_layer, beta: float = 0.0003, zero_debias: bool = True, start_pop: int = 8):
+        # zero_debias=True and start_pop=8 seem to improve things a little but (False, 0) works as well
+        super().__init__()
+        self.start_pop = start_pop
+        self.beta = beta
+        self.zero_debias = zero_debias
+        self.output_layers = output_layer if isinstance(output_layer, (tuple, list, torch.nn.ModuleList)) else (output_layer,)
+        shape = self.output_layers[0].bias.shape
+        device = self.output_layers[0].bias.device
+        assert all(shape == x.bias.shape for x in self.output_layers)
+        self.mean = Parameter(torch.zeros(shape, device=device), requires_grad=False)
+        self.mean_square = Parameter(torch.ones(shape, device=device), requires_grad=False)
+        self.std = Parameter(torch.ones(shape, device=device), requires_grad=False)
+        self.updates = 0
 
-    assert self.std.shape == (1,), f"this has only been tested in 1D, self.std.shape:{self.std.shape}"
+    @torch.no_grad()
+    def update(self, targets):
+        beta = max(1 / (self.updates + 1), self.beta) if self.zero_debias else self.beta
+        # note that for beta = 1/self.updates the resulting mean, std would be the true mean and std over all past data
 
-    if self.updates >= self.start_pop:
-      for layer in self.output_layers:
-        # TODO: Properly apply PopArt in RTAC and remove the hack below
-        # We modify the weight while it's gradient is being computed
-        # Therefore we have to use .data (Pytorch would otherwise throw an error)
-        layer.weight *= self.std / new_std
-        layer.bias *= self.std
-        layer.bias += self.mean - new_mean
-        layer.bias /= new_std
+        new_mean = (1 - beta) * self.mean + beta * targets.mean(0)
+        new_mean_square = (1 - beta) * self.mean_square + beta * (targets * targets).mean(0)
+        new_std = (new_mean_square - new_mean * new_mean).sqrt().clamp(0.0001, 1e6)
 
-    self.mean.copy_(new_mean)
-    self.mean_square.copy_(new_mean_square)
-    self.std.copy_(new_std)
-    self.updates += 1
-    return self.normalize(targets)
+        # assert self.std.shape == (1,), 'this has only been tested in 1D'
 
-  def normalize(self, x):
-    return (x - self.mean) / self.std
+        if self.updates >= self.start_pop:
+            for layer in self.output_layers:
+                layer.weight *= (self.std / new_std)[:, None]
+                layer.bias *= self.std
+                layer.bias += self.mean - new_mean
+                layer.bias /= new_std
 
-  def unnormalize(self, value):
-    return value * self.std + self.mean
+        self.mean.copy_(new_mean)
+        self.mean_square.copy_(new_mean_square)
+        self.std.copy_(new_std)
+        self.updates += 1
+        return self.normalize(targets)
+
+    def normalize(self, x):
+        return (x - self.mean) / self.std
+
+    def unnormalize(self, x):
+        return x * self.std + self.mean
+
+    def normalize_sum(self, s):
+        """normalize x.sum(1) preserving relative weightings between elements"""
+        return (s - self.mean.sum()) / self.std.norm()
 
 
 # noinspection PyAbstractClass
 class TanhNormal(Distribution):
-  """Distribution of X ~ tanh(Z) where Z ~ N(mean, std)
-  Adapted from https://github.com/vitchyr/rlkit
-  """
-  def __init__(self, normal_mean, normal_std, epsilon=1e-6):
-    self.normal_mean = normal_mean
-    self.normal_std = normal_std
-    self.normal = Normal(normal_mean, normal_std)
-    self.epsilon = epsilon
-    super().__init__(self.normal.batch_shape, self.normal.event_shape)
+    """Distribution of X ~ tanh(Z) where Z ~ N(mean, std)
+    Adapted from https://github.com/vitchyr/rlkit
+    """
 
-  def log_prob(self, x):
-    assert hasattr(x, "pre_tanh_value")
-    assert x.dim() == 2 and x.pre_tanh_value.dim() == 2
-    return self.normal.log_prob(x.pre_tanh_value) - torch.log(
-      1 - x * x + self.epsilon
-    )
+    def __init__(self, normal_mean, normal_std, epsilon=1e-6):
+        self.normal_mean = normal_mean
+        self.normal_std = normal_std
+        self.normal = Normal(normal_mean, normal_std)
+        self.epsilon = epsilon
+        super().__init__(self.normal.batch_shape, self.normal.event_shape)
 
-  def sample(self, sample_shape=torch.Size()):
-    z = self.normal.sample(sample_shape)
-    out = torch.tanh(z)
-    out.pre_tanh_value = z
-    return out
+    def log_prob(self, x):
+        if hasattr(x, "pre_tanh_value"):
+            pre_tanh_value = x.pre_tanh_value
+        else:
+            pre_tanh_value = (torch.log(1 + x + self.epsilon) - torch.log(1 - x + self.epsilon)) / 2
+        assert x.dim() == 2 and pre_tanh_value.dim() == 2
+        return self.normal.log_prob(pre_tanh_value) - torch.log(1 - x * x + self.epsilon)
 
-  def rsample(self, sample_shape=torch.Size()):
-    z = self.normal.rsample(sample_shape)
-    out = torch.tanh(z)
-    out.pre_tanh_value = z
-    return out
+    def sample(self, sample_shape=torch.Size()):
+        z = self.normal.sample(sample_shape)
+        out = torch.tanh(z)
+        out.pre_tanh_value = z
+        return out
+
+    def rsample(self, sample_shape=torch.Size()):
+        z = self.normal.rsample(sample_shape)
+        out = torch.tanh(z)
+        out.pre_tanh_value = z
+        return out
 
 
 # noinspection PyAbstractClass

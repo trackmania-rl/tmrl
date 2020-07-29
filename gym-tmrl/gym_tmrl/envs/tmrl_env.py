@@ -14,6 +14,8 @@ import sys
 from gym_tmrl.envs.tools import load_digits, get_speed
 from gym_tmrl.envs.key_event import apply_control, keyres
 
+from collections import deque
+
 # from pynput.keyboard import Key, Controller
 import ctypes
 
@@ -22,7 +24,7 @@ class TMInterface():
     """
     This is the API needed for the algorithm to control Trackmania
     """
-    def __init__(self):
+    def __init__(self, img_hist_len=4):
         """
         Args:
         """
@@ -30,7 +32,8 @@ class TMInterface():
         self.sct = mss.mss()
         self.last_time = time.time()
         self.digits = load_digits()
-        self.img = None  # for render()
+        self.img_hist_len = img_hist_len
+        self.img_hist = deque(maxlen=self.img_hist_len)
 
     def send_control(self, control):
         """
@@ -65,10 +68,14 @@ class TMInterface():
         """
         obs must be a list of numpy arrays
         """
+        self.send_control([0, 0, 0, 0])
         keyres()
-        # time.sleep(0.1)
+        time.sleep(0.05)  # must be long enough for image to be refreshed
         img, speed = self.grab_img_and_speed()
-        obs = [speed, img]
+        for _ in range(self.img_hist_len):
+            self.img_hist.append(img)
+        imgs = np.array([i for i in self.img_hist])
+        obs = [speed, imgs]
         return obs
 
     def wait(self):
@@ -76,7 +83,7 @@ class TMInterface():
         Non-blocking function
         The agent stays 'paused', waiting in position
         """
-        pass
+        apply_control([0, 0, 0, 0])
 
     def get_obs_rew_done(self):
         """
@@ -85,7 +92,9 @@ class TMInterface():
         """
         img, speed = self.grab_img_and_speed()
         rew = speed[0]
-        obs = [speed, img]
+        self.img_hist.append(img)
+        imgs = np.array([i for i in self.img_hist])
+        obs = [speed, imgs]
         done = False  # TODO: True if race complete
         
         return obs, rew, done
@@ -95,7 +104,7 @@ class TMInterface():
         must be a Tuple
         """
         speed = spaces.Box(low=0.0, high=1.0, shape=(1,))
-        img = spaces.Box(low=0.0, high=1.0, shape=(3, 32, 32))
+        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 32, 32))
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):
@@ -258,12 +267,16 @@ class TMRLEnv(Env):
         info = {}
         if self.real_time:
             self._run_time_step(action)
-        if self.current_step >= self.ep_max_length:
+        if done:
             self.interface.wait()
         return obs, rew, done, info
 
     def stop(self):
         self._join_act_thread()
+
+    def wait(self):
+        self._join_act_thread()
+        self.interface.wait()
 
     def render(self, mode='human'):
         """
