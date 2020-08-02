@@ -10,6 +10,7 @@ from torch.nn import Linear, Sequential, ReLU, ModuleList, Module, Conv2d, MaxPo
 from torch.nn import functional as F
 from agents.nn import TanhNormalLayer, SacLinear, big_conv
 from agents.envs import UntouchedGymEnv
+import torch.nn as nn
 
 
 class ActorModule(Module):
@@ -208,7 +209,7 @@ class TMModule1(Module):
         return h
 
 
-class TMModule(Module):
+class TMModuleNet(Module):
     def __init__(self, observation_space, action_space, is_Q_network):  # FIXME: action_space param is useless
         """
         Args:
@@ -276,11 +277,44 @@ class TMModule(Module):
         h = self.fc1(h)
         return h
 
+class TMModuleResnet(Module):
+    def __init__(self, observation_space, action_space, is_Q_network):  # FIXME: action_space param is useless
+        super().__init__()
+        assert isinstance(observation_space, gym.spaces.Tuple)
+        torch.autograd.set_detect_anomaly(True)
+        self.img_dims = observation_space[1].shape
+        self.vel_dim = observation_space[0].shape[0]
+        self.is_Q_network = is_Q_network
+        self.act_dim = action_space.shape[0]
+        self.cnn = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
+        self.cnn.fc = nn.Linear(self.cnn.fc.in_features, 200) # remove the last fc layer
+        if self.is_Q_network:
+            self.fc1 = Linear(200 + self.vel_dim + self.act_dim, 120)
+        else:
+            self.fc1 = Linear(200 + self.vel_dim, 120)
+
+    def forward(self, x):
+        # assert isinstance(x, tuple), f"x is not a tuple: {x}"
+        vel = x[0].float()
+        im1 = x[1].float()[:, 0]
+        im2 = x[1].float()[:, 1]
+        im3 = x[1].float()[:, 2]
+        im4 = x[1].float()[:, 3]
+        im = torch.cat((im1, im2, im3, im4), dim=2)  # TODO : check device
+        im = self.cnn(im)
+        if self.is_Q_network:
+            act = x[2].float()
+            h = torch.cat((im, vel, act), dim=1)
+        else:
+            h = torch.cat((im, vel), dim=1)
+        h = self.fc1(h)
+        return h
+
 
 class TMActionValue(Sequential):
     def __init__(self, observation_space, action_space):
         super().__init__(
-            TMModule(observation_space, action_space, is_Q_network=True), ReLU(),
+            TMModuleResnet(observation_space, action_space, is_Q_network=True), ReLU(),
             Linear(120, 84), ReLU(),
             Linear(84, 2)  # we separate reward components
         )
@@ -296,7 +330,7 @@ class TMActionValue(Sequential):
 class TMPolicy(Sequential):
     def __init__(self, observation_space, action_space):
         super().__init__(
-            TMModule(observation_space, action_space, is_Q_network=False), ReLU(),
+            TMModuleResnet(observation_space, action_space, is_Q_network=False), ReLU(),
             Linear(120, 84), ReLU(),
             TanhNormalLayer(84, action_space.shape[0])
         )
@@ -328,16 +362,16 @@ if __name__ == "__main__":
         Training,
         epochs=10,
         rounds=50,
-        steps=100,
-        nb_env_it_per_step=100,
+        steps=1,
+        nb_env_it_per_step=400,
         nb_train_it_per_step=50,
-        start_training=128,
+        start_training=256,
         Agent=partial(Agent,
-                      device='cpu',
+                      device='cuda',
                       Model=partial(Tm_hybrid_1),
                       memory_size=500000,
-                      batchsize=32,
-                      lr=0.005,  # default 0.0003
+                      batchsize=8,
+                      lr=0.0003,  # default 0.0003
                       discount=0.99,
                       target_update=0.005,
                       reward_scale=5.0,

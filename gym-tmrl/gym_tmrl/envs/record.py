@@ -37,6 +37,8 @@ while not c :
     t1 = t1+time_step
 
     img = np.asarray(sct.grab(monitor))[:, :, :3]
+    speed = np.array([get_speed(img, digits), ], dtype='float32')
+    img=img[100:-150, :]
     ev = get_gamepad()
     all_events = []
     while ev is not None:
@@ -46,7 +48,7 @@ while not c :
         for event in all_events:
             if str(event.code) == "BTN_SOUTH":
                 dir[0]=event.state
-            elif str(event.code) == "BTN_TL" or str(event.code) == "BTN_WEST":
+            elif str(event.code) == "BTN_TR" or str(event.code) == "BTN_WEST":
                 dir[1]=event.state
             elif str(event.code) == "ABS_X":
                 gd = event.state / 32768
@@ -62,7 +64,7 @@ while not c :
 
 
 
-    speed = np.array([get_speed(img, digits), ], dtype='float32')
+
     cv2.imwrite(path + str(iter) + ".png", img)
     speeds.append(speed)
     dirs.append(dir)

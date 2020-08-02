@@ -46,6 +46,7 @@ class Training:
         with StatsWrapper(self.Env(seed_val=self.seed + self.epoch), window=self.stats_window or self.steps) as env:
             for rnd in range(self.rounds):
                 print(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
+                print(f"DEBUG: SAC (Training): current memory size:{len(self.agent.memory)}")
 
                 t0 = pd.Timestamp.utcnow()
                 stats_training = []

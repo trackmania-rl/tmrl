@@ -56,10 +56,11 @@ class TMInterface():
     def grab_img_and_speed(self):
         img = np.asarray(self.sct.grab(self.monitor))[:,:,:3]
         speed = np.array([get_speed(img, self.digits), ], dtype='float32')
-        img = cv2.resize(img, (32,32))
+        img = img[100:-150, :]
+        img = cv2.resize(img, (50, 190))
         img = np.moveaxis(img, -1, 0)
         img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
-        print(f"DEBUG: Env: captured speed:{speed}")
+        #print(f"DEBUG: Env: captured speed:{speed}")
         speed = speed / 1000.0  # normalized, but not centered
         self.img = img  # for render()
         return img, speed
@@ -104,7 +105,7 @@ class TMInterface():
         must be a Tuple
         """
         speed = spaces.Box(low=0.0, high=1.0, shape=(1,))
-        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 32, 32))
+        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 50, 190))
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):
@@ -118,7 +119,7 @@ class TMInterface():
 
 
 DEFAULT_CONFIG_DICT = {
-    "forced_sleep_time": 0.1,
+    "forced_sleep_time": 0.05,
     "ep_max_length": 100,
     "real_time": False,
     "act_threading": False,
