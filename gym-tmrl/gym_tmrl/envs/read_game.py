@@ -24,6 +24,7 @@ def screen_record(tool):
     road_point=(400,500)
     while(True):
         img = np.asarray(sct.grab(monitor))[:,:,:3]
+        print(img.shape)
 
         # get information
         if "get_speed" in tool:
@@ -55,7 +56,7 @@ def screen_record(tool):
                 last_time = time.time()
                 nb = 0
         if "vis" in tool:
-            imgStacked = stackImages(0.7, ([[img,rad],[canny,area]]))
+            imgStacked = stackImages(0.7, ([[img,rad],[canny,mask]]))
             cv2.putText(imgStacked, "%d"%speed, (50, 50), cv2.FONT_HERSHEY_SIMPLEX ,1, (255, 0, 0), 2, cv2.LINE_AA)
             cv2.imshow("PipeLine", imgStacked)
             if cv2.waitKey(1) & 0xFF == ord('q'):
