@@ -7,7 +7,8 @@ import numpy as np
 import torch
 from torch.nn.functional import mse_loss
 
-from agents.memory import Memory
+from agents.memory_dataloading import Memory
+#from agents.memory import Memory
 from agents.nn import PopArt, no_grad, copy_shared, exponential_moving_average, hd_conv
 from agents.util import cached_property, partial
 import agents.sac_models

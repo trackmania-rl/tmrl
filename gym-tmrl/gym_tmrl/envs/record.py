@@ -39,6 +39,7 @@ while not c :
     img = np.asarray(sct.grab(monitor))[:, :, :3]
     speed = np.array([get_speed(img, digits), ], dtype='float32')
     img=img[100:-150, :]
+    img = cv2.resize(img, (190, 50))
     ev = get_gamepad()
     all_events = []
     while ev is not None:

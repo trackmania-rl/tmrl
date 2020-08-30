@@ -57,7 +57,7 @@ class TMInterface():
         img = np.asarray(self.sct.grab(self.monitor))[:,:,:3]
         speed = np.array([get_speed(img, self.digits), ], dtype='float32')
         img = img[100:-150, :]
-        img = cv2.resize(img, (50, 190))
+        img = cv2.resize(img, (190, 50))
         img = np.moveaxis(img, -1, 0)
         img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
         #print(f"DEBUG: Env: captured speed:{speed}")

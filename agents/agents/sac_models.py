@@ -303,6 +303,7 @@ class TMModuleResnet(Module):
         im = torch.cat((im1, im2, im3, im4), dim=2)  # TODO : check device
         im = self.cnn(im)
         if self.is_Q_network:
+            print(x[2])
             act = x[2].float()
             h = torch.cat((im, vel, act), dim=1)
         else:
@@ -360,16 +361,17 @@ if __name__ == "__main__":
     # trackmania agent (Yann):
     Sac_tm = partial(
         Training,
+
         epochs=10,
         rounds=50,
         steps=1,
-        nb_env_it_per_step=400,
+        nb_env_it_per_step=50,
         nb_train_it_per_step=50,
-        start_training=256,
+        start_training=0,
         Agent=partial(Agent,
                       device='cuda',
                       Model=partial(Tm_hybrid_1),
-                      memory_size=500000,
+                      memory_size=10,
                       batchsize=8,
                       lr=0.0003,  # default 0.0003
                       discount=0.99,
