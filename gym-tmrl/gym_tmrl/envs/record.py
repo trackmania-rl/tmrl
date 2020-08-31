@@ -68,6 +68,7 @@ while not c :
 
     cv2.imwrite(path + str(iter) + ".png", img)
     speeds.append(speed)
+    dir = [float(i) for i in dir]
     dirs.append(dir)
     iters.append(iter)
     iter=iter+1

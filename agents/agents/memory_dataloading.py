@@ -54,10 +54,10 @@ class Memory:
 
         l=(
             (self.data[2][idx_last], imgs[:-1]),  # last_observation
-            self.data[1][idx_last],  # last_action
+            np.array(self.data[1][idx_last]),  # last_action
             self.data[2][idx_now][0],  # r
             (self.data[2][idx_now], imgs[1:]),  # obs
-            0.0,  # done
+            np.float32(0.0),  # done
         )
         return l
 
@@ -79,11 +79,4 @@ class Memory:
 
 if __name__ == "__main__":
     dataset = Memory(memory_size=10, batchsize=3, device='cpu', remove_size=100, path_loc=r"D:\data", imgs_obs=4)
-    print('last_observation', dataset[0][0][0])
-    print('last_observation', dataset[0][0][1].shape)  #
-    print('last_action', dataset[0][1])
-    print('r', dataset[0][2])
-    print('obs', dataset[0][3][0])
-    print('obs', dataset[0][3][1].shape)  #
-    print('done', dataset[0][4])
-    exit()
+    dat = dataset[0]

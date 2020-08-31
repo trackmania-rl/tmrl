@@ -303,7 +303,6 @@ class TMModuleResnet(Module):
         im = torch.cat((im1, im2, im3, im4), dim=2)  # TODO : check device
         im = self.cnn(im)
         if self.is_Q_network:
-            print(x[2])
             act = x[2].float()
             h = torch.cat((im, vel, act), dim=1)
         else:
