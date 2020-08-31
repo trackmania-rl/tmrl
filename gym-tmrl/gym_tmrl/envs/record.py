@@ -6,7 +6,7 @@ import time
 import cv2
 from inputs import get_gamepad
 
-dir = [0,0,0,0] #a,r,g,d
+dir = [0, 0, 0, 0]  # dir :  [acc [0,1], brake [0,1], left [0,1], right [0,1]]
 path = r"D:/data/"
 digits = load_digits()
 monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
