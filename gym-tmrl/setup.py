@@ -5,5 +5,6 @@ setup(name='gym_tmrl',
       install_requires=['gym',
                         'opencv-python',
                         'mss',
-                        'scikit-image']
+                        'scikit-image',
+                        'inputs']
       )

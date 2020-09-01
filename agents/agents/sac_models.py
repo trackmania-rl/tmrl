@@ -354,20 +354,25 @@ class Tm_hybrid_1(ActorModule):
 
 
 if __name__ == "__main__":
-    from agents import Training, run
+    from agents import TrainingOffline, run
     from agents.util import partial
     from agents.sac import Agent
+    import gym
 
     # trackmania agent (Yann):
+    speed = gym.spaces.Box(low=0.0, high=1.0, shape=(1,))
+    img = gym.spaces.Box(low=0.0, high=1.0, shape=(4, 3, 50, 190))
+    observation_space = gym.spaces.Tuple((speed, img))
+    action_space = gym.spaces.Box(low=0.0, high=1.0, shape=(4,))
     Sac_tm = partial(
-        Training,
+        TrainingOffline,
 
+        observation_space=observation_space,
+        action_space=action_space,
         epochs=10,
         rounds=50,
         steps=1,
-        nb_env_it_per_step=50,
         nb_train_it_per_step=50,
-        start_training=0,
         Agent=partial(Agent,
                       device='cuda',
                       Model=partial(Tm_hybrid_1),

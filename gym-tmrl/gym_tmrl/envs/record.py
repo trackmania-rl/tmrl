@@ -6,8 +6,8 @@ import time
 import cv2
 from inputs import get_gamepad
 
-dir = [0,0,0,0] #a,r,g,d
-path = r"D:/data/"
+dir = [0, 0, 0, 0]  # a,r,g,d
+path = r"C:/Users/Yann/Desktop/git/tmrl/data"
 digits = load_digits()
 monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
 sct = mss.mss()

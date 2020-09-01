@@ -5,6 +5,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+
 class Memory:
     keep_reset_transitions: int = 0
 
@@ -23,26 +24,29 @@ class Memory:
         with open(self.path / 'data.pkl', 'rb') as f:
             self.data = pickle.load(f)
 
+        if len(self) > self.capacity:
+            # TODO: crop to memory_size
+            print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.capacity})")
+
     def append(self, r, done, info, obs, action):
-        return
-        if self.last_observation is not None:
-
-            if self.keep_reset_transitions:
-                store = True
-            else:
-                # info["reset"] = True means the episode reset shouldn't be treated as a true terminal state
-                store = not info.get('TimeLimit.truncated', False) and not info.get('reset', False)
-
-            if store:
-                self.memory.append((self.last_observation, self.last_action, r, obs, done))
-
-        self.last_observation = obs
-        self.last_action = action
-
-        # remove old entries if necessary (delete generously so we don't have to do it often)
-        if len(self.data) > self.capacity:
-            del self.data[:self.capacity // self.remove_size + 1]
         return self
+        # if self.last_observation is not None:
+        #
+        #     if self.keep_reset_transitions:
+        #         store = True
+        #     else:
+        #         # info["reset"] = True means the episode reset shouldn't be treated as a true terminal state
+        #         store = not info.get('TimeLimit.truncated', False) and not info.get('reset', False)
+        #
+        #     if store:
+        #         self.memory.append((self.last_observation, self.last_action, r, obs, done))
+        # self.last_observation = obs
+        # self.last_action = action
+        #
+        # # remove old entries if necessary (delete generously so we don't have to do it often)
+        # if len(self.data) > self.capacity:
+        #     del self.data[:self.capacity // self.remove_size + 1]
+        # return self
 
     def __len__(self):
         return len(self.data[0])-self.imgs_obs-1
@@ -77,8 +81,9 @@ class Memory:
         batch = collate(batch, self.device)
         return batch
 
+
 if __name__ == "__main__":
-    dataset = Memory(memory_size=10, batchsize=3, device='cpu', remove_size=100, path_loc=r"D:\data", imgs_obs=4)
+    dataset = Memory(memory_size=10, batchsize=3, device='cpu', remove_size=100, path_loc=r"C:\Users\Yann\Desktop\git\tmrl\data", imgs_obs=4)
     print('last_observation', dataset[0][0][0])
     print('last_observation', dataset[0][0][1].shape)  #
     print('last_action', dataset[0][1])

@@ -15,6 +15,7 @@ import yaml
 from agents.envs import AvenueEnv
 from agents.util import partial, save_json, partial_to_dict, partial_from_dict, load_json, dump, load, git_info
 from agents.training import Training
+from agents.training_offline import TrainingOffline
 import agents.rtac
 import agents.rrtac
 import agents.sac

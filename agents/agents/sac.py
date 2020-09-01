@@ -1,14 +1,14 @@
-from collections import deque
+# from collections import deque
 from copy import deepcopy, copy
 from dataclasses import dataclass, InitVar
 from functools import lru_cache, reduce
-from itertools import chain
+# from itertools import chain
 import numpy as np
 import torch
 from torch.nn.functional import mse_loss
 
 from agents.memory_dataloading import Memory
-#from agents.memory import Memory
+# from agents.memory import Memory
 from agents.nn import PopArt, no_grad, copy_shared, exponential_moving_average, hd_conv
 from agents.util import cached_property, partial
 import agents.sac_models
@@ -28,6 +28,8 @@ class Agent:
     reward_scale: float = 5.
     entropy_scale: float = 1.
     device: str = None
+    observation_space = None
+    action_space = None
 
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
@@ -35,8 +37,11 @@ class Agent:
     # environment_steps = 0
 
     def __post_init__(self, Env):
-        with Env() as env:
-            observation_space, action_space = env.observation_space, env.action_space
+        if Env is not None:
+            with Env() as env:
+                observation_space, action_space = env.observation_space, env.action_space
+        else:
+            observation_space, action_space = self.observation_space, self.action_space
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         model = self.Model(observation_space, action_space)
         self.model = model.to(device)
