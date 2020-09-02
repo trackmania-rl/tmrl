@@ -13,6 +13,8 @@ from agents.nn import PopArt, no_grad, copy_shared, exponential_moving_average, 
 from agents.util import cached_property, partial
 import agents.sac_models
 
+import gym
+
 
 @dataclass(eq=0)
 class Agent:
@@ -28,8 +30,8 @@ class Agent:
     reward_scale: float = 5.
     entropy_scale: float = 1.
     device: str = None
-    observation_space = None
-    action_space = None
+    observation_space: gym.spaces.Space = None
+    action_space: gym.spaces.Space = None
     path_loc: str = r"D:\data"
     imgs_obs: int = 4
 

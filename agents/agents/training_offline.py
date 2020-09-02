@@ -20,8 +20,8 @@ import gym
 
 @dataclass(eq=0)
 class TrainingOffline:
-    observation_space: gym.spaces.Space
-    action_space: gym.spaces.Space
+    observation_space: gym.spaces.Space = None
+    action_space: gym.spaces.Space = None
     Agent: type = agents.sac.Agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
     rounds: int = 50  # number of rounds per epoch, we generate statistics every round
@@ -48,20 +48,7 @@ class TrainingOffline:
             t0 = pd.Timestamp.utcnow()
             stats_training = []
 
-            # start test and run it in parallel to the training process
-            # test = self.Test(
-            #     Env=self.Env,
-            #     actor=self.agent.model,
-            #     steps=self.stats_window or self.steps,
-            #     base_seed=self.seed + self.epochs
-            # )
-
             for step in range(self.steps):
-
-                # for _ in range(self.nb_env_it_per_step):
-                #     action, state = self.agent.act(state, *env.transition, train=True)
-                #     self.environment_steps += 1
-                #     env.step(action)
 
                 if self.total_updates == 0:
                     print("starting training")

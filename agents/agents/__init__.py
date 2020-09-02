@@ -34,7 +34,8 @@ def iterate_episodes(run_cls: type = Training, checkpoint_path: str = None):
     try:
         if not exists(checkpoint_path):
             print("=== specification ".ljust(70, "="))
-            print(yaml.dump(partial_to_dict(run_cls), indent=3, default_flow_style=False, sort_keys=False), end="")
+            print(f"DEBUG:{partial_to_dict(run_cls)}")
+            # print(yaml.dump(partial_to_dict(run_cls), indent=3, default_flow_style=False, sort_keys=False), end="")
             run_instance = run_cls()
             dump(run_instance, checkpoint_path)
             print("")

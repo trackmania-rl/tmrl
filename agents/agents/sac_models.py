@@ -353,7 +353,7 @@ class Tm_hybrid_1(ActorModule):
 
 
 if __name__ == "__main__":
-    from agents import TrainingOffline, Training, run, run_wandb
+    from agents import TrainingOffline, Training, run, run_wandb, run_fs
     from agents.util import partial
     from agents.sac import Agent
     import gym
@@ -365,13 +365,12 @@ if __name__ == "__main__":
     action_space = gym.spaces.Box(low=0.0, high=1.0, shape=(4,))
     Sac_tm = partial(
         TrainingOffline,
-
         observation_space=observation_space,
         action_space=action_space,
-        epochs=10,
-        rounds=50,
+        epochs=3,
+        rounds=1,
         steps=1,
-        nb_train_it_per_step=50,
+        nb_train_it_per_step=2,
         Agent=partial(Agent,
                       path_loc=r"C:/Users/Yann/Desktop/git/tmrl/data/",
                       imgs_obs=4,
@@ -384,7 +383,6 @@ if __name__ == "__main__":
                       target_update=0.005,
                       reward_scale=5.0,
                       entropy_scale=1.0),
-        Env=partial(UntouchedGymEnv, id="gym_tmrl:gym-tmrl-v0"),
     )
 
     # # test pendulum:
@@ -397,4 +395,4 @@ if __name__ == "__main__":
     # )
 
     print("--- NOW RUNNING: SAC trackmania ---")
-    run(Sac_tm)#, checkpoint_path = r"D:\cp\checkpoint.pkl")
+    run(Sac_tm, checkpoint_path = r"C:/Users/Yann/Desktop/git/tmrl/cp.pkl")
