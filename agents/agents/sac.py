@@ -30,6 +30,8 @@ class Agent:
     device: str = None
     observation_space = None
     action_space = None
+    path_loc: str = r"D:\data"
+    imgs_obs: int = 4
 
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
@@ -49,7 +51,7 @@ class Agent:
 
         self.actor_optimizer = torch.optim.Adam(self.model.actor.parameters(), lr=self.lr)
         self.critic_optimizer = torch.optim.Adam(self.model.critics.parameters(), lr=self.lr)
-        self.memory = Memory(self.memory_size, self.batchsize, device)
+        self.memory = Memory(self.memory_size, self.batchsize, device, path_loc=self.path_loc, imgs_obs=self.imgs_obs)
 
         self.outputnorm = self.OutputNorm(self.model.critic_output_layers)
         self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
