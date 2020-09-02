@@ -353,7 +353,7 @@ class Tm_hybrid_1(ActorModule):
 
 
 if __name__ == "__main__":
-    from agents import Training, run
+    from agents import Training, run, run_wandb
     from agents.util import partial
     from agents.sac import Agent
 
@@ -390,4 +390,4 @@ if __name__ == "__main__":
     # )
 
     print("--- NOW RUNNING: SAC trackmania ---")
-    run(Sac_tm)
+    run(Sac_tm)#, checkpoint_path = r"D:\cp\checkpoint.pkl")

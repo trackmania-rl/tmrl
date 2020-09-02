@@ -46,6 +46,9 @@ class Agent:
         self.critic_optimizer = torch.optim.Adam(self.model.critics.parameters(), lr=self.lr)
         self.memory = Memory(self.memory_size, self.batchsize, device)
 
+        #self.actor_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.actor_optimizer,self.lr/10,self.lr*10, step_size_up=2000)
+        #self.critic_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.critic_optimizer,self.lr / 10,self.lr * 10, step_size_up=2000)
+
         self.outputnorm = self.OutputNorm(self.model.critic_output_layers)
         self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
 
@@ -105,7 +108,8 @@ class Agent:
         # update target critics and normalizers
         exponential_moving_average(self.model_target.critics.parameters(), self.model.critics.parameters(), self.target_update)
         exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(), self.target_update)
-
+        #self.actor_lr_scheduler.step()
+        #self.critic_lr_scheduler.step()
         return dict(
             loss_actor=loss_actor.detach(),
             loss_critic=loss_critic.detach(),
