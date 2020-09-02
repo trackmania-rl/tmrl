@@ -58,10 +58,10 @@ class Memory:
 
         l=(
             (self.data[2][idx_last], imgs[:-1]),  # last_observation
-            self.data[1][idx_last],  # last_action
+            np.array(self.data[1][idx_last]),  # last_action
             self.data[2][idx_now][0],  # r
             (self.data[2][idx_now], imgs[1:]),  # obs
-            0.0,  # done
+            np.float32(0.0),  # done
         )
         return l
 

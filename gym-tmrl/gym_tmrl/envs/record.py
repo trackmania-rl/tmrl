@@ -6,16 +6,18 @@ import time
 import cv2
 from inputs import get_gamepad
 
-dir = [0, 0, 0, 0]  # a,r,g,d
-path = r"C:/Users/Yann/Desktop/git/tmrl/data"
+
+# path = r"C:/Users/Yann/Desktop/git/tmrl/data"
+dir = [0, 0, 0, 0]  # dir :  [acc [0,1], brake [0,1], left [0,1], right [0,1]]
+path = r"D:/data/"
 digits = load_digits()
 monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
 sct = mss.mss()
 
-iter =0
-speeds=[]
-dirs=[]
-iters=[]
+iter = 0
+speeds = []
+dirs  = []
+iters = []
 
 c = True
 while c:
@@ -68,6 +70,7 @@ while not c :
 
     cv2.imwrite(path + str(iter) + ".png", img)
     speeds.append(speed)
+    dir = [float(i) for i in dir]
     dirs.append(dir)
     iters.append(iter)
     iter=iter+1
