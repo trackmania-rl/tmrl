@@ -1,4 +1,6 @@
 from agents.envs import UntouchedGymEnv
+from agents import TrainingOffline
+from agents.util import load
 import pickle as pkl
 
 
@@ -8,7 +10,7 @@ class RolloutWorker():
         self.obs = self.env.reset()
         self.done = False
         with open(chk_path, 'rb') as f:
-            self.cls = pkl.load(f)
+            self.cls = load(chk_path)
             self.model = self.cls.agent.model
 
     def step(self):
