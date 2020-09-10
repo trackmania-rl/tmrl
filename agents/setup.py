@@ -24,6 +24,7 @@ setup(
         'pandas',
         'gym',
         'pyyaml',
+        'wandb',
         # 'pybullet'
         # 'line_profiler',
     ],

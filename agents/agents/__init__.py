@@ -21,6 +21,7 @@ import agents.rrtac
 import agents.sac
 import agents.sac_nstep
 import agents.sac_models_rd
+from agents.tm import TrainerInterface
 
 
 def iterate_episodes(run_cls: type = Training, checkpoint_path: str = None):
@@ -96,6 +97,69 @@ def run_fs(path: str, run_cls: type = Training):
         dump(load(path + '/stats').append(stats, ignore_index=True),
              path + '/stats')  # concat with stats from previous episodes
 
+
+# TRACKMANIA REMOTE TRAINING: =====================================================
+
+
+def iterate_epochs_tm(run_cls: TrainingOffline, interface: TrainerInterface, checkpoint_path: str):
+    """
+    Main training loop for trackmania (remote)
+    The TrainingOffline object is saved in checkpoint_path every checkpoint_interval epochs
+    The model weights are sent to the RolloutWorker every model_checkpoint_interval epochs
+    Generator [1] yielding episode statistics (list of pd.Series) while running and checkpointing
+    [1] https://docs.python.org/3/howto/functional.html#generators
+    """
+    checkpoint_path = checkpoint_path or tempfile.mktemp("_remove_on_exit")
+
+    try:
+        if not exists(checkpoint_path):
+            print("=== specification ".ljust(70, "="))
+            print("DEBUG: blih")
+            # print(f"DEBUG:{partial_to_dict(run_cls)}")
+            # print(yaml.dump(partial_to_dict(run_cls), indent=3, default_flow_style=False, sort_keys=False), end="")
+            run_instance = run_cls()
+            dump(run_instance, checkpoint_path)
+            print("")
+        else:
+            print("\ncontinuing...\n")
+
+        run_instance = load(checkpoint_path)
+        cpt = 0
+        while run_instance.epoch < run_instance.epochs:
+            # time.sleep(1)  # on network file systems writing files is asynchronous and we need to wait for sync
+            yield run_instance.run_epoch(interface=interface)  # yield stats data frame (this makes this function a generator)
+            # print("")
+            dump(run_instance, checkpoint_path)
+
+            # we delete and reload the run_instance from disk to ensure the exact same code runs regardless of interruptions
+            del run_instance
+            gc.collect()
+            run_instance = load(checkpoint_path)
+            cpt += 1
+
+    finally:
+        if checkpoint_path.endswith("_remove_on_exit") and exists(checkpoint_path):
+            os.remove(checkpoint_path)
+
+
+def run_wandb_tm(entity, project, run_id, run_cls: type = TrainingOffline, checkpoint_path: str = None):
+    """
+    trackmania main (remote)
+    run and save config and stats to https://wandb.com
+    """
+    #wandb_dir = mkdtemp()  # prevent wandb from polluting the home directory
+    #atexit.register(shutil.rmtree, wandb_dir, ignore_errors=True)  # clean up after wandb atexit handler finishes
+    #import wandb
+    #config = partial_to_dict(run_cls)
+    #config['seed'] = config['seed'] or randrange(1, 1000000)  # if seed == 0 replace with random
+    #config['environ'] = log_environment_variables()
+    #config['git'] = git_info()  # TODO: check this for bugs
+    #resume = checkpoint_path and exists(checkpoint_path)
+    #wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
+    interface = TrainerInterface()
+    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
+        print("DEBUG: blah")
+    #    [wandb.log(json.loads(s.to_json())) for s in stats]
 
 # === specifications ===================================================================================================
 

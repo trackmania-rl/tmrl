@@ -5,7 +5,7 @@ from gym import Env
 import gym.spaces as spaces
 import numpy as np
 import time
-from threading import Thread
+from threading import Thread, Lock
 
 import cv2
 import mss
@@ -119,11 +119,14 @@ class TMInterface():
 
 
 DEFAULT_CONFIG_DICT = {
-    "forced_sleep_time": 0.05,
+    "time_step_duration": 0.05,
+    "start_obs_capture": 0.03,
+    "time_step_timeout_factor": 1.0,
     "ep_max_length": 100,
-    "real_time": False,
-    "act_threading": False,
-    "act_in_obs": False,
+    "real_time": True,
+    "async_threading": True,
+    "act_in_obs": True,
+    "benchmark": True
 }
 
 
@@ -132,29 +135,48 @@ class TMRLEnv(Env):
         """
         :param ep_max_length: (int) the max length of each episodes in timesteps
         :param real_time: bool: whether to use the RTRL setting
-        :param act_threading: bool (optional, default: True): whether actions are executed asynchronously in the RTRL setting.
+        :param async_threading: bool (optional, default: True): whether actions are executed asynchronously in the RTRL setting.
             Typically this is useful for the real world and for external simulators
-            When this is True, __send_act_and_wait_n() should be a cpu-light I/O operation or python multithreading will slow down the calling program
-            For cpu-intensive tasks (e.g. embedded simulators), this should be True only if you ensure that the CPU-intensive part is executed in another process while __send_act_and_wait_n() is only used for interprocess communications
+        :param time_step_duration: float (optional, default 0.0): seconds slept after apply_action() (~ time-step duration)
         :param act_in_obs: bool (optional, default True): whether to augment the observation with the action buffer (DCRL)
         :param default_action: float (optional, default None): default action to append at reset when the previous is True
         :param act_prepro_func: function (optional, default None): function that maps the action input to the actual applied action
         :param obs_prepro_func: function (optional, default None): function that maps the observation output to the actual returned observation
-        :param forced_sleep_time: float (optional, default None): seconds slept after apply_action() (~ time-step duration)
         :param reset_act_buf: bool (optional, defaut True): whether action buffer should be re-initialized at reset
         """
         # config variables:
-        self.act_prepro_func = config["act_prepro_func"] if "act_prepro_func" in config else None
+        self.act_prepro_func: callable = config["act_prepro_func"] if "act_prepro_func" in config else None
         self.obs_prepro_func = config["obs_prepro_func"] if "obs_prepro_func" in config else None
-        self.forced_sleep_time = config["forced_sleep_time"] if "forced_sleep_time" in config else None
         self.ep_max_length = config["ep_max_length"]
+
+        self.time_step_duration = config["time_step_duration"] if "time_step_duration" in config else 0.0
+        self.time_step_timeout_factor = config["time_step_timeout_factor"] if "time_step_timeout_factor" in config else 1.0
+        self.start_obs_capture = config["start_obs_capture"] if "start_obs_capture" in config else 1.0
+        self.time_step_timeout = self.time_step_duration * self.time_step_timeout_factor  # time after which elastic time-stepping is dropped
         self.real_time = config["real_time"]
-        self.act_threading = config["act_threading"] if "act_threading" in config else True
+        self.async_threading = config["async_threading"] if "async_threading" in config else True
+        self.__t_start = time.time()  # beginning of the time-step
+        self.__t_co = time.time()  # time at which observation starts being captured during the time step
+        self.__t_end = time.time()  # end of the time-step
         if not self.real_time:
-            self.act_threading = False
-        if self.act_threading:
+            self.async_threading = False
+        if self.async_threading:
             self._at_thread = Thread(target=None, args=(), kwargs={}, daemon=True)
             self._at_thread.start()  # dummy start for later call to join()
+
+        # observation capture:
+        self.__o_lock = Lock()  # lock to retrieve observations asynchronously, acquire to access the following:
+        self.__obs = None
+        self.__rew = None
+        self.__done = None
+        self.__o_set_flag = False
+
+        # environment benchmark:
+        self.benchmark = config["benchmark"] if "benchmark" in config else False
+        self.__b_lock = Lock()
+        self.__b_obs_capture_duration = 0.0
+        self.running_average_factor = config["running_average_factor"] if "running_average_factor" in config else 0.1
+
         self.act_in_obs = config["act_in_obs"] if "act_in_obs" in config else True
         self.reset_act_buf = config["reset_act_buf"] if "reset_act_buf" in config else True
         self.interface = TMInterface()
@@ -166,12 +188,33 @@ class TMRLEnv(Env):
         self.default_action = self.interface.get_default_action()
         self.last_action = self.default_action
 
-    def _join_act_thread(self):
+    def _update_timestamps(self):
+        """
+        This is called at the beginning of each time-step
+        If the previous time-step has timed out, the beginning of the time-step is set to now
+        Otherwise, the beginning of the time-step is the beginning of the previous time-step + the time-step duration
+        The observation starts being captured start_obs_capture_factor time-step after the beginning of the time-step
+            observation capture can exceed the time-step, it is fine, but be cautious with timeouts
+        It is recommended to draw a time diagram of your system
+            action computation and observation capture can be performed in parallel
+        """
+        now = time.time()
+        if now < self.__t_end + self.time_step_timeout:
+            self.__t_start = self.__t_end
+            self.__t_co = self.__t_start + self.start_obs_capture
+            self.__t_end = self.__t_start + self.time_step_duration
+        else:
+            print(f"INFO: time-step timed out. Elapsed since last time-step: {now - self.__t_end}")
+            self.__t_start = now
+            self.__t_co = self.__t_start + self.start_obs_capture
+            self.__t_end = self.__t_start + self.time_step_duration
+
+    def _join_thread(self):
         """
         This is called at the beginning of every user-side API functions (step(), reset()...) for thread safety
         This ensures that the previous time-step is completed when starting a new one
         """
-        if self.act_threading:
+        if self.async_threading:
             self._at_thread.join()
 
     def _run_time_step(self, *args, **kwargs):
@@ -181,7 +224,7 @@ class TMRLEnv(Env):
         This in turn calls self.__send_act_and_wait()
         In action-threading, self.__send_act_and_wait() is called in a new Thread
         """
-        if not self.act_threading:
+        if not self.async_threading:
             self.__send_act_and_wait(*args, **kwargs)
         else:
             self._at_thread = Thread(target=self.__send_act_and_wait, args=args, kwargs=kwargs)
@@ -204,22 +247,30 @@ class TMRLEnv(Env):
 
     def __send_act_and_wait(self, action):
         """
-        This function applies the control
-        If forced_sleep_time > 0, this will sleep for this duration after applying the action
+        This function applies the control and launches observation capture at the right timestamp
+        !: only one such function must run in parallel (always join thread)
         """
-        if self.act_prepro_func:
-            action = self.act_prepro_func(action)
-        self.interface.send_control(action)
-        if self.forced_sleep_time:
-            time.sleep(self.forced_sleep_time)
+        act = self.act_prepro_func(action) if self.act_prepro_func else action
+        self.interface.send_control(act)
+        self._update_timestamps()
+        now = time.time()
+        while now < self.__t_co:  # wait until it is time to capture observation
+            now = time.time()
+        self.__update_obs_rew_done(action)  # capture observation
+        while now < self.__t_end:  # wait until the end of the time-step
+            now = time.time()
 
-    def _get_obs_rew_done(self, act):
+    def __update_obs_rew_done(self, act):
         """
+        Captures o, r, d asynchronously
         Args:
             act: taken action (in the observation if act_in_obs is True)
         Returns:
             observation of this step()
         """
+        if self.benchmark:
+            t1 = time.time()
+        self.__o_lock.acquire()
         o, r, d = self.interface.get_obs_rew_done()
         if not d:
             d = (self.current_step >= self.ep_max_length)
@@ -229,6 +280,27 @@ class TMRLEnv(Env):
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
         elt = tuple(elt)
+        self.__obs, self.__rew, self.__rew = elt, r, d
+        self.__o_set_flag = True
+        self.__o_lock.release()
+        if self.benchmark:
+            t = time.time() - t1
+            self.__b_lock.acquire()
+            self.__b_obs_capture_duration = (1.0 - self.running_average_factor) * self.__b_obs_capture_duration + self.running_average_factor * t
+            self.__b_lock.release()
+
+    def _retrieve_obs_rew_done(self):
+        """
+        Waits for new available o r d and retrieves them
+        """
+        c = True
+        while c:
+            self.__o_lock.acquire()
+            if self.__o_set_flag:
+                elt, r, d = self.__obs, self.__rew, self.__done
+                self.__o_set_flag = False
+                c = False
+            self.__o_lock.release()
         return elt, r, d
 
     def reset(self):
@@ -237,7 +309,7 @@ class TMRLEnv(Env):
         Returns:
             obs
         """
-        self._join_act_thread()
+        self._join_thread()
         if not self.initialized:
             self._initialize()
         self.current_step = 0
@@ -247,6 +319,8 @@ class TMRLEnv(Env):
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
         elt = tuple(elt)
+        if self.real_time:
+            self._run_time_step(self.default_action)
         return elt
 
     def step(self, action):
@@ -259,12 +333,11 @@ class TMRLEnv(Env):
 
         CAUTION: the drone is only 'paused' at the end of the episode (the entire episode must be rolled out before optimizing if the optimization is synchronous)
         """
-        self._join_act_thread()
-        # t_s = time.time()
+        self._join_thread()
         self.current_step += 1
         if not self.real_time:
             self._run_time_step(action)
-        obs, rew, done = self._get_obs_rew_done(action)  # TODO : threading must be modified so observation capture is handled correctly in the RTRL setting
+        obs, rew, done = self._retrieve_obs_rew_done()
         info = {}
         if self.real_time:
             self._run_time_step(action)
@@ -273,17 +346,28 @@ class TMRLEnv(Env):
         return obs, rew, done, info
 
     def stop(self):
-        self._join_act_thread()
+        self._join_thread()
 
     def wait(self):
-        self._join_act_thread()
+        self._join_thread()
         self.interface.wait()
+
+    def benchmarks(self):
+        """
+        Returns the following running averages when the benchmark option is set:
+            - duration of __update_obs_rew_done()
+        """
+        assert self.benchmark, "The benchmark option is not set. Set benchmark=True the configuration dictionary of the environment"
+        self.__b_lock.acquire()
+        res_obs_capture_duration = self.__b_obs_capture_duration
+        self.__b_lock.release()
+        return res_obs_capture_duration
 
     def render(self, mode='human'):
         """
         Visually renders the current state of the environment
         """
-        self._join_act_thread()
+        self._join_thread()
         print("render")
         cv2.imshow("press q to exit", self.interface.img)
         if cv2.waitKey(25) & 0xFF == ord("q"):

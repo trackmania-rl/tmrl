@@ -1,32 +1,25 @@
-# from copy import deepcopy
-# import pickle
 from dataclasses import dataclass
-
 import pandas as pd
-# import numpy as np
 from pandas import DataFrame, Timestamp
-
 import agents.sac
-
-# from agents.testing import Test
 from agents.util import pandas_dict, cached_property
-# from agents.wrappers import StatsWrapper
-# from agents.batch_env import get_env_state
-
 import gym
+
+from agents.tm import TrainerInterface
 
 # import pybullet_envs
 
 
 @dataclass(eq=0)
 class TrainingOffline:
-    observation_space: gym.spaces.Space = None
-    action_space: gym.spaces.Space = None
+    observation_space: gym.spaces.Space
+    action_space: gym.spaces.Space
     Agent: type = agents.sac.Agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
     rounds: int = 50  # number of rounds per epoch, we generate statistics every round
-    steps: int = 2000  # number of steps per round, one step = global step
-    nb_train_it_per_step: int = 1  # number of training steps per global step
+    steps: int = 2000  # number of steps per round
+    update_model_interval: int = 100  # number of steps between model broadcasts
+    update_buffer_interval: int = 100  # number of steps between retrieving buffered experiences in the interface
     stats_window: int = None  # default = steps, should be at least as long as a single episode
     seed: int = 0  # seed is currently not used
     tag: str = ''  # for logging, e.g. allows to compare groups of runs
@@ -37,7 +30,7 @@ class TrainingOffline:
         self.epoch = 0
         self.agent = self.Agent(Env=None, action_space=self.action_space, observation_space=self.observation_space)
 
-    def run_epoch(self):
+    def run_epoch(self, interface: TrainerInterface):
         stats = []
         state = None
 
@@ -49,14 +42,16 @@ class TrainingOffline:
             stats_training = []
 
             for step in range(self.steps):
-
                 if self.total_updates == 0:
                     print("starting training")
-                t_stats = []
-                for _ in range(self.nb_train_it_per_step):
-                    t_stats += self.agent.train(),
-                    self.total_updates += 1
-                stats_training += t_stats
+                stats_training += self.agent.train(),
+                self.total_updates += 1
+                if self.total_updates % self.update_model_interval == 0:
+                    # broadcast model weights
+                    interface.broadcast_model(self.agent.model_nograd.actor)
+                if self.total_updates % self.update_buffer_interval == 0:
+                    # retrieve local buffer
+                    pass
 
             stats += pandas_dict(
                 round_time=Timestamp.utcnow() - t0,

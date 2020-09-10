@@ -6,8 +6,8 @@ import time
 import cv2
 from inputs import get_gamepad
 
-# path = r"C:/Users/Yann/Desktop/git/tmrl/data"
-path = r"D:/data/"
+path = r"C:/Users/Yann/Desktop/git/tmrl/data/"
+#path = r"D:/data/"
 direction = [0, 0, 0, 0]  # dir :  [acc [0,1], brake [0,1], left [0,1], right [0,1]]
 
 digits = load_digits()
@@ -28,7 +28,7 @@ while c:
     events = get_gamepad()
     if events:
         for event in events:
-            if str(event.code) == "ABS_HAT0Y":
+            if str(event.code) == "ABS_HAT0X":
                 c = False
                 print('start recording')
 
@@ -68,7 +68,7 @@ while not c:
                 else:
                     direction[3] = 0.0
                     direction[2] = -gd
-            elif str(event.code) == "ABS_HAT0X":
+            elif str(event.code) == "ABS_HAT0Y":
                 c = True
                 print('stop recording')
 

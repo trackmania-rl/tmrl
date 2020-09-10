@@ -68,7 +68,7 @@ class MlpPolicy(Sequential):
 class Mlp(ActorModule):
     def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2):
         super().__init__()
-        assert isinstance(observation_space, gym.spaces.Tuple)
+        assert isinstance(observation_space, gym.spaces.Tuple), f"{observation_space}"
         dim_obs = sum(space.shape[0] for space in observation_space)
         dim_action = action_space.shape[0]
         self.critics = ModuleList(MlpActionValue(dim_obs, dim_action, hidden_units) for _ in range(num_critics))
@@ -353,7 +353,7 @@ class Tm_hybrid_1(ActorModule):
 
 
 if __name__ == "__main__":
-    from agents import TrainingOffline, Training, run, run_wandb, run_fs
+    from agents import TrainingOffline, run_wandb_tm
     from agents.util import partial
     from agents.sac import Agent
     import gym
@@ -370,9 +370,10 @@ if __name__ == "__main__":
         epochs=3,
         rounds=1,
         steps=1,
-        nb_train_it_per_step=2,
+        update_model_interval=1,
+        update_buffer_interval=1,
         Agent=partial(Agent,
-                      path_loc=r"C:/Users/Yann/Desktop/git/tmrl/data/",
+                      path_loc=r"C:/Users/Yann/Desktop/git/tmrl/data/",  # dataset
                       imgs_obs=4,
                       device='cpu',
                       Model=partial(Tm_hybrid_1),
@@ -395,4 +396,5 @@ if __name__ == "__main__":
     # )
 
     print("--- NOW RUNNING: SAC trackmania ---")
-    run(Sac_tm, checkpoint_path = r"C:/Users/Yann/Desktop/git/tmrl/cp.pkl")
+    run_wandb_tm(None, None, None, run_cls=Sac_tm, checkpoint_path=r'C:/Users/Yann/Desktop/git/tmrl/checkpoint/chk/exp')
+    #run(Sac_tm, checkpoint_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/exp")  # checkpoint
