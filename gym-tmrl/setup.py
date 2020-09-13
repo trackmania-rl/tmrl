@@ -6,5 +6,6 @@ setup(name='gym_tmrl',
                         'opencv-python',
                         'mss',
                         'scikit-image',
-                        'inputs']
+                        'inputs',
+                        'keyboard']
       )

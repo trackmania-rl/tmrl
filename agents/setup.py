@@ -1,7 +1,7 @@
 from setuptools import setup
 from setuptools import find_packages
-from pip._internal import main as pipmain
-from os.path import join, dirname
+# from pip._internal import main as pipmain
+# from os.path import join, dirname
 import sys
 
 if sys.version_info < (3, 7):
@@ -11,9 +11,9 @@ setup(
     name='agents',
     version="0.1",
     description='',
-    author='Simon Ramstedt',
-    author_email='simonramstedt@gmail.com',
-    url='https://github.com/rmst/agents',
+    author='Yann Bouteiller, Edouard Geze, Simon Ramstedt',
+    author_email='N/A',
+    url='N/A',
     download_url='',
     license='',
     install_requires=[
@@ -25,6 +25,7 @@ setup(
         'gym',
         'pyyaml',
         'wandb',
+        'requests',
         # 'pybullet'
         # 'line_profiler',
     ],

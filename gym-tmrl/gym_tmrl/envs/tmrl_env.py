@@ -16,11 +16,169 @@ from gym_tmrl.envs.key_event import apply_control, keyres
 
 from collections import deque
 
+import socket
+import struct
+from threading import Thread, Lock
+
 # from pynput.keyboard import Key, Controller
 import ctypes
 
 
-class TMInterface():
+# Interface for Trackmania 2020 ========================================================================================
+
+class TM2020OpenPlanetClient:
+    def __init__(self,
+                 host='127.0.0.1',
+                 port=9000):
+        self._host = host
+        self._port = port
+
+        # Threading attributes:
+        self.__lock = Lock()
+        self.__data = None
+        self.__t_client = Thread(target=self.__client_thread, args=(), kwargs={}, daemon=True)
+        self.__t_client.start()
+
+    def __client_thread(self):
+        """
+        Thread of the client.
+        This listens for incoming data until the object is destroyed
+        TODO: handle disconnection
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((self._host, self._port))
+            while True:  # main loop
+                data_raw = b''
+                while len(data_raw) != 32:
+                    data_raw += s.recv(1024)
+                self.__lock.acquire()
+                self.__data = data_raw
+                self.__lock.release()
+
+    def retrieve_data(self, sleep_if_empty=0.1):
+        """
+        Retrieves the most recently received data
+        Use this function to retrieve the most recently received data
+        If block if nothing has been received so far
+        """
+        c = True
+        while c:
+            self.__lock.acquire()
+            if self.__data is not None:
+                data = struct.unpack('<ffffffff', self.__data)
+                c = False
+            self.__lock.release()
+            if c:
+                time.sleep(sleep_if_empty)
+        return data
+
+
+class TM2020Interface:
+    """
+    This is the API needed for the algorithm to control Trackmania2020
+    """
+
+    def __init__(self, img_hist_len=4):
+        """
+        Args:
+        """
+        self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
+        self.sct = mss.mss()
+        self.last_time = time.time()
+        self.digits = load_digits()
+        self.img_hist_len = img_hist_len
+        self.img_hist = deque(maxlen=self.img_hist_len)
+        self.img = None
+        self.client = TM2020OpenPlanetClient()
+
+    def send_control(self, control):
+        """
+        Non-blocking function
+        Applies the action given by the RL policy
+        Args:
+            control: np.array: [forward,backward,right,left]
+        """
+        if control is not None:
+            actions = []
+            if control[0] > 0.5:
+                actions.append("f")
+            elif control[1] > 0.5:
+                actions.append("b")
+            if control[2] > 0.5:
+                actions.append("r")
+            elif control[3] > 0.5:
+                actions.append("l")
+            apply_control(actions)  # TODO: format this
+
+    def grab_data_and_img(self):
+        img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
+        data = self.client.retrieve_data()
+        # img = img[100:-150, :]
+        img = cv2.resize(img, (191, 98))
+        #img = cv2.resize(img, (190, 50))
+        # img = np.moveaxis(img, -1, 0)
+        # img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
+        # print(f"DEBUG: Env: captured speed:{speed}")
+        self.img = img  # for render()
+        return data, img
+
+    def reset(self):
+        """
+        obs must be a list of numpy arrays
+        """
+        self.send_control([0, 0, 0, 0])
+        keyres()
+        time.sleep(0.05)  # must be long enough for image to be refreshed
+        data, img = self.grab_data_and_img()
+        for _ in range(self.img_hist_len):
+            self.img_hist.append(img)
+        imgs = np.array([i for i in self.img_hist])
+        obs = [data, imgs]
+        return obs
+
+    def wait(self):
+        """
+        Non-blocking function
+        The agent stays 'paused', waiting in position
+        """
+        apply_control([0, 0, 0, 0])
+
+    def get_obs_rew_done(self):
+        """
+        returns the observation, the reward, and a done signal for end of episode
+        obs must be a list of numpy arrays
+        """
+        data, img = self.grab_data_and_img()
+        rew = data[0]
+        self.img_hist.append(img)
+        imgs = np.array([i for i in self.img_hist])
+        obs = [data, imgs]
+        done = False  # TODO: True if race complete
+
+        return obs, rew, done
+
+    def get_observation_space(self):
+        """
+        must be a Tuple
+        TODO: update
+        """
+        speed = spaces.Box(low=0.0, high=1.0, shape=(1,))
+        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 50, 190))
+        return spaces.Tuple((speed, img))
+
+    def get_action_space(self):
+        return spaces.Box(low=0.0, high=1.0, shape=(4,))
+
+    def get_default_action(self):
+        """
+        initial action at episode start
+        """
+        return np.array([0.0, 0.0, 0.0, 0.0])
+
+
+# Interface for Trackmania Nations Forever: ============================================================================
+
+class TMInterface:
     """
     This is the API needed for the algorithm to control Trackmania
     """
@@ -118,9 +276,13 @@ class TMInterface():
         return np.array([0.0, 0.0, 0.0, 0.0])
 
 
+# General purpose environment: =========================================================================================
+
 DEFAULT_CONFIG_DICT = {
+    # "interface": TMInterface,
+    "interface": TM2020Interface,
     "time_step_duration": 0.05,
-    "start_obs_capture": 0.03,
+    "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
     "ep_max_length": 100,
     "real_time": True,
@@ -133,6 +295,7 @@ DEFAULT_CONFIG_DICT = {
 class TMRLEnv(Env):
     def __init__(self, config=DEFAULT_CONFIG_DICT):
         """
+        :param interface: (callable) external interface class (required)
         :param ep_max_length: (int) the max length of each episodes in timesteps
         :param real_time: bool: whether to use the RTRL setting
         :param async_threading: bool (optional, default: True): whether actions are executed asynchronously in the RTRL setting.
@@ -144,6 +307,10 @@ class TMRLEnv(Env):
         :param obs_prepro_func: function (optional, default None): function that maps the observation output to the actual returned observation
         :param reset_act_buf: bool (optional, defaut True): whether action buffer should be re-initialized at reset
         """
+        # interface:
+        interface_cls = config["interface"]
+        self.interface = interface_cls()
+
         # config variables:
         self.act_prepro_func: callable = config["act_prepro_func"] if "act_prepro_func" in config else None
         self.obs_prepro_func = config["obs_prepro_func"] if "obs_prepro_func" in config else None
@@ -179,7 +346,6 @@ class TMRLEnv(Env):
 
         self.act_in_obs = config["act_in_obs"] if "act_in_obs" in config else True
         self.reset_act_buf = config["reset_act_buf"] if "reset_act_buf" in config else True
-        self.interface = TMInterface()
         self.action_space = self._get_action_space()
         self.observation_space = self._get_observation_space()
         self.current_step = 0
