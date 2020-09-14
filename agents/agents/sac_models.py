@@ -304,10 +304,12 @@ class TMModuleResnet(Module):
         im = self.cnn(im)
         if self.is_Q_network:
             act = x[2].float()
+            #print(f"DEBUG1 im.shape{im.shape}, vel.shape{vel.shape}, act.shape{act.shape}")
             h = torch.cat((im, vel, act), dim=1)
         else:
-            print(im.shape, vel.shape)
+            #print(f"DEBUG2 im.shape{im.shape}, vel.shape{vel.shape}")
             h = torch.cat((im, vel), dim=1)
+        #print(f"DEBUG h.shape{h.shape}")
         h = self.fc1(h)
         return h
 

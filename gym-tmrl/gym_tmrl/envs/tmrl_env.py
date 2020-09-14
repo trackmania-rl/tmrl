@@ -102,6 +102,7 @@ class TM2020Interface:
         Applies the action given by the RL policy
         Args:
             control: np.array: [forward,backward,right,left]
+        TODO update
         """
         if control is not None:
             actions = []
@@ -111,7 +112,7 @@ class TM2020Interface:
                 actions.append("b")
             if control[2] > 0.5:
                 actions.append("r")
-            elif control[3] > 0.5:
+            elif control[2] < -0.5:
                 actions.append("l")
             apply_control(actions)  # TODO: format this
 
@@ -126,7 +127,7 @@ class TM2020Interface:
         """
         obs must be a list of numpy arrays
         """
-        self.send_control([0, 0, 0, 0])
+        self.send_control([0, 0, 0])
         keyres()
         time.sleep(0.05)  # must be long enough for image to be refreshed
         data, img = self.grab_data_and_img()
@@ -142,7 +143,7 @@ class TM2020Interface:
         Non-blocking function
         The agent stays 'paused', waiting in position
         """
-        apply_control([0, 0, 0, 0])
+        apply_control([0, 0, 0])
 
     def get_obs_rew_done(self):
         """
@@ -155,7 +156,6 @@ class TM2020Interface:
         imgs = np.array([i for i in self.img_hist])
         obs = [data, imgs]
         done = False  # TODO: True if race complete
-
         return obs, rew, done
 
     def get_observation_space(self):
@@ -164,17 +164,20 @@ class TM2020Interface:
         TODO: update
         """
         speed = spaces.Box(low=0.0, high=1.0, shape=(1,))
-        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 50, 190))
+        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 48, 191))
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):
-        return spaces.Box(low=0.0, high=1.0, shape=(4,))
+        """
+        must return a Box
+        """
+        return spaces.Box(low=0.0, high=1.0, shape=(3,))
 
     def get_default_action(self):
         """
         initial action at episode start
         """
-        return np.array([0.0, 0.0, 0.0, 0.0])
+        return np.array([0.0, 0.0, 0.0])
 
 
 # Interface for Trackmania Nations Forever: ============================================================================
@@ -410,7 +413,11 @@ class TMRLEnv(Env):
 
     def _get_observation_space(self):
         # TODO: add action
-        return self.interface.get_observation_space()
+        t = self.interface.get_observation_space()
+        if self.act_in_obs:
+            t = spaces.Tuple((*t.spaces, self._get_action_space()))
+        print(t)
+        return t
 
     def __send_act_and_wait(self, action):
         """

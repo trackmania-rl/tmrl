@@ -57,10 +57,10 @@ class Memory:
         imgs = self.load_imgs(item)
 
         l=(
-            (self.data[1][idx_last], imgs[:-1]),  # last_observation
+            (np.array([self.data[1][idx_last], ]), imgs[:-1], np.array(self.data[4][idx_last])),  # last_observation
             np.array(self.data[4][idx_last]),  # last_action
             self.data[6][idx_now],  # r
-            (self.data[1][idx_now], imgs[1:]),  # obs
+            (np.array([self.data[1][idx_now], ]), imgs[1:], np.array(self.data[4][idx_now])),  # obs
             np.float32(self.data[5][idx_now]),  # done
         )
 

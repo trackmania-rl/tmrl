@@ -106,6 +106,7 @@ def record_tm20():
     is_recording = False
     while True:
         obs, rew, done, info = env.step(None)
+        # obs = (obs[0], obs[1], obs[0][-3:])
         if keyboard.is_pressed('r'):
             env.reset()
             done = True
@@ -114,7 +115,6 @@ def record_tm20():
             is_recording = True
         if is_recording:
             cv2.imwrite(path + str(iteration) + ".png", obs[1][-1])
-            iteration = iteration + 1
             iters.append(iteration)
             speeds.append(obs[0][0])
             distances.append(obs[0][1])
@@ -122,6 +122,7 @@ def record_tm20():
             inputs.append([obs[0][5], obs[0][6], obs[0][7]])
             dones.append(done)
             rews.append(rew)
+            iteration = iteration + 1
 
             if keyboard.is_pressed('q'):
                 print("Saving pickle file...")
