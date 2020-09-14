@@ -7,6 +7,7 @@ import cv2
 from inputs import get_gamepad
 import gym
 import keyboard
+from gym_tmrl.envs.tmrl_env import TM2020OpenPlanetClient
 
 import socket
 import struct
@@ -92,14 +93,22 @@ def record_tmnf():
 
 
 def record_tm20():
+    """
+    set the game to 40fps
+
+    :return:
+    """
     path = r"D:/data2020/"
     iteration = 0
-    iters, speeds, distances, positions, inputs = [], [], [], [], []
+    iters, speeds, distances, positions, inputs, dones, rews = [], [], [], [], [], [], []
     env = gym.make("gym_tmrl:gym-tmrl-v0")
     env.reset()
     is_recording = False
     while True:
-        obs, rew, done, into = env.step(None)
+        obs, rew, done, info = env.step(None)
+        if keyboard.is_pressed('r'):
+            env.reset()
+            done = True
         if keyboard.is_pressed('e'):
             print("start record")
             is_recording = True
@@ -111,66 +120,22 @@ def record_tm20():
             distances.append(obs[0][1])
             positions.append([obs[0][2], obs[0][3], obs[0][4]])
             inputs.append([obs[0][5], obs[0][6], obs[0][7]])
+            dones.append(done)
+            rews.append(rew)
 
             if keyboard.is_pressed('q'):
                 print("Saving pickle file...")
-                pickle.dump((iters, speeds, distances, positions, inputs), open(path + "data.pkl", "wb"))
+                pickle.dump((iters, speeds, distances, positions, inputs, dones, rews), open(path + "data.pkl", "wb"))
                 print("All done")
                 return
 
-
-class TM2020OpenPlanetClient:
-    def __init__(self,
-                 host='127.0.0.1',
-                 port=9000):
-        self._host = host
-        self._port = port
-
-        # Threading attributes:
-        self.__lock = Lock()
-        self.__data = None
-        self.__t_client = Thread(target=self.__client_thread, args=(), kwargs={}, daemon=True)
-        self.__t_client.start()
-
-    def __client_thread(self):
-        """
-        Thread of the client.
-        This listens for incoming data until the object is destroyed
-        TODO: handle disconnection
-        """
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((self._host, self._port))
-            while True:  # main loop
-                data_raw = b''
-                while len(data_raw) != 32:
-                    data_raw += s.recv(1024)
-                self.__lock.acquire()
-                self.__data = data_raw
-                self.__lock.release()
-
-    def retrieve_data(self, sleep_if_empty=0.1):
-        """
-        Retrieves the most recently received data
-        Use this function to retrieve the most recently received data
-        If block if nothing has been received so far
-        """
-        c = True
-        while c:
-            self.__lock.acquire()
-            if self.__data is not None:
-                data = struct.unpack('<ffffffff', self.__data)
-                c = False
-            self.__lock.release()
-            if c:
-                time.sleep(sleep_if_empty)
-        return data
 
 
 def record_reward():
     positions = []
     client = TM2020OpenPlanetClient()
     path = r"D:/data2020reward/"
-    time_step = 0.1
+    time_step = 0.01
     max_error = time_step * 1.0
 
     is_recording = False
@@ -189,14 +154,24 @@ def record_reward():
             print("start recording")
             is_recording = True
         if is_recording:
-            print("DEBUG truc de ouf")
             data = client.retrieve_data()
-            print(f"pos:{[data[2], data[3], data[4]]}, speed:{data[0]}")
             positions.append([data[2], data[3], data[4]])
-
             if keyboard.is_pressed('q'):
-                print("Saving pickle file...")
-                pickle.dump(positions, open(path + "reward.pkl", "wb"))
+                print("Smoothing and saving pickle file...")
+                positions = np.array(positions)
+                epsilon = 0.001
+                for i in range(len(positions)):
+                    acc = np.sum(positions[i]) - np.sum(positions[0])
+                    if acc > epsilon:
+                        positions = positions[i:]
+                        break
+                position_1 = np.array(positions)
+                position_2 = np.array(positions)
+                for i in range(1, len(positions) - 1):
+                    position_1[i] = (positions[i - 1] + positions[i] + positions[i + 1]) / 3.0
+                for i in range(1, len(position_1) - 1):
+                    position_2[i] = (position_1[i - 1] + position_1[i] + position_1[i + 1]) / 3.0
+                pickle.dump(position_2, open(path + "reward.pkl", "wb"))
                 print("All done")
                 return
 

@@ -306,6 +306,7 @@ class TMModuleResnet(Module):
             act = x[2].float()
             h = torch.cat((im, vel, act), dim=1)
         else:
+            print(im.shape, vel.shape)
             h = torch.cat((im, vel), dim=1)
         h = self.fc1(h)
         return h
@@ -373,11 +374,11 @@ if __name__ == "__main__":
         update_model_interval=1,
         update_buffer_interval=1,
         Agent=partial(Agent,
-                      path_loc=r"C:/Users/Yann/Desktop/git/tmrl/data/",  # dataset
+                      path_loc=r"D:/data2020/",  # dataset
                       imgs_obs=4,
-                      device='cpu',
+                      device='cuda',
                       Model=partial(Tm_hybrid_1),
-                      memory_size=10,
+                      memory_size=1000000,
                       batchsize=8,
                       lr=0.0003,  # default 0.0003
                       discount=0.99,
@@ -396,5 +397,5 @@ if __name__ == "__main__":
     # )
 
     print("--- NOW RUNNING: SAC trackmania ---")
-    run_wandb_tm(None, None, None, run_cls=Sac_tm, checkpoint_path=r'C:/Users/Yann/Desktop/git/tmrl/checkpoint/chk/exp')
+    run_wandb_tm(None, None, None, run_cls=Sac_tm, checkpoint_path=r'D:/cp/exp')
     #run(Sac_tm, checkpoint_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/exp")  # checkpoint

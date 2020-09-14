@@ -63,7 +63,7 @@ class TrainerInterface:
 
         print(f"local IP: {self.local_ip}")
         print(f"public IP: {self.public_ip}")
-        self.__wait_for_connections()
+        # self.__wait_for_connections()
 
     def __wait_for_connections(self):
         while True:

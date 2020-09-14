@@ -4,7 +4,7 @@ import random
 import time
 
 NB_STEPS = 1000
-ACT_COMPUTE_MIN = 0.04
+ACT_COMPUTE_MIN = 0.03
 ACT_COMPUTE_MAX = 0.02
 
 action_space = spaces.Box(low=0.0, high=1.0, shape=(4,))

@@ -57,18 +57,21 @@ class Memory:
         imgs = self.load_imgs(item)
 
         l=(
-            (self.data[2][idx_last], imgs[:-1]),  # last_observation
-            np.array(self.data[1][idx_last]),  # last_action
-            self.data[2][idx_now][0],  # r
-            (self.data[2][idx_now], imgs[1:]),  # obs
-            np.float32(0.0),  # done
+            (self.data[1][idx_last], imgs[:-1]),  # last_observation
+            np.array(self.data[4][idx_last]),  # last_action
+            self.data[6][idx_now],  # r
+            (self.data[1][idx_now], imgs[1:]),  # obs
+            np.float32(self.data[5][idx_now]),  # done
         )
+
         return l
 
     def load_imgs(self, item):
         res = []
         for i in range(item, item+self.imgs_obs+1):
             img = cv2.imread(str(self.path / (str(self.data[0][i]) + ".png")))
+            img = img[20:-30, :]
+            img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
             res.append(np.moveaxis(img, -1, 0))
         return np.array(res)
 
@@ -83,7 +86,7 @@ class Memory:
 
 
 if __name__ == "__main__":
-    dataset = Memory(memory_size=10, batchsize=3, device='cpu', remove_size=100, path_loc=r"C:\Users\Yann\Desktop\git\tmrl\data", imgs_obs=4)
+    dataset = Memory(memory_size=10, batchsize=3, device='cpu', remove_size=100, path_loc=r"D:\data2020", imgs_obs=4)
     print('last_observation', dataset[0][0][0])
     print('last_observation', dataset[0][0][1].shape)  #
     print('last_action', dataset[0][1])

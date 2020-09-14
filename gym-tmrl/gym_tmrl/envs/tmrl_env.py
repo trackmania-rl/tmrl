@@ -6,23 +6,24 @@ import gym.spaces as spaces
 import numpy as np
 import time
 from threading import Thread, Lock
-
 import cv2
 import mss
 import sys
-
 from gym_tmrl.envs.tools import load_digits, get_speed
 from gym_tmrl.envs.key_event import apply_control, keyres
-
 from collections import deque
-
 import socket
 import struct
 from threading import Thread, Lock
+from gym_tmrl.envs.compute_reward import RewardFunction
 
 # from pynput.keyboard import Key, Controller
 import ctypes
 
+# Globals ==============================================================================================================
+
+REWARD_PATH = r"D:\data2020reward\reward_mod.pkl"
+NB_OBS_FORWARD = 500  # if reward is collected at 100Hz, this allows (and rewards) 5s cuts
 
 # Interface for Trackmania 2020 ========================================================================================
 
@@ -47,12 +48,15 @@ class TM2020OpenPlanetClient:
         """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((self._host, self._port))
+            data_raw = b''
             while True:  # main loop
-                data_raw = b''
-                while len(data_raw) != 32:
+                while len(data_raw) < 32:
                     data_raw += s.recv(1024)
+                div = len(data_raw) // 32
+                data_used = data_raw[(div - 1) * 32:div * 32]
+                data_raw = data_raw[div * 32:]
                 self.__lock.acquire()
-                self.__data = data_raw
+                self.__data = data_used
                 self.__lock.release()
 
     def retrieve_data(self, sleep_if_empty=0.1):
@@ -89,6 +93,7 @@ class TM2020Interface:
         self.img_hist_len = img_hist_len
         self.img_hist = deque(maxlen=self.img_hist_len)
         self.img = None
+        self.reward_function = RewardFunction(reward_data_path=REWARD_PATH, nb_obs_forward=NB_OBS_FORWARD)
         self.client = TM2020OpenPlanetClient()
 
     def send_control(self, control):
@@ -113,12 +118,7 @@ class TM2020Interface:
     def grab_data_and_img(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         data = self.client.retrieve_data()
-        # img = img[100:-150, :]
         img = cv2.resize(img, (191, 98))
-        #img = cv2.resize(img, (190, 50))
-        # img = np.moveaxis(img, -1, 0)
-        # img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
-        # print(f"DEBUG: Env: captured speed:{speed}")
         self.img = img  # for render()
         return data, img
 
@@ -134,6 +134,7 @@ class TM2020Interface:
             self.img_hist.append(img)
         imgs = np.array([i for i in self.img_hist])
         obs = [data, imgs]
+        self.reward_function.reset()
         return obs
 
     def wait(self):
@@ -149,7 +150,7 @@ class TM2020Interface:
         obs must be a list of numpy arrays
         """
         data, img = self.grab_data_and_img()
-        rew = data[0]
+        rew = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
         self.img_hist.append(img)
         imgs = np.array([i for i in self.img_hist])
         obs = [data, imgs]
@@ -284,7 +285,7 @@ DEFAULT_CONFIG_DICT = {
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
-    "ep_max_length": 100,
+    "ep_max_length": np.inf,
     "real_time": True,
     "async_threading": True,
     "act_in_obs": True,
@@ -446,7 +447,7 @@ class TMRLEnv(Env):
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
         elt = tuple(elt)
-        self.__obs, self.__rew, self.__rew = elt, r, d
+        self.__obs, self.__rew, self.__done = elt, r, d
         self.__o_set_flag = True
         self.__o_lock.release()
         if self.benchmark:
