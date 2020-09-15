@@ -271,6 +271,9 @@ class TMInterface:
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):
+        """
+        must be a Box
+        """
         return spaces.Box(low=0.0, high=1.0, shape=(4,))
 
     def get_default_action(self):
@@ -397,7 +400,7 @@ class TMRLEnv(Env):
         if not self.async_threading:
             self.__send_act_and_wait(*args, **kwargs)
         else:
-            self._at_thread = Thread(target=self.__send_act_and_wait, args=args, kwargs=kwargs)
+            self._at_thread = Thread(target=self.__send_act_and_wait, args=args, kwargs=kwargs, daemon=True)
             self._at_thread.start()
 
     def _initialize(self):

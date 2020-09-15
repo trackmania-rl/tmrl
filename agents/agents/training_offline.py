@@ -7,13 +7,14 @@ import gym
 
 from agents.tm import TrainerInterface
 
+from agents.envs import Env
+
 # import pybullet_envs
 
 
 @dataclass(eq=0)
 class TrainingOffline:
-    observation_space: gym.spaces.Space
-    action_space: gym.spaces.Space
+    Env: type = Env
     Agent: type = agents.sac.Agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
     rounds: int = 50  # number of rounds per epoch, we generate statistics every round
@@ -28,7 +29,7 @@ class TrainingOffline:
 
     def __post_init__(self):
         self.epoch = 0
-        self.agent = self.Agent(Env=None, action_space=self.action_space, observation_space=self.observation_space)
+        self.agent = self.Agent(Env=self.Env)
 
     def run_epoch(self, interface: TrainerInterface):
         stats = []

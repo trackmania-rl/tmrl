@@ -85,8 +85,8 @@ class GymEnv(Env):
 
 
 class UntouchedGymEnv(Env):
-    def __init__(self, seed_val=0, id: str = "Pendulum-v0", obs_scale: float = 0.):
-        env = gym.make(id)
+    def __init__(self, id: str = "Pendulum-v0", obs_scale: float = 0., gym_kwargs={}):
+        env = gym.make(id, **gym_kwargs)
         if obs_scale:
             env = AffineObservationWrapper(env, 0, obs_scale)
         env = Float64ToFloat32(env)

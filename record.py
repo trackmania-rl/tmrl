@@ -13,20 +13,25 @@ import socket
 import struct
 from threading import Thread, Lock
 
+KEY_START_RECORD = 'e'
+KEY_STOP_RECORD = 't'
+KEY_FORWARD = 'up'
+KEY_BACKWARD = 'down'
+KEY_RIGHT = 'right'
+KEY_LEFT = 'left'
+KEY_RESET = 'r'
 
-def record_tmnf():
-    path = r"C:/Users/Yann/Desktop/git/tmrl/data/"
-    #path = r"D:/data/"
+PATH_REWARD = r"D:/data2020reward/"
+PATH_DATASET = r"C:/Users/Yann/Desktop/git/tmrl/data/"
+
+def record_tmnf_gamepad(path_dataset):
+    path = path_dataset
     direction = [0, 0, 0, 0]  # dir :  [acc [0,1], brake [0,1], left [0,1], right [0,1]]
-
     digits = load_digits()
     monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
     sct = mss.mss()
-
-
     time_step = 0.05
     max_error = time_step * 1.0  # if the error in timestep becomes larger than this, stop recording
-
     iteration = 0
     speeds = []
     dirs = []
@@ -55,7 +60,7 @@ def record_tmnf():
         t1 = t1+time_step
 
         img = np.asarray(sct.grab(monitor))[:, :, :3]
-        speed = np.array([get_speed(img, digits), ], dtype='float32')
+        speed = get_speed(img, digits)
         img = img[100:-150, :]
         img = cv2.resize(img, (190, 50))
         ev = get_gamepad()
@@ -92,13 +97,65 @@ def record_tmnf():
     pickle.dump((iters,dirs,speeds), open( path +"data.pkl", "wb" ))
 
 
-def record_tm20():
+def record_tmnf_keyboard(path_dataset):
+    path = path_dataset
+    direction = [0, 0, 0, 0]  # dir :  [acc [0,1], brake [0,1], left [0,1], right [0,1]]
+    digits = load_digits()
+    monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
+    sct = mss.mss()
+    time_step = 0.05
+    max_error = time_step * 1.0  # if the error in timestep becomes larger than this, stop recording
+    iteration = 0
+    speeds = []
+    dirs = []
+    iters = []
+
+    c = True
+    while c:
+        if keyboard.is_pressed(KEY_START_RECORD):
+            c = False
+            print('start recording')
+
+    t1 = time.time()
+    while not c:
+        t2 = time.time()
+        if t2 - t1 >= time_step + max_error:
+            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}). Stopping recording.")
+            c = True
+            break
+        while not t2 - t1 >= time_step:
+            t2 = time.time()
+            pass
+        t1 = t1+time_step
+
+        img = np.asarray(sct.grab(monitor))[:, :, :3]
+        speed = get_speed(img, digits)
+        img = img[100:-150, :]
+        img = cv2.resize(img, (190, 50))
+        direction[0] = float(keyboard.is_pressed(KEY_FORWARD))
+        direction[1] = float(keyboard.is_pressed(KEY_BACKWARD))
+        direction[2] = float(keyboard.is_pressed(KEY_RIGHT))
+        direction[3] = float(keyboard.is_pressed(KEY_LEFT))
+        if keyboard.is_pressed(KEY_STOP_RECORD):
+            c = True
+            print('stop recording')
+        cv2.imwrite(path + str(iteration) + ".png", img)
+        speeds.append(speed)
+        direction = [float(i) for i in direction]
+        dirs.append(direction)
+        iters.append(iteration)
+        iteration = iteration + 1
+
+    pickle.dump((iters, dirs, speeds), open(path + "data.pkl", "wb"))
+
+
+def record_tm20(path_dataset):
     """
     set the game to 40fps
 
     :return:
     """
-    path = r"D:/data2020/"
+    path = path_dataset
     iteration = 0
     iters, speeds, distances, positions, inputs, dones, rews = [], [], [], [], [], [], []
     env = gym.make("gym_tmrl:gym-tmrl-v0")
@@ -132,7 +189,7 @@ def record_tm20():
 
 
 
-def record_reward():
+def record_reward(path_reward):
     positions = []
     client = TM2020OpenPlanetClient()
     path = r"D:/data2020reward/"
@@ -178,6 +235,6 @@ def record_reward():
 
 
 if __name__ == "__main__":
-    # record_tmnf()
-    record_tm20()
-    # record_reward()
+    record_tmnf_keyboard(PATH_DATASET)
+    # record_tm20(PATH_DATASET)
+    # record_reward(PATH_REWARD)

@@ -94,7 +94,7 @@ def get_speed(img, digits):
             best2, num2 = 0, 0
         if np.max(img3) == 0:
             best3, num3 = 0, 0
-    return 100 * num1 + 10 * num2 + num3
+    return float(100 * num1 + 10 * num2 + num3)
 
 
 def radar(area, road_point, im):

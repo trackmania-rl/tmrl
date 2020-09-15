@@ -11,6 +11,7 @@ from torch.nn import functional as F
 from agents.nn import TanhNormalLayer, SacLinear, big_conv
 from agents.envs import UntouchedGymEnv
 import torch.nn as nn
+from agents.memory_dataloading import MemoryTMNF, MemoryTM2020
 
 
 class ActorModule(Module):
@@ -304,10 +305,10 @@ class TMModuleResnet(Module):
         im = self.cnn(im)
         if self.is_Q_network:
             act = x[2].float()
-            #print(f"DEBUG1 im.shape{im.shape}, vel.shape{vel.shape}, act.shape{act.shape}")
+            print(f"DEBUG1 im.shape{im.shape}, vel.shape{vel.shape}, act.shape{act.shape}")
             h = torch.cat((im, vel, act), dim=1)
         else:
-            #print(f"DEBUG2 im.shape{im.shape}, vel.shape{vel.shape}")
+            print(f"DEBUG2 im.shape{im.shape}, vel.shape{vel.shape}")
             h = torch.cat((im, vel), dim=1)
         #print(f"DEBUG h.shape{h.shape}")
         h = self.fc1(h)
@@ -360,25 +361,43 @@ if __name__ == "__main__":
     from agents.util import partial
     from agents.sac import Agent
     import gym
+    from gym_tmrl.envs.tmrl_env import TMInterface, TM2020Interface
+    from agents.envs import UntouchedGymEnv
 
     # trackmania agent (Yann):
-    speed = gym.spaces.Box(low=0.0, high=1.0, shape=(1,))
-    img = gym.spaces.Box(low=0.0, high=1.0, shape=(4, 3, 50, 190))
-    observation_space = gym.spaces.Tuple((speed, img))
-    action_space = gym.spaces.Box(low=0.0, high=1.0, shape=(4,))
+
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp"
+    DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
+
+    CONFIG_DICT = {
+        "interface": TMInterface,
+        # "interface": TM2020Interface,
+        "time_step_duration": 0.05,
+        "start_obs_capture": 0.04,
+        "time_step_timeout_factor": 1.0,
+        "ep_max_length": np.inf,
+        "real_time": True,
+        "async_threading": True,
+        "act_in_obs": False,
+        "benchmark": True
+    }
+
     Sac_tm = partial(
         TrainingOffline,
-        observation_space=observation_space,
-        action_space=action_space,
+        Env=partial(UntouchedGymEnv,
+                    id="gym_tmrl:gym-tmrl-v0",
+                    gym_kwargs={"config": CONFIG_DICT}),
         epochs=3,
         rounds=1,
         steps=1,
         update_model_interval=1,
         update_buffer_interval=1,
         Agent=partial(Agent,
-                      path_loc=r"D:/data2020/",  # dataset
-                      imgs_obs=4,
-                      device='cuda',
+                      Memory=partial(MemoryTMNF,
+                                     path_loc=DATASET_PATH,
+                                     imgs_obs=4,
+                                     ),
+                      device='cpu',
                       Model=partial(Tm_hybrid_1),
                       memory_size=1000000,
                       batchsize=8,
@@ -389,15 +408,6 @@ if __name__ == "__main__":
                       entropy_scale=1.0),
     )
 
-    # # test pendulum:
-    # Sac_pend = partial(
-    #     Training,
-    #     epochs=3,
-    #     rounds=5,
-    #     steps=200,
-    #     Agent=partial(Agent, device='cpu', Model=partial(Mlp), memory_size=500000, start_training=256, batchsize=2)
-    # )
-
     print("--- NOW RUNNING: SAC trackmania ---")
-    run_wandb_tm(None, None, None, run_cls=Sac_tm, checkpoint_path=r'D:/cp/exp')
+    run_wandb_tm(None, None, None, run_cls=Sac_tm, checkpoint_path=CHECKPOINT_PATH)
     #run(Sac_tm, checkpoint_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/exp")  # checkpoint
