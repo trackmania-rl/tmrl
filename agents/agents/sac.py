@@ -63,12 +63,15 @@ class Agent:
 
     def train(self):
         obs, actions, rewards, next_obs, terminals = self.memory.sample()  # sample a transition from the replay buffer
+        # print("DEBUG: sampling new action")
         new_action_distribution = self.model.actor(obs)  # outputs distribution object
         new_actions = new_action_distribution.rsample()  # samples using the reparametrization trick
 
         # critic loss
+        # print("DEBUG: sampling next action")
         next_action_distribution = self.model_nograd.actor(next_obs)  # outputs distribution object
         next_actions = next_action_distribution.sample()  # samples
+        # print("DEBUG: sampling next values")
         next_value = [c(next_obs, next_actions) for c in self.model_target.critics]
         next_value = reduce(torch.min, next_value)  # minimum action-value
         next_value = self.outputnorm_target.unnormalize(next_value)  # PopArt (not present in the original paper)
@@ -84,6 +87,7 @@ class Agent:
         value_target = reward_components + (1. - terminals[:, None]) * self.discount * next_value
         normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
 
+        # print("DEBUG: sampling old values")
         values = [c(obs, actions) for c in self.model.critics]
         assert values[0].shape == normalized_value_target.shape and not normalized_value_target.requires_grad
         loss_critic = sum(mse_loss(v, normalized_value_target) for v in values)
@@ -94,6 +98,7 @@ class Agent:
         self.critic_optimizer.step()
 
         # actor loss
+        # print("DEBUG: sampling new values")
         new_value = [c(obs, new_actions) for c in self.model.critics]  # new_actions with reparametrization trick
         new_value = reduce(torch.min, new_value)  # minimum action_values
         assert new_value.shape == (self.batchsize, 2)

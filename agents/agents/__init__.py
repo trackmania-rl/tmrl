@@ -114,7 +114,6 @@ def iterate_epochs_tm(run_cls: TrainingOffline, interface: TrainerInterface, che
     try:
         if not exists(checkpoint_path):
             print("=== specification ".ljust(70, "="))
-            print("DEBUG: blih")
             # print(f"DEBUG:{partial_to_dict(run_cls)}")
             # print(yaml.dump(partial_to_dict(run_cls), indent=3, default_flow_style=False, sort_keys=False), end="")
             run_instance = run_cls()
@@ -158,7 +157,7 @@ def run_wandb_tm(entity, project, run_id, run_cls: type = TrainingOffline, check
     #wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
     interface = TrainerInterface()
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
-        print("DEBUG: blah")
+        pass
     #    [wandb.log(json.loads(s.to_json())) for s in stats]
 
 # === specifications ===================================================================================================

@@ -9,12 +9,13 @@ import numpy as np
 class MemoryTM2020:
     keep_reset_transitions: int = 0
 
-    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4):
+    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True):
         self.device = device
         self.batchsize = batchsize
         self.memory_size = memory_size
         self.remove_size = remove_size
         self.imgs_obs = imgs_obs
+        self.act_in_obs = act_in_obs
 
         self.last_observation = None
         self.last_action = None
@@ -62,6 +63,12 @@ class MemoryTM2020:
             np.float32(self.data[6][idx_now]),  # r
             (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:], np.array(self.data[4][idx_now], dtype=np.float32)),  # obs
             np.float32(self.data[5][idx_now]),  # done
+        ) if self.act_in_obs else (
+            (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1]),  # last_observation
+            np.array(self.data[4][idx_last], dtype=np.float32),  # last_action
+            np.float32(self.data[6][idx_now]),  # r
+            (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:]),  # obs
+            np.float32(self.data[5][idx_now]),  # done
         )
 
         return l
@@ -88,12 +95,13 @@ class MemoryTM2020:
 class MemoryTMNF:
     keep_reset_transitions: int = 0
 
-    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4):
+    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True):
         self.device = device
         self.batchsize = batchsize
         self.memory_size = memory_size
         self.remove_size = remove_size
         self.imgs_obs = imgs_obs
+        self.act_in_obs = act_in_obs
 
         self.last_observation = None
         self.last_action = None
@@ -120,6 +128,12 @@ class MemoryTMNF:
         idx_now = item+self.imgs_obs
         imgs = self.load_imgs(item)
         l = (
+            (np.array([self.data[2][idx_last], ]), imgs[:-1], np.array(self.data[1][idx_last])),  # last_observation
+            np.array(self.data[1][idx_last], dtype=np.float32),  # last_action
+            np.float32(self.data[2][idx_now]),  # r
+            (np.array([self.data[2][idx_now], ]), imgs[1:], np.array(self.data[1][idx_now])),  # obs
+            np.float32(0.0),  # done
+        ) if self.act_in_obs else (
             # (np.array([self.data[2][idx_last], ]), imgs[:-1], np.array(self.data[1][idx_last])),  # last_observation
             (np.array([self.data[2][idx_last], ], dtype=np.float32), imgs[:-1]),  # last_observation
             np.array(self.data[1][idx_last], dtype=np.float32),  # last_action
@@ -145,7 +159,7 @@ class MemoryTMNF:
     def sample(self, indices=None):
         indices = self.sample_indices() if indices is None else indices
         batch = [self[idx] for idx in indices]
-        print(f"DEBUG: batch:{batch}")
+        # print(f"DEBUG: batch:{batch}")
         batch = collate(batch, self.device)
         return batch
 

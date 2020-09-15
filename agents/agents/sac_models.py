@@ -159,7 +159,7 @@ class TestMlp(ActorModule):
 # === Trackmania =======================================================================================================
 
 class TMModule1(Module):
-    def __init__(self, observation_space, action_space, is_Q_network):  # FIXME: action_space param is useless
+    def __init__(self, observation_space, action_space, is_q_network):  # FIXME: action_space param is useless
         """
         Args:
         """
@@ -170,13 +170,13 @@ class TMModule1(Module):
 
         # print(f"DEBUG: observation_space:{observation_space}")
         # print(f"DEBUG: action_space:{action_space}")
-        # print(f"DEBUG: is_Q_network:{is_Q_network}")
+        # print(f"DEBUG: is_q_network:{is_q_network}")
         self.img_dims = observation_space[1].shape
         # print(f"DEBUG: self.img_dims:{self.img_dims}")
         self.vel_dim = observation_space[0].shape[0]
         # print(f"DEBUG: self.vel_dim:{self.vel_dim}")
 
-        self.is_Q_network = is_Q_network
+        self.is_q_network = is_q_network
 
         self.act_dim = action_space.shape[0]
         # print(f"DEBUG: self.act_dim:{self.act_dim}")
@@ -185,7 +185,7 @@ class TMModule1(Module):
         self.pool = MaxPool2d(2, 2)
         self.conv2 = Conv2d(6, 16, 5)
 
-        if self.is_Q_network:
+        if self.is_q_network:
             self.fc1 = Linear(16 * 5 * 5 + self.vel_dim + self.act_dim, 120)  # 6*6 from image dimension
             # self.fc2 = Linear(120, 84)
             # self.fc3 = Linear(84, 2)
@@ -201,7 +201,7 @@ class TMModule1(Module):
         im = self.pool(F.relu(self.conv1(im)))
         im = self.pool(F.relu(self.conv2(im)))
         im = im.view(-1, 16 * 5 * 5)
-        if self.is_Q_network:
+        if self.is_q_network:
             act = x[2].float()
             h = torch.cat((im, vel, act), dim=1)
         else:
@@ -211,7 +211,7 @@ class TMModule1(Module):
 
 
 class TMModuleNet(Module):
-    def __init__(self, observation_space, action_space, is_Q_network):  # FIXME: action_space param is useless
+    def __init__(self, observation_space, action_space, is_q_network):  # FIXME: action_space param is useless
         """
         Args:
         """
@@ -222,13 +222,13 @@ class TMModuleNet(Module):
 
         # print(f"DEBUG: observation_space:{observation_space}")
         # print(f"DEBUG: action_space:{action_space}")
-        # print(f"DEBUG: is_Q_network:{is_Q_network}")
+        # print(f"DEBUG: is_q_network:{is_q_network}")
         self.img_dims = observation_space[1].shape
         # print(f"DEBUG: self.img_dims:{self.img_dims}")
         self.vel_dim = observation_space[0].shape[0]
         # print(f"DEBUG: self.vel_dim:{self.vel_dim}")
 
-        self.is_Q_network = is_Q_network
+        self.is_q_network = is_q_network
 
         self.act_dim = action_space.shape[0]
         # print(f"DEBUG: self.act_dim:{self.act_dim}")
@@ -237,7 +237,7 @@ class TMModuleNet(Module):
         self.pool = MaxPool2d(2, 2)
         self.conv2 = Conv2d(6, 16, 5)
 
-        if self.is_Q_network:
+        if self.is_q_network:
             self.fc1 = Linear(2320 + self.vel_dim + self.act_dim, 120)  # 6*6 from image dimension
             # self.fc2 = Linear(120, 84)
             # self.fc3 = Linear(84, 2)
@@ -270,7 +270,7 @@ class TMModuleNet(Module):
         im = self.pool(F.relu(self.conv1(im)))
         im = self.pool(F.relu(self.conv2(im)))
         im = im.view(-1, 2320)
-        if self.is_Q_network:
+        if self.is_q_network:
             act = x[2].float()
             h = torch.cat((im, vel, act), dim=1)
         else:
@@ -278,21 +278,27 @@ class TMModuleNet(Module):
         h = self.fc1(h)
         return h
 
+
 class TMModuleResnet(Module):
-    def __init__(self, observation_space, action_space, is_Q_network):  # FIXME: action_space param is useless
+    def __init__(self, observation_space, action_space, is_q_network, act_in_obs=False):  # FIXME: action_space param is useless
         super().__init__()
         assert isinstance(observation_space, gym.spaces.Tuple)
         torch.autograd.set_detect_anomaly(True)
         self.img_dims = observation_space[1].shape
         self.vel_dim = observation_space[0].shape[0]
-        self.is_Q_network = is_Q_network
+        self.is_q_network = is_q_network
+        self.act_in_obs = act_in_obs
         self.act_dim = action_space.shape[0]
         self.cnn = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
         self.cnn.fc = nn.Linear(self.cnn.fc.in_features, 200) # remove the last fc layer
-        if self.is_Q_network:
-            self.fc1 = Linear(200 + self.vel_dim + self.act_dim, 120)
-        else:
-            self.fc1 = Linear(200 + self.vel_dim, 120)
+        dim_fc1 = 200 + self.vel_dim
+        if self.is_q_network:
+            # print(f"DEBUG: created with q")
+            dim_fc1 += self.act_dim
+        if self.act_in_obs:
+            # print(f"DEBUG: created with act_in_obs")
+            dim_fc1 += self.act_dim
+        self.fc1 = Linear(dim_fc1, 120)
 
     def forward(self, x):
         # assert isinstance(x, tuple), f"x is not a tuple: {x}"
@@ -301,24 +307,28 @@ class TMModuleResnet(Module):
         im2 = x[1].float()[:, 1]
         im3 = x[1].float()[:, 2]
         im4 = x[1].float()[:, 3]
+        if self.act_in_obs:
+            prev_act = x[2].float()
+            # print(f"DEBUG: forward act_in_obs")
         im = torch.cat((im1, im2, im3, im4), dim=2)  # TODO : check device
         im = self.cnn(im)
-        if self.is_Q_network:
-            act = x[2].float()
-            print(f"DEBUG1 im.shape{im.shape}, vel.shape{vel.shape}, act.shape{act.shape}")
-            h = torch.cat((im, vel, act), dim=1)
+        if self.is_q_network:
+            act = x[-1].float()
+            # print(f"DEBUG: forward q net")
+            # print(f"DEBUG1 im.shape{im.shape}, vel.shape{vel.shape}, act.shape{act.shape}")
+            h = torch.cat((im, vel, prev_act, act), dim=1) if self.act_in_obs else torch.cat((im, vel, act), dim=1)
         else:
-            print(f"DEBUG2 im.shape{im.shape}, vel.shape{vel.shape}")
-            h = torch.cat((im, vel), dim=1)
+            # print(f"DEBUG2 im.shape{im.shape}, vel.shape{vel.shape}")
+            h = torch.cat((im, vel, prev_act), dim=1) if self.act_in_obs else torch.cat((im, vel), dim=1)
         #print(f"DEBUG h.shape{h.shape}")
         h = self.fc1(h)
         return h
 
 
 class TMActionValue(Sequential):
-    def __init__(self, observation_space, action_space):
+    def __init__(self, observation_space, action_space, act_in_obs=False):
         super().__init__(
-            TMModuleResnet(observation_space, action_space, is_Q_network=True), ReLU(),
+            TMModuleResnet(observation_space, action_space, is_q_network=True, act_in_obs=act_in_obs), ReLU(),
             Linear(120, 84), ReLU(),
             Linear(84, 2)  # we separate reward components
         )
@@ -332,9 +342,9 @@ class TMActionValue(Sequential):
 
 
 class TMPolicy(Sequential):
-    def __init__(self, observation_space, action_space):
+    def __init__(self, observation_space, action_space, act_in_obs=False):
         super().__init__(
-            TMModuleResnet(observation_space, action_space, is_Q_network=False), ReLU(),
+            TMModuleResnet(observation_space, action_space, is_q_network=False, act_in_obs=act_in_obs), ReLU(),
             Linear(120, 84), ReLU(),
             TanhNormalLayer(84, action_space.shape[0])
         )
@@ -348,11 +358,11 @@ class TMPolicy(Sequential):
 
 
 class Tm_hybrid_1(ActorModule):
-    def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2):
+    def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2, act_in_obs=False):
         super().__init__()
-        assert isinstance(observation_space, gym.spaces.Tuple)
-        self.critics = ModuleList(TMActionValue(observation_space, action_space) for _ in range(num_critics))
-        self.actor = TMPolicy(observation_space, action_space)
+        assert isinstance(observation_space, gym.spaces.Tuple), f"{observation_space} is not a spaces.Tuple"
+        self.critics = ModuleList(TMActionValue(observation_space, action_space, act_in_obs=act_in_obs) for _ in range(num_critics))
+        self.actor = TMPolicy(observation_space, action_space, act_in_obs=act_in_obs)
         self.critic_output_layers = [c[-1] for c in self.critics]
 
 
@@ -366,8 +376,10 @@ if __name__ == "__main__":
 
     # trackmania agent (Yann):
 
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp9"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
+    ACT_IN_OBS = True
+    BENCHMARK = False
 
     CONFIG_DICT = {
         "interface": TMInterface,
@@ -378,8 +390,8 @@ if __name__ == "__main__":
         "ep_max_length": np.inf,
         "real_time": True,
         "async_threading": True,
-        "act_in_obs": False,
-        "benchmark": True
+        "act_in_obs": ACT_IN_OBS,
+        "benchmark": BENCHMARK
     }
 
     Sac_tm = partial(
@@ -396,9 +408,11 @@ if __name__ == "__main__":
                       Memory=partial(MemoryTMNF,
                                      path_loc=DATASET_PATH,
                                      imgs_obs=4,
+                                     act_in_obs=ACT_IN_OBS,
                                      ),
                       device='cpu',
-                      Model=partial(Tm_hybrid_1),
+                      Model=partial(Tm_hybrid_1,
+                                    act_in_obs=ACT_IN_OBS),
                       memory_size=1000000,
                       batchsize=8,
                       lr=0.0003,  # default 0.0003

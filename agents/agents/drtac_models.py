@@ -20,7 +20,7 @@ class DelayedMlpModule(Module):
                     Discrete(act_delay_range.stop),  # action delay int64
                 ))
             action_space
-            is_Q_network: bool: if True, the input of forward() expects the action to be appended at the end of the input
+            is_q_network: bool: if True, the input of forward() expects the action to be appended at the end of the input
             hidden_units: number of output units of this module
             (optional) obs_delay: bool (default True): if False, the observation delay of observation_space will be ignored (e.g. unknown)
             (optional) act_delay: bool (default True): if False, the action delay of observation_space will be ignored (e.g. unknown)
