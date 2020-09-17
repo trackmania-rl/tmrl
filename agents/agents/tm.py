@@ -11,9 +11,43 @@ from copy import deepcopy
 from threading import Thread
 import socket
 from requests import get
+import pickle
 
 
-PORT = 55555  # Port to listen on (non-privileged ports are > 1023)
+PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
+PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
+BUFFER_SIZE = 1024
+HEADER_SIZE = 12
+
+
+def send_object(sock, object, timeout=10.0):
+    pkl_obj = pickle.dumps(object)
+    msg = bytes(f'len(pkl_obj):<{HEADER_SIZE}') + pkl_obj
+    return sock.send(msg)
+
+
+def recv_object(sock, object, timeout=10.0):
+    full_msg = b''
+    new_msg = True
+    while True:
+        msg = sock.recv(BUFFER_SIZE)
+        if new_msg:
+            print("new msg len:", msg[:HEADER_SIZE])
+            msglen = int(msg[:HEADER_SIZE])
+            new_msg = False
+
+        print(f"full message length: {msglen}")
+
+        full_msg += msg
+
+        print(len(full_msg))
+
+        if len(full_msg) - HEADER_SIZE == msglen:
+            print("full msg recvd")
+            print(full_msg[HEADER_SIZE:])
+            print(pickle.loads(full_msg[HEADER_SIZE:]))
+            new_msg = True
+            full_msg = b""
 
 
 # BUFFER: ===========================================
@@ -69,7 +103,7 @@ class TrainerInterface:
         while True:
             host = self.local_ip
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind((host, PORT))
+                s.bind((host, PORT_TRAINER))
                 s.listen()
                 conn, addr = s.accept()
                 with conn:
@@ -96,6 +130,67 @@ class TrainerInterface:
         empties the local buffer
         """
         pass
+
+
+# REDIS SERVER: =====================================
+
+class RedisServer:
+    """
+    This is the main server
+    This lets 1 TrainerInterface and n RolloutWorkers connect
+    This buffers experiences sent by RolloutWorkers
+    This periodically sends it to the TrainerInterface
+    """
+    def __init__(self, port_trainer=5555, port_rollout=5556):
+        self.port_trainer = port_trainer
+        self.port_rollout = port_rollout
+        self.__nb_active_clients = 0
+        self.__buffer_lock = Lock()
+        self.buffer = Buffer()
+        self.public_ip = get('http://api.ipify.org').text
+        self.local_ip = socket.gethostbyname(socket.gethostname())
+
+        print(f"REDIS: local IP: {self.local_ip}")
+        print(f"REDIS: public IP: {self.public_ip}")
+        # self.__wait_for_connections()
+
+    def __trainer_handshake(self, sock):
+        pass
+
+    def __run(self):
+        """
+        This waits for a TrainerInterface to connect
+        Then, this periodically sends the local buffer to the TrainerInterface (when data is available)
+        """
+        while True:
+            host = self.local_ip
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((host, self.port_trainer))
+                s.listen()
+                conn, addr = s.accept()
+                with conn:
+                    print('Connected by TrainerInterface ', addr)
+                    while True:
+
+                        data = conn.recv(1024)
+                        if not data:
+                            break
+                        conn.sendall(data)
+
+    def __wait_for_connections(self):
+        while True:
+            host = self.local_ip
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((host, PORT))
+                s.listen()
+                conn, addr = s.accept()
+                with conn:
+                    print('Connected by', addr)
+                    while True:
+                        data = conn.recv(1024)
+                        if not data:
+                            break
+                        conn.sendall(data)
 
 
 # ROLLOUT WORKER: ===================================

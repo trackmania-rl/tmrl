@@ -310,11 +310,13 @@ class TMModuleResnet(Module):
         if self.act_in_obs:
             prev_act = x[2].float()
             # print(f"DEBUG: forward act_in_obs")
+            # print(f"DEBUG: prev_act:{prev_act}")
         im = torch.cat((im1, im2, im3, im4), dim=2)  # TODO : check device
         im = self.cnn(im)
         if self.is_q_network:
             act = x[-1].float()
             # print(f"DEBUG: forward q net")
+            # print(f"DEBUG: act:{act}")
             # print(f"DEBUG1 im.shape{im.shape}, vel.shape{vel.shape}, act.shape{act.shape}")
             h = torch.cat((im, vel, prev_act, act), dim=1) if self.act_in_obs else torch.cat((im, vel, act), dim=1)
         else:
@@ -376,7 +378,7 @@ if __name__ == "__main__":
 
     # trackmania agent (Yann):
 
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp9"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     ACT_IN_OBS = True
     BENCHMARK = False
