@@ -2,13 +2,11 @@ from agents.envs import UntouchedGymEnv
 from agents.util import load
 from agents.sac_models import *
 from threading import Lock, Thread
-from copy import deepcopy
-from agents.util import collate, partition
+from agents.util import collate, partition, partial
 
 from collections import deque
 import gym
 from copy import deepcopy
-from threading import Thread
 import socket
 import select
 from requests import get
@@ -22,10 +20,10 @@ PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
 BUFFER_SIZE = 1024  # socket buffer
 HEADER_SIZE = 12  # fixed number of characters used to describe the data length
 
-SOCKET_TIMEOUT_CONNECT_TRAINER = 300.0
-SOCKET_TIMEOUT_ACCEPT_TRAINER = 300.0
-SOCKET_TIMEOUT_CONNECT_ROLLOUT = 300.0
-SOCKET_TIMEOUT_ACCEPT_ROLLOUT = 300.0  # socket waiting for rollout workers closed and restarted at this interval
+SOCKET_TIMEOUT_CONNECT_TRAINER = 30.0
+SOCKET_TIMEOUT_ACCEPT_TRAINER = 30.0
+SOCKET_TIMEOUT_CONNECT_ROLLOUT = 30.0
+SOCKET_TIMEOUT_ACCEPT_ROLLOUT = 30.0  # socket waiting for rollout workers closed and restarted at this interval
 
 SELECT_TIMEOUT_INBOUND_REDIS_FROM_TRAINER = 30.0  #  redis <- trainer (weights)
 SELECT_TIMEOUT_INBOUND_TRAINER_FROM_REDIS = 30.0  #  trainer <- redis (full samples batch)
@@ -73,6 +71,7 @@ def send_object(sock, obj, ping=False, pong=False):
     """
     If ping, this will ignore obj and send the PING request
     If pong, this will ignore obj and send the PONG request
+    If raw, obj must be a binary string
     Call only after select on a socket with a (long enough) timeout.
     Returns True if sent successfully, False if connection lost.
     """
@@ -150,7 +149,7 @@ def get_connected_socket(timeout, ip_connect, port_connect):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(timeout)
     try:
-        s.connect((ip_connect, port_connect))  # TODO: redis IP
+        s.connect((ip_connect, port_connect))
     except OSError:  # connection broken or timeout
         print("INFO: connect() timed-out or failed")
         s.close()
@@ -166,13 +165,15 @@ def accept_or_close_socket(s):
     returns conn, addr
     None None in case of failure
     """
+    conn = None
     try:
         conn, addr = s.accept()
         conn.settimeout(SOCKET_TIMEOUT_COMMUNICATE)
         return conn, addr
     except OSError:
         print("INFO: accept() timed-out or failed")
-        conn.close()
+        if conn is not None:
+            conn.close()
         s.close()
         print(f"INFO: sleeping {WAIT_BEFORE_RECONNECTION}s")
         time.sleep(WAIT_BEFORE_RECONNECTION)
@@ -228,12 +229,15 @@ def poll_and_recv_or_close_socket(conn):
 
 # BUFFER: ===========================================
 
-class Buffer(deque):
-    def __init__(self, maxlen=100000):
-        super().__init__(maxlen=maxlen)
+class Buffer:
+    def __init__(self):
+        self.memory = []
 
     def append_sample(self, obs, rew, done, info):
-        self.append((obs, rew, done, info, ))
+        self.memory.append((obs, rew, done, info, ))
+
+    def clear(self):
+        self.memory = []
 
 
 # REDIS SERVER: =====================================
@@ -246,18 +250,22 @@ class RedisServer:
     This periodically sends the buffer to the TrainerInterface
     This also receives the weights from the TrainerInterface and broadcast them to the connected RolloutWorkers
     """
-    def __init__(self):
+    def __init__(self, samples_per_redis_batch=1000):
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
+        self.__weights = None
+        self.samples_per_redis_batch = samples_per_redis_batch
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
 
         print(f"INFO REDIS: local IP: {self.local_ip}")
         print(f"INFO REDIS: public IP: {self.public_ip}")
 
-        Thread(target=self.__trainer_thread, args=(), kwargs={}, daemon=True).run()
-        Thread(target=self.__rollout_workers_thread, args=(), kwargs={}, daemon=True).run()
+        Thread(target=self.__rollout_workers_thread, args=(), kwargs={}, daemon=True).start()
+        Thread(target=self.__trainer_thread, args=(), kwargs={}, daemon=True).start()
+
+        print("DEBUG: REACH THIS POINT")
 
     def __trainer_thread(self, ):
         """
@@ -269,6 +277,7 @@ class RedisServer:
             s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_TRAINER, self.local_ip, PORT_TRAINER)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
+                print("DEBUG: accept_or_close_socket failed in trainer thread")
                 continue
             print(f"INFO TRAINER THREAD: redis connected by trainer at address {addr}")
             # Here we could spawn a Trainer communication thread, but since there is only one trainer we move on
@@ -276,19 +285,24 @@ class RedisServer:
             while True:
                 # send samples
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
-                if True:  # TODO: if condition on buffer
-                    obj = {"i": i, "time": time.time()}  # TODO: change for samples
+                if len(self.__buffer) >= self.samples_per_redis_batch:
+                    obj = self.__buffer
                     print(f"INFO TRAINER THREAD: sending obj {i}")
                     if not select_and_send_or_close_socket(obj, conn):
                         self.__buffer_lock.release()
                         break
+                    self.__buffer.clear()
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
                 # checks for weights
                 success, obj = poll_and_recv_or_close_socket(conn)
                 if not success:
+                    print("DEBUG: poll failed in trainer thread")
                     break
                 elif obj is not None:
-                    print(f"DEBUG INFO: trainer thread received obj:{obj}")
+                    print(f"DEBUG INFO: trainer thread received obj")
+                    self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
+                    self.__weights = obj
+                    self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
                 time.sleep(10.0)  # TODO: adapt
                 i += 1
             s.close()
@@ -302,9 +316,10 @@ class RedisServer:
             s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_ROLLOUT, self.local_ip, PORT_ROLLOUT)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
+                print("DEBUG: accept_or_close_socket failed in workers thread")
                 continue
             print(f"INFO WORKERS THREAD: redis connected by worker at address {addr}")
-            Thread(target=self.__rollout_worker_thread, args=(conn, ), kwargs={}, daemon=True).run()  # we don't keep track of this for now
+            Thread(target=self.__rollout_worker_thread, args=(conn, ), kwargs={}, daemon=True).start()  # we don't keep track of this for now
             s.close()
 
     def __rollout_worker_thread(self, conn):
@@ -314,18 +329,24 @@ class RedisServer:
         while True:
             # send weights
             self.__weights_lock.acquire()  # WEIGHTS LOCK...............................................................
-            if True:  # TODO: if condition on weights
-                obj = {"i": -1, "time": time.time()}  # TODO: change for weights
+            if self.__weights is not None:  # new weigths
+                obj = self.__weights
                 if not select_and_send_or_close_socket(obj, conn):
                     self.__weights_lock.release()
+                    print("DEBUG: select_and_send_or_close_socket failed in worker thread")
                     break
+                self.__weights = None
             self.__weights_lock.release()  # END WEIGHTS LOCK...........................................................
             # checks for samples
             success, obj = poll_and_recv_or_close_socket(conn)
             if not success:
+                print("DEBUG: poll failed in rollout thread")
                 break
             elif obj is not None:
-                print(f"DEBUG INFO: rollout worker thread received obj:{obj}")
+                print(f"DEBUG INFO: rollout worker thread received obj")
+                self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
+                self.__buffer += obj  # concat worker batch to local batch
+                self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
             time.sleep(10.0)  # TODO: adapt
 
 
@@ -337,10 +358,14 @@ class TrainerInterface:
     This connects to the redis server
     This receives samples batches and send new weights
     """
-    def __init__(self, ip_redis=None):
+    def __init__(self,
+                 ip_redis=None,
+                 model_path=r'C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth'):
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
+        self.__weights = None
         self.__buffer = Buffer()
+        self.model_path = model_path
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
 
@@ -348,9 +373,8 @@ class TrainerInterface:
         print(f"public IP: {self.public_ip}")
 
         self.ip_redis = ip_redis if ip_redis is not None else self.local_ip
-        # self.ip_redis = get('http://api.ipify.org').text  # TODO: remove this
 
-        Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).run()
+        Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
 
     def __run_thread(self):
         """
@@ -359,22 +383,29 @@ class TrainerInterface:
         while True:  # main client loop
             s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_TRAINER, self.public_ip, PORT_TRAINER)
             if s is None:
+                print("DEBUG: get_connected_socket failed in TrainerInterface thread")
                 continue
             while True:
                 # send weights
                 self.__weights_lock.acquire()  # WEIGHTS LOCK...........................................................
-                if True:  # TODO: condition on weights
-                    obj = {"i": -1, "time": time.time()}  # TODO: change for weights
+                if self.__weights is not None:  # new weights
+                    obj = self.__weights
                     if not select_and_send_or_close_socket(obj, s):
                         self.__weights_lock.release()
+                        print("DEBUG: select_and_send_or_close_socket failed in trainerinterface")
                         break
+                    self.__weights = None
                 self.__weights_lock.release()  # END WEIGHTS LOCK.......................................................
                 # checks for samples batch
                 success, obj = poll_and_recv_or_close_socket(s)
                 if not success:
+                    print("DEBUG: poll failed in TrainerInterface thread")
                     break
-                elif obj is not None:
-                    print(f"DEBUG INFO: trainer interface received obj:{obj}")
+                elif obj is not None:  # received buffer
+                    print(f"DEBUG INFO: trainer interface received obj")
+                    self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
+                    self.__buffer += obj
+                    self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
                 time.sleep(10.0)  # TODO: adapt
             s.close()
 
@@ -384,7 +415,9 @@ class TrainerInterface:
         broadcasts the model's weights to all connected RolloutWorkers
         """
         self.__weights_lock.acquire()  # WEIGHTS LOCK...................................................................
-        torch.save(model.state_dict(), r'C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/exp.pth')  # TODO
+        torch.save(model.state_dict(), self.model_path)
+        with open(self.model_path, 'rb') as f:
+            self.__weights = f.read()
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
 
     def retrieve_buffer(self):
@@ -393,7 +426,9 @@ class TrainerInterface:
         empties the local buffer
         """
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
-        pass  # TODO
+        if len(self.__buffer) > 0:
+            pass  # TODO: update trainer's replay buffer
+            self.__buffer.clear()
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
 
 
@@ -403,15 +438,20 @@ class RolloutWorker:
     def __init__(self,
                  env_id,
                  actor_module_cls,
-                 obs_space,
-                 act_space,
+                 # obs_space,
+                 # act_space,
                  device="cpu",
                  ip_redis=None,
                  samples_per_worker_batch=1000,
-                 sleep_between_batches=0.0
+                 sleep_between_batches=0.0,
+                 model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/exp.pth"
                  ):
         self.env = UntouchedGymEnv(id=env_id)
+        obs_space = self.env.observation_space
+        act_space = self.env.action_space
+        self.model_path = model_path
         self.actor = actor_module_cls(obs_space, act_space)
+        self.actor.load_state_dict(torch.load(self.model_path))
         self.device = device
         self.buffer = Buffer()
         self.__buffer = Buffer()  # deepcopy for sending
@@ -427,18 +467,18 @@ class RolloutWorker:
         print(f"local IP: {self.local_ip}")
         print(f"public IP: {self.public_ip}")
 
-        self.ip_redis = ip_redis if ip_redis is not None else self.local_ip
-        # self.ip_redis = get('http://api.ipify.org').text  # TODO: remove this
+        self.ip_redis = ip_redis if ip_redis is not None else self.public_ip
 
-        Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).run()
+        Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
 
     def __run_thread(self):
         """
         Trainer interface thread
         """
         while True:  # main client loop
-            s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_TRAINER, self.public_ip, PORT_TRAINER)
+            s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.ip_redis, PORT_ROLLOUT)
             if s is None:
+                print("DEBUG: get_connected_socket failed in worker")
                 continue
             while True:
                 # send buffer
@@ -447,6 +487,7 @@ class RolloutWorker:
                     obj = self.__buffer
                     if not select_and_send_or_close_socket(obj, s):
                         self.__buffer_lock.release()
+                        print("DEBUG: select_and_send_or_close_socket failed in worker")
                         break
                 self.__buffer.clear()  # empty sent batch
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
@@ -456,11 +497,11 @@ class RolloutWorker:
                     print(f"INFO: rollout worker poll failed")
                     break
                 elif obj is not None:
-                    print(f"DEBUG INFO: rollout worker received obj:{obj}")
+                    print(f"DEBUG INFO: rollout worker received obj")
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
-                time.sleep(10.0)  # TODO: adapts
+                time.sleep(10.0)  # TODO: adapt
             s.close()
 
     def act(self, obs, train=False):
@@ -476,10 +517,10 @@ class RolloutWorker:
 
     def collect_n_steps(self, n, train=True):
         """
-        empties the local buffer and collects n transitions
+        collects n transitions
         set train to False for test samples, True for train samples
         """
-        self.buffer.clear()
+        # self.buffer.clear()
         obs = self.env.reset()
         print(f"DEBUG: init obs[0]:{obs[0]}")
         print(f"DEBUG: init obs[1][-1].shape:{obs[1][-1].shape}")
@@ -488,7 +529,7 @@ class RolloutWorker:
         for _ in range(n):
             act = self.act(obs, train)
             obs, rew, done, info = self.env.step(act)
-            obs_mod = (obs[0], obs[1][-1],)  # speed and most recent image
+            obs_mod = (obs[0], obs[1][-1],)  # speed and most recent image only
             self.buffer.append_sample(obs_mod, rew, done, info)
 
     def send_and_clear_buffer(self):
@@ -503,15 +544,15 @@ class RolloutWorker:
         """
         self.__weights_lock.acquire()  # WEIGHTS LOCK...................................................................
         if self.__weights is not None:  # new weights available
-            # TODO: update weights and save them locally
-            wpath = r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/exp.pth"
-            self.actor.load_state_dict(torch.load(wpath))
+            with open(self.model_path, 'wb') as f:  # FIXME: check that this deletes the old file
+                f.write(self.__weights)
+            self.actor.load_state_dict(torch.load(self.model_path))
             self.__weights = None
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
 
 
 
-def main(args):
+def main_old(args):
     redis = args.redis
     public_ip = get('http://api.ipify.org').text
     local_ip = socket.gethostbyname(socket.gethostname())
@@ -575,9 +616,41 @@ def main(args):
             s.close()
 
 
+def main(args):
+    redis = args.redis
+    trainer = args.trainer
+
+    public_ip = get('http://api.ipify.org').text
+    local_ip = socket.gethostbyname(socket.gethostname())
+    print(f"I: local IP: {local_ip}")
+    print(f"I: public IP: {public_ip}")
+
+    if redis:
+        rs = RedisServer(samples_per_redis_batch=100)
+    elif trainer:
+        ti = TrainerInterface(ip_redis=public_ip,
+                              model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
+    else:
+        rw = RolloutWorker(env_id="gym_tmrl:gym-tmrl-v0",
+                           actor_module_cls=partial(TMPolicy, act_in_obs=True),
+                           device="cpu",
+                           ip_redis=public_ip,
+                           samples_per_worker_batch=100,
+                           sleep_between_batches=0.0,
+                           model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/exp.pth")
+        rw.collect_n_steps(100, True)
+        rw.send_and_clear_buffer()
+    while True:
+        time.sleep(1.0)
+
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('--redis', dest='redis', action='store_true')
     parser.set_defaults(redis=False)
+    parser.add_argument('--trainer', dest='trainer', action='store_true')
+    parser.set_defaults(trainer=False)
+    parser.add_argument('--worker', dest='worker', action='store_true')  # not used
+    parser.set_defaults(worker=False)
     args = parser.parse_args()
     main(args)

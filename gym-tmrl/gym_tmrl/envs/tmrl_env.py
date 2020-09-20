@@ -286,8 +286,8 @@ class TMInterface:
 # General purpose environment: =========================================================================================
 
 DEFAULT_CONFIG_DICT = {
-    # "interface": TMInterface,
-    "interface": TM2020Interface,
+    "interface": TMInterface,
+    # "interface": TM2020Interface,
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
