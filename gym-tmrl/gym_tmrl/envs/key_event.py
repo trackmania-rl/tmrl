@@ -4,16 +4,6 @@
 # This is an environment for trackmania
 # http://www.flint.jp/misc/?q=dik&lang=en  key indicator
 
-from gym import Env
-import gym.spaces as spaces
-import numpy as np
-import time
-from threading import Thread
-
-import cv2
-import mss
-import sys
-
 # from pynput.keyboard import Key, Controller
 import ctypes
 

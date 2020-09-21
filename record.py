@@ -176,7 +176,7 @@ def record_tm20(path_dataset):
             speeds.append(obs[0][0])
             distances.append(obs[0][1])
             positions.append([obs[0][2], obs[0][3], obs[0][4]])
-            inputs.append([obs[0][5], obs[0][6], obs[0][7]])
+            inputs.append([obs[0][6], obs[0][7], obs[0][5]])
             dones.append(done)
             rews.append(rew)
             iteration = iteration + 1

@@ -11,11 +11,13 @@ import mss
 import sys
 from gym_tmrl.envs.tools import load_digits, get_speed
 from gym_tmrl.envs.key_event import apply_control, keyres
+from gym_tmrl.envs.gamepad_event import control_all
 from collections import deque
 import socket
 import struct
 from threading import Thread, Lock
 from gym_tmrl.envs.compute_reward import RewardFunction
+import pyvjoy
 
 # from pynput.keyboard import Key, Controller
 import ctypes
@@ -82,7 +84,7 @@ class TM2020Interface:
     This is the API needed for the algorithm to control Trackmania2020
     """
 
-    def __init__(self, img_hist_len=4):
+    def __init__(self, img_hist_len=4, gamepad=True):
         """
         Args:
         """
@@ -95,6 +97,10 @@ class TM2020Interface:
         self.img = None
         self.reward_function = RewardFunction(reward_data_path=REWARD_PATH, nb_obs_forward=NB_OBS_FORWARD)
         self.client = TM2020OpenPlanetClient()
+        self.gamepad = gamepad
+
+        if self.gamepad:
+            self.j = pyvjoy.VJoyDevice(1)
 
     def send_control(self, control):
         """
@@ -102,19 +108,23 @@ class TM2020Interface:
         Applies the action given by the RL policy
         Args:
             control: np.array: [forward,backward,right,left]
-        TODO update
         """
-        if control is not None:
-            actions = []
-            if control[0] > 0.5:
-                actions.append("f")
-            elif control[1] > 0.5:
-                actions.append("b")
-            if control[2] > 0.5:
-                actions.append("r")
-            elif control[2] < -0.5:
-                actions.append("l")
-            apply_control(actions)  # TODO: format this
+        if self.gamepad:
+            if control is not None:
+                control_all(control, self.j)
+        else:
+            if control is not None:
+                actions = []
+                if control[0] > 0.5:
+                    actions.append("f")
+                elif control[1] > 0.5:
+                    actions.append("b")
+                if control[2] > 0.5:
+                    actions.append("r")
+                elif control[2] < -0.5:
+                    actions.append("l")
+                apply_control(actions)
+
 
     def grab_data_and_img(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
@@ -286,8 +296,8 @@ class TMInterface:
 # General purpose environment: =========================================================================================
 
 DEFAULT_CONFIG_DICT = {
-    "interface": TMInterface,
-    # "interface": TM2020Interface,
+    # "interface": TMInterface,
+    "interface": TM2020Interface,
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
