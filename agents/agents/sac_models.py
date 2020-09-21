@@ -375,6 +375,7 @@ if __name__ == "__main__":
     import gym
     from gym_tmrl.envs.tmrl_env import TMInterface, TM2020Interface
     from agents.envs import UntouchedGymEnv
+    from requests import get
 
     # trackmania agent (Yann):
 
@@ -425,5 +426,6 @@ if __name__ == "__main__":
     )
 
     print("--- NOW RUNNING: SAC trackmania ---")
+    public_ip = get('http://api.ipify.org').text
     run_wandb_tm(None, None, None, run_cls=Sac_tm, checkpoint_path=CHECKPOINT_PATH)
     #run(Sac_tm, checkpoint_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/exp")  # checkpoint

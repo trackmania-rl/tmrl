@@ -63,17 +63,22 @@ def ping_pong(sock):
 
 
 def send_ping(sock):
-    return send_object(sock, None, ping=True, pong=False)
+    return send_object(sock, None, ping=True, pong=False, ack=False)
 
 
 def send_pong(sock):
-    return send_object(sock, None, ping=False, pong=True)
+    return send_object(sock, None, ping=False, pong=True, ack=False)
 
 
-def send_object(sock, obj, ping=False, pong=False):
+def send_ack(sock):
+    return send_object(sock, None, ping=False, pong=False, ack=True)
+
+
+def send_object(sock, obj, ping=False, pong=False, ack=False):
     """
     If ping, this will ignore obj and send the PING request
     If pong, this will ignore obj and send the PONG request
+    If ack, this will ignore obj and send the ACK request
     If raw, obj must be a binary string
     Call only after select on a socket with a (long enough) timeout.
     Returns True if sent successfully, False if connection lost.
@@ -82,14 +87,19 @@ def send_object(sock, obj, ping=False, pong=False):
         msg = bytes(f"{'PING':<{HEADER_SIZE}}", 'utf-8')
     elif pong:
         msg = bytes(f"{'PONG':<{HEADER_SIZE}}", 'utf-8')
+    elif ack:
+        msg = bytes(f"{'ACK':<{HEADER_SIZE}}", 'utf-8')
     else:
         msg = pickle.dumps(obj)
         msg = bytes(f"{len(msg):<{HEADER_SIZE}}", 'utf-8') + msg
     try:
-        print(f"DEBUG: sending {len(msg) - HEADER_SIZE} bytes")
+        nb_bytes = len(msg) - HEADER_SIZE
+        if nb_bytes > 0:
+            print(f"DEBUG: sending object of {nb_bytes} bytes")
         t_start = time.time()
         sock.sendall(msg)
-        print(f"DEBUG: finished sending after {time.time() - t_start}s")
+        if nb_bytes > 0:
+            print(f"DEBUG: finished sending after {time.time() - t_start}s")
     except OSError:  # connection closed or broken
         return False
     return True
@@ -98,9 +108,11 @@ def send_object(sock, obj, ping=False, pong=False):
 def recv_object(sock):
     """
     If the request is PING or PONG, this will return 'PINGPONG'
+    If the request is ACK, this will return 'ACK'
     If the request is PING, this will automatically send the PONG answer
     Call only after select on a socket with a (long enough) timeout.
     Returns the object if received successfully, None if connection lost.
+    This sends the ACK request back to sock when an object transfer is complete
     """
     # first, we receive the header (inefficient but prevents collisions)
     msg = b''
@@ -121,6 +133,8 @@ def recv_object(sock):
         if msg[:4] == b'PING':
             send_pong(sock)
         return 'PINGPONG'
+    if msg[:3] == b'ACK':
+        return 'ACK'
     msglen = int(msg[:HEADER_SIZE])
     print(f"DEBUG: receiving {msglen} bytes")
     t_start = time.time()
@@ -139,6 +153,7 @@ def recv_object(sock):
         # print(f"DEBUG2: l:{l}")
     # print("DEBUG: final data len:", l)
     print(f"DEBUG: finished receiving after {time.time() - t_start}s.")
+    send_ack(sock)
     return pickle.loads(msg)
 
 
@@ -286,6 +301,8 @@ class RedisServer:
         Then, this periodically sends the local buffer to the TrainerInterface (when data is available)
         When the TrainerInterface sends new weights, this broadcasts them to all connected RolloutWorkers
         """
+        ack_time = time.time()
+        wait_ack = False
         while True:  # main redis loop
             s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_TRAINER, self.ip, PORT_TRAINER)
             conn, addr = accept_or_close_socket(s)
@@ -307,24 +324,33 @@ class RedisServer:
                 # send samples
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 if len(self.__buffer) >= self.samples_per_redis_batch:
-                    obj = self.__buffer
-                    print(f"INFO: sending obj {i}")
-                    if not select_and_send_or_close_socket(obj, conn):
-                        print("INFO: failed sending object to trainer")
-                        self.__buffer_lock.release()
-                        break
-                    self.__buffer.clear()
+                    if not wait_ack:
+                        obj = self.__buffer
+                        print(f"INFO: sending obj {i}")
+                        if select_and_send_or_close_socket(obj, conn):
+                            wait_ack = True
+                            ack_time = time.time()
+                        else:
+                            print("INFO: failed sending object to trainer")
+                            self.__buffer_lock.release()
+                            break
+                        self.__buffer.clear()
+                    else:
+                        print("WARNING: object ready for sending but ACK from last transmission not received")
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
                 # checks for weights
                 success, obj = poll_and_recv_or_close_socket(conn)
                 if not success:
                     print("DEBUG: poll failed in trainer thread")
                     break
-                elif obj is not None and obj != 'PINGPONG':
+                elif obj is not None and obj != 'ACK':
                     print(f"DEBUG INFO: trainer thread received obj")
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
+                elif obj == 'ACK':
+                    wait_ack = False
+                    print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
                 time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
                 i += 1
             s.close()
@@ -349,6 +375,8 @@ class RedisServer:
         Thread handling connection to a single RolloutWorker
         """
         last_ping = time.time()
+        ack_time = time.time()
+        wait_ack = False
         while True:
             # ping client
             if time.time() - last_ping >= PING_INTERVAL:
@@ -360,23 +388,32 @@ class RedisServer:
             # send weights
             self.__weights_lock.acquire()  # WEIGHTS LOCK...............................................................
             if self.__weights is not None:  # new weigths
-                obj = self.__weights
-                if not select_and_send_or_close_socket(obj, conn):
-                    self.__weights_lock.release()
-                    print("DEBUG: select_and_send_or_close_socket failed in worker thread")
-                    break
-                self.__weights = None
+                if not wait_ack:
+                    obj = self.__weights
+                    if select_and_send_or_close_socket(obj, conn):
+                        ack_time = time.time()
+                        wait_ack = True
+                    else:
+                        self.__weights_lock.release()
+                        print("DEBUG: select_and_send_or_close_socket failed in worker thread")
+                        break
+                    self.__weights = None
+                else:
+                    print("WARNING: object ready for sending but ACK from last transmission not received")
             self.__weights_lock.release()  # END WEIGHTS LOCK...........................................................
             # checks for samples
             success, obj = poll_and_recv_or_close_socket(conn)
             if not success:
                 print("DEBUG: poll failed in rollout thread")
                 break
-            elif obj is not None and obj != 'PINGPONG':
+            elif obj is not None and obj != 'ACK':
                 print(f"DEBUG INFO: rollout worker thread received obj")
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 self.__buffer += obj  # concat worker batch to local batch
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
+            elif obj == 'ACK':
+                wait_ack = False
+                print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
             time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
 
 
@@ -398,12 +435,10 @@ class TrainerInterface:
         self.model_path = model_path
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
+        self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
 
         print(f"local IP: {self.local_ip}")
         print(f"public IP: {self.public_ip}")
-
-        self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
-
         print(f"redis IP: {self.redis_ip}")
 
         Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
@@ -412,6 +447,8 @@ class TrainerInterface:
         """
         Trainer interface thread
         """
+        ack_time = time.time()
+        wait_ack = False
         while True:  # main client loop
             s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_TRAINER, self.redis_ip, PORT_TRAINER)
             if s is None:
@@ -421,23 +458,32 @@ class TrainerInterface:
                 # send weights
                 self.__weights_lock.acquire()  # WEIGHTS LOCK...........................................................
                 if self.__weights is not None:  # new weights
-                    obj = self.__weights
-                    if not select_and_send_or_close_socket(obj, s):
-                        self.__weights_lock.release()
-                        print("DEBUG: select_and_send_or_close_socket failed in TrainerInterface")
-                        break
-                    self.__weights = None
+                    if not wait_ack:
+                        obj = self.__weights
+                        if select_and_send_or_close_socket(obj, s):
+                            ack_time = time.time()
+                            wait_ack = True
+                        else:
+                            self.__weights_lock.release()
+                            print("DEBUG: select_and_send_or_close_socket failed in TrainerInterface")
+                            break
+                        self.__weights = None
+                    else:
+                        print("WARNING: object ready for sending but ACK from last transmission not received")
                 self.__weights_lock.release()  # END WEIGHTS LOCK.......................................................
                 # checks for samples batch
                 success, obj = poll_and_recv_or_close_socket(s)
                 if not success:
                     print("DEBUG: poll failed in TrainerInterface thread")
                     break
-                elif obj is not None and obj != 'PINGPONG':  # received buffer
+                elif obj is not None and obj != 'ACK':  # received buffer
                     print(f"DEBUG INFO: trainer interface received obj")
-                    self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
+                    self.__buffer_lock.acquire()  # BUFFER LOCK.........................................................
                     self.__buffer += obj
-                    self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
+                    self.__buffer_lock.release()  # END BUFFER LOCK.....................................................
+                elif obj == 'ACK':
+                    wait_ack = False
+                    print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
                 time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
@@ -508,6 +554,8 @@ class RolloutWorker:
         """
         Trainer interface thread
         """
+        ack_time = time.time()
+        wait_ack = False
         while True:  # main client loop
             s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.redis_ip, PORT_ROLLOUT)
             if s is None:
@@ -517,23 +565,32 @@ class RolloutWorker:
                 # send buffer
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 if len(self.__buffer) >= self.samples_per_worker_batch:  # a new batch is available
-                    obj = self.__buffer
-                    if not select_and_send_or_close_socket(obj, s):
-                        self.__buffer_lock.release()
-                        print("DEBUG: select_and_send_or_close_socket failed in worker")
-                        break
-                    self.__buffer.clear()  # empty sent batch
+                    if not wait_ack:
+                        obj = self.__buffer
+                        if select_and_send_or_close_socket(obj, s):
+                            ack_time = time.time()
+                            wait_ack = True
+                        else:
+                            self.__buffer_lock.release()
+                            print("DEBUG: select_and_send_or_close_socket failed in worker")
+                            break
+                        self.__buffer.clear()  # empty sent batch
+                    else:
+                        print("WARNING: object ready for sending but ACK from last transmission not received")
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
                 # checks for new weights
                 success, obj = poll_and_recv_or_close_socket(s)
                 if not success:
                     print(f"INFO: rollout worker poll failed")
                     break
-                elif obj is not None and obj != 'PINGPONG':
+                elif obj is not None and obj != 'ACK':
                     print(f"DEBUG INFO: rollout worker received obj")
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
+                elif obj == 'ACK':
+                    wait_ack = False
+                    print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
                 time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
@@ -550,13 +607,13 @@ class RolloutWorker:
 
     def collect_n_steps(self, n, train=True):
         """
-        collects n transitions
+        collects n transitions (from reset)
         set train to False for test samples, True for train samples
         """
         # self.buffer.clear()
         obs = self.env.reset()
-        print(f"DEBUG: init obs[0]:{obs[0]}")
-        print(f"DEBUG: init obs[1][-1].shape:{obs[1][-1].shape}")
+        # print(f"DEBUG: init obs[0]:{obs[0]}")
+        # print(f"DEBUG: init obs[1][-1].shape:{obs[1][-1].shape}")
         self.buffer.append_sample(get_buffer_sample(obs, 0.0, False, {}))
         for _ in range(n):
             act = self.act(obs, train)
@@ -611,25 +668,29 @@ def main(args):
     local_ip = socket.gethostbyname(socket.gethostname())
     print(f"I: local IP: {local_ip}")
     print(f"I: public IP: {public_ip}")
-    redis_ip = '127.0.0.1'
+
+    redis_ip = public_ip
+    localhost = True
+    if localhost:
+        redis_ip = '127.0.0.1'
 
     if redis:
-        rs = RedisServer(samples_per_redis_batch=1000, localhost=True)
+        rs = RedisServer(samples_per_redis_batch=1000, localhost=localhost)
     elif trainer:
         ti = TrainerInterface(redis_ip=redis_ip,
                               model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
     else:
         rw = RolloutWorker(env_id="gym_tmrl:gym-tmrl-v0",
-                           actor_module_cls=partial(TMPolicy, act_in_obs=True),
+                           actor_module_cls=partial(TMPolicy, act_in_obs=localhost),
                            device="cpu",
                            redis_ip=redis_ip,
                            samples_per_worker_batch=100,
-                           sleep_between_batches=0.0,
+                           # sleep_between_batches=0.0,  # not used yet
                            model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
         while True:
             print("INFO: collecting samples")
-            rw.collect_n_steps(1000, True)
-            print("INFO: sending samples")
+            rw.collect_n_steps(100, train=True)
+            print("INFO: copying buffer for sending")
             rw.send_and_clear_buffer()
             print("INFO: checking for new weights")
             rw.update_actor_weights()
