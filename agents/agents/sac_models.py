@@ -401,7 +401,7 @@ if __name__ == "__main__":
         Env=partial(UntouchedGymEnv,
                     id="gym_tmrl:gym-tmrl-v0",
                     gym_kwargs={"config": CONFIG_DICT}),
-        epochs=3,
+        epochs=10,
         rounds=1,
         steps=1,
         update_model_interval=1,

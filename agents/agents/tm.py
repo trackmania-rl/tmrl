@@ -17,45 +17,48 @@ import time
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
-BUFFER_SIZE = 1024  # socket buffer
+BUFFER_SIZE = 268435456  # 1048576  # 8192  # 32768  # socket buffer size (200 000 000 is large enough for 1000 images right now)
 HEADER_SIZE = 12  # fixed number of characters used to describe the data length
 
-SOCKET_TIMEOUT_CONNECT_TRAINER = 30.0
-SOCKET_TIMEOUT_ACCEPT_TRAINER = 30.0
-SOCKET_TIMEOUT_CONNECT_ROLLOUT = 30.0
-SOCKET_TIMEOUT_ACCEPT_ROLLOUT = 30.0  # socket waiting for rollout workers closed and restarted at this interval
-
-SELECT_TIMEOUT_INBOUND_REDIS_FROM_TRAINER = 30.0  #  redis <- trainer (weights)
-SELECT_TIMEOUT_INBOUND_TRAINER_FROM_REDIS = 30.0  #  trainer <- redis (full samples batch)
-
-SELECT_TIMEOUT_INBOUND_ROLLOUT = 30.0
-
+SOCKET_TIMEOUT_CONNECT_TRAINER = 300.0
+SOCKET_TIMEOUT_ACCEPT_TRAINER = 300.0
+SOCKET_TIMEOUT_CONNECT_ROLLOUT = 300.0
+SOCKET_TIMEOUT_ACCEPT_ROLLOUT = 300.0  # socket waiting for rollout workers closed and restarted at this interval
 SOCKET_TIMEOUT_COMMUNICATE = 30.0
 SELECT_TIMEOUT_OUTBOUND = 30.0
-
-SELECT_TIMEOUT_PING_PONG = 60.0
-
+PING_INTERVAL = 300.0  # interval at which the server pings the clients
+SELECT_TIMEOUT_PING_PONG = 120.0
 WAIT_BEFORE_RECONNECTION = 10.0
+LOOP_SLEEP_TIME = 1.0
+
+
+# NETWORK: ==========================================
+
 
 def ping_pong(sock):
     """
     This pings and waits for pong
-    All inbound select() calls must expect to receive a PING request and answer with PONG
+    All inbound select() calls must expect to receive PINGPING
     returns True if success, False otherwise
+    closes socket if failed
     """
     _, wl, xl = select.select([], [sock], [sock], SELECT_TIMEOUT_OUTBOUND)  # select for writing
     if len(xl) != 0 or len(wl) == 0:
         print("INFO: socket error/timeout while sending PING")
+        sock.close()
         return False
     send_ping(sock)
     rl, _, xl = select.select([sock], [], [sock], SELECT_TIMEOUT_PING_PONG)  # select for reading
     if len(xl) != 0 or len(rl) == 0:
         print("INFO: socket error/timeout while waiting for PONG")
+        sock.close()
         return False
     obj = recv_object(sock)
-    if obj == 'PONG':
+    if obj == 'PINGPONG':
         return True
     else:
+        print("INFO: PINGPONG received an object that is not PING or PONG")
+        sock.close()
         return False
 
 
@@ -83,7 +86,10 @@ def send_object(sock, obj, ping=False, pong=False):
         msg = pickle.dumps(obj)
         msg = bytes(f"{len(msg):<{HEADER_SIZE}}", 'utf-8') + msg
     try:
+        print(f"DEBUG: sending {len(msg) - HEADER_SIZE} bytes")
+        t_start = time.time()
         sock.sendall(msg)
+        print(f"DEBUG: finished sending after {time.time() - t_start}s")
     except OSError:  # connection closed or broken
         return False
     return True
@@ -110,12 +116,14 @@ def recv_object(sock):
         l = len(msg)
         # print(f"DEBUG1: l:{l}")
     # print("DEBUG: data len:", msg[:HEADER_SIZE])
-    print(f"DEBUG: msg[:4]: {msg[:4]}")
-    if msg[:4] == 'PING' or msg[:4] == 'PONG':
-        if msg[:4] == 'PING':
+    # print(f"DEBUG: msg[:4]: {msg[:4]}")
+    if msg[:4] == b'PING' or msg[:4] == b'PONG':
+        if msg[:4] == b'PING':
             send_pong(sock)
         return 'PINGPONG'
     msglen = int(msg[:HEADER_SIZE])
+    print(f"DEBUG: receiving {msglen} bytes")
+    t_start = time.time()
     # now, we receive the actual data (no more than the data length, again to prevent collisions)
     msg = b''
     l = len(msg)
@@ -130,6 +138,7 @@ def recv_object(sock):
         l = len(msg)
         # print(f"DEBUG2: l:{l}")
     # print("DEBUG: final data len:", l)
+    print(f"DEBUG: finished receiving after {time.time() - t_start}s.")
     return pickle.loads(msg)
 
 
@@ -151,9 +160,8 @@ def get_connected_socket(timeout, ip_connect, port_connect):
     try:
         s.connect((ip_connect, port_connect))
     except OSError:  # connection broken or timeout
-        print("INFO: connect() timed-out or failed")
+        print("INFO: connect() timed-out or failed, sleeping {WAIT_BEFORE_RECONNECTION}s")
         s.close()
-        print(f"INFO: sleeping {WAIT_BEFORE_RECONNECTION}s")
         time.sleep(WAIT_BEFORE_RECONNECTION)
         return None
     s.settimeout(SOCKET_TIMEOUT_COMMUNICATE)
@@ -171,11 +179,10 @@ def accept_or_close_socket(s):
         conn.settimeout(SOCKET_TIMEOUT_COMMUNICATE)
         return conn, addr
     except OSError:
-        print("INFO: accept() timed-out or failed")
+        # print(f"INFO: accept() timed-out or failed, sleeping {WAIT_BEFORE_RECONNECTION}s")
         if conn is not None:
             conn.close()
         s.close()
-        print(f"INFO: sleeping {WAIT_BEFORE_RECONNECTION}s")
         time.sleep(WAIT_BEFORE_RECONNECTION)
         return None, None
 
@@ -187,17 +194,15 @@ def select_and_send_or_close_socket(obj, conn):
     """
     _, wl, xl = select.select([], [conn], [conn], SELECT_TIMEOUT_OUTBOUND)  # select for writing
     if len(xl) != 0:
-        print("INFO: error when writing, closing sockets")
+        print("INFO: error when writing, closing socket")
         conn.close()
         return False
     if len(wl) == 0:
-        print("INFO: select timed out, sending PING request")
-        if not ping_pong(conn):
-            print("INFO: ping pong failed, closing sockets")
-            conn.close()
-            return False
+        print("INFO: outbound select() timed out, closing socket")
+        conn.close()
+        return False
     elif not send_object(conn, obj):  # error or timeout
-        print("INFO: send_object() failed, closing sockets")
+        print("INFO: send_object() failed, closing socket")
         conn.close()
         return False
     return True
@@ -223,7 +228,7 @@ def poll_and_recv_or_close_socket(conn):
     elif obj == 'PINGPONG':
         return True, None
     else:
-        print(f"DEBUG: received obj:{obj}")
+        # print(f"DEBUG: received obj:{obj}")
         return True, obj
 
 
@@ -233,11 +238,18 @@ class Buffer:
     def __init__(self):
         self.memory = []
 
-    def append_sample(self, obs, rew, done, info):
-        self.memory.append((obs, rew, done, info, ))
+    def append_sample(self, sample):
+        self.memory.append(sample)
 
     def clear(self):
         self.memory = []
+
+    def __len__(self):
+        return len(self.memory)
+
+    def __iadd__(self, other):
+        self.memory += other.memory
+        return self
 
 
 # REDIS SERVER: =====================================
@@ -249,8 +261,9 @@ class RedisServer:
     This buffers experiences sent by RolloutWorkers
     This periodically sends the buffer to the TrainerInterface
     This also receives the weights from the TrainerInterface and broadcast them to the connected RolloutWorkers
+    If localhost, the ip is localhost. Otherwise, it is the public ip and requires fort forwarding.
     """
-    def __init__(self, samples_per_redis_batch=1000):
+    def __init__(self, samples_per_redis_batch=1000, localhost=True):
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
@@ -258,14 +271,14 @@ class RedisServer:
         self.samples_per_redis_batch = samples_per_redis_batch
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
+        self.ip = '127.0.0.1' if localhost else self.local_ip
 
         print(f"INFO REDIS: local IP: {self.local_ip}")
         print(f"INFO REDIS: public IP: {self.public_ip}")
+        print(f"INFO REDIS: IP: {self.ip}")
 
         Thread(target=self.__rollout_workers_thread, args=(), kwargs={}, daemon=True).start()
         Thread(target=self.__trainer_thread, args=(), kwargs={}, daemon=True).start()
-
-        print("DEBUG: REACH THIS POINT")
 
     def __trainer_thread(self, ):
         """
@@ -274,21 +287,30 @@ class RedisServer:
         When the TrainerInterface sends new weights, this broadcasts them to all connected RolloutWorkers
         """
         while True:  # main redis loop
-            s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_TRAINER, self.local_ip, PORT_TRAINER)
+            s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_TRAINER, self.ip, PORT_TRAINER)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
                 print("DEBUG: accept_or_close_socket failed in trainer thread")
                 continue
+            last_ping = time.time()
             print(f"INFO TRAINER THREAD: redis connected by trainer at address {addr}")
             # Here we could spawn a Trainer communication thread, but since there is only one trainer we move on
             i = 0
             while True:
+                # ping client
+                if time.time() - last_ping >= PING_INTERVAL:
+                    if ping_pong(conn):
+                        last_ping = time.time()
+                    else:
+                        print("INFO: ping to trainer client failed")
+                        break
                 # send samples
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 if len(self.__buffer) >= self.samples_per_redis_batch:
                     obj = self.__buffer
-                    print(f"INFO TRAINER THREAD: sending obj {i}")
+                    print(f"INFO: sending obj {i}")
                     if not select_and_send_or_close_socket(obj, conn):
+                        print("INFO: failed sending object to trainer")
                         self.__buffer_lock.release()
                         break
                     self.__buffer.clear()
@@ -298,12 +320,12 @@ class RedisServer:
                 if not success:
                     print("DEBUG: poll failed in trainer thread")
                     break
-                elif obj is not None:
+                elif obj is not None and obj != 'PINGPONG':
                     print(f"DEBUG INFO: trainer thread received obj")
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
-                time.sleep(10.0)  # TODO: adapt
+                time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
                 i += 1
             s.close()
 
@@ -313,10 +335,10 @@ class RedisServer:
         When a new RolloutWorker connects, this instantiates a new thread to handle it
         """
         while True:  # main redis loop
-            s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_ROLLOUT, self.local_ip, PORT_ROLLOUT)
+            s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_ROLLOUT, self.ip, PORT_ROLLOUT)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
-                print("DEBUG: accept_or_close_socket failed in workers thread")
+                # print("DEBUG: accept_or_close_socket failed in workers thread")
                 continue
             print(f"INFO WORKERS THREAD: redis connected by worker at address {addr}")
             Thread(target=self.__rollout_worker_thread, args=(conn, ), kwargs={}, daemon=True).start()  # we don't keep track of this for now
@@ -326,7 +348,15 @@ class RedisServer:
         """
         Thread handling connection to a single RolloutWorker
         """
+        last_ping = time.time()
         while True:
+            # ping client
+            if time.time() - last_ping >= PING_INTERVAL:
+                if ping_pong(conn):
+                    last_ping = time.time()
+                else:
+                    print("INFO: ping to trainer client failed")
+                    break
             # send weights
             self.__weights_lock.acquire()  # WEIGHTS LOCK...............................................................
             if self.__weights is not None:  # new weigths
@@ -342,12 +372,12 @@ class RedisServer:
             if not success:
                 print("DEBUG: poll failed in rollout thread")
                 break
-            elif obj is not None:
+            elif obj is not None and obj != 'PINGPONG':
                 print(f"DEBUG INFO: rollout worker thread received obj")
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 self.__buffer += obj  # concat worker batch to local batch
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
-            time.sleep(10.0)  # TODO: adapt
+            time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
 
 
 # TRAINER: ==========================================
@@ -359,7 +389,7 @@ class TrainerInterface:
     This receives samples batches and send new weights
     """
     def __init__(self,
-                 ip_redis=None,
+                 redis_ip=None,
                  model_path=r'C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth'):
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
@@ -372,7 +402,9 @@ class TrainerInterface:
         print(f"local IP: {self.local_ip}")
         print(f"public IP: {self.public_ip}")
 
-        self.ip_redis = ip_redis if ip_redis is not None else self.local_ip
+        self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
+
+        print(f"redis IP: {self.redis_ip}")
 
         Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
 
@@ -381,7 +413,7 @@ class TrainerInterface:
         Trainer interface thread
         """
         while True:  # main client loop
-            s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_TRAINER, self.public_ip, PORT_TRAINER)
+            s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_TRAINER, self.redis_ip, PORT_TRAINER)
             if s is None:
                 print("DEBUG: get_connected_socket failed in TrainerInterface thread")
                 continue
@@ -392,7 +424,7 @@ class TrainerInterface:
                     obj = self.__weights
                     if not select_and_send_or_close_socket(obj, s):
                         self.__weights_lock.release()
-                        print("DEBUG: select_and_send_or_close_socket failed in trainerinterface")
+                        print("DEBUG: select_and_send_or_close_socket failed in TrainerInterface")
                         break
                     self.__weights = None
                 self.__weights_lock.release()  # END WEIGHTS LOCK.......................................................
@@ -401,12 +433,12 @@ class TrainerInterface:
                 if not success:
                     print("DEBUG: poll failed in TrainerInterface thread")
                     break
-                elif obj is not None:  # received buffer
+                elif obj is not None and obj != 'PINGPONG':  # received buffer
                     print(f"DEBUG INFO: trainer interface received obj")
                     self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
                     self.__buffer += obj
                     self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
-                time.sleep(10.0)  # TODO: adapt
+                time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
     def broadcast_model(self, model: ActorModule):
@@ -420,16 +452,17 @@ class TrainerInterface:
             self.__weights = f.read()
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
 
-    def retrieve_buffer(self):
+    def retrieve_buffer(self, replay_memory):
         """
         updates the Trainer's replay buffer with the TrainerInterface's local buffer
         empties the local buffer
         """
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
         if len(self.__buffer) > 0:
-            pass  # TODO: update trainer's replay buffer
+            replay_memory = updtate_replay_memory_from_buffer(self.__buffer, replay_memory)
             self.__buffer.clear()
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
+        return replay_memory
 
 
 # ROLLOUT WORKER: ===================================
@@ -441,7 +474,7 @@ class RolloutWorker:
                  # obs_space,
                  # act_space,
                  device="cpu",
-                 ip_redis=None,
+                 redis_ip=None,
                  samples_per_worker_batch=1000,
                  sleep_between_batches=0.0,
                  model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/exp.pth"
@@ -463,11 +496,11 @@ class RolloutWorker:
 
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
+        self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
 
         print(f"local IP: {self.local_ip}")
         print(f"public IP: {self.public_ip}")
-
-        self.ip_redis = ip_redis if ip_redis is not None else self.public_ip
+        print(f"redis IP: {self.redis_ip}")
 
         Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
 
@@ -476,7 +509,7 @@ class RolloutWorker:
         Trainer interface thread
         """
         while True:  # main client loop
-            s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.ip_redis, PORT_ROLLOUT)
+            s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.redis_ip, PORT_ROLLOUT)
             if s is None:
                 print("DEBUG: get_connected_socket failed in worker")
                 continue
@@ -489,19 +522,19 @@ class RolloutWorker:
                         self.__buffer_lock.release()
                         print("DEBUG: select_and_send_or_close_socket failed in worker")
                         break
-                self.__buffer.clear()  # empty sent batch
+                    self.__buffer.clear()  # empty sent batch
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
                 # checks for new weights
                 success, obj = poll_and_recv_or_close_socket(s)
                 if not success:
                     print(f"INFO: rollout worker poll failed")
                     break
-                elif obj is not None:
+                elif obj is not None and obj != 'PINGPONG':
                     print(f"DEBUG INFO: rollout worker received obj")
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
-                time.sleep(10.0)  # TODO: adapt
+                time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
     def act(self, obs, train=False):
@@ -524,13 +557,11 @@ class RolloutWorker:
         obs = self.env.reset()
         print(f"DEBUG: init obs[0]:{obs[0]}")
         print(f"DEBUG: init obs[1][-1].shape:{obs[1][-1].shape}")
-        obs_mod = (obs[0], obs[1][-1], )  # speed and most recent image
-        self.buffer.append_sample(obs_mod, 0.0, False, {})
+        self.buffer.append_sample(get_buffer_sample(obs, 0.0, False, {}))
         for _ in range(n):
             act = self.act(obs, train)
             obs, rew, done, info = self.env.step(act)
-            obs_mod = (obs[0], obs[1][-1],)  # speed and most recent image only
-            self.buffer.append_sample(obs_mod, rew, done, info)
+            self.buffer.append_sample(get_buffer_sample(obs, rew, done, info))
 
     def send_and_clear_buffer(self):
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
@@ -547,74 +578,30 @@ class RolloutWorker:
             with open(self.model_path, 'wb') as f:  # FIXME: check that this deletes the old file
                 f.write(self.__weights)
             self.actor.load_state_dict(torch.load(self.model_path))
+            print("INFO: model weights have been updated")
             self.__weights = None
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
 
 
+# Environment-dependent interface ===================
 
-def main_old(args):
-    redis = args.redis
-    public_ip = get('http://api.ipify.org').text
-    local_ip = socket.gethostbyname(socket.gethostname())
-    print(f"I: local IP: {local_ip}")
-    print(f"I: public IP: {public_ip}")
+def get_buffer_sample(obs, rew, done, info):
+    """
+    this creates the object that will actually be stored in the buffer
+    """
+    obs_mod = (obs[0], obs[1][-1],)  # speed and most recent image only
+    return tuple((obs_mod, rew, done, info))
 
-    if redis:  # server (redis)
-        while True:  # main redis loop
-            # TODO: we can close and restart s without closing conn
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(SOCKET_TIMEOUT_ACCEPT_ROLLOUT)
-            s.bind((local_ip, PORT_ROLLOUT))
-            s.listen(5)
-            try:
-                conn, addr = s.accept()
-                conn.settimeout(SOCKET_TIMEOUT_COMMUNICATE)
-            except OSError:
-                print("INFO: accept() timed-out or failed")
-                conn.close()
-                # s.close()
-                print("INFO: sleeping 10 sec...")
-                time.sleep((10.0))
-                continue
-            # TODO: launch a new thread here
-            print(f"INFO: redis connected by address {addr}")
-            i = 0
-            while True:
-                obj = {"i": i, "time": time.time()}
-                print(f"REDIS: sending obj {i}")
-                _, wl, xl = select.select([], [conn], [conn], SELECT_TIMEOUT_OUTBOUND)  # select for writing
-                if len(xl) != 0 or len(wl) == 0 or not send_object(wl[0], obj):  # error or timeout
-                    print("INFO: select outbound/send_object() timed-out or failed")
-                    conn.close()
-                    break
-                time.sleep(10.0)
-                i += 1
-            s.close()
-    else:  # client (rollout worker)s
-        while True:  # main client loop
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(SOCKET_TIMEOUT_CONNECT_ROLLOUT)
-            try:
-                s.connect((public_ip, PORT_ROLLOUT))
-            except OSError:  # connection broken or timeout
-                print("INFO: connect() timed-out or failed")
-                s.close()
-                print("INFO: sleeping 10 sec...")
-                time.sleep((10.0))
-                continue
-            s.settimeout(SOCKET_TIMEOUT_COMMUNICATE)
-            while True:
-                rl, wl, xl = select.select([s], [], [s], SELECT_TIMEOUT_INBOUND_ROLLOUT)  # select for writing
-                if len(rl) == 0 or len(xl) != 0:
-                    print("INFO: inbound select() timed-out or failed")
-                    break
-                obj = recv_object(s)
-                if obj is None:  # connection broken or timeout
-                    print("INFO: recv_object() timed-out or failed")
-                    break
-                print(f"CLIENT: received object {obj['i']} with latency: {time.time() - obj['time']}")
-            s.close()
 
+def updtate_replay_memory_from_buffer(buffer, replay_memory):
+    """
+    This should update the replay memory with the buffer
+    """
+    # TODO
+    return replay_memory
+
+
+# Main ==============================================
 
 def main(args):
     redis = args.redis
@@ -624,22 +611,28 @@ def main(args):
     local_ip = socket.gethostbyname(socket.gethostname())
     print(f"I: local IP: {local_ip}")
     print(f"I: public IP: {public_ip}")
+    redis_ip = '127.0.0.1'
 
     if redis:
-        rs = RedisServer(samples_per_redis_batch=100)
+        rs = RedisServer(samples_per_redis_batch=1000, localhost=True)
     elif trainer:
-        ti = TrainerInterface(ip_redis=public_ip,
+        ti = TrainerInterface(redis_ip=redis_ip,
                               model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
     else:
         rw = RolloutWorker(env_id="gym_tmrl:gym-tmrl-v0",
                            actor_module_cls=partial(TMPolicy, act_in_obs=True),
                            device="cpu",
-                           ip_redis=public_ip,
+                           redis_ip=redis_ip,
                            samples_per_worker_batch=100,
                            sleep_between_batches=0.0,
-                           model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/exp.pth")
-        rw.collect_n_steps(100, True)
-        rw.send_and_clear_buffer()
+                           model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
+        while True:
+            print("INFO: collecting samples")
+            rw.collect_n_steps(1000, True)
+            print("INFO: sending samples")
+            rw.send_and_clear_buffer()
+            print("INFO: checking for new weights")
+            rw.update_actor_weights()
     while True:
         time.sleep(1.0)
 
