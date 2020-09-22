@@ -13,7 +13,10 @@ from requests import get
 import pickle
 from argparse import ArgumentParser
 import time
+from gym_tmrl.envs.tmrl_env import TMInterface, TM2020Interface
 
+
+# CONFIGURATION:
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
@@ -30,6 +33,50 @@ PING_INTERVAL = 300.0  # interval at which the server pings the clients
 SELECT_TIMEOUT_PING_PONG = 120.0
 WAIT_BEFORE_RECONNECTION = 10.0
 LOOP_SLEEP_TIME = 1.0
+
+MODEL_PATH_WORKER = r"D:/cp/weights/expt.pth"
+MODEL_PATH_TRAINER = r"D:/cp/weights/expt.pth"
+CHECKPOINT_PATH = r"D:\cp\exp0"  # r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
+DATASET_PATH = r"D:\data2020"  # r"C:\Users\Yann\Desktop\git\tmrl\data"
+ACT_IN_OBS = True
+BENCHMARK = False
+
+MEMORY = partial(MemoryTM2020,  # MemoryTMNF
+                 path_loc=DATASET_PATH,
+                 imgs_obs=4,
+                 act_in_obs=ACT_IN_OBS,
+                 )
+
+TRAIN_MODEL = Tm_hybrid_1
+POLICY = TMPolicy
+
+public_ip = get('http://api.ipify.org').text
+local_ip = socket.gethostbyname(socket.gethostname())
+print(f"I: local IP: {local_ip}")
+print(f"I: public IP: {public_ip}")
+
+REDIS_IP = public_ip
+LOCALHOST = False
+
+CONFIG_DICT = {
+    # "interface": TMInterface,
+    "interface": TM2020Interface,
+    "time_step_duration": 0.05,
+    "start_obs_capture": 0.04,
+    "time_step_timeout_factor": 1.0,
+    "ep_max_length": np.inf,
+    "real_time": True,
+    "async_threading": True,
+    "act_in_obs": ACT_IN_OBS,
+    "benchmark": BENCHMARK
+}
+
+
+# END CONFIGURATION
+
+
+# if LOCALHOST:
+#     REDIS_IP = '127.0.0.1'
 
 
 # NETWORK: ==========================================
@@ -427,7 +474,7 @@ class TrainerInterface:
     """
     def __init__(self,
                  redis_ip=None,
-                 model_path=r'C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth'):
+                 model_path=r'D:/cp/weights/expt.pth'): # r'C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth'):
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
         self.__weights = None
@@ -523,7 +570,7 @@ class RolloutWorker:
                  redis_ip=None,
                  samples_per_worker_batch=1000,
                  sleep_between_batches=0.0,
-                 model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/exp.pth"
+                 model_path=MODEL_PATH_WORKER
                  ):
         self.env = UntouchedGymEnv(id=env_id)
         obs_space = self.env.observation_space
@@ -614,10 +661,11 @@ class RolloutWorker:
         obs = self.env.reset()
         # print(f"DEBUG: init obs[0]:{obs[0]}")
         # print(f"DEBUG: init obs[1][-1].shape:{obs[1][-1].shape}")
-        self.buffer.append_sample(get_buffer_sample(obs, 0.0, False, {}))
+        obs, rew, done, info = get_buffer_sample(obs, 0.0, False, {})
+        self.buffer.append_sample((obs, rew, done, info))
         for _ in range(n):
             act = self.act(obs, train)
-            obs, rew, done, info = self.env.step(act)
+            obs, rew, done, info = get_buffer_sample(self.env.step(act))
             self.buffer.append_sample(get_buffer_sample(obs, rew, done, info))
 
     def send_and_clear_buffer(self):
@@ -645,9 +693,10 @@ class RolloutWorker:
 def get_buffer_sample(obs, rew, done, info):
     """
     this creates the object that will actually be stored in the buffer
+    # TODO
     """
-    obs_mod = (obs[0], obs[1][-1],)  # speed and most recent image only
-    return tuple((obs_mod, rew, done, info))
+    obs_mod = (obs[0][0], obs[1][-1], obs[2]) if len(obs) == 3 else (obs[0][0], obs[1][-1])  # speed and most recent image only  # TODO: clean this
+    return obs_mod, rew, done, info
 
 
 def updtate_replay_memory_from_buffer(buffer, replay_memory):
@@ -664,29 +713,19 @@ def main(args):
     redis = args.redis
     trainer = args.trainer
 
-    public_ip = get('http://api.ipify.org').text
-    local_ip = socket.gethostbyname(socket.gethostname())
-    print(f"I: local IP: {local_ip}")
-    print(f"I: public IP: {public_ip}")
-
-    redis_ip = public_ip
-    localhost = True
-    if localhost:
-        redis_ip = '127.0.0.1'
-
     if redis:
-        rs = RedisServer(samples_per_redis_batch=1000, localhost=localhost)
+        rs = RedisServer(samples_per_redis_batch=1000, localhost=LOCALHOST)
     elif trainer:
-        ti = TrainerInterface(redis_ip=redis_ip,
-                              model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
+        main_train()
     else:
         rw = RolloutWorker(env_id="gym_tmrl:gym-tmrl-v0",
-                           actor_module_cls=partial(TMPolicy, act_in_obs=localhost),
-                           device="cpu",
-                           redis_ip=redis_ip,
+                           actor_module_cls=partial(POLICY, act_in_obs=ACT_IN_OBS),
+                           device="cuda",
+                           redis_ip=REDIS_IP,
                            samples_per_worker_batch=100,
                            # sleep_between_batches=0.0,  # not used yet
-                           model_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
+                           model_path=MODEL_PATH_WORKER)
+                           # model_path = r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
         while True:
             print("INFO: collecting samples")
             rw.collect_n_steps(100, train=True)
@@ -696,6 +735,47 @@ def main(args):
             rw.update_actor_weights()
     while True:
         time.sleep(1.0)
+
+
+def main_train():
+    from agents import TrainingOffline, run_wandb_tm
+    from agents.util import partial
+    from agents.sac import Agent
+    from agents.envs import UntouchedGymEnv
+    from requests import get
+
+    Sac_tm = partial(
+        TrainingOffline,
+        Env=partial(UntouchedGymEnv,
+                    id="gym_tmrl:gym-tmrl-v0",
+                    gym_kwargs={"config": CONFIG_DICT}),
+        epochs=5,
+        rounds=1,
+        steps=1,
+        update_model_interval=1,
+        update_buffer_interval=1,
+        Agent=partial(Agent,
+                      Memory=MEMORY,
+                      device='cuda',
+                      Model=partial(TRAIN_MODEL,
+                                    act_in_obs=ACT_IN_OBS),
+                      memory_size=1000000,
+                      batchsize=4,
+                      lr=0.0003,  # default 0.0003
+                      discount=0.99,
+                      target_update=0.005,
+                      reward_scale=5.0,
+                      entropy_scale=1.0),
+    )
+
+    print("--- NOW RUNNING: SAC trackmania ---")
+    interface = TrainerInterface(redis_ip=REDIS_IP, model_path=MODEL_PATH_TRAINER)
+    run_wandb_tm(None,
+                 None,
+                 None,
+                 interface,
+                 run_cls=Sac_tm,
+                 checkpoint_path=CHECKPOINT_PATH)
 
 
 if __name__ == "__main__":

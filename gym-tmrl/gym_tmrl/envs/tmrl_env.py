@@ -137,7 +137,7 @@ class TM2020Interface:
         """
         obs must be a list of numpy arrays
         """
-        self.send_control([0, 0, 0])
+        self.send_control(self.get_default_action())
         keyres()
         time.sleep(0.05)  # must be long enough for image to be refreshed
         data, img = self.grab_data_and_img()
@@ -171,10 +171,10 @@ class TM2020Interface:
     def get_observation_space(self):
         """
         must be a Tuple
-        TODO: update
+        TODO: normalize all values to 0-1
         """
         speed = spaces.Box(low=0.0, high=1.0, shape=(1,))
-        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 48, 191))
+        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 48, 191))  # because the dataloader crops imgs
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):

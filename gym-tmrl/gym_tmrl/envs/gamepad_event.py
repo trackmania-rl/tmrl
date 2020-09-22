@@ -1,4 +1,5 @@
 import pyvjoy
+import numpy as np
 
 MAX_VJOY = 32768
 """
@@ -18,6 +19,8 @@ def steer(value, j):
 
 def control_all(control, j):
     forward, backward, steer = control
+    forward = np.round(forward).astype(int)
+    backward = np.round(backward).astype(int)
     j.data.wAxisX = int((steer+1)/2 * MAX_VJOY)
     j.data.lButtons = forward + backward*2
     j.update()

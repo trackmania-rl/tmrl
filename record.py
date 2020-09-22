@@ -22,7 +22,7 @@ KEY_LEFT = 'left'
 KEY_RESET = 'r'
 
 PATH_REWARD = r"D:/data2020reward/"
-PATH_DATASET = r"C:/Users/Yann/Desktop/git/tmrl/data/"
+PATH_DATASET = r"D:/data2020/" # r"C:/Users/Yann/Desktop/git/tmrl/data/"
 
 def record_tmnf_gamepad(path_dataset):
     path = path_dataset
@@ -165,11 +165,13 @@ def record_tm20(path_dataset):
         obs, rew, done, info = env.step(None)
         # obs = (obs[0], obs[1], obs[0][-3:])
         if keyboard.is_pressed('r'):
+            print("reset")
             env.reset()
             done = True
         if keyboard.is_pressed('e'):
             print("start record")
             is_recording = True
+
         if is_recording:
             cv2.imwrite(path + str(iteration) + ".png", obs[1][-1])
             iters.append(iteration)
@@ -186,7 +188,6 @@ def record_tm20(path_dataset):
                 pickle.dump((iters, speeds, distances, positions, inputs, dones, rews), open(path + "data.pkl", "wb"))
                 print("All done")
                 return
-
 
 
 def record_reward(path_reward):
@@ -235,6 +236,6 @@ def record_reward(path_reward):
 
 
 if __name__ == "__main__":
-    record_tmnf_keyboard(PATH_DATASET)
-    # record_tm20(PATH_DATASET)
+    #record_tmnf_keyboard(PATH_DATASET)
+    record_tm20(PATH_DATASET)
     # record_reward(PATH_REWARD)

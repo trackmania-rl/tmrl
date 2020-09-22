@@ -141,7 +141,7 @@ def iterate_epochs_tm(run_cls: TrainingOffline, interface: TrainerInterface, che
             os.remove(checkpoint_path)
 
 
-def run_wandb_tm(entity, project, run_id, run_cls: type = TrainingOffline, checkpoint_path: str = None):
+def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOffline, checkpoint_path: str = None):
     """
     trackmania main (remote)
     run and save config and stats to https://wandb.com
@@ -155,7 +155,7 @@ def run_wandb_tm(entity, project, run_id, run_cls: type = TrainingOffline, check
     #config['git'] = git_info()  # TODO: check this for bugs
     #resume = checkpoint_path and exists(checkpoint_path)
     #wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
-    interface = TrainerInterface()
+    # interface = TrainerInterface()
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
         pass
     #    [wandb.log(json.loads(s.to_json())) for s in stats]

@@ -301,7 +301,9 @@ class TMModuleResnet(Module):
         self.fc1 = Linear(dim_fc1, 120)
 
     def forward(self, x):
-        # assert isinstance(x, tuple), f"x is not a tuple: {x}"
+        assert isinstance(x, tuple), f"x is not a tuple: {x}"
+        print(f"DEBUG: len(x):{len(x)}")
+        print(f"DEBUG: x[0]:{x[0]}")
         vel = x[0].float()
         im1 = x[1].float()[:, 0]
         im2 = x[1].float()[:, 1]
@@ -320,7 +322,7 @@ class TMModuleResnet(Module):
             # print(f"DEBUG1 im.shape{im.shape}, vel.shape{vel.shape}, act.shape{act.shape}")
             h = torch.cat((im, vel, prev_act, act), dim=1) if self.act_in_obs else torch.cat((im, vel, act), dim=1)
         else:
-            # print(f"DEBUG2 im.shape{im.shape}, vel.shape{vel.shape}")
+            # print(f"DEBUG2 im.shape : {im.shape}, vel.shape : {vel.shape} , prev_act.shape : {prev_act.shape}")
             h = torch.cat((im, vel, prev_act), dim=1) if self.act_in_obs else torch.cat((im, vel), dim=1)
         #print(f"DEBUG h.shape{h.shape}")
         h = self.fc1(h)
@@ -379,14 +381,14 @@ if __name__ == "__main__":
 
     # trackmania agent (Yann):
 
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
-    DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
+    CHECKPOINT_PATH = r"D:\cp\exp0" #r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
+    DATASET_PATH = r"D:\data2020" #r"C:\Users\Yann\Desktop\git\tmrl\data"
     ACT_IN_OBS = True
     BENCHMARK = False
 
     CONFIG_DICT = {
-        "interface": TMInterface,
-        # "interface": TM2020Interface,
+        #"interface": TMInterface,
+        "interface": TM2020Interface,
         "time_step_duration": 0.05,
         "start_obs_capture": 0.04,
         "time_step_timeout_factor": 1.0,
@@ -408,12 +410,12 @@ if __name__ == "__main__":
         update_model_interval=1,
         update_buffer_interval=1,
         Agent=partial(Agent,
-                      Memory=partial(MemoryTMNF,
+                      Memory=partial(MemoryTM2020,  # MemoryTMNF
                                      path_loc=DATASET_PATH,
                                      imgs_obs=4,
                                      act_in_obs=ACT_IN_OBS,
                                      ),
-                      device='cpu',
+                      device='cuda',
                       Model=partial(Tm_hybrid_1,
                                     act_in_obs=ACT_IN_OBS),
                       memory_size=1000000,

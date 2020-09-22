@@ -78,7 +78,7 @@ class MemoryTM2020:
         for i in range(item, item+self.imgs_obs+1):
             img = cv2.imread(str(self.path / (str(self.data[0][i]) + ".png")))
             img = img[20:-30, :]
-            img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
+            img = img.astype('float32') / 255.0
             res.append(np.moveaxis(img, -1, 0))
         return np.array(res)
 
@@ -165,9 +165,9 @@ class MemoryTMNF:
 
 
 if __name__ == "__main__":
-    dataset = MemoryTMNF(memory_size=10, batchsize=3, device='cpu', remove_size=100, path_loc=r"D:\data2020", imgs_obs=4)
-    print('last_observation', dataset[0][0][0])
-    print('last_observation', dataset[0][0][1].shape)  #
+    dataset = MemoryTM2020(memory_size=10, batchsize=3, device='cpu', remove_size=100, path_loc=r"D:\data2020", imgs_obs=4)
+    print('last_observation vitesse ', dataset[0][0][0])
+    print('last_observation img', dataset[0][0][1].shape, np.min(dataset[0][0][1]), np.max(dataset[0][0][1]))
     print('last_action', dataset[0][1])
     print('r', dataset[0][2])
     print('obs', dataset[0][3][0])
