@@ -7,5 +7,6 @@ setup(name='gym_tmrl',
                         'mss',
                         'scikit-image',
                         'inputs',
-                        'keyboard']
+                        'keyboard',
+                        'pyvjoy']
       )
