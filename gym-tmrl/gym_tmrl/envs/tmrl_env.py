@@ -27,6 +27,7 @@ import ctypes
 REWARD_PATH = r"D:\data2020reward\reward_mod.pkl"
 NB_OBS_FORWARD = 500  # if reward is collected at 100Hz, this allows (and rewards) 5s cuts
 
+
 # Interface for Trackmania 2020 ========================================================================================
 
 class TM2020OpenPlanetClient:
@@ -106,6 +107,7 @@ class TM2020Interface:
         """
         Non-blocking function
         Applies the action given by the RL policy
+        If control is None, does nothing (e.g. to record)
         Args:
             control: np.array: [forward,backward,right,left]
         """
@@ -194,7 +196,7 @@ class TM2020Interface:
 
 class TMInterface:
     """
-    This is the API needed for the algorithm to control Trackmania
+    This is the API needed for the algorithm to control Trackmania Nations Forever
     """
     def __init__(self, img_hist_len=4):
         """
@@ -211,29 +213,31 @@ class TMInterface:
         """
         Non-blocking function
         Applies the action given by the RL policy
+        If control is None, does nothing
         Args:
             control: np.array: [forward,backward,right,left]
         """
-        actions = []
-        if control[0] > 0.5:
-            actions.append("f")
-        elif control[1] > 0.5:
-            actions.append("b")
-        if control[2] > 0.5:
-            actions.append("r")
-        elif control[3] > 0.5:
-            actions.append("l")
-        apply_control(actions)  # TODO: format this
+        if control is not None:
+            actions = []
+            if control[0] > 0.5:
+                actions.append("f")
+            elif control[1] > 0.5:
+                actions.append("b")
+            if control[2] > 0.5:
+                actions.append("r")
+            elif control[3] > 0.5:
+                actions.append("l")
+            apply_control(actions)  # TODO: format this
     
     def grab_img_and_speed(self):
-        img = np.asarray(self.sct.grab(self.monitor))[:,:,:3]
+        img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         speed = np.array([get_speed(img, self.digits), ], dtype='float32')
         img = img[100:-150, :]
         img = cv2.resize(img, (190, 50))
-        img = np.moveaxis(img, -1, 0)
-        img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
+        # img = np.moveaxis(img, -1, 0)
+        # img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
         #print(f"DEBUG: Env: captured speed:{speed}")
-        speed = speed / 1000.0  # normalized, but not centered
+        # speed = speed / 1000.0  # normalized, but not centered
         self.img = img  # for render()
         return img, speed
     
@@ -241,13 +245,13 @@ class TMInterface:
         """
         obs must be a list of numpy arrays
         """
-        self.send_control([0, 0, 0, 0])
+        self.send_control(np.array([0, 0, 0, 0], dtype='float32'))
         keyres()
         time.sleep(0.05)  # must be long enough for image to be refreshed
         img, speed = self.grab_img_and_speed()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
-        imgs = np.array([i for i in self.img_hist])
+        imgs = np.array([i for i in self.img_hist], dtype='float32')
         obs = [speed, imgs]
         return obs
 
@@ -256,7 +260,7 @@ class TMInterface:
         Non-blocking function
         The agent stays 'paused', waiting in position
         """
-        apply_control([0, 0, 0, 0])
+        apply_control(np.array([0, 0, 0, 0], dtype='float32'))
 
     def get_obs_rew_done(self):
         """
@@ -266,7 +270,7 @@ class TMInterface:
         img, speed = self.grab_img_and_speed()
         rew = speed[0]
         self.img_hist.append(img)
-        imgs = np.array([i for i in self.img_hist])
+        imgs = np.array([i for i in self.img_hist], dtype='float32')
         obs = [speed, imgs]
         done = False  # TODO: True if race complete
         
@@ -276,8 +280,8 @@ class TMInterface:
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0.0, high=1.0, shape=(1,))
-        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 50, 190))
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
+        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 3, 50, 190))
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):
@@ -290,7 +294,7 @@ class TMInterface:
         """
         initial action at episode start
         """
-        return np.array([0.0, 0.0, 0.0, 0.0])
+        return np.array([0.0, 0.0, 0.0, 0.0], dtype='float32')
 
 
 # General purpose environment: =========================================================================================

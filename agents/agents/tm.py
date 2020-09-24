@@ -1,11 +1,8 @@
-from agents.envs import UntouchedGymEnv
-from agents.util import load
 from agents.sac_models import *
+from agents.memory_dataloading import MemoryTM2020, MemoryTMNF
 from threading import Lock, Thread
 from agents.util import collate, partition, partial
 
-from collections import deque
-import gym
 from copy import deepcopy
 import socket
 import select
@@ -16,7 +13,11 @@ import time
 from gym_tmrl.envs.tmrl_env import TMInterface, TM2020Interface
 
 
-# CONFIGURATION:
+# CONFIGURATION: ==========================================
+
+PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann
+PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
+PRAGMA_CUDA = False  # True if CUDA, False if CPU
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
@@ -34,14 +35,14 @@ SELECT_TIMEOUT_PING_PONG = 120.0
 WAIT_BEFORE_RECONNECTION = 10.0
 LOOP_SLEEP_TIME = 1.0
 
-MODEL_PATH_WORKER = r"D:/cp/weights/expt.pth"
-MODEL_PATH_TRAINER = r"D:/cp/weights/expt.pth"
-CHECKPOINT_PATH = r"D:\cp\exp0"  # r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
-DATASET_PATH = r"D:\data2020"  # r"C:\Users\Yann\Desktop\git\tmrl\data"
+MODEL_PATH_WORKER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights"
+MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights"
+CHECKPOINT_PATH = r"D:\cp\exp0" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
+DATASET_PATH = r"D:\data2020"  if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
 ACT_IN_OBS = True
 BENCHMARK = False
 
-MEMORY = partial(MemoryTM2020,  # MemoryTMNF
+MEMORY = partial(MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF,
                  path_loc=DATASET_PATH,
                  imgs_obs=4,
                  act_in_obs=ACT_IN_OBS,
@@ -59,8 +60,7 @@ REDIS_IP = public_ip
 LOCALHOST = False
 
 CONFIG_DICT = {
-    # "interface": TMInterface,
-    "interface": TM2020Interface,
+    "interface": TM2020Interface if PRAGMA_TM2020_TMNF else TMInterface,
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
@@ -72,7 +72,7 @@ CONFIG_DICT = {
 }
 
 
-# END CONFIGURATION
+# END CONFIGURATION ==========================================
 
 
 # if LOCALHOST:
@@ -474,7 +474,7 @@ class TrainerInterface:
     """
     def __init__(self,
                  redis_ip=None,
-                 model_path=r'D:/cp/weights/expt.pth'): # r'C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth'):
+                 model_path=MODEL_PATH_TRAINER):
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
         self.__weights = None
@@ -710,22 +710,20 @@ def updtate_replay_memory_from_buffer(buffer, replay_memory):
 # Main ==============================================
 
 def main(args):
+    worker = args.worker
     redis = args.redis
     trainer = args.trainer
 
     if redis:
         rs = RedisServer(samples_per_redis_batch=1000, localhost=LOCALHOST)
-    elif trainer:
-        main_train()
-    else:
+    elif worker:
         rw = RolloutWorker(env_id="gym_tmrl:gym-tmrl-v0",
                            actor_module_cls=partial(POLICY, act_in_obs=ACT_IN_OBS),
-                           device="cuda",
+                           device='cuda' if PRAGMA_CUDA else 'cpu',
                            redis_ip=REDIS_IP,
                            samples_per_worker_batch=100,
                            # sleep_between_batches=0.0,  # not used yet
                            model_path=MODEL_PATH_WORKER)
-                           # model_path = r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/weights/expt.pth")
         while True:
             print("INFO: collecting samples")
             rw.collect_n_steps(100, train=True)
@@ -733,6 +731,8 @@ def main(args):
             rw.send_and_clear_buffer()
             print("INFO: checking for new weights")
             rw.update_actor_weights()
+    else:
+        main_train()
     while True:
         time.sleep(1.0)
 
@@ -742,7 +742,6 @@ def main_train():
     from agents.util import partial
     from agents.sac import Agent
     from agents.envs import UntouchedGymEnv
-    from requests import get
 
     Sac_tm = partial(
         TrainingOffline,
@@ -756,7 +755,7 @@ def main_train():
         update_buffer_interval=1,
         Agent=partial(Agent,
                       Memory=MEMORY,
-                      device='cuda',
+                      device='cuda' if PRAGMA_CUDA else 'cpu',
                       Model=partial(TRAIN_MODEL,
                                     act_in_obs=ACT_IN_OBS),
                       memory_size=1000000,
