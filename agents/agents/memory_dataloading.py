@@ -9,13 +9,14 @@ import numpy as np
 class MemoryTM2020:
     keep_reset_transitions: int = 0
 
-    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True):
+    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None):
         self.device = device
         self.batchsize = batchsize
         self.memory_size = memory_size
         self.remove_size = remove_size
         self.imgs_obs = imgs_obs
         self.act_in_obs = act_in_obs
+        self.obs_preprocessor = obs_preprocessor
 
         self.last_observation = None
         self.last_action = None
@@ -30,24 +31,7 @@ class MemoryTM2020:
             print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
     def append(self, r, done, info, obs, action):
-        return self
-        # if self.last_observation is not None:
-        #
-        #     if self.keep_reset_transitions:
-        #         store = True
-        #     else:
-        #         # info["reset"] = True means the episode reset shouldn't be treated as a true terminal state
-        #         store = not info.get('TimeLimit.truncated', False) and not info.get('reset', False)
-        #
-        #     if store:
-        #         self.memory.append((self.last_observation, self.last_action, r, obs, done))
-        # self.last_observation = obs
-        # self.last_action = action
-        #
-        # # remove old entries if necessary (delete generously so we don't have to do it often)
-        # if len(self.data) > self.memory_size:
-        #     del self.data[:self.memory_size // self.remove_size + 1]
-        # return self
+        return self  # TODO
 
     def __len__(self):
         return len(self.data[0])-self.imgs_obs-1
@@ -57,21 +41,16 @@ class MemoryTM2020:
         idx_now = item+self.imgs_obs
         imgs = self.load_imgs(item)
 
-        l = (
-            (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1], np.array(self.data[4][idx_last], dtype=np.float32)),  # last_observation
-            np.array(self.data[4][idx_last], dtype=np.float32),  # last_action
-            np.float32(self.data[6][idx_now]),  # r
-            (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:], np.array(self.data[4][idx_now], dtype=np.float32)),  # obs
-            np.float32(self.data[5][idx_now]),  # done
-        ) if self.act_in_obs else (
-            (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1]),  # last_observation
-            np.array(self.data[4][idx_last], dtype=np.float32),  # last_action
-            np.float32(self.data[6][idx_now]),  # r
-            (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:]),  # obs
-            np.float32(self.data[5][idx_now]),  # done
-        )
+        last_obs = (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1], np.array(self.data[4][idx_last], dtype=np.float32)) if self.act_in_obs else (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1])
+        last_act = np.array(self.data[4][idx_last], dtype=np.float32)
+        rew = np.float32(self.data[6][idx_now])
+        new_obs = (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:], np.array(self.data[4][idx_now], dtype=np.float32)) if self.act_in_obs else (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:])
+        done = np.float32(self.data[5][idx_now])
 
-        return l
+        if self.obs_preprocessor is not None:
+            last_obs = self.obs_preprocessor(last_obs)
+            new_obs = self.obs_preprocessor(new_obs)
+        return last_obs, last_act, rew, new_obs, done
 
     def load_imgs(self, item):
         res = []
@@ -95,13 +74,14 @@ class MemoryTM2020:
 class MemoryTMNF:
     keep_reset_transitions: int = 0
 
-    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True):
+    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None):
         self.device = device
         self.batchsize = batchsize
         self.memory_size = memory_size
         self.remove_size = remove_size
         self.imgs_obs = imgs_obs
         self.act_in_obs = act_in_obs
+        self.obs_preprocessor = obs_preprocessor
 
         self.last_observation = None
         self.last_action = None
@@ -131,24 +111,23 @@ class MemoryTMNF:
         idx_last = item + self.imgs_obs-1
         idx_now = item + self.imgs_obs
         imgs = self.load_imgs(item)
-        l = (
-            (self.data[2][idx_last], imgs[:-1], self.data[1][idx_last]),  # last_observation
-            self.data[1][idx_last],  # last_action  # TODO: check that this is not a problem in RTRL
-            np.float32(self.data[4][idx_now] / 1000.0),  # r
-            (self.data[2][idx_now], imgs[1:], self.data[1][idx_now]),  # new obs
-            np.float32(0.0),  # done
-        ) if self.act_in_obs else (
-            # TODO
-        )
 
-        return l
+        last_obs = (self.data[2][idx_last], imgs[:-1], self.data[1][idx_last]) if self.act_in_obs else (self.data[2][idx_last], imgs[:-1])
+        last_act = self.data[1][idx_last]
+        rew = np.float32(self.data[4][idx_now])
+        new_obs = (self.data[2][idx_now], imgs[1:], self.data[1][idx_now]) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
+        done = np.float32(0.0)
+
+        if self.obs_preprocessor is not None:
+            last_obs = self.obs_preprocessor(last_obs)
+            new_obs = self.obs_preprocessor(new_obs)
+        return last_obs, last_act, rew, new_obs, done
 
     def load_imgs(self, item):
         res = []
         for i in range(item, item+self.imgs_obs+1):
             img = cv2.imread(str(self.path / (str(self.data[0][i]) + ".png")))
-            img = img.astype('float32') / 255.0 - 0.5  # normalized and centered
-            res.append(np.moveaxis(img, -1, 0))
+            img = img.astype('float32')
             res.append(img)
         return np.array(res)
 

@@ -132,7 +132,7 @@ def record_tmnf_keyboard(path_dataset):
 
             iters.append(iteration)
             speeds.append(obs[0])
-            direction = [float(i) for i in direction]
+            direction = np.array([float(i) for i in direction], dtype=np.float32)
             dirs.append(direction)
             dones.append(done)
             rews.append(rew)

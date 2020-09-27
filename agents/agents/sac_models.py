@@ -290,7 +290,7 @@ class TMModuleResnet(Module):
         self.act_in_obs = act_in_obs
         self.act_dim = action_space.shape[0]
         self.cnn = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
-        self.cnn.fc = nn.Linear(self.cnn.fc.in_features, 200) # remove the last fc layer
+        self.cnn.fc = nn.Linear(self.cnn.fc.in_features, 200)  # remove the last fc layer
         dim_fc1 = 200 + self.vel_dim
         if self.is_q_network:
             # print(f"DEBUG: created with q")
@@ -302,8 +302,8 @@ class TMModuleResnet(Module):
 
     def forward(self, x):
         assert isinstance(x, tuple), f"x is not a tuple: {x}"
-        print(f"DEBUG: len(x):{len(x)}")
-        print(f"DEBUG: x[0]:{x[0]}")
+        # print(f"DEBUG: len(x):{len(x)}")
+        # print(f"DEBUG: x[0]:{x[0]}")
         vel = x[0].float()
         im1 = x[1].float()[:, 0]
         im2 = x[1].float()[:, 1]

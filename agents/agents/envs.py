@@ -91,7 +91,7 @@ class UntouchedGymEnv(Env):
             env = AffineObservationWrapper(env, 0, obs_scale)
         # env = Float64ToFloat32(env)
         assert isinstance(env.action_space, gym.spaces.Box)
-        env = NormalizeActionWrapper(env)
+        # env = NormalizeActionWrapper(env)
         super().__init__(env)
 
 

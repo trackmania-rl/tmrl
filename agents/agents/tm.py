@@ -13,11 +13,40 @@ import time
 from gym_tmrl.envs.tmrl_env import TMInterface, TM2020Interface
 
 
+# OBSERVATION PREPROCESSING ==================================
+
+def obs_preprocessor_tmnf_act_in_obs(obs):
+    """
+    This takes the output of gym as input
+    Therefore the output of the memory must be the same as gym
+    """
+    # print(f"DEBUG1: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}, obs[2]:{obs[2]}")
+    # obs = (obs[0] / 1000.0, np.moveaxis(obs[1], -1, 0) / 255.0, obs[2])
+    obs = (obs[0], np.moveaxis(obs[1], -1, 1), obs[2])
+    # print(f"DEBUG2: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}, obs[2]:{obs[2]}")
+    # exit()
+    return obs
+
+
 # CONFIGURATION: ==========================================
 
 PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann
 PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
 PRAGMA_CUDA = False  # True if CUDA, False if CPU
+
+TRAIN_MODEL = Tm_hybrid_1
+POLICY = TMPolicy
+OBS_PREPROCESSOR = obs_preprocessor_tmnf_act_in_obs
+
+ACT_IN_OBS = True
+BENCHMARK = False
+
+public_ip = get('http://api.ipify.org').text
+local_ip = socket.gethostbyname(socket.gethostname())
+print(f"I: local IP: {local_ip}")
+print(f"I: public IP: {public_ip}")
+REDIS_IP = public_ip
+LOCALHOST = False
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
@@ -35,29 +64,17 @@ SELECT_TIMEOUT_PING_PONG = 120.0
 WAIT_BEFORE_RECONNECTION = 10.0
 LOOP_SLEEP_TIME = 1.0
 
-MODEL_PATH_WORKER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights"
-MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights"
+MODEL_PATH_WORKER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
+MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
 CHECKPOINT_PATH = r"D:\cp\exp0" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
 DATASET_PATH = r"D:\data2020"  if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
-ACT_IN_OBS = True
-BENCHMARK = False
 
 MEMORY = partial(MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF,
                  path_loc=DATASET_PATH,
                  imgs_obs=4,
                  act_in_obs=ACT_IN_OBS,
+                 obs_preprocessor=OBS_PREPROCESSOR
                  )
-
-TRAIN_MODEL = Tm_hybrid_1
-POLICY = TMPolicy
-
-public_ip = get('http://api.ipify.org').text
-local_ip = socket.gethostbyname(socket.gethostname())
-print(f"I: local IP: {local_ip}")
-print(f"I: public IP: {public_ip}")
-
-REDIS_IP = public_ip
-LOCALHOST = False
 
 CONFIG_DICT = {
     "interface": TM2020Interface if PRAGMA_TM2020_TMNF else TMInterface,
@@ -72,15 +89,7 @@ CONFIG_DICT = {
 }
 
 
-# END CONFIGURATION ==========================================
-
-
-# if LOCALHOST:
-#     REDIS_IP = '127.0.0.1'
-
-
 # NETWORK: ==========================================
-
 
 def ping_pong(sock):
     """
@@ -222,7 +231,7 @@ def get_connected_socket(timeout, ip_connect, port_connect):
     try:
         s.connect((ip_connect, port_connect))
     except OSError:  # connection broken or timeout
-        print("INFO: connect() timed-out or failed, sleeping {WAIT_BEFORE_RECONNECTION}s")
+        print(f"INFO: connect() timed-out or failed, sleeping {WAIT_BEFORE_RECONNECTION}s")
         s.close()
         time.sleep(WAIT_BEFORE_RECONNECTION)
         return None
@@ -570,9 +579,11 @@ class RolloutWorker:
                  redis_ip=None,
                  samples_per_worker_batch=1000,
                  sleep_between_batches=0.0,
-                 model_path=MODEL_PATH_WORKER
+                 model_path=MODEL_PATH_WORKER,
+                 obs_preprocessor: callable = None
                  ):
-        self.env = UntouchedGymEnv(id=env_id)
+        self.obs_preprocessor = obs_preprocessor
+        self.env = UntouchedGymEnv(id=env_id, gym_kwargs={"config": CONFIG_DICT})
         obs_space = self.env.observation_space
         act_space = self.env.action_space
         self.model_path = model_path
@@ -599,7 +610,7 @@ class RolloutWorker:
 
     def __run_thread(self):
         """
-        Trainer interface thread
+        Redis thread
         """
         ack_time = time.time()
         wait_ack = False
@@ -645,6 +656,8 @@ class RolloutWorker:
         """
         converts inputs to torch tensors and converts outputs to numpy arrays
         """
+        if self.obs_preprocessor is not None:
+            obs = self.obs_preprocessor(obs)
         obs = collate([obs], device=self.device)
         with torch.no_grad():
             action_distribution = self.actor(obs)
@@ -661,11 +674,10 @@ class RolloutWorker:
         obs = self.env.reset()
         # print(f"DEBUG: init obs[0]:{obs[0]}")
         # print(f"DEBUG: init obs[1][-1].shape:{obs[1][-1].shape}")
-        obs, rew, done, info = get_buffer_sample(obs, 0.0, False, {})
-        self.buffer.append_sample((obs, rew, done, info))
+        self.buffer.append_sample(get_buffer_sample(obs, 0.0, False, {}))
         for _ in range(n):
             act = self.act(obs, train)
-            obs, rew, done, info = get_buffer_sample(self.env.step(act))
+            obs, rew, done, info = self.env.step(act)
             self.buffer.append_sample(get_buffer_sample(obs, rew, done, info))
 
     def send_and_clear_buffer(self):
@@ -695,7 +707,7 @@ def get_buffer_sample(obs, rew, done, info):
     this creates the object that will actually be stored in the buffer
     # TODO
     """
-    obs_mod = (obs[0][0], obs[1][-1], obs[2]) if len(obs) == 3 else (obs[0][0], obs[1][-1])  # speed and most recent image only  # TODO: clean this
+    obs_mod = (obs[0][0], obs[1][-1], obs[2]) if len(obs) == 3 else (obs[0][0], obs[1][-1])  # speed and most recent image only
     return obs_mod, rew, done, info
 
 
@@ -723,7 +735,8 @@ def main(args):
                            redis_ip=REDIS_IP,
                            samples_per_worker_batch=100,
                            # sleep_between_batches=0.0,  # not used yet
-                           model_path=MODEL_PATH_WORKER)
+                           model_path=MODEL_PATH_WORKER,
+                           obs_preprocessor=OBS_PREPROCESSOR)
         while True:
             print("INFO: collecting samples")
             rw.collect_n_steps(100, train=True)
