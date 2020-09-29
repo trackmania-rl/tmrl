@@ -12,6 +12,7 @@ from agents.nn import TanhNormalLayer, SacLinear, big_conv
 from agents.envs import UntouchedGymEnv
 import torch.nn as nn
 from agents.memory_dataloading import MemoryTMNF, MemoryTM2020
+import math
 
 
 class ActorModule(Module):
@@ -40,9 +41,11 @@ class ActorModule(Module):
 
 
 class MlpActionValue(Sequential):
-    def __init__(self, dim_obs, dim_action, hidden_units):
+    def __init__(self, obs_space, act_space, hidden_units):
+        dim_obs = sum(math.prod(s for s in space.shape) for space in obs_space)
+        dim_act = act_space.shape[0]
         super().__init__(
-            SacLinear(dim_obs + dim_action, hidden_units), ReLU(),
+            SacLinear(dim_obs + dim_act, hidden_units), ReLU(),
             SacLinear(hidden_units, hidden_units), ReLU(),
             Linear(hidden_units, 2)
         )
@@ -54,11 +57,13 @@ class MlpActionValue(Sequential):
 
 
 class MlpPolicy(Sequential):
-    def __init__(self, dim_obs, dim_action, hidden_units):
+    def __init__(self, obs_space, act_space, hidden_units=256, act_in_obs=False):
+        dim_obs = sum(math.prod(s for s in space.shape) for space in obs_space)
+        dim_act = act_space.shape[0]
         super().__init__(
             SacLinear(dim_obs, hidden_units), ReLU(),
             SacLinear(hidden_units, hidden_units), ReLU(),
-            TanhNormalLayer(hidden_units, dim_action)
+            TanhNormalLayer(hidden_units, dim_act)
         )
 
     # noinspection PyMethodOverriding
@@ -67,13 +72,11 @@ class MlpPolicy(Sequential):
 
 
 class Mlp(ActorModule):
-    def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2):
+    def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2, act_in_obs=False):
         super().__init__()
         assert isinstance(observation_space, gym.spaces.Tuple), f"{observation_space}"
-        dim_obs = sum(space.shape[0] for space in observation_space)
-        dim_action = action_space.shape[0]
-        self.critics = ModuleList(MlpActionValue(dim_obs, dim_action, hidden_units) for _ in range(num_critics))
-        self.actor = MlpPolicy(dim_obs, dim_action, hidden_units)
+        self.critics = ModuleList(MlpActionValue(observation_space, action_space, hidden_units) for _ in range(num_critics))
+        self.actor = MlpPolicy(observation_space, action_space, hidden_units)
         self.critic_output_layers = [c[-1] for c in self.critics]
 
 

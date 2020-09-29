@@ -97,7 +97,7 @@ class MemoryTMNF:
             # TODO: crop to memory_size
             print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
-    def append(self, r, done, info, obs, action):
+    def append(self, buffer):
         return self
 
     def __len__(self):
@@ -142,11 +142,45 @@ class MemoryTMNF:
         return batch
 
 
+class MemoryTMNFLidar(MemoryTMNF):
+    def __getitem__(self, item):
+        """
+        CAUTION: item is the first index of the 4 images in the images history of the OLD observation
+        So we load 5 images from here...
+        """
+        idx_last = item + self.imgs_obs-1
+        idx_now = item + self.imgs_obs
+        imgs = self.load_imgs(item)
+
+        last_obs = (self.data[2][idx_last], imgs[:-1], self.data[1][idx_last]) if self.act_in_obs else (self.data[2][idx_last], imgs[:-1])
+        last_act = self.data[1][idx_last]
+        rew = np.float32(self.data[5][idx_now])
+        new_obs = (self.data[2][idx_now], imgs[1:], self.data[1][idx_now]) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
+        done = np.float32(0.0)
+
+        if self.obs_preprocessor is not None:
+            last_obs = self.obs_preprocessor(last_obs)
+            new_obs = self.obs_preprocessor(new_obs)
+        return last_obs, last_act, rew, new_obs, done
+
+    def load_imgs(self, item):
+        res = []
+        for i in range(item, item+self.imgs_obs+1):
+            img = self.data[3][i]
+            res.append(img)
+        return np.array(res)
+
+    def append(self, buffer):
+        # TODO
+        print(f"DEBUG: appending buffer to replay memory")
+        return self
+
+
 def load_and_print_pickle_file(path=r"C:\Users\Yann\Desktop\git\tmrl\data\data.pkl"):  # r"D:\data2020"
     import pickle
     with open(path, 'rb') as f:
         data = pickle.load(f)
-    print(data)
+    print(f"nb samples: {len(data[0])}")
     for i, d in enumerate(data):
         print(f"[{i}][0]: {d[0]}")
 

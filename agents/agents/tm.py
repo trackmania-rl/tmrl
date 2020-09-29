@@ -1,16 +1,16 @@
 from agents.sac_models import *
-from agents.memory_dataloading import MemoryTM2020, MemoryTMNF
-from threading import Lock, Thread
+from agents.memory_dataloading import *
+# from threading import Lock, Thread
 from agents.util import collate, partition, partial
 
 from copy import deepcopy
-import socket
+# import socket
 import select
 from requests import get
 import pickle
 from argparse import ArgumentParser
-import time
-from gym_tmrl.envs.tmrl_env import TMInterface, TM2020Interface
+# import time
+from gym_tmrl.envs.tmrl_env import *
 
 
 # OBSERVATION PREPROCESSING ==================================
@@ -28,15 +28,24 @@ def obs_preprocessor_tmnf_act_in_obs(obs):
     return obs
 
 
+def obs_preprocessor_tmnf_lidar_act_in_obs(obs):
+    """
+    This takes the output of gym as input
+    Therefore the output of the memory must be the same as gym
+    """
+    obs = (obs[0], np.ndarray.flatten(obs[1]), obs[2])
+    return obs
+
+
 # CONFIGURATION: ==========================================
 
 PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann
 PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
 PRAGMA_CUDA = False  # True if CUDA, False if CPU
 
-TRAIN_MODEL = Tm_hybrid_1
-POLICY = TMPolicy
-OBS_PREPROCESSOR = obs_preprocessor_tmnf_act_in_obs
+TRAIN_MODEL = Tm_hybrid_1 if PRAGMA_TM2020_TMNF else Mlp
+POLICY = TMPolicy if PRAGMA_TM2020_TMNF else MlpPolicy
+OBS_PREPROCESSOR = obs_preprocessor_tmnf_act_in_obs if PRAGMA_TM2020_TMNF else obs_preprocessor_tmnf_lidar_act_in_obs
 
 ACT_IN_OBS = True
 BENCHMARK = False
@@ -65,11 +74,11 @@ WAIT_BEFORE_RECONNECTION = 10.0
 LOOP_SLEEP_TIME = 1.0
 
 MODEL_PATH_WORKER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
-MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
+MODEL_PATH_TRAINER = r"D:\cp\weights\exp.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp.pth"
 CHECKPOINT_PATH = r"D:\cp\exp0" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
 DATASET_PATH = r"D:\data2020"  if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
 
-MEMORY = partial(MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF,
+MEMORY = partial(MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNFLidar,
                  path_loc=DATASET_PATH,
                  imgs_obs=4,
                  act_in_obs=ACT_IN_OBS,
@@ -77,7 +86,7 @@ MEMORY = partial(MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF,
                  )
 
 CONFIG_DICT = {
-    "interface": TM2020Interface if PRAGMA_TM2020_TMNF else TMInterface,
+    "interface": TM2020Interface if PRAGMA_TM2020_TMNF else TMInterfaceLidar,
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
@@ -479,7 +488,7 @@ class TrainerInterface:
     """
     This is the trainer's network interface
     This connects to the redis server
-    This receives samples batches and send new weights
+    This receives samples batches and sends new weights
     """
     def __init__(self,
                  redis_ip=None,
@@ -554,17 +563,15 @@ class TrainerInterface:
             self.__weights = f.read()
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
 
-    def retrieve_buffer(self, replay_memory):
+    def retrieve_buffer(self):
         """
-        updates the Trainer's replay buffer with the TrainerInterface's local buffer
-        empties the local buffer
+        returns a copy of the TrainerInterface's local buffer, and clears it
         """
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
-        if len(self.__buffer) > 0:
-            replay_memory = updtate_replay_memory_from_buffer(self.__buffer, replay_memory)
-            self.__buffer.clear()
+        buffer_copy = deepcopy(self.__buffer)
+        self.__buffer.clear()
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
-        return replay_memory
+        return buffer_copy
 
 
 # ROLLOUT WORKER: ===================================
@@ -711,14 +718,6 @@ def get_buffer_sample(obs, rew, done, info):
     return obs_mod, rew, done, info
 
 
-def updtate_replay_memory_from_buffer(buffer, replay_memory):
-    """
-    This should update the replay memory with the buffer
-    """
-    # TODO
-    return replay_memory
-
-
 # Main ==============================================
 
 def main(args):
@@ -761,11 +760,11 @@ def main_train():
         Env=partial(UntouchedGymEnv,
                     id="gym_tmrl:gym-tmrl-v0",
                     gym_kwargs={"config": CONFIG_DICT}),
-        epochs=5,
-        rounds=1,
-        steps=1,
-        update_model_interval=1,
-        update_buffer_interval=1,
+        epochs=50,
+        rounds=10,
+        steps=10,
+        update_model_interval=10,
+        update_buffer_interval=10,
         Agent=partial(Agent,
                       Memory=MEMORY,
                       device='cuda' if PRAGMA_CUDA else 'cpu',

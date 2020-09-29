@@ -51,8 +51,9 @@ class TrainingOffline:
                     # broadcast model weights
                     interface.broadcast_model(self.agent.model_nograd.actor)
                 if self.total_updates % self.update_buffer_interval == 0:
-                    # retrieve local buffer
-                    pass
+                    # retrieve local buffer in replay memory
+                    buffer = interface.retrieve_buffer()
+                    self.agent.memory.append(buffer)
 
             stats += pandas_dict(
                 round_time=Timestamp.utcnow() - t0,

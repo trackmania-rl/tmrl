@@ -9,7 +9,7 @@ from threading import Thread, Lock
 import cv2
 import mss
 import sys
-from gym_tmrl.envs.tools import load_digits, get_speed
+from gym_tmrl.envs.tools import load_digits, get_speed, lidar_from_pixels
 from gym_tmrl.envs.key_event import apply_control, keyres
 from gym_tmrl.envs.gamepad_event import control_all
 from collections import deque
@@ -291,6 +291,50 @@ class TMInterface:
         initial action at episode start
         """
         return np.array([0.0, 0.0, 0.0, 0.0], dtype='float32')
+
+
+class TMInterfaceLidar(TMInterface):
+    def grab_lidar_and_speed(self):
+        img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
+        speed = np.array([get_speed(img, self.digits), ], dtype='float32')
+        lidar, _ = lidar_from_pixels(road_point=(440, 479), im=img, min_x=0, max_x=490, min_y=0, max_y=958)
+        return lidar, speed
+
+    def reset(self):
+        """
+        obs must be a list of numpy arrays
+        """
+        self.send_control(self.get_default_action())
+        keyres()
+        time.sleep(0.05)  # must be long enough for image to be refreshed
+        img, speed = self.grab_lidar_and_speed()
+        for _ in range(self.img_hist_len):
+            self.img_hist.append(img)
+        imgs = np.array([i for i in self.img_hist], dtype='float32')
+        obs = [speed, imgs]
+        return obs
+
+    def get_obs_rew_done(self):
+        """
+        returns the observation, the reward, and a done signal for end of episode
+        obs must be a list of numpy arrays
+        """
+        img, speed = self.grab_lidar_and_speed()
+        rew = speed[0]
+        self.img_hist.append(img)
+        imgs = np.array([i for i in self.img_hist], dtype='float32')
+        obs = [speed, imgs]
+        done = False  # TODO: True if race complete
+        # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
+        return obs, rew, done
+
+    def get_observation_space(self):
+        """
+        must be a Tuple
+        """
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
+        imgs = spaces.Box(low=0.0, high=np.inf, shape=(self.img_hist_len, 19,))
+        return spaces.Tuple((speed, imgs))
 
 
 # General purpose environment: =========================================================================================

@@ -119,6 +119,67 @@ def radar(area, road_point, im):
             dist=dist+1
     return img, Distances
 
+
+def lidar_from_pixels(road_point,
+                      im,
+                      min_x,  # vertical axis
+                      max_x,
+                      min_y,  # horizontal axis
+                      max_y,
+                      min_angle=90,
+                      max_angle=270,
+                      angle_step=10,
+                      reference_color=np.array([200, 190, 180]),
+                      color_distance_threshold=60,  # norm of the difference
+                      accu_threshold=300,
+                      attenuation=0.1,  # when threshold is not met, small number for big attenuation
+                      start_dist=100,
+                      pixels_step=20,
+                      print_rays=False,
+                      rays_color=(255, 0, 0)):
+    """
+    lidar that works by searching the road (and not the edges)
+    """
+    img = np.array(im)
+    # print(f"DEBUG: lidar from pixels: img.shape:{img.shape}")
+    distances = []
+    thickness = 2
+    for angle in range(min_angle, max_angle + angle_step, angle_step):
+        x = road_point[0]
+        y = road_point[1]
+        dx = math.cos(math.radians(angle))
+        dy = math.sin(math.radians(angle))
+        length = False
+        dist = start_dist
+        accu = 0
+        new_x = int(x + dist * dx)
+        new_y = int(y + dist * dy)
+        while not length:
+            if not min_x <= new_x < max_x or not min_y <= new_y < max_y:
+                length = True
+            else:
+                norm = np.linalg.norm(img[new_x, new_y] - reference_color)
+                if norm >= color_distance_threshold:
+                    img = cv2.circle(img, (new_y, new_x), 0, (0, 0, 255), -1)
+                    accu += norm
+                else:
+                    accu *= attenuation
+                if accu >= accu_threshold:
+                    length = True
+                dist = dist + pixels_step
+                new_x = int(x + dist * dx)
+                new_y = int(y + dist * dy)
+        if print_rays:
+            img = cv2.line(img, (road_point[1], road_point[0]), (new_y, new_x), rays_color, thickness)
+        distances.append(dist)
+    distances = np.array(distances)
+    # print(f"DEBUG: lidar from pixels: distances:{distances}")
+    # cv2.imshow('image', img)
+    # cv2.waitKey(100)
+    # cv2.destroyAllWindows()
+    return distances, img
+
+
 def road(img, road_point):
     img = flood_fill(img, road_point, 125)
     img[img!=125]=0
