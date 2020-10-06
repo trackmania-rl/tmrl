@@ -89,7 +89,7 @@ class MemoryTMNF:
         # init memory
         self.path = Path(path_loc)
         with open(self.path / 'data.pkl', 'rb') as f:
-            self.data = pickle.load(f)
+            self.data = list(pickle.load(f))
             print(f"DEBUG: len data:{len(self.data)}")
             print(f"DEBUG: len data[0]:{len(self.data[0])}")
 
@@ -171,8 +171,36 @@ class MemoryTMNFLidar(MemoryTMNF):
         return np.array(res)
 
     def append(self, buffer):
-        # TODO
+        # TODO buffer contains a [] of (obs, act, rew, done, info)
         print(f"DEBUG: appending buffer to replay memory")
+        print(f"DEBUG: len(self.data):{len(self.data)}, len(buffer):{len(buffer)}")
+        if len(buffer) > 0:
+            # print(f"DEBUG: self.data[0][-1]:{self.data[0][-1]}")
+            # print(f"DEBUG: len(self.data[0]):{len(self.data[0])}")
+            # print(f"DEBUG: type(self.data[0]):{type(self.data[0])}, type(self.data[0][0]):{type(self.data[0][0])}")
+            # print(f"DEBUG: type(self.data[1]):{type(self.data[1])}, type(self.data[1][0]):{type(self.data[1][0])}, type(buffer.memory[0][1]):{type(buffer.memory[0][1])}")
+            # print(f"DEBUG: type(self.data[2]):{type(self.data[2])}, type(self.data[2][0]):{type(self.data[2][0])}, type(buffer.memory[0][0][0]):{type(buffer.memory[0][0][0])}")
+            # print(f"DEBUG: type(self.data[3]):{type(self.data[3])}, type(self.data[3][0]):{type(self.data[3][0])}, type(buffer.memory[0][0][1]):{type(buffer.memory[0][0][1])}")
+            # print(f"DEBUG: type(self.data[4]):{type(self.data[4])}, type(self.data[4][0]):{type(self.data[4][0])}, type(buffer.memory[0][3]):{type(buffer.memory[0][3])}")
+            # print(f"DEBUG: type(self.data[5]):{type(self.data[5])}, type(self.data[5][0]):{type(self.data[5][0])}, type(buffer.memory[0][2]):{type(buffer.memory[0][2])}")
+            first_data_idx = self.data[0][-1] + 1
+            self.data[0] += [first_data_idx + i for i, _ in enumerate(buffer.memory)]
+            self.data[1] += [b[1] for b in buffer.memory]
+            self.data[2] += [b[0][0] for b in buffer.memory]
+            self.data[3] += [b[0][1] for b in buffer.memory]
+            self.data[4] += [b[3] for b in buffer.memory]
+            self.data[5] += [b[2] for b in buffer.memory]
+            to_trim = self.__len__() - self.memory_size
+            if to_trim > 0:
+                print(f"DEBUG: trimming {to_trim} elements")
+                self.data[0] = self.data[0][to_trim:]
+                self.data[1] = self.data[1][to_trim:]
+                self.data[2] = self.data[2][to_trim:]
+                self.data[3] = self.data[3][to_trim:]
+                self.data[4] = self.data[4][to_trim:]
+                self.data[5] = self.data[5][to_trim:]
+        else:
+            print(f"DEBUG: empty buffer")
         return self
 
 
