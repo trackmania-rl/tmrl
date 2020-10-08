@@ -8,6 +8,7 @@ import gym
 from agents.tm import TrainerInterface
 
 from agents.envs import Env
+import time
 
 # import pybullet_envs
 
@@ -21,6 +22,8 @@ class TrainingOffline:
     steps: int = 2000  # number of steps per round
     update_model_interval: int = 100  # number of steps between model broadcasts
     update_buffer_interval: int = 100  # number of steps between retrieving buffered experiences in the interface
+    max_training_steps_per_env_step: float = 1.0  # training will pause when above this ratio
+    sleep_between_buffer_retrieval_attempts: float = 0.1  # algorithm will sleep for this amount of time when waiting for needed incoming samples
     stats_window: int = None  # default = steps, should be at least as long as a single episode
     seed: int = 0  # seed is currently not used
     tag: str = ''  # for logging, e.g. allows to compare groups of runs
@@ -30,6 +33,13 @@ class TrainingOffline:
     def __post_init__(self):
         self.epoch = 0
         self.agent = self.Agent(Env=self.Env)
+        self.total_samples = len(self.agent.memory)
+        print(f"DEBUG: initial total_samples:{self.total_samples}")
+
+    def update_buffer(self, interface):
+        buffer = interface.retrieve_buffer()
+        self.agent.memory.append(buffer)
+        self.total_samples += len(buffer)
 
     def run_epoch(self, interface: TrainerInterface):
         stats = []
@@ -52,8 +62,16 @@ class TrainingOffline:
                     interface.broadcast_model(self.agent.model_nograd.actor)
                 if self.total_updates % self.update_buffer_interval == 0:
                     # retrieve local buffer in replay memory
-                    buffer = interface.retrieve_buffer()
-                    self.agent.memory.append(buffer)
+                    self.update_buffer(interface)
+                ratio = self.total_updates / self.total_samples
+                if ratio > self.max_training_steps_per_env_step:
+                    print("INFO: Waiting for new samples")
+                    while ratio > self.max_training_steps_per_env_step:
+                        # wait for new samples
+                        self.update_buffer(interface)
+                        ratio = self.total_updates / self.total_samples
+                        if ratio > self.max_training_steps_per_env_step:
+                            time.sleep(self.sleep_between_buffer_retrieval_attempts)
 
             stats += pandas_dict(
                 round_time=Timestamp.utcnow() - t0,

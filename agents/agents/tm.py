@@ -84,13 +84,13 @@ DATASET_PATH = r"D:\data2020"  if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Deskt
 
 MEMORY = partial(MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNFLidar,
                  path_loc=DATASET_PATH,
-                 imgs_obs=4,
+                 imgs_obs=4 if PRAGMA_TM2020_TMNF else 1,
                  act_in_obs=ACT_IN_OBS,
                  obs_preprocessor=OBS_PREPROCESSOR
                  )
 
 CONFIG_DICT = {
-    "interface": TM2020Interface if PRAGMA_TM2020_TMNF else TMInterfaceLidar,
+    "interface": TM2020Interface if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1),
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
@@ -98,7 +98,8 @@ CONFIG_DICT = {
     "real_time": True,
     "async_threading": True,
     "act_in_obs": ACT_IN_OBS,
-    "benchmark": BENCHMARK
+    "benchmark": BENCHMARK,
+
 }
 
 
@@ -607,7 +608,6 @@ class RolloutWorker:
                  device="cpu",
                  redis_ip=None,
                  samples_per_worker_batch=1000,
-                 sleep_between_batches=0.0,
                  model_path=MODEL_PATH_WORKER,
                  obs_preprocessor: callable = None
                  ):
@@ -625,7 +625,6 @@ class RolloutWorker:
         self.__weights = None
         self.__weights_lock = Lock()
         self.samples_per_worker_batch = samples_per_worker_batch
-        self.sleep_between_batches = sleep_between_batches
 
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
@@ -705,15 +704,27 @@ class RolloutWorker:
         set train to False for test samples, True for train samples
         """
         # self.buffer.clear()
+        act = self.env.default_action
         obs = self.env.reset()
-        act = self.act(obs, train)
+        # print(f"DEBUG: rw init obs:{obs}, act:{act}")
         # print(f"DEBUG: init obs[0]:{obs[0]}")
         # print(f"DEBUG: init obs[1][-1].shape:{obs[1][-1].shape}")
         self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
         for _ in range(n):
             act = self.act(obs, train)
+            # print(f"DEBUG: rw act:{act}")
             obs, rew, done, info = self.env.step(act)
-            self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))
+            # print(f"DEBUG: rw obs:{obs}, rew:{rew}, done:{done}")
+            self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
+
+    def run(self):
+        while True:
+            print("INFO: collecting samples")
+            self.collect_n_steps(self.samples_per_worker_batch, train=True)
+            print("INFO: copying buffer for sending")
+            self.send_and_clear_buffer()
+            print("INFO: checking for new weights")
+            self.update_actor_weights()
 
     def send_and_clear_buffer(self):
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
@@ -742,7 +753,7 @@ def get_buffer_sample(obs, act, rew, done, info):
     this creates the object that will actually be stored in the buffer
     # TODO
     """
-    obs_mod = (obs[0], obs[1][-1], obs[2]) if len(obs) == 3 else (obs[0][0], obs[1][-1])  # speed and most recent image only
+    obs_mod = (obs[0], obs[1][-1])  # speed and most recent image only
     rew_mod = np.float32(rew)
     return obs_mod, act, rew_mod, done, info
 
@@ -762,16 +773,9 @@ def main(args):
                            device='cuda' if PRAGMA_CUDA else 'cpu',
                            redis_ip=REDIS_IP,
                            samples_per_worker_batch=1000,
-                           # sleep_between_batches=0.0,  # not used yet
                            model_path=MODEL_PATH_WORKER,
                            obs_preprocessor=OBS_PREPROCESSOR)
-        while True:
-            print("INFO: collecting samples")
-            rw.collect_n_steps(1000, train=True)
-            print("INFO: copying buffer for sending")
-            rw.send_and_clear_buffer()
-            print("INFO: checking for new weights")
-            rw.update_actor_weights()
+        rw.run()
     else:
         main_train()
     while True:
@@ -794,18 +798,20 @@ def main_train():
         steps=1000,
         update_model_interval=1000,
         update_buffer_interval=1000,
+        max_training_steps_per_env_step=1.0,
         Agent=partial(Agent,
+                      OutputNorm=partial(beta=0., zero_debias=False),
                       Memory=MEMORY,
                       device='cuda' if PRAGMA_CUDA else 'cpu',
                       Model=partial(TRAIN_MODEL,
                                     act_in_obs=ACT_IN_OBS),
-                      memory_size=100000,
+                      memory_size=500000,
                       batchsize=64,
                       lr=0.0003,  # default 0.0003
                       discount=0.99,
                       target_update=0.005,
-                      reward_scale=0.05,  # default: 5.0
-                      entropy_scale=1.0),
+                      reward_scale=0.5,  # default: 5.0
+                      entropy_scale=1.0),  # default: 1.0
     )
 
     print("--- NOW RUNNING: SAC trackmania ---")

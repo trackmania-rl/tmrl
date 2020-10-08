@@ -117,16 +117,15 @@ class TM2020Interface:
         else:
             if control is not None:
                 actions = []
-                if control[0] > 0.5:
+                if control[0] > 0:
                     actions.append("f")
-                elif control[1] > 0.5:
+                if control[1] > 0:
                     actions.append("b")
                 if control[2] > 0.5:
                     actions.append("r")
                 elif control[2] < -0.5:
                     actions.append("l")
                 apply_control(actions)
-
 
     def grab_data_and_img(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
@@ -145,7 +144,7 @@ class TM2020Interface:
         data, img = self.grab_data_and_img()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
-        imgs = np.array([i for i in self.img_hist])
+        imgs = np.array(list(self.img_hist))
         obs = [data, imgs]
         self.reward_function.reset()
         return obs
@@ -155,7 +154,7 @@ class TM2020Interface:
         Non-blocking function
         The agent stays 'paused', waiting in position
         """
-        apply_control([0, 0, 0])
+        apply_control(self.get_default_action())
 
     def get_obs_rew_done(self):
         """
@@ -165,7 +164,7 @@ class TM2020Interface:
         data, img = self.grab_data_and_img()
         rew = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
         self.img_hist.append(img)
-        imgs = np.array([i for i in self.img_hist])
+        imgs = np.array(list(self.img_hist))
         obs = [data, imgs]
         done = False  # TODO: True if race complete
         return obs, rew, done
@@ -173,17 +172,16 @@ class TM2020Interface:
     def get_observation_space(self):
         """
         must be a Tuple
-        TODO: normalize all values to 0-1
         """
-        speed = spaces.Box(low=0.0, high=1.0, shape=(1,))
-        img = spaces.Box(low=0.0, high=1.0, shape=(self.img_hist_len, 3, 48, 191))  # because the dataloader crops imgs
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
+        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 3, 48, 191))  # because the dataloader crops imgs
         return spaces.Tuple((speed, img))
 
     def get_action_space(self):
         """
         must return a Box
         """
-        return spaces.Box(low=0.0, high=1.0, shape=(3,))
+        return spaces.Box(low=-1.0, high=1.0, shape=(3,))
 
     def get_default_action(self):
         """
@@ -219,15 +217,15 @@ class TMInterface:
         """
         if control is not None:
             actions = []
-            if control[0] > 0.5:
+            if control[0] > 0:
                 actions.append("f")
-            elif control[1] > 0.5:
+            if control[1] > 0:
                 actions.append("b")
             if control[2] > 0.5:
                 actions.append("r")
-            elif control[3] > 0.5:
+            elif control[2] < - 0.5:
                 actions.append("l")
-            apply_control(actions)  # TODO: format this
+            apply_control(actions)
 
     def grab_img_and_speed(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
@@ -247,7 +245,7 @@ class TMInterface:
         img, speed = self.grab_img_and_speed()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
-        imgs = np.array([i for i in self.img_hist], dtype='float32')
+        imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         return obs
 
@@ -266,7 +264,7 @@ class TMInterface:
         img, speed = self.grab_img_and_speed()
         rew = speed[0]
         self.img_hist.append(img)
-        imgs = np.array([i for i in self.img_hist], dtype='float32')
+        imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         done = False  # TODO: True if race complete
         # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
@@ -284,13 +282,13 @@ class TMInterface:
         """
         must be a Box
         """
-        return spaces.Box(low=0.0, high=1.0, shape=(4,))
+        return spaces.Box(low=-1.0, high=1.0, shape=(3,))  # 1=f; 1=b; -1=l,+1=r
 
     def get_default_action(self):
         """
         initial action at episode start
         """
-        return np.array([0.0, 0.0, 0.0, 0.0], dtype='float32')
+        return np.array([0.0, 0.0, 0.0], dtype='float32')
 
 
 class TMInterfaceLidar(TMInterface):
@@ -310,7 +308,7 @@ class TMInterfaceLidar(TMInterface):
         img, speed = self.grab_lidar_and_speed()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
-        imgs = np.array([i for i in self.img_hist], dtype='float32')
+        imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         return obs
 
@@ -322,7 +320,7 @@ class TMInterfaceLidar(TMInterface):
         img, speed = self.grab_lidar_and_speed()
         rew = speed[0]
         self.img_hist.append(img)
-        imgs = np.array([i for i in self.img_hist], dtype='float32')
+        imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         done = False  # TODO: True if race complete
         # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
@@ -333,7 +331,7 @@ class TMInterfaceLidar(TMInterface):
         must be a Tuple
         """
         speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        imgs = spaces.Box(low=0.0, high=np.inf, shape=(self.img_hist_len, 19,))
+        imgs = spaces.Box(low=0.0, high=np.inf, shape=(self.img_hist_len, 19,))  # lidars
         return spaces.Tuple((speed, imgs))
 
 
@@ -349,6 +347,8 @@ DEFAULT_CONFIG_DICT = {
     "real_time": True,
     "async_threading": True,
     "act_in_obs": True,
+    "act_buf_len": 1,
+    "reset_act_buf": True,
     "benchmark": True
 }
 
@@ -363,6 +363,7 @@ class TMRLEnv(Env):
             Typically this is useful for the real world and for external simulators
         :param time_step_duration: float (optional, default 0.0): seconds slept after apply_action() (~ time-step duration)
         :param act_in_obs: bool (optional, default True): whether to augment the observation with the action buffer (DCRL)
+        :param act_buf_len: int (optional, default 1): length of the action buffer (DCRL)
         :param default_action: float (optional, default None): default action to append at reset when the previous is True
         :param act_prepro_func: function (optional, default None): function that maps the action input to the actual applied action
         :param obs_prepro_func: function (optional, default None): function that maps the observation output to the actual returned observation
@@ -406,6 +407,8 @@ class TMRLEnv(Env):
         self.running_average_factor = config["running_average_factor"] if "running_average_factor" in config else 0.1
 
         self.act_in_obs = config["act_in_obs"] if "act_in_obs" in config else True
+        self.act_buf_len = config["act_buf_len"] if "act_buf_len" in config else 1
+        self.act_buf = deque(maxlen=self.act_buf_len)
         self.reset_act_buf = config["reset_act_buf"] if "reset_act_buf" in config else True
         self.action_space = self._get_action_space()
         self.observation_space = self._get_observation_space()
@@ -428,13 +431,11 @@ class TMRLEnv(Env):
         now = time.time()
         if now < self.__t_end + self.time_step_timeout:
             self.__t_start = self.__t_end
-            self.__t_co = self.__t_start + self.start_obs_capture
-            self.__t_end = self.__t_start + self.time_step_duration
         else:
             print(f"INFO: time-step timed out. Elapsed since last time-step: {now - self.__t_end}")
             self.__t_start = now
-            self.__t_co = self.__t_start + self.start_obs_capture
-            self.__t_end = self.__t_start + self.time_step_duration
+        self.__t_co = self.__t_start + self.start_obs_capture
+        self.__t_end = self.__t_start + self.time_step_duration
 
     def _join_thread(self):
         """
@@ -447,14 +448,14 @@ class TMRLEnv(Env):
     def _run_time_step(self, *args, **kwargs):
         """
         This is what must be called in step() to apply an action
-        Call this with the args and kwargs expected by self.__send_act_and_wait()
-        This in turn calls self.__send_act_and_wait()
-        In action-threading, self.__send_act_and_wait() is called in a new Thread
+        Call this with the args and kwargs expected by self.__send_act_get_obs_and_wait()
+        This in turn calls self.__send_act_get_obs_and_wait()
+        In action-threading, self.__send_act_get_obs_and_wait() is called in a new Thread
         """
         if not self.async_threading:
-            self.__send_act_and_wait(*args, **kwargs)
+            self.__send_act_get_obs_and_wait(*args, **kwargs)
         else:
-            self._at_thread = Thread(target=self.__send_act_and_wait, args=args, kwargs=kwargs, daemon=True)
+            self._at_thread = Thread(target=self.__send_act_get_obs_and_wait, args=args, kwargs=kwargs, daemon=True)
             self._at_thread.start()
 
     def _initialize(self):
@@ -463,20 +464,19 @@ class TMRLEnv(Env):
         All costly initializations should be performed here
         This allows creating a dummy environment for retrieving action space and observation space without performing these initializations
         """
+        self.init_action_buffer()
         self.initialized = True
 
     def _get_action_space(self):
         return self.interface.get_action_space()
 
     def _get_observation_space(self):
-        # TODO: add action
         t = self.interface.get_observation_space()
         if self.act_in_obs:
-            t = spaces.Tuple((*t.spaces, self._get_action_space()))
-        print(t)
+            t = spaces.Tuple((*t.spaces, *((self._get_action_space(),) * self.act_buf_len)))
         return t
 
-    def __send_act_and_wait(self, action):
+    def __send_act_get_obs_and_wait(self, action):
         """
         This function applies the control and launches observation capture at the right timestamp
         !: only one such function must run in parallel (always join thread)
@@ -485,17 +485,16 @@ class TMRLEnv(Env):
         self.interface.send_control(act)
         self._update_timestamps()
         now = time.time()
-        while now < self.__t_co:  # wait until it is time to capture observation
-            now = time.time()
-        self.__update_obs_rew_done(action)  # capture observation
-        while now < self.__t_end:  # wait until the end of the time-step
-            now = time.time()
+        if now < self.__t_co:  # wait until it is time to capture observation
+            time.sleep(self.__t_co - now)
+        self.__update_obs_rew_done()  # capture observation
+        now = time.time()
+        if now < self.__t_end:  # wait until the end of the time-step
+            time.sleep(self.__t_end - now)
 
-    def __update_obs_rew_done(self, act):
+    def __update_obs_rew_done(self):
         """
         Captures o, r, d asynchronously
-        Args:
-            act: taken action (in the observation if act_in_obs is True)
         Returns:
             observation of this step()
         """
@@ -506,8 +505,6 @@ class TMRLEnv(Env):
         if not d:
             d = (self.current_step >= self.ep_max_length)
         elt = o
-        if self.act_in_obs:
-            elt = elt + [np.array(act), ]
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
         elt = tuple(elt)
@@ -532,7 +529,13 @@ class TMRLEnv(Env):
                 self.__o_set_flag = False
                 c = False
             self.__o_lock.release()
+        if self.act_in_obs:
+            elt = tuple((*elt, *tuple(self.act_buf),))
         return elt, r, d
+
+    def init_action_buffer(self):
+        for _ in range(self.act_buf_len):
+            self.act_buf.append(self.default_action)
 
     def reset(self):
         """
@@ -545,8 +548,10 @@ class TMRLEnv(Env):
             self._initialize()
         self.current_step = 0
         elt = self.interface.reset()
+        if self.reset_act_buf:
+            self.init_action_buffer()
         if self.act_in_obs:
-            elt = elt + [np.array(self.default_action), ]
+            elt = elt + list(self.act_buf)
         if self.obs_prepro_func:
             elt = self.obs_prepro_func(elt)
         elt = tuple(elt)
@@ -566,6 +571,7 @@ class TMRLEnv(Env):
         """
         self._join_thread()
         self.current_step += 1
+        self.act_buf.append(action)
         if not self.real_time:
             self._run_time_step(action)
         obs, rew, done = self._retrieve_obs_rew_done()
@@ -588,7 +594,7 @@ class TMRLEnv(Env):
         Returns the following running averages when the benchmark option is set:
             - duration of __update_obs_rew_done()
         """
-        assert self.benchmark, "The benchmark option is not set. Set benchmark=True the configuration dictionary of the environment"
+        assert self.benchmark, "The benchmark option is not set. Set benchmark=True in the configuration dictionary of the environment"
         self.__b_lock.acquire()
         res_obs_capture_duration = self.__b_obs_capture_duration
         self.__b_lock.release()
@@ -600,7 +606,3 @@ class TMRLEnv(Env):
         """
         self._join_thread()
         print("render")
-        cv2.imshow("press q to exit", self.interface.img)
-        if cv2.waitKey(25) & 0xFF == ord("q"):
-            cv2.destroyAllWindows()
-            sys.exit()

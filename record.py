@@ -25,6 +25,7 @@ KEY_RESET = 'r'
 PATH_REWARD = r"D:/data2020reward/"
 PATH_DATASET = r"C:/Users/Yann/Desktop/git/tmrl/data/"  # r"D:/data2020/"
 
+
 def record_tmnf_gamepad(path_dataset):
     """
     TODO: update
@@ -132,8 +133,8 @@ def record_tmnf_keyboard(path_dataset):
 
             iters.append(iteration)
             speeds.append(obs[0])
-            direction = np.array([float(i) for i in direction], dtype=np.float32)
-            dirs.append(direction)
+            direc = np.array([direction[0], direction[1], direction[2] - direction[3]], dtype=np.float32)  # +1 for right and -1 for left
+            dirs.append(direc)
             dones.append(done)
             rews.append(rew)
 
@@ -154,6 +155,7 @@ def record_tmnf_lidar_keyboard(path_dataset):
 
     env_config = DEFAULT_CONFIG_DICT
     env_config["interface"] = TMInterfaceLidar
+
     env = gym.make("gym_tmrl:gym-tmrl-v0")
     env.reset()
 
@@ -173,13 +175,19 @@ def record_tmnf_lidar_keyboard(path_dataset):
             is_recording = True
 
         if is_recording:
+            # print(f"DEBUG ---")
+            # print(f"DEBUG:lidar:{obs[1][-1]}")
             lidars.append(obs[1][-1])
-
             iters.append(iteration)
+            # print(f"DEBUG:speed:{obs[0]}")
             speeds.append(obs[0])
-            direction = np.array([float(i) for i in direction], dtype=np.float32)
-            dirs.append(direction)
+            direc = np.array([direction[0], direction[1], direction[2] - direction[3]], dtype=np.float32)  # +1 for right and -1 for left
+            # print(f"DEBUG:direction:{direc}")
+            dirs.append(direc)
+            # print(f"DEBUG:done:{done}")
             dones.append(done)
+            # print(f"DEBUG:rew:{rew}")
+            # print(f"DEBUG ---")
             rews.append(rew)
 
             iteration = iteration + 1
@@ -189,6 +197,7 @@ def record_tmnf_lidar_keyboard(path_dataset):
                 pickle.dump((iters, dirs, speeds, lidars, dones, rews), open(path + "data.pkl", "wb"))
                 print("All done")
                 return
+
 
 def record_tm20(path_dataset):
     """
@@ -223,7 +232,7 @@ def record_tm20(path_dataset):
             speeds.append(obs[0][0])
             distances.append(obs[0][1])
             positions.append([obs[0][2], obs[0][3], obs[0][4]])
-            inputs.append([obs[0][6], obs[0][7], obs[0][5]])
+            inputs.append([obs[0][6], obs[0][7], obs[0][5]])  # FIXME: check this thoroughly
             dones.append(done)
             rews.append(rew)
             iteration = iteration + 1

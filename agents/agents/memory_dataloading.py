@@ -41,16 +41,17 @@ class MemoryTM2020:
         idx_now = item+self.imgs_obs
         imgs = self.load_imgs(item)
 
-        last_obs = (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1], np.array(self.data[4][idx_last], dtype=np.float32)) if self.act_in_obs else (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1])
         last_act = np.array(self.data[4][idx_last], dtype=np.float32)
+        last_obs = (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1], last_act) if self.act_in_obs else (np.array([self.data[1][idx_last], ], dtype=np.float32), imgs[:-1])
         rew = np.float32(self.data[6][idx_now])
-        new_obs = (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:], np.array(self.data[4][idx_now], dtype=np.float32)) if self.act_in_obs else (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:])
+        new_act = np.array(self.data[4][idx_now], dtype=np.float32)
+        new_obs = (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:], new_act) if self.act_in_obs else (np.array([self.data[1][idx_now], ], dtype=np.float32), imgs[1:])
         done = np.float32(self.data[5][idx_now])
 
         if self.obs_preprocessor is not None:
             last_obs = self.obs_preprocessor(last_obs)
             new_obs = self.obs_preprocessor(new_obs)
-        return last_obs, last_act, rew, new_obs, done
+        return last_obs, new_act, rew, new_obs, done
 
     def load_imgs(self, item):
         res = []
@@ -112,16 +113,17 @@ class MemoryTMNF:
         idx_now = item + self.imgs_obs
         imgs = self.load_imgs(item)
 
-        last_obs = (self.data[2][idx_last], imgs[:-1], self.data[1][idx_last]) if self.act_in_obs else (self.data[2][idx_last], imgs[:-1])
         last_act = self.data[1][idx_last]
+        last_obs = (self.data[2][idx_last], imgs[:-1], last_act) if self.act_in_obs else (self.data[2][idx_last], imgs[:-1])
         rew = np.float32(self.data[4][idx_now])
-        new_obs = (self.data[2][idx_now], imgs[1:], self.data[1][idx_now]) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
+        new_act = self.data[1][idx_now]
+        new_obs = (self.data[2][idx_now], imgs[1:], new_act) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
         done = np.float32(0.0)
 
         if self.obs_preprocessor is not None:
             last_obs = self.obs_preprocessor(last_obs)
             new_obs = self.obs_preprocessor(new_obs)
-        return last_obs, last_act, rew, new_obs, done
+        return last_obs, new_act, rew, new_obs, done
 
     def load_imgs(self, item):
         res = []
@@ -146,22 +148,33 @@ class MemoryTMNFLidar(MemoryTMNF):
     def __getitem__(self, item):
         """
         CAUTION: item is the first index of the 4 images in the images history of the OLD observation
+        CAUTION: in the buffer, a sample is (act, obs(act)) and NOT (obs, act(obs))
+            i.e. in a sample, the observation is what step returned after being fed act
+            therefore, in the RTRL setting, act is appended to obs
         So we load 5 images from here...
         """
+        # print(f"DEBUG: getitem ---")
         idx_last = item + self.imgs_obs-1
         idx_now = item + self.imgs_obs
+        # print(f"DEBUG: item:{item}, idx_last:{idx_last}, idx_now:{idx_now}")
         imgs = self.load_imgs(item)
-
-        last_obs = (self.data[2][idx_last], imgs[:-1], self.data[1][idx_last]) if self.act_in_obs else (self.data[2][idx_last], imgs[:-1])
+        # print(f"DEBUG: imgs:{imgs}")
         last_act = self.data[1][idx_last]
+        # print(f"DEBUG WARNING!!!: last_act:{last_act}")
+        last_obs = (self.data[2][idx_last], imgs[:-1], last_act) if self.act_in_obs else (self.data[2][idx_last], imgs[:-1])
+        # print(f"DEBUG: last_obs:{last_obs}")
         rew = np.float32(self.data[5][idx_now])
-        new_obs = (self.data[2][idx_now], imgs[1:], self.data[1][idx_now]) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
+        # print(f"DEBUG: rew:{rew}")
+        new_act = self.data[1][idx_now]
+        # print(f"DEBUG WARNING!!!: new_act:{new_act}")
+        new_obs = (self.data[2][idx_now], imgs[1:], new_act) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
+        # print(f"DEBUG: new_obs:{new_obs}")
         done = np.float32(0.0)
 
         if self.obs_preprocessor is not None:
             last_obs = self.obs_preprocessor(last_obs)
             new_obs = self.obs_preprocessor(new_obs)
-        return last_obs, last_act, rew, new_obs, done
+        return last_obs, new_act, rew, new_obs, done
 
     def load_imgs(self, item):
         res = []
@@ -171,9 +184,11 @@ class MemoryTMNFLidar(MemoryTMNF):
         return np.array(res)
 
     def append(self, buffer):
-        # TODO buffer contains a [] of (obs, act, rew, done, info)
-        print(f"DEBUG: appending buffer to replay memory")
-        print(f"DEBUG: len(self.data):{len(self.data)}, len(buffer):{len(buffer)}")
+        """
+        buffer is a list of (obs, act, rew, done, info)
+        """
+        # print(f"DEBUG: appending buffer to replay memory")
+        # print(f"DEBUG: len(self.data):{len(self.data)}, len(buffer):{len(buffer)}")
         if len(buffer) > 0:
             # print(f"DEBUG: self.data[0][-1]:{self.data[0][-1]}")
             # print(f"DEBUG: len(self.data[0]):{len(self.data[0])}")
@@ -199,8 +214,8 @@ class MemoryTMNFLidar(MemoryTMNF):
                 self.data[3] = self.data[3][to_trim:]
                 self.data[4] = self.data[4][to_trim:]
                 self.data[5] = self.data[5][to_trim:]
-        else:
-            print(f"DEBUG: empty buffer")
+        # else:
+        #     print(f"DEBUG: empty buffer")
         return self
 
 
@@ -211,6 +226,9 @@ def load_and_print_pickle_file(path=r"C:\Users\Yann\Desktop\git\tmrl\data\data.p
     print(f"nb samples: {len(data[0])}")
     for i, d in enumerate(data):
         print(f"[{i}][0]: {d[0]}")
+    print("full data:")
+    for i, d in enumerate(data):
+        print(f"[{i}]: {d}")
 
 
 if __name__ == "__main__":
