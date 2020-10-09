@@ -77,19 +77,19 @@ def ReleaseKey(hexKeyCode):
 
 
 def apply_control(action):  # move_fast
-    if "f" in action:
+    if 'f' in action:
         PressKey(W)
     else:
         ReleaseKey(W)
-    if "b" in action:
+    if 'b' in action:
         PressKey(S)
     else:
         ReleaseKey(S)
-    if "l" in action:
+    if 'l' in action:
         PressKey(A)
     else:
         ReleaseKey(A)
-    if "r" in action:
+    if 'r' in action:
         PressKey(D)
     else:
         ReleaseKey(D)

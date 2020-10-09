@@ -160,15 +160,14 @@ def record_tmnf_lidar_keyboard(path_dataset):
     env.reset()
 
     is_recording = False
+    done = False
     while True:
-        obs, rew, done, info = env.step(None)
+        obs, rew, done, info = env.step(None) if not done else (env.reset(), 0.0, False, {}, )
         direction[0] = float(keyboard.is_pressed(KEY_FORWARD))
         direction[1] = float(keyboard.is_pressed(KEY_BACKWARD))
         direction[2] = float(keyboard.is_pressed(KEY_RIGHT))
         direction[3] = float(keyboard.is_pressed(KEY_LEFT))
         if keyboard.is_pressed(KEY_RESET):
-            print("reset")
-            env.reset()
             done = True
         if keyboard.is_pressed(KEY_START_RECORD):
             print("start record")

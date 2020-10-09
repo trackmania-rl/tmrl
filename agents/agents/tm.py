@@ -703,19 +703,30 @@ class RolloutWorker:
         collects n transitions (from reset)
         set train to False for test samples, True for train samples
         """
-        # self.buffer.clear()
         act = self.env.default_action
         obs = self.env.reset()
-        # print(f"DEBUG: rw init obs:{obs}, act:{act}")
-        # print(f"DEBUG: init obs[0]:{obs[0]}")
-        # print(f"DEBUG: init obs[1][-1].shape:{obs[1][-1].shape}")
         self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
         for _ in range(n):
             act = self.act(obs, train)
-            # print(f"DEBUG: rw act:{act}")
             obs, rew, done, info = self.env.step(act)
-            # print(f"DEBUG: rw obs:{obs}, rew:{rew}, done:{done}")
             self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
+
+    def collect_n_steps_and_debug_trajectory(self, n, train=True):
+        """
+        collects n transitions (from reset)
+        set train to False for test samples, True for train samples
+        """
+        act = self.env.default_action
+        obs = self.env.reset()
+        traj = []
+        self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
+        for _ in range(n):
+            obs_1 = obs
+            act = self.act(obs, train)
+            obs, rew, done, info = self.env.step(act)
+            traj.append((obs_1, act, obs, rew, done, info,))
+            self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
+        return traj
 
     def run(self):
         while True:

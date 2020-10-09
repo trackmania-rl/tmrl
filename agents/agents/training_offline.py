@@ -41,6 +41,17 @@ class TrainingOffline:
         self.agent.memory.append(buffer)
         self.total_samples += len(buffer)
 
+    def check_ratio(self, interface):
+        ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 else -1.0
+        if ratio > self.max_training_steps_per_env_step or ratio == -1.0:
+            print("INFO: Waiting for new samples")
+            while ratio > self.max_training_steps_per_env_step or ratio == -1.0:
+                # wait for new samples
+                self.update_buffer(interface)
+                ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 else -1.0
+                if ratio > self.max_training_steps_per_env_step or ratio == -1.0:
+                    time.sleep(self.sleep_between_buffer_retrieval_attempts)
+
     def run_epoch(self, interface: TrainerInterface):
         stats = []
         state = None
@@ -52,6 +63,7 @@ class TrainingOffline:
             t0 = pd.Timestamp.utcnow()
             stats_training = []
 
+            self.check_ratio(interface)
             for step in range(self.steps):
                 if self.total_updates == 0:
                     print("starting training")
@@ -63,15 +75,7 @@ class TrainingOffline:
                 if self.total_updates % self.update_buffer_interval == 0:
                     # retrieve local buffer in replay memory
                     self.update_buffer(interface)
-                ratio = self.total_updates / self.total_samples
-                if ratio > self.max_training_steps_per_env_step:
-                    print("INFO: Waiting for new samples")
-                    while ratio > self.max_training_steps_per_env_step:
-                        # wait for new samples
-                        self.update_buffer(interface)
-                        ratio = self.total_updates / self.total_samples
-                        if ratio > self.max_training_steps_per_env_step:
-                            time.sleep(self.sleep_between_buffer_retrieval_attempts)
+                self.check_ratio(interface)
 
             stats += pandas_dict(
                 round_time=Timestamp.utcnow() - t0,

@@ -118,13 +118,13 @@ class TM2020Interface:
             if control is not None:
                 actions = []
                 if control[0] > 0:
-                    actions.append("f")
+                    actions.append('f')
                 if control[1] > 0:
-                    actions.append("b")
+                    actions.append('b')
                 if control[2] > 0.5:
-                    actions.append("r")
+                    actions.append('r')
                 elif control[2] < -0.5:
-                    actions.append("l")
+                    actions.append('l')
                 apply_control(actions)
 
     def grab_data_and_img(self):
@@ -218,13 +218,13 @@ class TMInterface:
         if control is not None:
             actions = []
             if control[0] > 0:
-                actions.append("f")
+                actions.append('f')
             if control[1] > 0:
-                actions.append("b")
+                actions.append('b')
             if control[2] > 0.5:
-                actions.append("r")
+                actions.append('r')
             elif control[2] < - 0.5:
-                actions.append("l")
+                actions.append('l')
             apply_control(actions)
 
     def grab_img_and_speed(self):
@@ -343,7 +343,7 @@ DEFAULT_CONFIG_DICT = {
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
-    "ep_max_length": np.inf,
+    "ep_max_length": 1000,  # np.inf
     "real_time": True,
     "async_threading": True,
     "act_in_obs": True,

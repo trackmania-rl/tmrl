@@ -4,6 +4,7 @@ import pickle
 from pathlib import Path
 import cv2
 import numpy as np
+import os
 
 
 class MemoryTM2020:
@@ -89,10 +90,14 @@ class MemoryTMNF:
 
         # init memory
         self.path = Path(path_loc)
-        with open(self.path / 'data.pkl', 'rb') as f:
-            self.data = list(pickle.load(f))
-            print(f"DEBUG: len data:{len(self.data)}")
-            print(f"DEBUG: len data[0]:{len(self.data[0])}")
+        if os.path.isfile(self.path / 'data.pkl'):
+            with open(self.path / 'data.pkl', 'rb') as f:
+                self.data = list(pickle.load(f))
+                print(f"DEBUG: len data:{len(self.data)}")
+                print(f"DEBUG: len data[0]:{len(self.data[0])}")
+        else:
+            print("DEBUG: no data found, initializing empty replay memory")
+            self.data = []
 
         if len(self) > self.memory_size:
             # TODO: crop to memory_size
@@ -102,6 +107,8 @@ class MemoryTMNF:
         return self
 
     def __len__(self):
+        if len(self.data) < self.imgs_obs + 1:
+            return 0
         return len(self.data[0])-self.imgs_obs-1
 
     def __getitem__(self, item):
@@ -198,13 +205,31 @@ class MemoryTMNFLidar(MemoryTMNF):
             # print(f"DEBUG: type(self.data[3]):{type(self.data[3])}, type(self.data[3][0]):{type(self.data[3][0])}, type(buffer.memory[0][0][1]):{type(buffer.memory[0][0][1])}")
             # print(f"DEBUG: type(self.data[4]):{type(self.data[4])}, type(self.data[4][0]):{type(self.data[4][0])}, type(buffer.memory[0][3]):{type(buffer.memory[0][3])}")
             # print(f"DEBUG: type(self.data[5]):{type(self.data[5])}, type(self.data[5][0]):{type(self.data[5][0])}, type(buffer.memory[0][2]):{type(buffer.memory[0][2])}")
-            first_data_idx = self.data[0][-1] + 1
-            self.data[0] += [first_data_idx + i for i, _ in enumerate(buffer.memory)]
-            self.data[1] += [b[1] for b in buffer.memory]
-            self.data[2] += [b[0][0] for b in buffer.memory]
-            self.data[3] += [b[0][1] for b in buffer.memory]
-            self.data[4] += [b[3] for b in buffer.memory]
-            self.data[5] += [b[2] for b in buffer.memory]
+
+            first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
+
+            d0 = [first_data_idx + i for i, _ in enumerate(buffer.memory)]
+            d1 = [b[1] for b in buffer.memory]
+            d2 = [b[0][0] for b in buffer.memory]
+            d3 = [b[0][1] for b in buffer.memory]
+            d4 = [b[3] for b in buffer.memory]
+            d5 = [b[2] for b in buffer.memory]
+
+            if self.__len__() > 0:
+                self.data[0] += d0
+                self.data[1] += d1
+                self.data[2] += d2
+                self.data[3] += d3
+                self.data[4] += d4
+                self.data[5] += d5
+            else:
+                self.data.append(d0)
+                self.data.append(d1)
+                self.data.append(d2)
+                self.data.append(d3)
+                self.data.append(d4)
+                self.data.append(d5)
+
             to_trim = self.__len__() - self.memory_size
             if to_trim > 0:
                 print(f"DEBUG: trimming {to_trim} elements")

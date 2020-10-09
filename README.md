@@ -2,9 +2,11 @@
 Real-Time Reinforcement Learning python framework with example applications to the Trackmania videogame.
 
 ## Authors:
-
 - Yann Bouteiller
 - Edouard Geze
+
+### Other contributors:
+- Simon Ramstedt
 
 ## Real-Time Gym Environment
 This project is built with our threaded OpenAI Gym framework for real-world applications.
