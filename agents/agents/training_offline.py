@@ -67,7 +67,10 @@ class TrainingOffline:
             for step in range(self.steps):
                 if self.total_updates == 0:
                     print("starting training")
-                stats_training += self.agent.train(),
+                stats_training_dict = self.agent.train()
+                stats_training_dict["return_test"] = self.agent.memory.stat_test_return
+                stats_training_dict["return_train"] = self.agent.memory.stat_train_return
+                stats_training += stats_training_dict,
                 self.total_updates += 1
                 if self.total_updates % self.update_model_interval == 0:
                     # broadcast model weights

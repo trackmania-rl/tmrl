@@ -146,19 +146,17 @@ def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOff
     trackmania main (remote)
     run and save config and stats to https://wandb.com
     """
-    #wandb_dir = mkdtemp()  # prevent wandb from polluting the home directory
-    #atexit.register(shutil.rmtree, wandb_dir, ignore_errors=True)  # clean up after wandb atexit handler finishes
-    #import wandb
-    #config = partial_to_dict(run_cls)
-    #config['seed'] = config['seed'] or randrange(1, 1000000)  # if seed == 0 replace with random
-    #config['environ'] = log_environment_variables()
+    wandb_dir = mkdtemp()  # prevent wandb from polluting the home directory
+    atexit.register(shutil.rmtree, wandb_dir, ignore_errors=True)  # clean up after wandb atexit handler finishes
+    import wandb
+    config = partial_to_dict(run_cls)
+    config['seed'] = config['seed'] or randrange(1, 1000000)  # if seed == 0 replace with random
+    config['environ'] = log_environment_variables()
     #config['git'] = git_info()  # TODO: check this for bugs
-    #resume = checkpoint_path and exists(checkpoint_path)
-    #wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
-    # interface = TrainerInterface()
+    resume = checkpoint_path and exists(checkpoint_path)
+    wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
-        pass
-    #    [wandb.log(json.loads(s.to_json())) for s in stats]
+        [wandb.log(json.loads(s.to_json())) for s in stats]
 
 # === specifications ===================================================================================================
 

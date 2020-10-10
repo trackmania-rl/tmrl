@@ -11,6 +11,7 @@ import pickle
 from argparse import ArgumentParser
 # import time
 from gym_tmrl.envs.tmrl_env import *
+import os
 
 
 # OBSERVATION PREPROCESSING ==================================
@@ -35,6 +36,16 @@ def obs_preprocessor_tmnf_lidar_act_in_obs(obs):
     """
     obs = (obs[0], np.ndarray.flatten(obs[1]), obs[2])
     return obs
+
+
+# WANDB: ==================================================
+
+WANDB_RUN_ID = "tmnf_test_1"
+WANDB_PROJECT = "tmrl"
+WANDB_ENTITY = "yannbouteiller"
+WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"
+
+os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 
 # CONFIGURATION: ==========================================
@@ -323,11 +334,16 @@ def poll_and_recv_or_close_socket(conn):
 class Buffer:
     def __init__(self):
         self.memory = []
+        self.stat_train_return = 0.0
+        self.stat_test_return = 0.0
 
     def append_sample(self, sample):
         self.memory.append(sample)
 
     def clear(self):
+        """
+        Clears memory but keeps train and test returns
+        """
         self.memory = []
 
     def __len__(self):
@@ -335,6 +351,8 @@ class Buffer:
 
     def __iadd__(self, other):
         self.memory += other.memory
+        self.stat_train_return = other.stat_train_return
+        self.stat_test_return = other.stat_test_return
         return self
 
 
@@ -698,18 +716,38 @@ class RolloutWorker:
         action, = partition(action)
         return action
 
-    def collect_n_steps(self, n, train=True):
+    def collect_train_episode(self, n):
         """
-        collects n transitions (from reset)
-        set train to False for test samples, True for train samples
+        collects n training transitions (from reset)
+        stores train return
         """
+        ret = 0.0
         act = self.env.default_action
         obs = self.env.reset()
         self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
         for _ in range(n):
-            act = self.act(obs, train)
+            act = self.act(obs, train=True)
             obs, rew, done, info = self.env.step(act)
+            ret += rew
             self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
+        self.buffer.stat_train_return = ret
+        print(f"DEBUG:self.buffer.stat_train_return:{self.buffer.stat_train_return}")
+
+    def run_test_episode(self, n):
+        """
+        collects n testing transitions (from reset)
+        stores test return
+        """
+        ret = 0.0
+        act = self.env.default_action
+        obs = self.env.reset()
+        self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
+        for _ in range(n):
+            act = self.act(obs, train=False)
+            obs, rew, done, info = self.env.step(act)
+            ret += rew
+        self.buffer.stat_test_return = ret
+        print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}")
 
     def collect_n_steps_and_debug_trajectory(self, n, train=True):
         """
@@ -728,18 +766,25 @@ class RolloutWorker:
             self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return traj
 
-    def run(self):
+    def run(self, test_episode_interval=20):
+        episode = 0
         while True:
-            print("INFO: collecting samples")
-            self.collect_n_steps(self.samples_per_worker_batch, train=True)
+            if episode % test_episode_interval == 0:
+                print("INFO: running test episode")
+                self.run_test_episode(self.samples_per_worker_batch)
+            print("INFO: collecting train episode")
+            self.collect_train_episode(self.samples_per_worker_batch)
             print("INFO: copying buffer for sending")
             self.send_and_clear_buffer()
             print("INFO: checking for new weights")
             self.update_actor_weights()
+            episode += 1
 
     def send_and_clear_buffer(self):
+        # print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}, self.buffer.stat_train_return:{self.buffer.stat_train_return}")
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
         self.__buffer = deepcopy(self.buffer)
+        # print(f"DEBUG:self.__buffer.stat_test_return:{self.buffer.stat_test_return}, self.__buffer.stat_train_return:{self.buffer.stat_train_return}")
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
         self.buffer.clear()
 
@@ -804,9 +849,9 @@ def main_train():
         Env=partial(UntouchedGymEnv,
                     id="gym_tmrl:gym-tmrl-v0",
                     gym_kwargs={"config": CONFIG_DICT}),
-        epochs=50,
-        rounds=10,
-        steps=1000,
+        epochs=400,  # 10
+        rounds=10,  # 50
+        steps=1000,  # 2000
         update_model_interval=1000,
         update_buffer_interval=1000,
         max_training_steps_per_env_step=1.0,
@@ -816,7 +861,7 @@ def main_train():
                       device='cuda' if PRAGMA_CUDA else 'cpu',
                       Model=partial(TRAIN_MODEL,
                                     act_in_obs=ACT_IN_OBS),
-                      memory_size=500000,
+                      memory_size=1000000,
                       batchsize=64,
                       lr=0.0003,  # default 0.0003
                       discount=0.99,
@@ -827,10 +872,10 @@ def main_train():
 
     print("--- NOW RUNNING: SAC trackmania ---")
     interface = TrainerInterface(redis_ip=REDIS_IP, model_path=MODEL_PATH_TRAINER)
-    run_wandb_tm(None,
-                 None,
-                 None,
-                 interface,
+    run_wandb_tm(entity=WANDB_ENTITY,
+                 project=WANDB_PROJECT,
+                 run_id=WANDB_RUN_ID,
+                 interface=interface,
                  run_cls=Sac_tm,
                  checkpoint_path=CHECKPOINT_PATH)
 

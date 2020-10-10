@@ -25,6 +25,7 @@ setup(
         'gym',
         'pyyaml',
         'wandb',
+        'pypiwin32',
         'requests',
         # 'pybullet'
         # 'line_profiler',

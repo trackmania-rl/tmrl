@@ -19,6 +19,10 @@ class MemoryTM2020:
         self.act_in_obs = act_in_obs
         self.obs_preprocessor = obs_preprocessor
 
+        # These stats are here because they reach the trainer along with the buffer:
+        self.stat_test_return = 0.0
+        self.stat_train_return = 0.0
+
         self.last_observation = None
         self.last_action = None
 
@@ -85,8 +89,12 @@ class MemoryTMNF:
         self.act_in_obs = act_in_obs
         self.obs_preprocessor = obs_preprocessor
 
-        self.last_observation = None
-        self.last_action = None
+        # These stats are here because they reach the trainer along with the buffer:
+        self.stat_test_return = 0.0
+        self.stat_train_return = 0.0
+
+        # self.last_observation = None
+        # self.last_action = None
 
         # init memory
         self.path = Path(path_loc)
@@ -239,6 +247,10 @@ class MemoryTMNFLidar(MemoryTMNF):
                 self.data[3] = self.data[3][to_trim:]
                 self.data[4] = self.data[4][to_trim:]
                 self.data[5] = self.data[5][to_trim:]
+
+            self.stat_train_return = buffer.stat_train_return
+            self.stat_test_return = buffer.stat_test_return
+            # print(f"DEBUG: self.stat_train_return:{self.stat_train_return}, self.stat_test_return:{self.stat_test_return}")
         # else:
         #     print(f"DEBUG: empty buffer")
         return self
