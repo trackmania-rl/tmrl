@@ -26,8 +26,8 @@ def dileted_canny(img):
     kernel = np.ones((7,7))
     imgBlur = cv2.GaussianBlur(imgGray, (7, 7), 0)
     imgCanny = cv2.Canny(imgBlur, 50, 300)
-    imgDial = cv2.dilate(imgCanny,kernel,iterations=3)
-    return imgDial
+    #imgDial = cv2.dilate(imgCanny,kernel,iterations=3)
+    return imgCanny
 
 def stackImages(scale,imgArray):
     rows = len(imgArray)
@@ -184,3 +184,40 @@ def road(img, road_point):
     img = flood_fill(img, road_point, 125)
     img[img!=125]=0
     return img
+
+
+
+
+def lidar_20 (road_point, im):
+    img=np.array(im)
+    Distances=[]
+    color = (255,0, 0)
+    thickness = 4
+    for angle in range(90,280, 10):
+        x=road_point[0]
+        y=road_point[1]
+        dx = math.cos(math.radians(angle))
+        dy = math.sin(math.radians(angle))
+        lenght= False
+        dist=20
+        while lenght== False:
+            newx=int(x+dist*dx)
+            newy=int(y+dist*dy)
+            if np.all(img[newx,newy]<[80,80,80])  or newx==0 or newy==0 or newy==img.shape[1]-1:
+                lenght = True
+                Distances.append([dist,angle-90])
+                img = cv2.line(img, (road_point[1],road_point[0]), (newy,newx), color, thickness)
+            dist=dist+1
+    return Distances, img
+
+
+if __name__ == "__main__":
+    monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
+    import mss
+    sct = mss.mss()
+    while True:
+        img = np.asarray(sct.grab(monitor))[:, :, :3]
+        distances, img = lidar_20((489, 479), img)
+        cv2.imshow("PipeLine", img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
