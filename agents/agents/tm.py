@@ -50,13 +50,13 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 # CONFIGURATION: ==========================================
 
-PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann
+PRAGMA_EDOUARD_YANN = True  # True if Edouard, False if Yann
 PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
-PRAGMA_CUDA = False  # True if CUDA, False if CPU
+PRAGMA_CUDA = True  # True if CUDA, False if CPU
 
-TRAIN_MODEL = Tm_hybrid_1 if PRAGMA_TM2020_TMNF else Mlp
-POLICY = TMPolicy if PRAGMA_TM2020_TMNF else MlpPolicy
-OBS_PREPROCESSOR = obs_preprocessor_tmnf_act_in_obs if PRAGMA_TM2020_TMNF else obs_preprocessor_tmnf_lidar_act_in_obs
+TRAIN_MODEL = Mlp  # Tm_hybrid_1 if PRAGMA_TM2020_TMNF else Mlp
+POLICY = MlpPolicy  # TMPolicy if PRAGMA_TM2020_TMNF else MlpPolicy
+OBS_PREPROCESSOR = obs_preprocessor_tmnf_lidar_act_in_obs  # obs_preprocessor_tmnf_act_in_obs if PRAGMA_TM2020_TMNF else obs_preprocessor_tmnf_lidar_act_in_obs
 
 ACT_IN_OBS = True
 BENCHMARK = False
@@ -65,8 +65,8 @@ public_ip = get('http://api.ipify.org').text
 local_ip = socket.gethostbyname(socket.gethostname())
 print(f"I: local IP: {local_ip}")
 print(f"I: public IP: {public_ip}")
-REDIS_IP = public_ip
-LOCALHOST = False
+REDIS_IP = "127.0.0.1"  # public_ip
+LOCALHOST = True
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
@@ -93,15 +93,15 @@ MODEL_PATH_TRAINER = r"D:\cp\weights\exp.pth" if PRAGMA_EDOUARD_YANN else r"C:\U
 CHECKPOINT_PATH = r"D:\cp\exp0" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
 DATASET_PATH = r"D:\data2020"  if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
 
-MEMORY = partial(MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNFLidar,
+MEMORY = partial(MemoryTMNFLidar,  # MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNFLidar,
                  path_loc=DATASET_PATH,
-                 imgs_obs=4 if PRAGMA_TM2020_TMNF else 1,
+                 imgs_obs=1,  # 4 if PRAGMA_TM2020_TMNF else 1,
                  act_in_obs=ACT_IN_OBS,
                  obs_preprocessor=OBS_PREPROCESSOR
                  )
 
 CONFIG_DICT = {
-    "interface": TM2020Interface if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1),
+    "interface": TM2020InterfaceLidar if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1),
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
@@ -634,8 +634,9 @@ class RolloutWorker:
         obs_space = self.env.observation_space
         act_space = self.env.action_space
         self.model_path = model_path
-        self.actor = actor_module_cls(obs_space, act_space)
-        self.actor.load_state_dict(torch.load(self.model_path))
+        self.actor = actor_module_cls(obs_space, act_space).to(device)
+        if os.path.isfile(self.model_path):
+            self.actor.load_state_dict(torch.load(self.model_path))
         self.device = device
         self.buffer = Buffer()
         self.__buffer = Buffer()  # deepcopy for sending

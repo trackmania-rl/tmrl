@@ -123,7 +123,7 @@ class TM2020Interface:
                     actions.append('b')
                 if control[2] > 0.5:
                     actions.append('r')
-                elif control[2] < -0.5:
+                elif control[2] < - 0.5:
                     actions.append('l')
                 apply_control(actions)
 
@@ -188,6 +188,51 @@ class TM2020Interface:
         initial action at episode start
         """
         return np.array([0.0, 0.0, 0.0])
+
+
+class TM2020InterfaceLidar(TM2020Interface):
+    def grab_lidar_speed_and_data(self):
+        img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
+        data = self.client.retrieve_data()
+        speed = np.array([data[0], ], dtype='float32')
+        lidar, _ = lidar_from_pixels(road_point=(440, 479), im=img, min_x=0, max_x=490, min_y=0, max_y=958)  # TODO change
+        return lidar, speed, data
+
+    def reset(self):
+        """
+        obs must be a list of numpy arrays
+        """
+        self.send_control(self.get_default_action())
+        keyres()
+        time.sleep(0.05)  # must be long enough for image to be refreshed
+        img, speed, _ = self.grab_lidar_speed_and_data()
+        for _ in range(self.img_hist_len):
+            self.img_hist.append(img)
+        imgs = np.array(list(self.img_hist), dtype='float32')
+        obs = [speed, imgs]
+        return obs
+
+    def get_obs_rew_done(self):
+        """
+        returns the observation, the reward, and a done signal for end of episode
+        obs must be a list of numpy arrays
+        """
+        img, speed, data = self.grab_lidar_speed_and_data()
+        rew = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
+        self.img_hist.append(img)
+        imgs = np.array(list(self.img_hist), dtype='float32')
+        obs = [speed, imgs]
+        done = False  # TODO: True if race complete
+        # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
+        return obs, rew, done
+
+    def get_observation_space(self):
+        """
+        must be a Tuple
+        """
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
+        imgs = spaces.Box(low=0.0, high=np.inf, shape=(self.img_hist_len, 19,))  # lidars
+        return spaces.Tuple((speed, imgs))
 
 
 # Interface for Trackmania Nations Forever: ============================================================================
