@@ -9,7 +9,7 @@ from threading import Thread, Lock
 import cv2
 import mss
 import sys
-from gym_tmrl.envs.tools import load_digits, get_speed, lidar_from_pixels
+from gym_tmrl.envs.tools import load_digits, get_speed, lidar_20
 from gym_tmrl.envs.key_event import apply_control, keyres
 from gym_tmrl.envs.gamepad_event import control_all
 from collections import deque
@@ -85,7 +85,7 @@ class TM2020Interface:
     This is the API needed for the algorithm to control Trackmania2020
     """
 
-    def __init__(self, img_hist_len=4, gamepad=True):
+    def __init__(self, img_hist_len=4, gamepad=False):
         """
         Args:
         """
@@ -163,6 +163,7 @@ class TM2020Interface:
         """
         data, img = self.grab_data_and_img()
         rew = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
+        rew = np.float32(rew)
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist))
         obs = [data, imgs]
@@ -195,7 +196,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         data = self.client.retrieve_data()
         speed = np.array([data[0], ], dtype='float32')
-        lidar, _ = lidar_from_pixels(road_point=(440, 479), im=img, min_x=0, max_x=490, min_y=0, max_y=958)  # TODO change
+        lidar = lidar_20(im=img)
         return lidar, speed, data
 
     def reset(self):
@@ -219,6 +220,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         """
         img, speed, data = self.grab_lidar_speed_and_data()
         rew = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
+        rew = np.float32(rew)
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]

@@ -2,16 +2,16 @@ import gym
 from gym import spaces
 import random
 import time
-from gym_tmrl.envs.tmrl_env import DEFAULT_CONFIG_DICT, TMInterface, TM2020Interface, TMInterfaceLidar
+from gym_tmrl.envs.tmrl_env import DEFAULT_CONFIG_DICT, TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
 
 NB_STEPS = 1000
-ACT_COMPUTE_MIN = 0.03
-ACT_COMPUTE_MAX = 0.02
+ACT_COMPUTE_MIN = 0.02
+ACT_COMPUTE_MAX = 0.03
 
-action_space = spaces.Box(low=0.0, high=1.0, shape=(4,))
+action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,))
 
 env_config = DEFAULT_CONFIG_DICT
-env_config["interface"] = TMInterfaceLidar
+env_config["interface"] = TM2020InterfaceLidar
 env = gym.make("gym_tmrl:gym-tmrl-v0", config=env_config)
 
 t_d = time.time()

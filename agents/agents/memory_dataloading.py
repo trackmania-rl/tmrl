@@ -189,6 +189,8 @@ class MemoryTMNFLidar(MemoryTMNF):
         if self.obs_preprocessor is not None:
             last_obs = self.obs_preprocessor(last_obs)
             new_obs = self.obs_preprocessor(new_obs)
+
+        print(last_obs, new_act, rew, new_obs)
         return last_obs, new_act, rew, new_obs, done
 
     def load_imgs(self, item):

@@ -34,7 +34,7 @@ def obs_preprocessor_tmnf_lidar_act_in_obs(obs):
     This takes the output of gym as input
     Therefore the output of the memory must be the same as gym
     """
-    obs = (obs[0], np.ndarray.flatten(obs[1]), obs[2])
+    obs = (np.array(obs[0], dtype=np.float32), np.array(np.ndarray.flatten(obs[1]), dtype=np.float32), np.array(obs[2], dtype=np.float32))
     return obs
 
 
@@ -51,7 +51,7 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 # CONFIGURATION: ==========================================
 
 PRAGMA_EDOUARD_YANN = True  # True if Edouard, False if Yann
-PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
+PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
 
 TRAIN_MODEL = Mlp  # Tm_hybrid_1 if PRAGMA_TM2020_TMNF else Mlp
@@ -65,8 +65,8 @@ public_ip = get('http://api.ipify.org').text
 local_ip = socket.gethostbyname(socket.gethostname())
 print(f"I: local IP: {local_ip}")
 print(f"I: public IP: {public_ip}")
-REDIS_IP = "127.0.0.1"  # public_ip
-LOCALHOST = True
+REDIS_IP = public_ip
+LOCALHOST = False
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
@@ -717,19 +717,30 @@ class RolloutWorker:
         action, = partition(action)
         return action
 
+    def reset(self):
+        act = self.env.default_action.astype(np.float32)
+        obs = self.env.reset()
+        if self.obs_preprocessor is not None:
+            obs = self.obs_preprocessor(obs)
+        sample = get_buffer_sample(obs, act, 0.0, False, {})
+        print(f"collect sample reset {sample[0][0].dtype}, {sample[0][1].dtype}, {sample[1].dtype}, {type(sample[2])}")
+        self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
+        return obs, act
+
     def collect_train_episode(self, n):
         """
         collects n training transitions (from reset)
         stores train return
         """
         ret = 0.0
-        act = self.env.default_action
-        obs = self.env.reset()
-        self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
+        obs, act = self.reset()
         for _ in range(n):
             act = self.act(obs, train=True)
             obs, rew, done, info = self.env.step(act)
+            # print("collect", rew)
             ret += rew
+            sample = get_buffer_sample(obs, act, rew, done, info)
+            print(f"collect sample {sample[0][0].dtype}, {sample[0][1].dtype}, {sample[1].dtype}, {type(sample[2])}")
             self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         self.buffer.stat_train_return = ret
         print(f"DEBUG:self.buffer.stat_train_return:{self.buffer.stat_train_return}")
@@ -740,12 +751,11 @@ class RolloutWorker:
         stores test return
         """
         ret = 0.0
-        act = self.env.default_action
-        obs = self.env.reset()
-        self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
+        obs, act = self.reset()
         for _ in range(n):
             act = self.act(obs, train=False)
             obs, rew, done, info = self.env.step(act)
+            # print("test", rew)
             ret += rew
         self.buffer.stat_test_return = ret
         print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}")
@@ -770,9 +780,9 @@ class RolloutWorker:
     def run(self, test_episode_interval=20):
         episode = 0
         while True:
-            if episode % test_episode_interval == 0:
-                print("INFO: running test episode")
-                self.run_test_episode(self.samples_per_worker_batch)
+            # if episode % test_episode_interval == 0:
+            #     print("INFO: running test episode")
+            #     self.run_test_episode(self.samples_per_worker_batch)
             print("INFO: collecting train episode")
             self.collect_train_episode(self.samples_per_worker_batch)
             print("INFO: copying buffer for sending")
@@ -784,6 +794,8 @@ class RolloutWorker:
     def send_and_clear_buffer(self):
         # print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}, self.buffer.stat_train_return:{self.buffer.stat_train_return}")
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
+        print(self.buffer)
+        exit()
         self.__buffer = deepcopy(self.buffer)
         # print(f"DEBUG:self.__buffer.stat_test_return:{self.buffer.stat_test_return}, self.__buffer.stat_train_return:{self.buffer.stat_train_return}")
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
