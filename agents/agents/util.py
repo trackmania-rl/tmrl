@@ -38,7 +38,7 @@ def collate(batch, device=None):
     elem = batch[0]
     if isinstance(elem, torch.Tensor):
         # return torch.stack(batch, 0).to(device, non_blocking=non_blocking)
-        if elem.numel() < 20000:  # TODO: link to the relavant profiling that lead to this threshold
+        if elem.numel() < 20000:  # TODO: link to the relevant profiling that lead to this threshold
             return torch.stack(batch).to(device)
         else:
             return torch.stack([b.contiguous().to(device) for b in batch], 0)

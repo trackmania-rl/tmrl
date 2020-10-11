@@ -59,11 +59,11 @@ def get_speed(img, digits):
 
 
 def get_axis_lidar(road_point):
-    list_axis_x = []
-    list_axis_y = []
+    list_ax_x = []
+    list_ax_y = []
     for angle in range(90, 280, 10):
-        axis_x=[]
-        axis_y=[]
+        axis_x = []
+        axis_y = []
         x = road_point[0]
         y = road_point[1]
         dx = math.cos(math.radians(angle))
@@ -75,45 +75,58 @@ def get_axis_lidar(road_point):
             newy = int(y + dist * dy)
             if newx <= 0 or newy <= 0 or newy >= 958 - 1:
                 lenght = True
-                list_axis_x.append(np.array(axis_x))
-                list_axis_y.append(np.array(axis_y))
+                list_ax_x.append(np.array(axis_x))
+                list_ax_y.append(np.array(axis_y))
             else:
                 axis_x.append(newx)
                 axis_y.append(newy)
             dist = dist + 1
 
-    return list_axis_x, list_axis_y
+    return list_ax_x, list_ax_y
 
-list_axis_x, list_axis_y = get_axis_lidar(road_point=(485, 479))
+
+ROAD_POINT = (440, 479)  # (485, 479)
+list_axis_x, list_axis_y = get_axis_lidar(road_point=ROAD_POINT)
 
 
 def armin(tab):
     nz = np.nonzero(tab)[0]
     if len(nz) != 0:
-        return nz[0]
+        return nz[0].item()
     else:
         return len(tab)-1
 
 
-def lidar_20(im):
-    img=np.array(im)
-    Distances=[]
-    #color = (255,0, 0)
-    #thickness = 4
+def lidar_20(im, show=False):
+    img = np.array(im)
+    distances = []
+    if show:
+        color = (255, 0, 0)
+        thickness = 4
     for axis_x, axis_y in zip(list_axis_x, list_axis_y):
         index = armin(np.all(img[axis_x, axis_y] < [55, 55, 55], axis=1))
-        Distances.append(index)
-        #img = cv2.line(img, (479, 485), (axis_y[index], axis_x[index]), color, thickness)
-    return np.array(Distances), #img
+        if show:
+            img = cv2.line(img, (ROAD_POINT[1], ROAD_POINT[0]), (axis_y[index], axis_x[index]), color, thickness)
+        index = np.float32(index)
+        distances.append(index)
+    res = np.array(distances, dtype=np.float32)
+    # print(f"DEBUG: type(res):{res}")
+    if show:
+        cv2.imshow("PipeLine", img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            return res
+    return res
 
 
 if __name__ == "__main__":
     monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
     import mss
+    import time
     sct = mss.mss()
-    while True:
-        img = np.asarray(sct.grab(monitor))[:, :, :3]
-        distances = lidar_20(img)
-        cv2.imshow("PipeLine", img)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+    t1 = time.time()
+    for _ in range(1000):
+        im = np.asarray(sct.grab(monitor))[:, :, :3]
+        dist = lidar_20(im, show=True)
+    t2 = time.time()
+    print(f"average duration:{(t2-t1)/1000.0}")
+

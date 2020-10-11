@@ -84,12 +84,12 @@ class GymEnv(Env):
         # self.seed(seed_val)
 
 
-class UntouchedGymEnv(Env):
+class UntouchedGymEnv(gym.Wrapper):
     def __init__(self, id: str = "Pendulum-v0", obs_scale: float = 0., gym_kwargs={}):
         env = gym.make(id, **gym_kwargs)
         if obs_scale:
             env = AffineObservationWrapper(env, 0, obs_scale)
-        # env = Float64ToFloat32(env)
+        env = Float64ToFloat32(env)
         assert isinstance(env.action_space, gym.spaces.Box)
         # env = NormalizeActionWrapper(env)
         super().__init__(env)

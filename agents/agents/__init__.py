@@ -154,9 +154,12 @@ def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOff
     config['environ'] = log_environment_variables()
     #config['git'] = git_info()  # TODO: check this for bugs
     resume = checkpoint_path and exists(checkpoint_path)
-    wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
+    # print(config)
+    # exit()
+    # wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
-        [wandb.log(json.loads(s.to_json())) for s in stats]
+        pass
+        # [wandb.log(json.loads(s.to_json())) for s in stats]
 
 # === specifications ===================================================================================================
 

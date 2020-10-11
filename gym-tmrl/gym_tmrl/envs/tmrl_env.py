@@ -89,19 +89,31 @@ class TM2020Interface:
         """
         Args:
         """
+        self.monitor = None
+        self.sct = None
+        self.last_time = None
+        self.digits = None
+        self.img_hist_len = img_hist_len
+        self.img_hist = None
+        self.img = None
+        self.reward_function = None
+        self.client = None
+        self.gamepad = gamepad
+        self.j = None
+        self.initialized = False
+
+    def initialize(self):
         self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
         self.sct = mss.mss()
         self.last_time = time.time()
         self.digits = load_digits()
-        self.img_hist_len = img_hist_len
         self.img_hist = deque(maxlen=self.img_hist_len)
         self.img = None
         self.reward_function = RewardFunction(reward_data_path=REWARD_PATH, nb_obs_forward=NB_OBS_FORWARD)
         self.client = TM2020OpenPlanetClient()
-        self.gamepad = gamepad
-
         if self.gamepad:
             self.j = pyvjoy.VJoyDevice(1)
+        self.initialized = True
 
     def send_control(self, control):
         """
@@ -138,6 +150,8 @@ class TM2020Interface:
         """
         obs must be a list of numpy arrays
         """
+        if not self.initialized:
+            self.initialize()
         self.send_control(self.get_default_action())
         keyres()
         time.sleep(0.05)  # must be long enough for image to be refreshed
@@ -342,7 +356,7 @@ class TMInterfaceLidar(TMInterface):
     def grab_lidar_and_speed(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         speed = np.array([get_speed(img, self.digits), ], dtype='float32')
-        lidar, _ = lidar_from_pixels(road_point=(440, 479), im=img, min_x=0, max_x=490, min_y=0, max_y=958)
+        lidar = lidar_20(im=img)
         return lidar, speed
 
     def reset(self):

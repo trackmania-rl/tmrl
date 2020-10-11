@@ -1,22 +1,18 @@
 from agents.sac_models import *
 from agents.memory_dataloading import *
-# from threading import Lock, Thread
 from agents.util import collate, partition, partial
-
 from copy import deepcopy
-# import socket
 import select
 from requests import get
 import pickle
 from argparse import ArgumentParser
-# import time
 from gym_tmrl.envs.tmrl_env import *
 import os
 
 
 # OBSERVATION PREPROCESSING ==================================
 
-def obs_preprocessor_tmnf_act_in_obs(obs):
+def obs_preprocessor_tm_act_in_obs(obs):
     """
     This takes the output of gym as input
     Therefore the output of the memory must be the same as gym
@@ -29,18 +25,20 @@ def obs_preprocessor_tmnf_act_in_obs(obs):
     return obs
 
 
-def obs_preprocessor_tmnf_lidar_act_in_obs(obs):
+def obs_preprocessor_tm_lidar_act_in_obs(obs):
     """
     This takes the output of gym as input
     Therefore the output of the memory must be the same as gym
     """
-    obs = (np.array(obs[0], dtype=np.float32), np.array(np.ndarray.flatten(obs[1]), dtype=np.float32), np.array(obs[2], dtype=np.float32))
+    # print(f"DEBUG: obs:{obs}")
+    # exit()
+    obs = (obs[0], np.ndarray.flatten(obs[1]), obs[2])
     return obs
 
 
 # WANDB: ==================================================
 
-WANDB_RUN_ID = "tmnf_test_1"
+WANDB_RUN_ID = "tmnf_test_2"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"
@@ -50,13 +48,15 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 # CONFIGURATION: ==========================================
 
-PRAGMA_EDOUARD_YANN = True  # True if Edouard, False if Yann
-PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
-PRAGMA_CUDA = True  # True if CUDA, False if CPU
+PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann
+PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
+PRAGMA_LIDAR = True  # True if Lidar, False if images
+PRAGMA_CUDA = False  # True if CUDA, False if CPU
 
-TRAIN_MODEL = Mlp  # Tm_hybrid_1 if PRAGMA_TM2020_TMNF else Mlp
-POLICY = MlpPolicy  # TMPolicy if PRAGMA_TM2020_TMNF else MlpPolicy
-OBS_PREPROCESSOR = obs_preprocessor_tmnf_lidar_act_in_obs  # obs_preprocessor_tmnf_act_in_obs if PRAGMA_TM2020_TMNF else obs_preprocessor_tmnf_lidar_act_in_obs
+TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
+POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
+
+OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else obs_preprocessor_tm_act_in_obs
 
 ACT_IN_OBS = True
 BENCHMARK = False
@@ -79,7 +79,6 @@ SOCKET_TIMEOUT_CONNECT_ROLLOUT = 60.0
 SOCKET_TIMEOUT_ACCEPT_ROLLOUT = 60.0  # socket waiting for rollout workers closed and restarted at this interval
 SOCKET_TIMEOUT_COMMUNICATE = 30.0
 SELECT_TIMEOUT_OUTBOUND = 30.0
-# PING_INTERVAL = 60.0  # interval at which the server pings the clients
 SELECT_TIMEOUT_PING_PONG = 60.0
 ACK_TIMEOUT_WORKER_TO_REDIS = 60.0
 ACK_TIMEOUT_TRAINER_TO_REDIS = 60.0
@@ -88,20 +87,30 @@ ACK_TIMEOUT_REDIS_TO_TRAINER = 60.0
 WAIT_BEFORE_RECONNECTION = 10.0
 LOOP_SLEEP_TIME = 1.0
 
-MODEL_PATH_WORKER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
-MODEL_PATH_TRAINER = r"D:\cp\weights\exp.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp.pth"
+MODEL_PATH_WORKER = r"D:\cp\weights\exp.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp.pth"
+MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
 CHECKPOINT_PATH = r"D:\cp\exp0" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
-DATASET_PATH = r"D:\data2020"  if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
+DATASET_PATH = r"D:\data2020" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
 
-MEMORY = partial(MemoryTMNFLidar,  # MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNFLidar,
+if PRAGMA_LIDAR:
+    MEM = MemoryTMNFLidar
+else:
+    MEM = MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF
+
+MEMORY = partial(MEM,
                  path_loc=DATASET_PATH,
-                 imgs_obs=1,  # 4 if PRAGMA_TM2020_TMNF else 1,
+                 imgs_obs=1 if PRAGMA_LIDAR else 4,
                  act_in_obs=ACT_IN_OBS,
                  obs_preprocessor=OBS_PREPROCESSOR
                  )
 
+if PRAGMA_LIDAR:
+    INT = partial(TM2020InterfaceLidar, img_hist_len=1) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1)
+else:
+    INT = TM2020Interface if PRAGMA_TM2020_TMNF else TMInterface
+
 CONFIG_DICT = {
-    "interface": TM2020InterfaceLidar if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1),
+    "interface": INT,
     "time_step_duration": 0.05,
     "start_obs_capture": 0.04,
     "time_step_timeout_factor": 1.0,
@@ -110,7 +119,6 @@ CONFIG_DICT = {
     "async_threading": True,
     "act_in_obs": ACT_IN_OBS,
     "benchmark": BENCHMARK,
-
 }
 
 
@@ -717,46 +725,49 @@ class RolloutWorker:
         action, = partition(action)
         return action
 
-    def reset(self):
+    def reset(self, train, collect_samples):
         act = self.env.default_action.astype(np.float32)
         obs = self.env.reset()
-        if self.obs_preprocessor is not None:
-            obs = self.obs_preprocessor(obs)
-        sample = get_buffer_sample(obs, act, 0.0, False, {})
-        print(f"collect sample reset {sample[0][0].dtype}, {sample[0][1].dtype}, {sample[1].dtype}, {type(sample[2])}")
-        self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
-        return obs, act
+        if collect_samples:
+            sample = get_buffer_sample(obs, act, 0.0, False, {})
+            self.buffer.append_sample(sample)
+        return obs
 
-    def collect_train_episode(self, n):
+    def step(self, obs, train, collect_samples):
+        act = self.act(obs, train=train)
+        obs, rew, done, info = self.env.step(act)
+        if collect_samples:
+            sample = get_buffer_sample(obs, act, rew, done, info)
+            self.buffer.append_sample(sample)  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
+        return obs, rew, done, info
+
+    def collect_train_episode(self, max_samples):
         """
         collects n training transitions (from reset)
         stores train return
         """
         ret = 0.0
-        obs, act = self.reset()
-        for _ in range(n):
-            act = self.act(obs, train=True)
-            obs, rew, done, info = self.env.step(act)
-            # print("collect", rew)
+        obs = self.reset(train=True, collect_samples=True)
+        for _ in range(max_samples):
+            obs, rew, done, info = self.step(obs=obs, train=True, collect_samples=True)
             ret += rew
-            sample = get_buffer_sample(obs, act, rew, done, info)
-            print(f"collect sample {sample[0][0].dtype}, {sample[0][1].dtype}, {sample[1].dtype}, {type(sample[2])}")
-            self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
+            if done:
+                break
         self.buffer.stat_train_return = ret
         print(f"DEBUG:self.buffer.stat_train_return:{self.buffer.stat_train_return}")
 
-    def run_test_episode(self, n):
+    def run_test_episode(self, max_samples):
         """
         collects n testing transitions (from reset)
         stores test return
         """
         ret = 0.0
-        obs, act = self.reset()
-        for _ in range(n):
-            act = self.act(obs, train=False)
-            obs, rew, done, info = self.env.step(act)
-            # print("test", rew)
+        obs = self.reset(train=False, collect_samples=False)
+        for _ in range(max_samples):
+            obs, rew, done, info = self.step(obs=obs, train=False, collect_samples=False)
             ret += rew
+            if done:
+                break
         self.buffer.stat_test_return = ret
         print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}")
 
@@ -777,7 +788,7 @@ class RolloutWorker:
             self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return traj
 
-    def run(self, test_episode_interval=20):
+    def run(self, test_episode_interval=20):  # TODO: check number of collected samples are collected before sending
         episode = 0
         while True:
             # if episode % test_episode_interval == 0:
@@ -794,8 +805,6 @@ class RolloutWorker:
     def send_and_clear_buffer(self):
         # print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}, self.buffer.stat_train_return:{self.buffer.stat_train_return}")
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
-        print(self.buffer)
-        exit()
         self.__buffer = deepcopy(self.buffer)
         # print(f"DEBUG:self.__buffer.stat_test_return:{self.buffer.stat_test_return}, self.__buffer.stat_train_return:{self.buffer.stat_train_return}")
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
@@ -875,7 +884,7 @@ def main_train():
                       Model=partial(TRAIN_MODEL,
                                     act_in_obs=ACT_IN_OBS),
                       memory_size=1000000,
-                      batchsize=64,
+                      batchsize=2,  # 64
                       lr=0.0003,  # default 0.0003
                       discount=0.99,
                       target_update=0.005,

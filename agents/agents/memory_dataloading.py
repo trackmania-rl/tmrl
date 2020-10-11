@@ -7,7 +7,7 @@ import numpy as np
 import os
 
 
-class MemoryTM2020:
+class MemoryTM2020:  # TODO: update with empty data
     keep_reset_transitions: int = 0
 
     def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None):
@@ -185,20 +185,18 @@ class MemoryTMNFLidar(MemoryTMNF):
         new_obs = (self.data[2][idx_now], imgs[1:], new_act) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
         # print(f"DEBUG: new_obs:{new_obs}")
         done = np.float32(0.0)
-
         if self.obs_preprocessor is not None:
             last_obs = self.obs_preprocessor(last_obs)
             new_obs = self.obs_preprocessor(new_obs)
-
-        print(last_obs, new_act, rew, new_obs)
         return last_obs, new_act, rew, new_obs, done
 
     def load_imgs(self, item):
         res = []
         for i in range(item, item+self.imgs_obs+1):
             img = self.data[3][i]
+            # print(f"DEBUG:i:{i}/{self.__len__()}, img:{img}")
             res.append(img)
-        return np.array(res)
+        return np.stack(res)
 
     def append(self, buffer):
         """
