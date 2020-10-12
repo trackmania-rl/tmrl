@@ -38,7 +38,7 @@ def obs_preprocessor_tm_lidar_act_in_obs(obs):
 
 # WANDB: ==================================================
 
-WANDB_RUN_ID = "tmnf_test_2"
+WANDB_RUN_ID = "tm2020_test_1"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"
@@ -48,10 +48,10 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 # CONFIGURATION: ==========================================
 
-PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann
-PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
+PRAGMA_EDOUARD_YANN = True  # True if Edouard, False if Yann
+PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
-PRAGMA_CUDA = False  # True if CUDA, False if CPU
+PRAGMA_CUDA = True  # True if CUDA, False if CPU
 
 TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
 POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
@@ -65,7 +65,7 @@ public_ip = get('http://api.ipify.org').text
 local_ip = socket.gethostbyname(socket.gethostname())
 print(f"I: local IP: {local_ip}")
 print(f"I: public IP: {public_ip}")
-REDIS_IP = public_ip
+REDIS_IP = "96.127.215.210"  # public_ip
 LOCALHOST = False
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
@@ -791,9 +791,9 @@ class RolloutWorker:
     def run(self, test_episode_interval=20):  # TODO: check number of collected samples are collected before sending
         episode = 0
         while True:
-            # if episode % test_episode_interval == 0:
-            #     print("INFO: running test episode")
-            #     self.run_test_episode(self.samples_per_worker_batch)
+            if episode % test_episode_interval == 0:
+                print("INFO: running test episode")
+                self.run_test_episode(self.samples_per_worker_batch)
             print("INFO: collecting train episode")
             self.collect_train_episode(self.samples_per_worker_batch)
             print("INFO: copying buffer for sending")

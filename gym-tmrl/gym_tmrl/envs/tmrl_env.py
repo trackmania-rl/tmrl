@@ -53,11 +53,11 @@ class TM2020OpenPlanetClient:
             s.connect((self._host, self._port))
             data_raw = b''
             while True:  # main loop
-                while len(data_raw) < 32:
+                while len(data_raw) < 36:
                     data_raw += s.recv(1024)
-                div = len(data_raw) // 32
-                data_used = data_raw[(div - 1) * 32:div * 32]
-                data_raw = data_raw[div * 32:]
+                div = len(data_raw) // 36
+                data_used = data_raw[(div - 1) * 36:div * 36]
+                data_raw = data_raw[div * 36:]
                 self.__lock.acquire()
                 self.__data = data_used
                 self.__lock.release()
@@ -72,7 +72,7 @@ class TM2020OpenPlanetClient:
         while c:
             self.__lock.acquire()
             if self.__data is not None:
-                data = struct.unpack('<ffffffff', self.__data)
+                data = struct.unpack('<fffffffff', self.__data)
                 c = False
             self.__lock.release()
             if c:
@@ -181,7 +181,7 @@ class TM2020Interface:
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist))
         obs = [data, imgs]
-        done = False  # TODO: True if race complete
+        done = bool(data[8])  # FIXME: check that this works
         return obs, rew, done
 
     def get_observation_space(self):
@@ -217,6 +217,8 @@ class TM2020InterfaceLidar(TM2020Interface):
         """
         obs must be a list of numpy arrays
         """
+        if not self.initialized:
+            self.initialize()
         self.send_control(self.get_default_action())
         keyres()
         time.sleep(0.05)  # must be long enough for image to be refreshed
@@ -238,7 +240,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
-        done = False  # TODO: True if race complete
+        done = bool(data[8])
         # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
         return obs, rew, done
 

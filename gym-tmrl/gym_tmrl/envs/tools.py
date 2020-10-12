@@ -122,11 +122,17 @@ if __name__ == "__main__":
     monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
     import mss
     import time
+    from pyinstrument import Profiler
     sct = mss.mss()
     t1 = time.time()
+    pro = Profiler()
+    pro.start()
     for _ in range(1000):
         im = np.asarray(sct.grab(monitor))[:, :, :3]
         dist = lidar_20(im, show=True)
+    pro.stop()
     t2 = time.time()
     print(f"average duration:{(t2-t1)/1000.0}")
+
+    print(pro.output_text(unicode=True, color=False))
 
