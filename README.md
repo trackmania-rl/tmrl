@@ -44,7 +44,7 @@ self.__t_co = self.__t_start + self.start_obs_capture
 self.__t_end = self.__t_start + self.time_step_duration
 ```
 
-This yields a core meachnism that can be visualized as follows:
+This core meachnism can be visualized as follows:
 
 ![Gym Real-Time Framework](figures/rt_gym_env.png "Gym Real-Time Framework")
 
