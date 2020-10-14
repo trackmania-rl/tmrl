@@ -24,7 +24,7 @@ while True:  # when this loop is broken, the current time-step will timeout
 	obs = env.step(act)  # the step function transparently adapts to this duration
 ```
 
-This Real-Time Gym framework is clocked by the following code snippet:
+Our Real-Time Gym framework is clocked by the following code snippet:
 ```python
 now = time.time()
 # if either still in the previous time-step of within its allowed elasticity
