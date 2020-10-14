@@ -26,22 +26,31 @@ while True:  # when this loop is broken, the current time-step will timeout
 This Real-Time Gym framework is clocked by the following code snippet:
 ```python
 now = time.time()
-if now < self.__t_end + self.time_step_timeout:  # if either still in the previous time-step of within its allowed elasticity
-	self.__t_start = self.__t_end  # the new time-step starts when the previous time-step is supposed to finish or to have finished
-else:  # if after the allowed elasticity
-	print(f"INFO: time-step timed out. Elapsed since last time-step: {now - self.__t_end}")
-	self.__t_start = now  # the elasticity is broken and reset (this should happen only after 'pausing' the environment)
-self.__t_co = self.__t_start + self.start_obs_capture  # update time at which observation should be retrieved
-self.__t_end = self.__t_start + self.time_step_duration  # update time at which the new time-step should finish
+# if either still in the previous time-step of within its allowed elasticity
+if now < self.__t_end + self.time_step_timeout:
+	# the new time-step starts when the previous time-step is supposed to finish
+	# or to have finished
+	self.__t_start = self.__t_end
+# if after the allowed elasticity
+else:
+	print(f"INFO: time-step timed out.")
+	# the elasticity is broken and reset
+	# (this should happen only after 'pausing' the environment)
+	self.__t_start = now
+# update time at which observation should be retrieved
+self.__t_co = self.__t_start + self.start_obs_capture
+# update time at which the new time-step should finish
+self.__t_end = self.__t_start + self.time_step_duration
 ```
 
 This yields a core meachnism that can be visualized as follows:
 
 ![Gym Real-Time Framework](figures/rt_gym_env.png "Gym Real-Time Framework")
 
-## Distant training framework
+## Distant training architecture
 
-To train our model, we developped a client-server framework on the model of [Ray RLlib][https://docs.ray.io/en/latest/rllib.html]. Our client-server framework is not secured and it is nowhere close to compete with Ray, but it is much simpler to use and modify, and works on both Windows and Linux.
+To train our model, we developped a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
+Our client-server architecture is not secured and it is nowhere close to compete with Ray, but it is much simpler to use and modify, and works on both Windows and Linux.
 
 We collect training samples from several rollout workers, typically several computers and/or robots.
 Each rollout worker stores its collected samples in a local buffer, and periodically sends this replay buffer to the central server.
