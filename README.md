@@ -13,8 +13,9 @@ This project is built with our threaded Real-Time Gym framework for real-world a
 
 Our threaded Gym framework enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
 Its purpose is to elastically constrain action application and observation capture times in a way that is transparent for the user.
-It can be reused fairly easily by creating an ad-hoc interface for your application, e.g. see the TM2020Interface class and DEFAULT_CONFIG_DICT for an example.
-Once your interface is implemented, your simply need to follow the usual pattern:
+It can be reused fairly easily by creating an ad-hoc interface for your application. See the TM2020Interface class and DEFAULT_CONFIG_DICT for an example.
+
+Once your interface is implemented, your can simply follow the usual pattern:
 
 ```python
 obs = env.reset()
@@ -23,7 +24,7 @@ while True:  # when this loop is broken, the current time-step will timeout
 	obs = env.step(act)  # the step function transparently adapts to this duration
 ```
 
-This Real-Time Gym framework is clocked by the following code snippet:
+Our Real-Time Gym framework is clocked by the following code snippet:
 ```python
 now = time.time()
 # if either still in the previous time-step of within its allowed elasticity
@@ -43,7 +44,7 @@ self.__t_co = self.__t_start + self.start_obs_capture
 self.__t_end = self.__t_start + self.time_step_duration
 ```
 
-This yields a core meachnism that can be visualized as follows:
+This timing allows us to implement the core meachnism of Real-Time Gym environments, which can be visualized as follows:
 
 ![Gym Real-Time Framework](figures/rt_gym_env.png "Gym Real-Time Framework")
 
