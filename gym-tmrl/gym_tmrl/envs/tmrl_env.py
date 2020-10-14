@@ -297,7 +297,7 @@ class TMInterface:
         img = cv2.resize(img, (190, 50))
         # img = np.moveaxis(img, -1, 0)
         return img, speed
-    
+
     def reset(self):
         """
         obs must be a list of numpy arrays
@@ -492,13 +492,13 @@ class TMRLEnv(Env):
             action computation and observation capture can be performed in parallel
         """
         now = time.time()
-        if now < self.__t_end + self.time_step_timeout:
-            self.__t_start = self.__t_end
-        else:
+        if now < self.__t_end + self.time_step_timeout:  # if either still in the previous time-step of within its allowed elasticity
+            self.__t_start = self.__t_end  # the new time-step starts when the previous time-step is supposed to finish or to have finished
+        else:  # if after the allowed elasticity
             print(f"INFO: time-step timed out. Elapsed since last time-step: {now - self.__t_end}")
-            self.__t_start = now
-        self.__t_co = self.__t_start + self.start_obs_capture
-        self.__t_end = self.__t_start + self.time_step_duration
+            self.__t_start = now  # the elasticity is broken and reset (this should happen only after 'pausing' the environment)
+        self.__t_co = self.__t_start + self.start_obs_capture  # update time at which observation should be retrieved
+        self.__t_end = self.__t_start + self.time_step_duration  # update time at which the new time-step should finish
 
     def _join_thread(self):
         """
