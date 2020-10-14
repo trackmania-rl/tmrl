@@ -69,4 +69,4 @@ Periodically, it sends the new policy weights to the central server.
 
 These mechanics can be visualized as follows:
 
-![Networking architecture](figures/network_interface.png =250x "Networking Architecture")
+![Networking architecture](figures/network_interface.png "Networking Architecture")
