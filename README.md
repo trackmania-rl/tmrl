@@ -13,8 +13,9 @@ This project is built with our threaded Real-Time Gym framework for real-world a
 
 Our threaded Gym framework enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
 Its purpose is to elastically constrain action application and observation capture times in a way that is transparent for the user.
-It can be reused fairly easily by creating an ad-hoc interface for your application, e.g. see the TM2020Interface class and DEFAULT_CONFIG_DICT for an example.
-Once your interface is implemented, your simply need to follow the usual pattern:
+It can be reused fairly easily by creating an ad-hoc interface for your application. See the TM2020Interface class and DEFAULT_CONFIG_DICT for an example.
+
+Once your interface is implemented, your can simply follow the usual pattern:
 
 ```python
 obs = env.reset()
