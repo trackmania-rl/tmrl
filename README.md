@@ -44,7 +44,7 @@ self.__t_co = self.__t_start + self.start_obs_capture
 self.__t_end = self.__t_start + self.time_step_duration
 ```
 
-This core meachnism can be visualized as follows:
+This timing allows us to implement the core meachnism of Real-Time Gym environments, which can be visualized as follows:
 
 ![Gym Real-Time Framework](figures/rt_gym_env.png "Gym Real-Time Framework")
 
