@@ -1,14 +1,12 @@
-# This is an environment for trackmania
+# This is an environment for Trackmania
 # http://www.flint.jp/misc/?q=dik&lang=en  key indicator
 
 from gym import Env
 import gym.spaces as spaces
 import numpy as np
 import time
-from threading import Thread, Lock
 import cv2
 import mss
-import sys
 from gym_tmrl.envs.tools import load_digits, get_speed, Lidar
 from gym_tmrl.envs.key_event import apply_control, keyres
 from gym_tmrl.envs.gamepad_event import control_all
@@ -20,7 +18,6 @@ from gym_tmrl.envs.compute_reward import RewardFunction
 import pyvjoy
 
 # from pynput.keyboard import Key, Controller
-import ctypes
 
 # Globals ==============================================================================================================
 

@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 import os
-from skimage.segmentation import flood_fill
 import math
 from pathlib import Path
 
@@ -19,7 +18,6 @@ def load_digits():
     nine = cv2.imread(str(p / '9.png'), 0)
     digits = np.array([zero, One, Two, Three, four, five, six, seven, eight, nine])
     return digits
-
 
 
 def get_speed(img, digits):
@@ -70,6 +68,7 @@ class Lidar:
         self.road_point = road_point
         self.monitor = monitor
         self.list_axis_x, self.list_axis_y = self._get_axis_lidar()
+        self.black_threshold = [55, 55, 55]
 
     def _get_axis_lidar(self):
         list_ax_x = []
@@ -103,7 +102,7 @@ class Lidar:
             color = (255, 0, 0)
             thickness = 4
         for axis_x, axis_y in zip(self.list_axis_x, self.list_axis_y):
-            index = armin(np.all(img[axis_x, axis_y] < [55, 55, 55], axis=1))
+            index = armin(np.all(img[axis_x, axis_y] < self.black_threshold, axis=1))
             if show:
                 img = cv2.line(img,
                                (self.road_point[1],self.road_point[0]),
@@ -113,7 +112,6 @@ class Lidar:
             index = np.float32(index)
             distances.append(index)
         res = np.array(distances, dtype=np.float32)
-        # print(f"DEBUG: type(res):{res}")
         if show:
             cv2.imshow("PipeLine", img)
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -123,19 +121,4 @@ class Lidar:
 
 if __name__ == "__main__":
     pass
-    # import mss
-    # import time
-    # from pyinstrument import Profiler
-    # sct = mss.mss()
-    # t1 = time.time()
-    # pro = Profiler()
-    # pro.start()
-    # for _ in range(1000):
-    #     im = np.asarray(sct.grab(monitor))[:, :, :3]
-    #     dist = lidar_20(im, show=True)
-    # pro.stop()
-    # t2 = time.time()
-    # print(f"average duration:{(t2-t1)/1000.0}")
-    #
-    # print(pro.output_text(unicode=True, color=False))
 
