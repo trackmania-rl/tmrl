@@ -49,7 +49,7 @@ def main_train(args):
                       device='cuda' if PRAGMA_CUDA else 'cpu',
                       Model=partial(TRAIN_MODEL, act_in_obs=ACT_IN_OBS),
                       memory_size=1000000,
-                      batchsize=2,  # 64
+                      batchsize=128,  # 64
                       lr=0.0003,  # default 0.0003
                       discount=0.99,
                       target_update=0.005,

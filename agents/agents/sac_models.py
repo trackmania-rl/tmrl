@@ -9,6 +9,7 @@ from agents.util import collate, partition
 from agents.nn import TanhNormalLayer, SacLinear, big_conv
 from agents.memory_dataloading import MemoryTMNF, MemoryTM2020
 from torch.nn import Linear, Sequential, ReLU, ModuleList, Module, Conv2d, MaxPool2d
+import gym
 
 
 class ActorModule(Module):
