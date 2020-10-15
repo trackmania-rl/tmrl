@@ -10,10 +10,6 @@ import gym
 import keyboard
 from gym_tmrl.envs.tmrl_env import TM2020OpenPlanetClient
 
-import socket
-import struct
-from threading import Thread, Lock
-
 KEY_START_RECORD = 'e'
 KEY_STOP_RECORD = 't'
 KEY_FORWARD = 'up'
@@ -285,7 +281,7 @@ def record_tm20(path_dataset):
                 return
 
 
-def record_reward(path_reward=r"D:/data2020reward/"):
+def record_reward(path_reward=PATH_REWARD):
     positions = []
     client = TM2020OpenPlanetClient()
     path = path_reward

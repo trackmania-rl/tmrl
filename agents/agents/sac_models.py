@@ -77,79 +77,6 @@ class Mlp(ActorModule):
         self.critic_output_layers = [c[-1] for c in self.critics]
 
 
-# === convolutional models =======================================================================================================
-class ConvActor(Module):
-    def __init__(self, observation_space, action_space, hidden_units: int = 512, Conv: type = big_conv):
-        super().__init__()
-        assert isinstance(observation_space, gym.spaces.Tuple)
-        (img_sp, vec_sp), *aux = observation_space
-
-        self.conv = Conv(img_sp.shape[0])
-        with torch.no_grad():
-            conv_size = self.conv(torch.zeros((1, *img_sp.shape))).view(1, -1).size(1)
-            print("conv_size =", conv_size)
-        self.lin1 = torch.nn.Linear(
-            conv_size + vec_sp.shape[0] + sum(sp.shape[0] for sp in aux),
-            hidden_units)
-        self.lin2 = torch.nn.Linear(
-            hidden_units + vec_sp.shape[0] + sum(sp.shape[0] for sp in aux),
-            hidden_units
-        )
-        self.output_layer = TanhNormalLayer(hidden_units, action_space.shape[0])
-
-    def forward(self, observation):
-        (x, vec), *aux = observation
-        x = x.type(torch.float32)
-        x = x / 255 - 0.5
-        x = self.conv(x)
-        x = x.view(x.size(0), -1)
-        x = leaky_relu(self.lin1(torch.cat((x, vec, *aux), -1)))
-        x = leaky_relu(self.lin2(torch.cat((x, vec, *aux), -1)))
-        x = self.output_layer(x)
-        return x
-
-
-class ConvCritic(Module):
-    def __init__(self, observation_space, action_space, hidden_units: int = 512, Conv: type = big_conv):
-        super().__init__()
-        assert isinstance(observation_space, gym.spaces.Tuple)
-        (img_sp, vec_sp), *aux = observation_space
-
-        self.conv = Conv(img_sp.shape[0])
-        with torch.no_grad():
-            conv_size = self.conv(torch.zeros((1, *img_sp.shape))).view(1, -1).size(1)
-
-        self.lin1 = torch.nn.Linear(
-            conv_size + vec_sp.shape[0] + sum(sp.shape[0] for sp in aux) + action_space.shape[0],
-            hidden_units)
-        self.lin2 = torch.nn.Linear(
-            hidden_units + vec_sp.shape[0] + sum(sp.shape[0] for sp in aux) + action_space.shape[0],
-            hidden_units
-        )
-        self.output_layer = torch.nn.Linear(hidden_units, 2)
-        self.critic_output_layers = self.output_layer,
-
-    def forward(self, observation, a):
-        (x, vec), *aux = observation
-        x = x.type(torch.float32)
-        x = x / 255 - 0.5
-        x = self.conv(x)
-        print(x.shape)
-        # x = x.view(x.size(0), -1)
-        x = leaky_relu(self.lin1(torch.cat((x, vec, *aux, a), -1)))
-        x = leaky_relu(self.lin2(torch.cat((x, vec, *aux, a), -1)))
-        x = self.output_layer(x)
-        return x
-
-
-class ConvModel(ActorModule):
-    def __init__(self, observation_space, action_space, num_critics: int = 2, hidden_units: int = 256, Conv: type = big_conv):
-        super().__init__()
-        self.actor = ConvActor(observation_space, action_space, hidden_units, Conv)
-        self.critics = ModuleList(ConvCritic(observation_space, action_space, hidden_units, Conv) for _ in range(num_critics))
-        self.critic_output_layers = sum((c.critic_output_layers for c in self.critics), ())
-
-
 # === Testing ==========================================================================================================
 class TestMlp(ActorModule):
     def act(self, state, obs, r, done, info, train=False):
@@ -159,7 +86,7 @@ class TestMlp(ActorModule):
 # === Trackmania =======================================================================================================
 
 class TMModule1(Module):
-    def __init__(self, observation_space, action_space, is_q_network):  # FIXME: action_space param is useless
+    def __init__(self, observation_space, action_space, is_q_network):
         """
         Args:
         """
@@ -211,7 +138,7 @@ class TMModule1(Module):
 
 
 class TMModuleNet(Module):
-    def __init__(self, observation_space, action_space, is_q_network):  # FIXME: action_space param is useless
+    def __init__(self, observation_space, action_space, is_q_network):
         """
         Args:
         """
@@ -280,7 +207,7 @@ class TMModuleNet(Module):
 
 
 class TMModuleResnet(Module):
-    def __init__(self, observation_space, action_space, is_q_network, act_in_obs=False):  # FIXME: action_space param is useless
+    def __init__(self, observation_space, action_space, is_q_network, act_in_obs=False):
         super().__init__()
         assert isinstance(observation_space, gym.spaces.Tuple)
         torch.autograd.set_detect_anomaly(True)
@@ -430,4 +357,3 @@ if __name__ == "__main__":
     print("--- NOW RUNNING: SAC trackmania ---")
     public_ip = get('http://api.ipify.org').text
     run_wandb_tm(None, None, None, run_cls=Sac_tm, checkpoint_path=CHECKPOINT_PATH)
-    #run(Sac_tm, checkpoint_path=r"C:/Users/Yann/Desktop/git/tmrl/checkpoint/exp")  # checkpoint
