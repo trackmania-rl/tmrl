@@ -5,7 +5,7 @@ import agents.sac
 from agents.util import pandas_dict, cached_property
 import gym
 
-from agents.tm import TrainerInterface
+from agents.networking import TrainerInterface
 
 from agents.envs import Env
 import time

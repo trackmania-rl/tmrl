@@ -21,7 +21,7 @@ import agents.rrtac
 import agents.sac
 import agents.sac_nstep
 import agents.sac_models_rd
-from agents.tm import TrainerInterface
+from agents.networking import TrainerInterface
 
 
 def iterate_episodes(run_cls: type = Training, checkpoint_path: str = None):
@@ -160,6 +160,14 @@ def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOff
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
         pass
         # [wandb.log(json.loads(s.to_json())) for s in stats]
+
+
+def run_tm(interface, run_cls: type = TrainingOffline, checkpoint_path: str = None):
+    """
+    trackmania main (remote)
+    """
+    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
+        pass
 
 # === specifications ===================================================================================================
 

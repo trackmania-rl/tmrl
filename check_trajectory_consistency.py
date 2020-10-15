@@ -1,4 +1,4 @@
-from agents.tm import *
+from agents.networking import *
 from agents import TrainingOffline, run_wandb_tm
 from agents.util import partial
 from agents.sac import Agent
