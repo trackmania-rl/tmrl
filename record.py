@@ -1,5 +1,5 @@
 from gym_tmrl.envs.tools import load_digits, get_speed
-from gym_tmrl.envs.tmrl_env import DEFAULT_CONFIG_DICT, TMInterface, TM2020Interface, TMInterfaceLidar
+from gym_tmrl.envs.tmrl_env import DEFAULT_CONFIG_DICT, TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
 import numpy as np
 import mss
 import pickle
@@ -198,6 +198,48 @@ def record_tmnf_lidar_keyboard(path_dataset):
                 return
 
 
+def record_tm20_lidar(path_dataset):
+    path = path_dataset
+    iteration = 0
+    iters, speeds, distances, positions, inputs, dones, rews = [], [], [], [], [], [], []
+
+    env_config = DEFAULT_CONFIG_DICT
+    env_config["interface"] = TM2020InterfaceLidar
+    env_config["ep_max_length"] = 2000
+    env = gym.make("gym_tmrl:gym-tmrl-v0")
+    env.reset()
+
+    is_recording = False
+    done = False
+    while True:
+        obs, rew, done, info = env.step(None) if not done else (env.reset(), 0.0, False, {}, )
+        # obs = (obs[0], obs[1], obs[0][-3:])
+        if keyboard.is_pressed(KEY_RESET):
+            print("reset")
+            env.reset()
+            done = True
+        if keyboard.is_pressed(KEY_START_RECORD):
+            print("start record")
+            is_recording = True
+
+        if is_recording:
+            cv2.imwrite(path + str(iteration) + ".png", obs[1][-1])
+            iters.append(iteration)
+            speeds.append(obs[0][0])
+            distances.append(obs[0][1])
+            positions.append([obs[0][2], obs[0][3], obs[0][4]])
+            inputs.append([obs[0][6], obs[0][7], obs[0][5]])  # FIXME: check this thoroughly
+            dones.append(done)
+            rews.append(rew)
+            iteration = iteration + 1
+
+            if keyboard.is_pressed(KEY_STOP_RECORD):
+                print("Saving pickle file...")
+                pickle.dump((iters, speeds, distances, positions, inputs, dones, rews), open(path + "data.pkl", "wb"))
+                print("All done")
+                return
+
+
 def record_tm20(path_dataset):
     """
     set the game to 40fps
@@ -289,7 +331,8 @@ def record_reward(path_reward=r"D:/data2020reward/"):
 
 
 if __name__ == "__main__":
-    record_tmnf_lidar_keyboard(PATH_DATASET)
+    record_tm20_lidar(PATH_DATASET)
+    # record_tmnf_lidar_keyboard(PATH_DATASET)
     # record_tmnf_keyboard(PATH_DATASET)
     # record_tm20(PATH_DATASET)
     # record_reward(PATH_REWARD)

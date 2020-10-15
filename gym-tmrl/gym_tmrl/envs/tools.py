@@ -57,38 +57,6 @@ def get_speed(img, digits):
     return float(100 * num1 + 10 * num2 + num3)
 
 
-
-def get_axis_lidar(road_point):
-    list_ax_x = []
-    list_ax_y = []
-    for angle in range(90, 280, 10):
-        axis_x = []
-        axis_y = []
-        x = road_point[0]
-        y = road_point[1]
-        dx = math.cos(math.radians(angle))
-        dy = math.sin(math.radians(angle))
-        lenght = False
-        dist = 20
-        while lenght == False:
-            newx = int(x + dist * dx)
-            newy = int(y + dist * dy)
-            if newx <= 0 or newy <= 0 or newy >= 958 - 1:
-                lenght = True
-                list_ax_x.append(np.array(axis_x))
-                list_ax_y.append(np.array(axis_y))
-            else:
-                axis_x.append(newx)
-                axis_y.append(newy)
-            dist = dist + 1
-
-    return list_ax_x, list_ax_y
-
-
-ROAD_POINT = (440, 479)  # (485, 479)
-list_axis_x, list_axis_y = get_axis_lidar(road_point=ROAD_POINT)
-
-
 def armin(tab):
     nz = np.nonzero(tab)[0]
     if len(nz) != 0:
@@ -97,42 +65,77 @@ def armin(tab):
         return len(tab)-1
 
 
-def lidar_20(im, show=False):
-    img = np.array(im)
-    distances = []
-    if show:
-        color = (255, 0, 0)
-        thickness = 4
-    for axis_x, axis_y in zip(list_axis_x, list_axis_y):
-        index = armin(np.all(img[axis_x, axis_y] < [55, 55, 55], axis=1))
+class Lidar:
+    def __init__(self, monitor, road_point):
+        self.road_point = road_point
+        self.monitor = monitor
+        self.list_axis_x, self.list_axis_y = self._get_axis_lidar()
+
+    def _get_axis_lidar(self):
+        list_ax_x = []
+        list_ax_y = []
+        for angle in range(90, 280, 10):
+            axis_x = []
+            axis_y = []
+            x = self.road_point[0]
+            y = self.road_point[1]
+            dx = math.cos(math.radians(angle))
+            dy = math.sin(math.radians(angle))
+            lenght = False
+            dist = 20
+            while not lenght:
+                newx = int(x + dist * dx)
+                newy = int(y + dist * dy)
+                if newx <= 0 or newy <= 0 or newy >= self.monitor["width"] - 1:
+                    lenght = True
+                    list_ax_x.append(np.array(axis_x))
+                    list_ax_y.append(np.array(axis_y))
+                else:
+                    axis_x.append(newx)
+                    axis_y.append(newy)
+                dist = dist + 1
+        return list_ax_x, list_ax_y
+
+    def lidar_20(self, im, show=False):
+        img = np.array(im)
+        distances = []
         if show:
-            img = cv2.line(img, (ROAD_POINT[1], ROAD_POINT[0]), (axis_y[index], axis_x[index]), color, thickness)
-        index = np.float32(index)
-        distances.append(index)
-    res = np.array(distances, dtype=np.float32)
-    # print(f"DEBUG: type(res):{res}")
-    if show:
-        cv2.imshow("PipeLine", img)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            return res
-    return res
+            color = (255, 0, 0)
+            thickness = 4
+        for axis_x, axis_y in zip(self.list_axis_x, self.list_axis_y):
+            index = armin(np.all(img[axis_x, axis_y] < [55, 55, 55], axis=1))
+            if show:
+                img = cv2.line(img,
+                               (self.road_point[1],self.road_point[0]),
+                               (axis_y[index], axis_x[index]),
+                               color,
+                               thickness)
+            index = np.float32(index)
+            distances.append(index)
+        res = np.array(distances, dtype=np.float32)
+        # print(f"DEBUG: type(res):{res}")
+        if show:
+            cv2.imshow("PipeLine", img)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                return res
+        return res
 
 
 if __name__ == "__main__":
-    monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
-    import mss
-    import time
-    from pyinstrument import Profiler
-    sct = mss.mss()
-    t1 = time.time()
-    pro = Profiler()
-    pro.start()
-    for _ in range(1000):
-        im = np.asarray(sct.grab(monitor))[:, :, :3]
-        dist = lidar_20(im, show=True)
-    pro.stop()
-    t2 = time.time()
-    print(f"average duration:{(t2-t1)/1000.0}")
-
-    print(pro.output_text(unicode=True, color=False))
+    pass
+    # import mss
+    # import time
+    # from pyinstrument import Profiler
+    # sct = mss.mss()
+    # t1 = time.time()
+    # pro = Profiler()
+    # pro.start()
+    # for _ in range(1000):
+    #     im = np.asarray(sct.grab(monitor))[:, :, :3]
+    #     dist = lidar_20(im, show=True)
+    # pro.stop()
+    # t2 = time.time()
+    # print(f"average duration:{(t2-t1)/1000.0}")
+    #
+    # print(pro.output_text(unicode=True, color=False))
 

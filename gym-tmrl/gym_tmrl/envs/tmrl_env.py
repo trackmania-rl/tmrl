@@ -9,7 +9,7 @@ from threading import Thread, Lock
 import cv2
 import mss
 import sys
-from gym_tmrl.envs.tools import load_digits, get_speed, lidar_20
+from gym_tmrl.envs.tools import load_digits, get_speed, Lidar
 from gym_tmrl.envs.key_event import apply_control, keyres
 from gym_tmrl.envs.gamepad_event import control_all
 from collections import deque
@@ -89,7 +89,7 @@ class TM2020Interface:
         """
         Args:
         """
-        self.monitor = None
+        self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
         self.sct = None
         self.last_time = None
         self.digits = None
@@ -103,7 +103,6 @@ class TM2020Interface:
         self.initialized = False
 
     def initialize(self):
-        self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
         self.sct = mss.mss()
         self.last_time = time.time()
         self.digits = load_digits()
@@ -168,7 +167,7 @@ class TM2020Interface:
         Non-blocking function
         The agent stays 'paused', waiting in position
         """
-        apply_control(self.get_default_action())
+        self.send_control(self.get_default_action())
 
     def get_obs_rew_done(self):
         """
@@ -206,11 +205,16 @@ class TM2020Interface:
 
 
 class TM2020InterfaceLidar(TM2020Interface):
+    def __init__(self, img_hist_len=4, gamepad=False, road_point=(440, 479), record=False):
+        super().__init__(img_hist_len, gamepad)
+        self.lidar = Lidar(monitor=self.monitor, road_point=road_point)
+        self.record = record
+
     def grab_lidar_speed_and_data(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         data = self.client.retrieve_data()
         speed = np.array([data[0], ], dtype='float32')
-        lidar = lidar_20(im=img)
+        lidar = self.lidar.lidar_20(im=img)
         return lidar, speed, data
 
     def reset(self):
@@ -222,12 +226,12 @@ class TM2020InterfaceLidar(TM2020Interface):
         self.send_control(self.get_default_action())
         keyres()
         time.sleep(0.05)  # must be long enough for image to be refreshed
-        img, speed, _ = self.grab_lidar_speed_and_data()
+        img, speed, data = self.grab_lidar_speed_and_data()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
-        return obs
+        return obs  # if not self.record else data
 
     def get_obs_rew_done(self):
         """
@@ -242,7 +246,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         obs = [speed, imgs]
         done = bool(data[8])
         # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
-        return obs, rew, done
+        return obs, rew, done  # if not self.record else data, rew, done
 
     def get_observation_space(self):
         """
@@ -317,7 +321,7 @@ class TMInterface:
         Non-blocking function
         The agent stays 'paused', waiting in position
         """
-        apply_control(self.get_default_action())
+        self.send_control(self.get_default_action())
 
     def get_obs_rew_done(self):
         """
@@ -355,10 +359,14 @@ class TMInterface:
 
 
 class TMInterfaceLidar(TMInterface):
+    def __init__(self, img_hist_len=4, road_point=(440, 479)):
+        super().__init__(img_hist_len)
+        self.lidar = Lidar(monitor=self.monitor, road_point=road_point)
+
     def grab_lidar_and_speed(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         speed = np.array([get_speed(img, self.digits), ], dtype='float32')
-        lidar = lidar_20(im=img)
+        lidar = self.lidar.lidar_20(im=img)
         return lidar, speed
 
     def reset(self):
