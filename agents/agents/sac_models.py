@@ -1,18 +1,14 @@
 from dataclasses import InitVar, dataclass
-
-import gym
 import torch
-import numpy as np
-from torch.nn.functional import leaky_relu
-
-from agents.util import collate, partition
-from torch.nn import Linear, Sequential, ReLU, ModuleList, Module, Conv2d, MaxPool2d
-from torch.nn import functional as F
-from agents.nn import TanhNormalLayer, SacLinear, big_conv
-from agents.envs import UntouchedGymEnv
-import torch.nn as nn
-from agents.memory_dataloading import MemoryTMNF, MemoryTM2020
 import math
+import numpy as np
+import torch.nn as nn
+from torch.nn import functional as F
+from torch.nn.functional import leaky_relu
+from agents.util import collate, partition
+from agents.nn import TanhNormalLayer, SacLinear, big_conv
+from agents.memory_dataloading import MemoryTMNF, MemoryTM2020
+from torch.nn import Linear, Sequential, ReLU, ModuleList, Module, Conv2d, MaxPool2d
 
 
 class ActorModule(Module):
