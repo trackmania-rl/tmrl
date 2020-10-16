@@ -199,28 +199,28 @@ class Agent:
         )
 
 
-# === tests ============================================================================================================
-def test_agent():
-    from agents import Training, run
-    Delayed_Sac_Test = partial(
-        Training,
-        epochs=2,
-        rounds=10,
-        Agent=partial(Agent, start_training=256, batchsize=256, device='cuda', Model=partial(Mlp, act_delay=True, obs_delay=True)),
-        Env=partial(RandomDelayEnv, min_observation_delay=0, sup_observation_delay=2, min_action_delay=0, sup_action_delay=2),  # RTRL setting, should get roughly the same behavior as SAC in RTRL
-    )
-    # Sac_Test = partial(
-    #     Training,
-    #     epochs=3,
-    #     rounds=5,
-    #     steps=100,
-    #     Agent=partial(Agent, device='cpu', memory_size=1000000, start_training=256, batchsize=4),
-    #     Env=partial(id="Pendulum-v0", real_time=0),
-    # )
-    run(Delayed_Sac_Test)
-
-
-if __name__ == "__main__":
-    test_agent()
-# test_agent_avenue()
-# test_agent_avenue_hd()
+# # === tests ============================================================================================================
+# def test_agent():
+#     from agents import Training, run
+#     Delayed_Sac_Test = partial(
+#         Training,
+#         epochs=2,
+#         rounds=10,
+#         Agent=partial(Agent, start_training=256, batchsize=256, device='cuda', Model=partial(Mlp, act_delay=True, obs_delay=True)),
+#         Env=partial(RandomDelayEnv, min_observation_delay=0, sup_observation_delay=2, min_action_delay=0, sup_action_delay=2),  # RTRL setting, should get roughly the same behavior as SAC in RTRL
+#     )
+#     # Sac_Test = partial(
+#     #     Training,
+#     #     epochs=3,
+#     #     rounds=5,
+#     #     steps=100,
+#     #     Agent=partial(Agent, device='cpu', memory_size=1000000, start_training=256, batchsize=4),
+#     #     Env=partial(id="Pendulum-v0", real_time=0),
+#     # )
+#     run(Delayed_Sac_Test)
+#
+#
+# if __name__ == "__main__":
+#     test_agent()
+# # test_agent_avenue()
+# # test_agent_avenue_hd()

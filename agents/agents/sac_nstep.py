@@ -159,63 +159,63 @@ class Agent:
         )
 
 
-AvenueAgent = partial(
-    Agent,
-    entropy_scale=0.05,
-    lr=0.0002,
-    memory_size=500000,
-    batchsize=100,
-    training_steps=1 / 4,
-    start_training=10000,
-    Model=partial(agents.sac_models.ConvModel)
-)
-
-
-# === tests ============================================================================================================
-def test_agent():
-    from agents import Training, run
-    Sac_Test = partial(
-        Training,
-        epochs=3,
-        rounds=5,
-        steps=100,
-        Agent=partial(Agent, memory_size=1000000, start_training=256, batchsize=4),
-        Env=partial(id="Pendulum-v0", real_time=0),
-    )
-    run(Sac_Test)
-
-
-def test_agent_avenue():
-    from agents import Training, run
-    from agents.envs import AvenueEnv
-    Sac_Avenue_Test = partial(
-        Training,
-        epochs=3,
-        rounds=5,
-        steps=300,
-        Agent=partial(AvenueAgent, device='cpu', training_interval=4, start_training=400),
-        Env=partial(AvenueEnv, real_time=0),
-        Test=partial(number=0),  # laptop can't handle more than that
-    )
-    run(Sac_Avenue_Test)
-
-
-def test_agent_avenue_hd():
-    from agents import Training, run
-    from agents.envs import AvenueEnv
-    Sac_Avenue_Test = partial(
-        Training,
-        epochs=3,
-        rounds=5,
-        steps=300,
-        Agent=partial(AvenueAgent, device='cpu', training_interval=4, start_training=400, Model=partial(Conv=hd_conv)),
-        Env=partial(AvenueEnv, real_time=0, width=368, height=368),
-        Test=partial(number=0),  # laptop can't handle more than that
-    )
-    run(Sac_Avenue_Test)
-
-
-if __name__ == "__main__":
-    test_agent()
-# test_agent_avenue()
-# test_agent_avenue_hd()
+# AvenueAgent = partial(
+#     Agent,
+#     entropy_scale=0.05,
+#     lr=0.0002,
+#     memory_size=500000,
+#     batchsize=100,
+#     training_steps=1 / 4,
+#     start_training=10000,
+#     Model=partial(agents.sac_models.ConvModel)
+# )
+#
+#
+# # === tests ============================================================================================================
+# def test_agent():
+#     from agents import Training, run
+#     Sac_Test = partial(
+#         Training,
+#         epochs=3,
+#         rounds=5,
+#         steps=100,
+#         Agent=partial(Agent, memory_size=1000000, start_training=256, batchsize=4),
+#         Env=partial(id="Pendulum-v0", real_time=0),
+#     )
+#     run(Sac_Test)
+#
+#
+# def test_agent_avenue():
+#     from agents import Training, run
+#     from agents.envs import AvenueEnv
+#     Sac_Avenue_Test = partial(
+#         Training,
+#         epochs=3,
+#         rounds=5,
+#         steps=300,
+#         Agent=partial(AvenueAgent, device='cpu', training_interval=4, start_training=400),
+#         Env=partial(AvenueEnv, real_time=0),
+#         Test=partial(number=0),  # laptop can't handle more than that
+#     )
+#     run(Sac_Avenue_Test)
+#
+#
+# def test_agent_avenue_hd():
+#     from agents import Training, run
+#     from agents.envs import AvenueEnv
+#     Sac_Avenue_Test = partial(
+#         Training,
+#         epochs=3,
+#         rounds=5,
+#         steps=300,
+#         Agent=partial(AvenueAgent, device='cpu', training_interval=4, start_training=400, Model=partial(Conv=hd_conv)),
+#         Env=partial(AvenueEnv, real_time=0, width=368, height=368),
+#         Test=partial(number=0),  # laptop can't handle more than that
+#     )
+#     run(Sac_Avenue_Test)
+#
+#
+# if __name__ == "__main__":
+#     test_agent()
+# # test_agent_avenue()
+# # test_agent_avenue_hd()

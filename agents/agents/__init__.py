@@ -12,7 +12,7 @@ from tempfile import mkdtemp
 import pandas as pd
 import yaml
 
-from agents.envs import AvenueEnv
+# from agents.envs import AvenueEnv
 from agents.util import partial, save_json, partial_to_dict, partial_from_dict, load_json, dump, load, git_info
 from agents.training import Training
 from agents.training_offline import TrainingOffline
@@ -171,77 +171,77 @@ def run_tm(interface, run_cls: type = TrainingOffline, checkpoint_path: str = No
 
 # === specifications ===================================================================================================
 
-TestTraining = partial(
-    Training,
-    epochs=3,
-    rounds=5,
-    steps=10,
-    Agent=partial(memory_size=1000000),
-    Env=partial(id="Pendulum-v0"),
-)
-
-SacTraining = partial(
-    Training,
-    Agent=partial(agents.sac.Agent),
-    Env=partial(id="Pendulum-v0"),
-    Test=partial(number=1, workers=1),
-)
-
-SacDelayTraining = partial(
-    Training,
-    Agent=partial(agents.sac.Agent, Model=agents.sac_models_rd.Mlp),
-    Env=partial(envs.RandomDelayEnv, id="Pendulum-v0", sup_observation_delay=1, sup_action_delay=1),
-    Test=partial(number=1, workers=1),
-)
-
-SacNstepTraining = partial(
-    Training,
-    Agent=partial(agents.sac_nstep.Agent),
-    Env=partial(id="Pendulum-v0", store_env=True),
-    # Test=partial(number=1, workers=1),
-)
-
-RtacTraining = partial(
-    SacTraining,
-    Agent=partial(agents.rtac.Agent),
-    Env=partial(real_time=True),
-    Test=partial(number=1, workers=1),
-)
-
-SacAvenueTraining = partial(
-    Training,
-    epochs=20,
-    rounds=10,
-    steps=5000,
-    Agent=partial(agents.sac.AvenueAgent),
-    Env=partial(AvenueEnv, real_time=False),
-)
-
-RtacAvenueTraining = partial(
-    SacAvenueTraining,
-    Agent=partial(agents.rtac.AvenueAgent),
-    Env=partial(real_time=True),
-)
-
-SacAvenueHdTraining = partial(
-    Training,
-    epochs=20,
-    rounds=10,
-    steps=5000,
-    Agent=partial(agents.sac.AvenueAgent, training_steps=1 / 4, batchsize=32, memory_size=100000,
-                  Model=partial(Conv=agents.nn.hd_conv)),
-    Env=partial(AvenueEnv, real_time=0, width=368, height=368),
-    Test=partial(number=0),  # laptop can't handle more than that
-)
-
-RrtacTraining = partial(
-    SacTraining,
-    Agent=partial(agents.rrtac.Agent, batchsize=32, history_length=8),
-    Env=partial(real_time=True),
-    Test=partial(number=1, workers=1),
-)
-
-# === tests ============================================================================================================
-if __name__ == "__main__":
-    run(TestTraining)
-    # run(RrtacTraining)
+# TestTraining = partial(
+#     Training,
+#     epochs=3,
+#     rounds=5,
+#     steps=10,
+#     Agent=partial(memory_size=1000000),
+#     Env=partial(id="Pendulum-v0"),
+# )
+#
+# SacTraining = partial(
+#     Training,
+#     Agent=partial(agents.sac.Agent),
+#     Env=partial(id="Pendulum-v0"),
+#     Test=partial(number=1, workers=1),
+# )
+#
+# SacDelayTraining = partial(
+#     Training,
+#     Agent=partial(agents.sac.Agent, Model=agents.sac_models_rd.Mlp),
+#     Env=partial(envs.RandomDelayEnv, id="Pendulum-v0", sup_observation_delay=1, sup_action_delay=1),
+#     Test=partial(number=1, workers=1),
+# )
+#
+# SacNstepTraining = partial(
+#     Training,
+#     Agent=partial(agents.sac_nstep.Agent),
+#     Env=partial(id="Pendulum-v0", store_env=True),
+#     # Test=partial(number=1, workers=1),
+# )
+#
+# RtacTraining = partial(
+#     SacTraining,
+#     Agent=partial(agents.rtac.Agent),
+#     Env=partial(real_time=True),
+#     Test=partial(number=1, workers=1),
+# )
+#
+# SacAvenueTraining = partial(
+#     Training,
+#     epochs=20,
+#     rounds=10,
+#     steps=5000,
+#     Agent=partial(agents.sac.AvenueAgent),
+#     Env=partial(AvenueEnv, real_time=False),
+# )
+#
+# RtacAvenueTraining = partial(
+#     SacAvenueTraining,
+#     Agent=partial(agents.rtac.AvenueAgent),
+#     Env=partial(real_time=True),
+# )
+#
+# SacAvenueHdTraining = partial(
+#     Training,
+#     epochs=20,
+#     rounds=10,
+#     steps=5000,
+#     Agent=partial(agents.sac.AvenueAgent, training_steps=1 / 4, batchsize=32, memory_size=100000,
+#                   Model=partial(Conv=agents.nn.hd_conv)),
+#     Env=partial(AvenueEnv, real_time=0, width=368, height=368),
+#     Test=partial(number=0),  # laptop can't handle more than that
+# )
+#
+# RrtacTraining = partial(
+#     SacTraining,
+#     Agent=partial(agents.rrtac.Agent, batchsize=32, history_length=8),
+#     Env=partial(real_time=True),
+#     Test=partial(number=1, workers=1),
+# )
+#
+# # === tests ============================================================================================================
+# if __name__ == "__main__":
+#     run(TestTraining)
+#     # run(RrtacTraining)

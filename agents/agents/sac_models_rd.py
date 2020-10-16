@@ -147,50 +147,50 @@ class Mlp(ActorModule):
         self.critic_output_layers = [c[-1] for c in self.critics]
 
 
-# === Testing ==========================================================================================================
-
-if __name__ == "__main__":
-    from agents import Training, run
-    from agents.util import partial
-    from agents.sac import Agent
-
-    Delayed_Sac_Test1 = partial(
-        Training,
-        epochs=2,
-        rounds=10,
-        Agent=partial(Agent, device='cuda', Model=partial(Mlp, act_delay=True, obs_delay=True, tbmdp=True)),
-        Env=partial(RandomDelayEnv, min_observation_delay=0, sup_observation_delay=2, min_action_delay=0, sup_action_delay=2),  # RTRL setting, should get roughly the same behavior as SAC in RTRL
-    )
-
-    Delayed_Sac_Test2 = partial(
-        Training,
-        epochs=2,
-        rounds=10,
-        Agent=partial(Agent, device='cuda', Model=partial(Mlp, act_delay=False, obs_delay=False)),  # random delay information in obs ignored by model
-        Env=partial(RandomDelayEnv, min_observation_delay=0, sup_observation_delay=8, min_action_delay=0, sup_action_delay=2),  # random delays
-    )
-
-    Delayed_Sac_Test3 = partial(
-        Training,
-        epochs=2,
-        rounds=10,
-        Agent=partial(Agent, device='cuda', Model=partial(Mlp, act_delay=True, obs_delay=True)),  # random delay information in obs taken into account by model
-        Env=partial(RandomDelayEnv, min_observation_delay=0, sup_observation_delay=8, min_action_delay=0, sup_action_delay=2),  # random delays
-    )
-
-    Sac_Test = partial(
-        Training,
-        epochs=2,
-        rounds=10,
-        Agent=partial(Agent, device='cuda'),
-        Env=partial(id="Pendulum-v0", real_time=True),
-    )
-
-    # print("--- NOW RUNNING: SAC, normal env, normal MLP model, RTRL setting ---")
-    # run(Sac_Test)
-    print("--- NOW RUNNING: SAC, delayed wrapper, delayed MLP model, RTRL setting ---")
-    run(Delayed_Sac_Test1)
-    print("--- NOW RUNNING: SAC, delayed wrapper, delayed MLP model, random delays setting, ignoring delays in observations ---")
-    run(Delayed_Sac_Test2)
-    print("--- NOW RUNNING: SAC, delayed wrapper, delayed MLP model, random delays setting, taking delays into account in observations ---")
-    run(Delayed_Sac_Test3)
+# # === Testing ==========================================================================================================
+#
+# if __name__ == "__main__":
+#     from agents import Training, run
+#     from agents.util import partial
+#     from agents.sac import Agent
+#
+#     Delayed_Sac_Test1 = partial(
+#         Training,
+#         epochs=2,
+#         rounds=10,
+#         Agent=partial(Agent, device='cuda', Model=partial(Mlp, act_delay=True, obs_delay=True, tbmdp=True)),
+#         Env=partial(RandomDelayEnv, min_observation_delay=0, sup_observation_delay=2, min_action_delay=0, sup_action_delay=2),  # RTRL setting, should get roughly the same behavior as SAC in RTRL
+#     )
+#
+#     Delayed_Sac_Test2 = partial(
+#         Training,
+#         epochs=2,
+#         rounds=10,
+#         Agent=partial(Agent, device='cuda', Model=partial(Mlp, act_delay=False, obs_delay=False)),  # random delay information in obs ignored by model
+#         Env=partial(RandomDelayEnv, min_observation_delay=0, sup_observation_delay=8, min_action_delay=0, sup_action_delay=2),  # random delays
+#     )
+#
+#     Delayed_Sac_Test3 = partial(
+#         Training,
+#         epochs=2,
+#         rounds=10,
+#         Agent=partial(Agent, device='cuda', Model=partial(Mlp, act_delay=True, obs_delay=True)),  # random delay information in obs taken into account by model
+#         Env=partial(RandomDelayEnv, min_observation_delay=0, sup_observation_delay=8, min_action_delay=0, sup_action_delay=2),  # random delays
+#     )
+#
+#     Sac_Test = partial(
+#         Training,
+#         epochs=2,
+#         rounds=10,
+#         Agent=partial(Agent, device='cuda'),
+#         Env=partial(id="Pendulum-v0", real_time=True),
+#     )
+#
+#     # print("--- NOW RUNNING: SAC, normal env, normal MLP model, RTRL setting ---")
+#     # run(Sac_Test)
+#     print("--- NOW RUNNING: SAC, delayed wrapper, delayed MLP model, RTRL setting ---")
+#     run(Delayed_Sac_Test1)
+#     print("--- NOW RUNNING: SAC, delayed wrapper, delayed MLP model, random delays setting, ignoring delays in observations ---")
+#     run(Delayed_Sac_Test2)
+#     print("--- NOW RUNNING: SAC, delayed wrapper, delayed MLP model, random delays setting, taking delays into account in observations ---")
+#     run(Delayed_Sac_Test3)

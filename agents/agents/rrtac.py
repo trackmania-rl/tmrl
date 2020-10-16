@@ -126,29 +126,29 @@ class Agent(agents.sac.Agent):
 # )
 
 
-if __name__ == "__main__":
-    from agents import Training, run
-
-    RrtacTest = partial(
-        Training,
-        epochs=5,
-        rounds=10,
-        steps=200,
-        Agent=partial(Agent, Model=partial(LstmDouble, hidden_units=32), device='cpu', memory_size=1000000, start_training=200, batchsize=8),
-        # Agent=partial(Agent, Model=partial(LstmModel, hidden_units=32), device='cuda', memory_size=1000000, start_training=200, batchsize=8),
-        Env=partial(id="Pendulum-v0", real_time=True),
-        # Env=partial(id="HalfCheetah-v2", real_time=True),
-    )
-
-    # Rtac_Avenue_Test = partial(
-    #   Training,
-    #   epochs=3,
-    #   rounds=5,
-    #   steps=300,
-    #   Agent=partial(AvenueAgent, device='cpu', start_training=256, batchsize=4, Model=rtac_models.ConvSeparate),
-    #   Env=partial(AvenueEnv, real_time=True),
-    #   Test=partial(number=0),  # laptop can't handle more than that
-    # )
-
-    run(RrtacTest)
-# run(Rtac_Avenue_Test)
+# if __name__ == "__main__":
+#     from agents import Training, run
+#
+#     RrtacTest = partial(
+#         Training,
+#         epochs=5,
+#         rounds=10,
+#         steps=200,
+#         Agent=partial(Agent, Model=partial(LstmDouble, hidden_units=32), device='cpu', memory_size=1000000, start_training=200, batchsize=8),
+#         # Agent=partial(Agent, Model=partial(LstmModel, hidden_units=32), device='cuda', memory_size=1000000, start_training=200, batchsize=8),
+#         Env=partial(id="Pendulum-v0", real_time=True),
+#         # Env=partial(id="HalfCheetah-v2", real_time=True),
+#     )
+#
+#     # Rtac_Avenue_Test = partial(
+#     #   Training,
+#     #   epochs=3,
+#     #   rounds=5,
+#     #   steps=300,
+#     #   Agent=partial(AvenueAgent, device='cpu', start_training=256, batchsize=4, Model=rtac_models.ConvSeparate),
+#     #   Env=partial(AvenueEnv, real_time=True),
+#     #   Test=partial(number=0),  # laptop can't handle more than that
+#     # )
+#
+#     run(RrtacTest)
+# # run(Rtac_Avenue_Test)

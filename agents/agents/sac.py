@@ -128,16 +128,16 @@ class Agent:
         )
 
 
-AvenueAgent = partial(
-    Agent,
-    entropy_scale=0.05,
-    lr=0.0002,
-    memory_size=500000,
-    batchsize=100,
-    # training_steps=1 / 4,
-    # start_training=10000,
-    Model=partial(agents.sac_models.ConvModel)
-)
+# AvenueAgent = partial(
+#     Agent,
+#     entropy_scale=0.05,
+#     lr=0.0002,
+#     memory_size=500000,
+#     batchsize=100,
+#     # training_steps=1 / 4,
+#     # start_training=10000,
+#     Model=partial(agents.sac_models.ConvModel)
+# )
 
 
 # === tests ============================================================================================================

@@ -91,40 +91,40 @@ class Agent(agents.sac.Agent):
         )
 
 
-AvenueAgent = partial(
-    Agent,
-    entropy_scale=0.05,
-    lr=0.0002,
-    memory_size=500000,
-    batchsize=100,
-    training_steps=1 / 4,
-    start_training=10000,
-    Model=partial(ConvDouble)
-)
-
-if __name__ == "__main__":
-    from agents import Training, run
-    from agents import rtac_models
-
-    RtacTest = partial(
-        Training,
-        epochs=3,
-        rounds=5,
-        steps=500,
-        Agent=partial(Agent, device='cpu', memory_size=1000000, start_training=256, batchsize=4),
-        Env=partial(id="Pendulum-v0", real_time=True),
-        # Env=partial(id="HalfCheetah-v2", real_time=True),
-    )
-
-    RtacAvenueTest = partial(
-        Training,
-        epochs=3,
-        rounds=5,
-        steps=300,
-        Agent=partial(AvenueAgent, device='cpu', start_training=256, batchsize=4, Model=rtac_models.ConvSeparate),
-        Env=partial(AvenueEnv, real_time=True),
-        Test=partial(number=0),  # laptop can't handle more than that
-    )
-
-    run(RtacTest)
-# run(Rtac_Avenue_Test)
+# AvenueAgent = partial(
+#     Agent,
+#     entropy_scale=0.05,
+#     lr=0.0002,
+#     memory_size=500000,
+#     batchsize=100,
+#     training_steps=1 / 4,
+#     start_training=10000,
+#     Model=partial(ConvDouble)
+# )
+#
+# if __name__ == "__main__":
+#     from agents import Training, run
+#     from agents import rtac_models
+#
+#     RtacTest = partial(
+#         Training,
+#         epochs=3,
+#         rounds=5,
+#         steps=500,
+#         Agent=partial(Agent, device='cpu', memory_size=1000000, start_training=256, batchsize=4),
+#         Env=partial(id="Pendulum-v0", real_time=True),
+#         # Env=partial(id="HalfCheetah-v2", real_time=True),
+#     )
+#
+#     RtacAvenueTest = partial(
+#         Training,
+#         epochs=3,
+#         rounds=5,
+#         steps=300,
+#         Agent=partial(AvenueAgent, device='cpu', start_training=256, batchsize=4, Model=rtac_models.ConvSeparate),
+#         Env=partial(AvenueEnv, real_time=True),
+#         Test=partial(number=0),  # laptop can't handle more than that
+#     )
+#
+#     run(RtacTest)
+# # run(Rtac_Avenue_Test)

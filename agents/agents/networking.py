@@ -7,125 +7,123 @@ import pickle
 import torch
 import time
 from threading import Thread, Lock
-from agents.sac_models import Mlp, Tm_hybrid_1, TMPolicy, MlpPolicy
-from agents.memory_dataloading import MemoryTMNFLidar, MemoryTM2020, MemoryTMNF
 import numpy as np
-from agents.util import partial
 from requests import get
-from gym_tmrl.envs.tmrl_env import TM2020InterfaceLidar, TMInterfaceLidar, TM2020Interface, TMInterface
 import socket
 import os
-# OBSERVATION PREPROCESSING ==================================
+import agents.config as cfg
 
-def obs_preprocessor_tm_act_in_obs(obs):
-    """
-    This takes the output of gym as input
-    Therefore the output of the memory must be the same as gym
-    """
-    # print(f"DEBUG1: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}, obs[2]:{obs[2]}")
-    # obs = (obs[0] / 1000.0, np.moveaxis(obs[1], -1, 0) / 255.0, obs[2])
-    obs = (obs[0], np.moveaxis(obs[1], -1, 1), obs[2])
-    # print(f"DEBUG2: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}, obs[2]:{obs[2]}")
-    # exit()
-    return obs
-
-
-def obs_preprocessor_tm_lidar_act_in_obs(obs):
-    """
-    This takes the output of gym as input
-    Therefore the output of the memory must be the same as gym
-    """
-    # print(f"DEBUG: obs:{obs}")
-    # exit()
-    obs = (obs[0], np.ndarray.flatten(obs[1]), obs[2])
-    return obs
-
-
-# WANDB: ==================================================
-
-WANDB_RUN_ID = "tm2020_test_1"
-WANDB_PROJECT = "tmrl"
-WANDB_ENTITY = "yannbouteiller"
-WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"
-
-os.environ['WANDB_API_KEY'] = WANDB_KEY
-
-
-# CONFIGURATION: ==========================================
-
-PRAGMA_EDOUARD_YANN = True  # True if Edouard, False if Yann
-PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
-PRAGMA_LIDAR = True  # True if Lidar, False if images
-PRAGMA_CUDA = True  # True if CUDA, False if CPU
-
-TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
-POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
-
-OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else obs_preprocessor_tm_act_in_obs
-
-ACT_IN_OBS = True
-BENCHMARK = False
-
-public_ip = get('http://api.ipify.org').text
-local_ip = socket.gethostbyname(socket.gethostname())
-print(f"I: local IP: {local_ip}")
-print(f"I: public IP: {public_ip}")
-
-LOCALHOST = False
-REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"   # public_ip
-
-PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
-PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
-BUFFER_SIZE = 268435456  # 1048576  # 8192  # 32768  # socket buffer size (200 000 000 is large enough for 1000 images right now)
-HEADER_SIZE = 12  # fixed number of characters used to describe the data length
-
-SOCKET_TIMEOUT_CONNECT_TRAINER = 60.0
-SOCKET_TIMEOUT_ACCEPT_TRAINER = 60.0
-SOCKET_TIMEOUT_CONNECT_ROLLOUT = 60.0
-SOCKET_TIMEOUT_ACCEPT_ROLLOUT = 60.0  # socket waiting for rollout workers closed and restarted at this interval
-SOCKET_TIMEOUT_COMMUNICATE = 30.0
-SELECT_TIMEOUT_OUTBOUND = 30.0
-SELECT_TIMEOUT_PING_PONG = 60.0
-ACK_TIMEOUT_WORKER_TO_REDIS = 60.0
-ACK_TIMEOUT_TRAINER_TO_REDIS = 60.0
-ACK_TIMEOUT_REDIS_TO_WORKER = 60.0
-ACK_TIMEOUT_REDIS_TO_TRAINER = 60.0
-WAIT_BEFORE_RECONNECTION = 10.0
-LOOP_SLEEP_TIME = 1.0
-
-MODEL_PATH_WORKER = r"D:\cp\weights\exp.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp.pth"
-MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
-CHECKPOINT_PATH = r"D:\cp\exp0" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
-DATASET_PATH = r"D:\data2020" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
-
-if PRAGMA_LIDAR:
-    MEM = MemoryTMNFLidar
-else:
-    MEM = MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF
-
-MEMORY = partial(MEM,
-                 path_loc=DATASET_PATH,
-                 imgs_obs=1 if PRAGMA_LIDAR else 4,
-                 act_in_obs=ACT_IN_OBS,
-                 obs_preprocessor=OBS_PREPROCESSOR
-                 )
-
-if PRAGMA_LIDAR:
-    INT = partial(TM2020InterfaceLidar, img_hist_len=1) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1)
-else:
-    INT = TM2020Interface if PRAGMA_TM2020_TMNF else TMInterface
-
-CONFIG_DICT = {
-    "interface": INT,
-    "time_step_duration": 0.05,
-    "start_obs_capture": 0.04,
-    "time_step_timeout_factor": 1.0,
-    "ep_max_length": np.inf,
-    "real_time": True,
-    "async_threading": True,
-    "act_in_obs": ACT_IN_OBS,
-    "benchmark": BENCHMARK,
-}
+# # OBSERVATION PREPROCESSING ==================================
+#
+# def obs_preprocessor_tm_act_in_obs(obs):
+#     """
+#     This takes the output of gym as input
+#     Therefore the output of the memory must be the same as gym
+#     """
+#     # print(f"DEBUG1: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}, obs[2]:{obs[2]}")
+#     # obs = (obs[0] / 1000.0, np.moveaxis(obs[1], -1, 0) / 255.0, obs[2])
+#     obs = (obs[0], np.moveaxis(obs[1], -1, 1), obs[2])
+#     # print(f"DEBUG2: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}, obs[2]:{obs[2]}")
+#     # exit()
+#     return obs
+#
+#
+# def obs_preprocessor_tm_lidar_act_in_obs(obs):
+#     """
+#     This takes the output of gym as input
+#     Therefore the output of the memory must be the same as gym
+#     """
+#     # print(f"DEBUG: obs:{obs}")
+#     # exit()
+#     obs = (obs[0], np.ndarray.flatten(obs[1]), obs[2])
+#     return obs
+#
+#
+# # WANDB: ==================================================
+#
+# WANDB_RUN_ID = "tm2020_test_1"
+# WANDB_PROJECT = "tmrl"
+# WANDB_ENTITY = "yannbouteiller"
+# WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"
+#
+# os.environ['WANDB_API_KEY'] = WANDB_KEY
+#
+#
+# # CONFIGURATION: ==========================================
+#
+# PRAGMA_EDOUARD_YANN = True  # True if Edouard, False if Yann
+# PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
+# PRAGMA_LIDAR = True  # True if Lidar, False if images
+# PRAGMA_CUDA = True  # True if CUDA, False if CPU
+#
+# TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
+# POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
+#
+# OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else obs_preprocessor_tm_act_in_obs
+#
+# ACT_IN_OBS = True
+# BENCHMARK = False
+#
+# public_ip = get('http://api.ipify.org').text
+# local_ip = socket.gethostbyname(socket.gethostname())
+# print(f"I: local IP: {local_ip}")
+# print(f"I: public IP: {public_ip}")
+#
+# LOCALHOST = False
+# REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"   # public_ip
+#
+# PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
+# PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
+# BUFFER_SIZE = 268435456  # 1048576  # 8192  # 32768  # socket buffer size (200 000 000 is large enough for 1000 images right now)
+# HEADER_SIZE = 12  # fixed number of characters used to describe the data length
+#
+# SOCKET_TIMEOUT_CONNECT_TRAINER = 60.0
+# SOCKET_TIMEOUT_ACCEPT_TRAINER = 60.0
+# SOCKET_TIMEOUT_CONNECT_ROLLOUT = 60.0
+# SOCKET_TIMEOUT_ACCEPT_ROLLOUT = 60.0  # socket waiting for rollout workers closed and restarted at this interval
+# SOCKET_TIMEOUT_COMMUNICATE = 30.0
+# SELECT_TIMEOUT_OUTBOUND = 30.0
+# SELECT_TIMEOUT_PING_PONG = 60.0
+# ACK_TIMEOUT_WORKER_TO_REDIS = 60.0
+# ACK_TIMEOUT_TRAINER_TO_REDIS = 60.0
+# ACK_TIMEOUT_REDIS_TO_WORKER = 60.0
+# ACK_TIMEOUT_REDIS_TO_TRAINER = 60.0
+# WAIT_BEFORE_RECONNECTION = 10.0
+# LOOP_SLEEP_TIME = 1.0
+#
+# MODEL_PATH_WORKER = r"D:\cp\weights\exp.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp.pth"
+# MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
+# CHECKPOINT_PATH = r"D:\cp\exp0" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
+# DATASET_PATH = r"D:\data2020" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
+#
+# if PRAGMA_LIDAR:
+#     MEM = MemoryTMNFLidar
+# else:
+#     MEM = MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF
+#
+# MEMORY = partial(MEM,
+#                  path_loc=DATASET_PATH,
+#                  imgs_obs=1 if PRAGMA_LIDAR else 4,
+#                  act_in_obs=ACT_IN_OBS,
+#                  obs_preprocessor=OBS_PREPROCESSOR
+#                  )
+#
+# if PRAGMA_LIDAR:
+#     INT = partial(TM2020InterfaceLidar, img_hist_len=1) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1)
+# else:
+#     INT = TM2020Interface if PRAGMA_TM2020_TMNF else TMInterface
+#
+# CONFIG_DICT = {
+#     "interface": INT,
+#     "time_step_duration": 0.05,
+#     "start_obs_capture": 0.04,
+#     "time_step_timeout_factor": 1.0,
+#     "ep_max_length": np.inf,
+#     "real_time": True,
+#     "async_threading": True,
+#     "act_in_obs": ACT_IN_OBS,
+#     "benchmark": BENCHMARK,
+# }
 
 
 # NETWORK: ==========================================
@@ -138,13 +136,13 @@ def ping_pong(sock):
     closes socket if failed
     # FIXME: do not use, the pingpong mechanism interferes with transfers
     """
-    _, wl, xl = select.select([], [sock], [sock], SELECT_TIMEOUT_OUTBOUND)  # select for writing
+    _, wl, xl = select.select([], [sock], [sock], cfg.SELECT_TIMEOUT_OUTBOUND)  # select for writing
     if len(xl) != 0 or len(wl) == 0:
         print("INFO: socket error/timeout while sending PING")
         sock.close()
         return False
     send_ping(sock)
-    rl, _, xl = select.select([sock], [], [sock], SELECT_TIMEOUT_PING_PONG)  # select for reading
+    rl, _, xl = select.select([sock], [], [sock], cfg.SELECT_TIMEOUT_PING_PONG)  # select for reading
     if len(xl) != 0 or len(rl) == 0:
         print("INFO: socket error/timeout while waiting for PONG")
         sock.close()
@@ -180,16 +178,16 @@ def send_object(sock, obj, ping=False, pong=False, ack=False):
     Returns True if sent successfully, False if connection lost.
     """
     if ping:
-        msg = bytes(f"{'PING':<{HEADER_SIZE}}", 'utf-8')
+        msg = bytes(f"{'PING':<{cfg.HEADER_SIZE}}", 'utf-8')
     elif pong:
-        msg = bytes(f"{'PONG':<{HEADER_SIZE}}", 'utf-8')
+        msg = bytes(f"{'PONG':<{cfg.HEADER_SIZE}}", 'utf-8')
     elif ack:
-        msg = bytes(f"{'ACK':<{HEADER_SIZE}}", 'utf-8')
+        msg = bytes(f"{'ACK':<{cfg.HEADER_SIZE}}", 'utf-8')
     else:
         msg = pickle.dumps(obj)
-        msg = bytes(f"{len(msg):<{HEADER_SIZE}}", 'utf-8') + msg
+        msg = bytes(f"{len(msg):<{cfg.HEADER_SIZE}}", 'utf-8') + msg
     try:
-        nb_bytes = len(msg) - HEADER_SIZE
+        nb_bytes = len(msg) - cfg.HEADER_SIZE
         # if nb_bytes > 0:
         #     print(f"DEBUG: sending object of {nb_bytes} bytes")
         t_start = time.time()
@@ -213,9 +211,9 @@ def recv_object(sock):
     # first, we receive the header (inefficient but prevents collisions)
     msg = b''
     l = len(msg)
-    while l != HEADER_SIZE:
+    while l != cfg.HEADER_SIZE:
         try:
-            recv_msg = sock.recv(HEADER_SIZE - l)
+            recv_msg = sock.recv(cfg.HEADER_SIZE - l)
             if len(recv_msg) == 0:  # connection closed or broken
                 return None
             msg += recv_msg
@@ -231,7 +229,7 @@ def recv_object(sock):
         return 'PINGPONG'
     if msg[:3] == b'ACK':
         return 'ACK'
-    msglen = int(msg[:HEADER_SIZE])
+    msglen = int(msg[:cfg.HEADER_SIZE])
     # print(f"DEBUG: receiving {msglen} bytes")
     t_start = time.time()
     # now, we receive the actual data (no more than the data length, again to prevent collisions)
@@ -239,7 +237,7 @@ def recv_object(sock):
     l = len(msg)
     while l != msglen:
         try:
-            recv_msg = sock.recv(min(BUFFER_SIZE, msglen - l))  # this will not receive more bytes than required
+            recv_msg = sock.recv(min(cfg.BUFFER_SIZE, msglen - l))  # this will not receive more bytes than required
             if len(recv_msg) == 0:  # connection closed or broken
                 return None
             msg += recv_msg
@@ -271,11 +269,11 @@ def get_connected_socket(timeout, ip_connect, port_connect):
     try:
         s.connect((ip_connect, port_connect))
     except OSError:  # connection broken or timeout
-        print(f"INFO: connect() timed-out or failed, sleeping {WAIT_BEFORE_RECONNECTION}s")
+        print(f"INFO: connect() timed-out or failed, sleeping {cfg.WAIT_BEFORE_RECONNECTION}s")
         s.close()
-        time.sleep(WAIT_BEFORE_RECONNECTION)
+        time.sleep(cfg.WAIT_BEFORE_RECONNECTION)
         return None
-    s.settimeout(SOCKET_TIMEOUT_COMMUNICATE)
+    s.settimeout(cfg.SOCKET_TIMEOUT_COMMUNICATE)
     return s
 
 
@@ -287,14 +285,14 @@ def accept_or_close_socket(s):
     conn = None
     try:
         conn, addr = s.accept()
-        conn.settimeout(SOCKET_TIMEOUT_COMMUNICATE)
+        conn.settimeout(cfg.SOCKET_TIMEOUT_COMMUNICATE)
         return conn, addr
     except OSError:
         # print(f"INFO: accept() timed-out or failed, sleeping {WAIT_BEFORE_RECONNECTION}s")
         if conn is not None:
             conn.close()
         s.close()
-        time.sleep(WAIT_BEFORE_RECONNECTION)
+        time.sleep(cfg.WAIT_BEFORE_RECONNECTION)
         return None, None
 
 
@@ -303,7 +301,7 @@ def select_and_send_or_close_socket(obj, conn):
     Returns True if success
     False if disconnected (closes sockets)
     """
-    _, wl, xl = select.select([], [conn], [conn], SELECT_TIMEOUT_OUTBOUND)  # select for writing
+    _, wl, xl = select.select([], [conn], [conn], cfg.SELECT_TIMEOUT_OUTBOUND)  # select for writing
     if len(xl) != 0:
         print("INFO: error when writing, closing socket")
         conn.close()
@@ -407,7 +405,7 @@ class RedisServer:
         ack_time = time.time()
         wait_ack = False
         while True:  # main redis loop
-            s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_TRAINER, self.ip, PORT_TRAINER)
+            s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_TRAINER, self.ip, cfg.PORT_TRAINER)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
                 print("DEBUG: accept_or_close_socket failed in trainer thread")
@@ -442,7 +440,7 @@ class RedisServer:
                     else:
                         elapsed = time.time() - ack_time
                         print(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
-                        if elapsed >= ACK_TIMEOUT_REDIS_TO_TRAINER:
+                        if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_TRAINER:
                             print("INFO: ACK timed-out, breaking connection")
                             self.__buffer_lock.release()
                             break
@@ -460,7 +458,7 @@ class RedisServer:
                 elif obj == 'ACK':
                     wait_ack = False
                     print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
-                time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
+                time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
                 i += 1
             s.close()
 
@@ -470,7 +468,7 @@ class RedisServer:
         When a new RolloutWorker connects, this instantiates a new thread to handle it
         """
         while True:  # main redis loop
-            s = get_listening_socket(SOCKET_TIMEOUT_ACCEPT_ROLLOUT, self.ip, PORT_ROLLOUT)
+            s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_ROLLOUT, self.ip, cfg.PORT_ROLLOUT)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
                 # print("DEBUG: accept_or_close_socket failed in workers thread")
@@ -511,7 +509,7 @@ class RedisServer:
                 else:
                     elapsed = time.time() - ack_time
                     print(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
-                    if elapsed >= ACK_TIMEOUT_REDIS_TO_WORKER:
+                    if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_WORKER:
                         print("INFO: ACK timed-out, breaking connection")
                         self.__weights_lock.release()
                         break
@@ -529,7 +527,7 @@ class RedisServer:
             elif obj == 'ACK':
                 wait_ack = False
                 print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
-            time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
+            time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
 
 
 # TRAINER: ==========================================
@@ -542,7 +540,7 @@ class TrainerInterface:
     """
     def __init__(self,
                  redis_ip=None,
-                 model_path=MODEL_PATH_TRAINER):
+                 model_path=cfg.MODEL_PATH_TRAINER):
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
         self.__weights = None
@@ -565,7 +563,7 @@ class TrainerInterface:
         ack_time = time.time()
         wait_ack = False
         while True:  # main client loop
-            s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_TRAINER, self.redis_ip, PORT_TRAINER)
+            s = get_connected_socket(cfg.SOCKET_TIMEOUT_CONNECT_TRAINER, self.redis_ip, cfg.PORT_TRAINER)
             if s is None:
                 print("DEBUG: get_connected_socket failed in TrainerInterface thread")
                 continue
@@ -586,7 +584,7 @@ class TrainerInterface:
                     else:
                         elapsed = time.time() - ack_time
                         print(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
-                        if elapsed >= ACK_TIMEOUT_TRAINER_TO_REDIS:
+                        if elapsed >= cfg.ACK_TIMEOUT_TRAINER_TO_REDIS:
                             print("INFO: ACK timed-out, breaking connection")
                             self.__weights_lock.release()
                             break
@@ -604,7 +602,7 @@ class TrainerInterface:
                 elif obj == 'ACK':
                     wait_ack = False
                     print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
-                time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
+                time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
     def broadcast_model(self, model: ActorModule):
@@ -637,14 +635,16 @@ class RolloutWorker:
                  actor_module_cls,
                  # obs_space,
                  # act_space,
+                 get_local_buffer_sample: callable,
                  device="cpu",
                  redis_ip=None,
                  samples_per_worker_batch=1000,
-                 model_path=MODEL_PATH_WORKER,
+                 model_path=cfg.MODEL_PATH_WORKER,
                  obs_preprocessor: callable = None
                  ):
         self.obs_preprocessor = obs_preprocessor
-        self.env = UntouchedGymEnv(id=env_id, gym_kwargs={"config": CONFIG_DICT})
+        self.get_local_buffer_sample = get_local_buffer_sample
+        self.env = UntouchedGymEnv(id=env_id, gym_kwargs={"config": cfg.CONFIG_DICT})
         obs_space = self.env.observation_space
         act_space = self.env.action_space
         self.model_path = model_path
@@ -676,7 +676,7 @@ class RolloutWorker:
         ack_time = time.time()
         wait_ack = False
         while True:  # main client loop
-            s = get_connected_socket(SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.redis_ip, PORT_ROLLOUT)
+            s = get_connected_socket(cfg.SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.redis_ip, cfg.PORT_ROLLOUT)
             if s is None:
                 print("DEBUG: get_connected_socket failed in worker")
                 continue
@@ -697,7 +697,7 @@ class RolloutWorker:
                     else:
                         elapsed = time.time() - ack_time
                         print(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
-                        if elapsed >= ACK_TIMEOUT_WORKER_TO_REDIS:
+                        if elapsed >= cfg.ACK_TIMEOUT_WORKER_TO_REDIS:
                             print("INFO: ACK timed-out, breaking connection")
                             self.__buffer_lock.release()
                             break
@@ -715,7 +715,7 @@ class RolloutWorker:
                 elif obj == 'ACK':
                     wait_ack = False
                     print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
-                time.sleep(LOOP_SLEEP_TIME)  # TODO: adapt
+                time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
     def act(self, obs, train=False):
@@ -735,7 +735,7 @@ class RolloutWorker:
         act = self.env.default_action.astype(np.float32)
         obs = self.env.reset()
         if collect_samples:
-            sample = get_buffer_sample(obs, act, 0.0, False, {})
+            sample = self.get_local_buffer_sample(act, obs, 0.0, False, {})
             self.buffer.append_sample(sample)
         return obs
 
@@ -743,14 +743,14 @@ class RolloutWorker:
         act = self.act(obs, train=train)
         obs, rew, done, info = self.env.step(act)
         if collect_samples:
-            sample = get_buffer_sample(obs, act, rew, done, info)
-            self.buffer.append_sample(sample)  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
+            sample = self.get_local_buffer_sample(act, obs, rew, done, info)
+            self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return obs, rew, done, info
 
     def collect_train_episode(self, max_samples):
         """
-        collects n training transitions (from reset)
-        stores train return
+        collects a maximum of n training transitions (from reset to done)
+        stores episode and train return in the local buffer of the worker
         """
         ret = 0.0
         obs = self.reset(train=True, collect_samples=True)
@@ -764,8 +764,8 @@ class RolloutWorker:
 
     def run_test_episode(self, max_samples):
         """
-        collects n testing transitions (from reset)
-        stores test return
+        collects a maximum of n test transitions (from reset to done)
+        stores test return in the local buffer of the worker
         """
         ret = 0.0
         obs = self.reset(train=False, collect_samples=False)
@@ -776,23 +776,6 @@ class RolloutWorker:
                 break
         self.buffer.stat_test_return = ret
         print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}")
-
-    def collect_n_steps_and_debug_trajectory(self, n, train=True):
-        """
-        collects n transitions (from reset)
-        set train to False for test samples, True for train samples
-        """
-        act = self.env.default_action
-        obs = self.env.reset()
-        traj = []
-        self.buffer.append_sample(get_buffer_sample(obs, act, 0.0, False, {}))
-        for _ in range(n):
-            obs_1 = obs
-            act = self.act(obs, train)
-            obs, rew, done, info = self.env.step(act)
-            traj.append((obs_1, act, obs, rew, done, info,))
-            self.buffer.append_sample(get_buffer_sample(obs, act, rew, done, info))  # WARNING: in the buffer, act is for the PREVIOUS transition (act, obs(act))
-        return traj
 
     def run(self, test_episode_interval=20):  # TODO: check number of collected samples are collected before sending
         episode = 0
@@ -809,10 +792,8 @@ class RolloutWorker:
             episode += 1
 
     def send_and_clear_buffer(self):
-        # print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}, self.buffer.stat_train_return:{self.buffer.stat_train_return}")
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
         self.__buffer = deepcopy(self.buffer)
-        # print(f"DEBUG:self.__buffer.stat_test_return:{self.buffer.stat_test_return}, self.__buffer.stat_train_return:{self.buffer.stat_train_return}")
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
         self.buffer.clear()
 
@@ -829,14 +810,3 @@ class RolloutWorker:
             self.__weights = None
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
 
-
-# Environment-dependent interface ===================
-
-def get_buffer_sample(obs, act, rew, done, info):
-    """
-    this creates the object that will actually be stored in the buffer
-    # TODO
-    """
-    obs_mod = (obs[0], obs[1][-1])  # speed and most recent image only
-    rew_mod = np.float32(rew)
-    return obs_mod, act, rew_mod, done, info

@@ -4,10 +4,8 @@ import math
 import numpy as np
 import torch.nn as nn
 from torch.nn import functional as F
-from torch.nn.functional import leaky_relu
 from agents.util import collate, partition
-from agents.nn import TanhNormalLayer, SacLinear, big_conv
-from agents.memory_dataloading import MemoryTMNF, MemoryTM2020
+from agents.nn import TanhNormalLayer, SacLinear
 from torch.nn import Linear, Sequential, ReLU, ModuleList, Module, Conv2d, MaxPool2d
 import gym
 
@@ -298,62 +296,4 @@ class Tm_hybrid_1(ActorModule):
 
 
 if __name__ == "__main__":
-    from agents import TrainingOffline, run_wandb_tm
-    from agents.util import partial
-    from agents.sac import Agent
-    import gym
-    from gym_tmrl.envs.tmrl_env import TMInterface, TM2020Interface
-    from agents.envs import UntouchedGymEnv
-    from requests import get
-
-    # trackmania agent (Yann):
-
-    CHECKPOINT_PATH = r"D:\cp\exp0" #r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
-    DATASET_PATH = r"D:\data2020" #r"C:\Users\Yann\Desktop\git\tmrl\data"
-    ACT_IN_OBS = True
-    BENCHMARK = False
-
-    CONFIG_DICT = {
-        #"interface": TMInterface,
-        "interface": TM2020Interface,
-        "time_step_duration": 0.05,
-        "start_obs_capture": 0.04,
-        "time_step_timeout_factor": 1.0,
-        "ep_max_length": np.inf,
-        "real_time": True,
-        "async_threading": True,
-        "act_in_obs": ACT_IN_OBS,
-        "benchmark": BENCHMARK
-    }
-
-    Sac_tm = partial(
-        TrainingOffline,
-        Env=partial(UntouchedGymEnv,
-                    id="gym_tmrl:gym-tmrl-v0",
-                    gym_kwargs={"config": CONFIG_DICT}),
-        epochs=5,
-        rounds=1,
-        steps=1,
-        update_model_interval=1,
-        update_buffer_interval=1,
-        Agent=partial(Agent,
-                      Memory=partial(MemoryTM2020,  # MemoryTMNF
-                                     path_loc=DATASET_PATH,
-                                     imgs_obs=4,
-                                     act_in_obs=ACT_IN_OBS,
-                                     ),
-                      device='cuda',
-                      Model=partial(Tm_hybrid_1,
-                                    act_in_obs=ACT_IN_OBS),
-                      memory_size=1000000,
-                      batchsize=8,
-                      lr=0.0003,  # default 0.0003
-                      discount=0.99,
-                      target_update=0.005,
-                      reward_scale=5.0,
-                      entropy_scale=1.0),
-    )
-
-    print("--- NOW RUNNING: SAC trackmania ---")
-    public_ip = get('http://api.ipify.org').text
-    run_wandb_tm(None, None, None, run_cls=Sac_tm, checkpoint_path=CHECKPOINT_PATH)
+    pass
