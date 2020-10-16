@@ -49,8 +49,6 @@ def get_local_buffer_sample(prev_act, obs, rew, done, info):
 
 # MEMORY DATALOADING ===========================================
 
-# TODO: remove all the following implemented memories from this python file (they should be in config instead)
-
 class MemoryTMNF(MemoryDataloading):
     def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None):
         self.imgs_obs = imgs_obs
