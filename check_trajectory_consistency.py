@@ -14,7 +14,7 @@ interface = TrainerInterface(redis_ip=REDIS_IP, model_path=MODEL_PATH_TRAINER)
 time.sleep(3.0)
 print("STOPPED SLEEPING")
 
-rw = RolloutWorker(env_id="gym_tmrl:gym-tmrl-v0",
+rw = RolloutWorker(env_id="gym_real_time:gym-rt-v0",
                    actor_module_cls=partial(POLICY, act_in_obs=ACT_IN_OBS),
                    device='cuda' if PRAGMA_CUDA else 'cpu',
                    redis_ip=REDIS_IP,
@@ -45,7 +45,7 @@ print("STOPPED SLEEPING")
 Sac_tm = partial(
     TrainingOffline,
     Env=partial(UntouchedGymEnv,
-                id="gym_tmrl:gym-tmrl-v0",
+                id="gym_real_time:gym-rt-v0",
                 gym_kwargs={"config": CONFIG_DICT}),
     epochs=1,
     rounds=1,

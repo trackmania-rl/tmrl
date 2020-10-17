@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import atexit
 import gc
 import json
@@ -8,7 +9,6 @@ import time
 from os.path import exists
 from random import randrange
 from tempfile import mkdtemp
-
 import pandas as pd
 import yaml
 
@@ -156,10 +156,9 @@ def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOff
     resume = checkpoint_path and exists(checkpoint_path)
     # print(config)
     # exit()
-    # wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
+    wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
-        pass
-        # [wandb.log(json.loads(s.to_json())) for s in stats]
+        [wandb.log(json.loads(s.to_json())) for s in stats]
 
 
 def run_tm(interface, run_cls: type = TrainingOffline, checkpoint_path: str = None):

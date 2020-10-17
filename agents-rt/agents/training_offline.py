@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 import pandas as pd
 from pandas import DataFrame, Timestamp
+import gym
+import time
+
 import agents.sac
 from agents.util import pandas_dict, cached_property
-import gym
-
 from agents.networking import TrainerInterface
 
 from agents.envs import Env
-import time
 
 # import pybullet_envs
 

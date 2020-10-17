@@ -1,10 +1,9 @@
 from random import randint
-from agents.util import collate
 import pickle
 from pathlib import Path
-import cv2
-import numpy as np
 import os
+
+from agents.util import collate
 
 
 class MemoryDataloading:

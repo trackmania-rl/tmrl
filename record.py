@@ -1,5 +1,6 @@
-from gym_tmrl.envs.tools import load_digits, get_speed
-from gym_tmrl.envs.tmrl_env import DEFAULT_CONFIG_DICT, TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
+from agents.custom.utils.tools import load_digits, get_speed
+from gym_real_time.envs.real_time_env import DEFAULT_CONFIG_DICT
+from agents.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar, TM2020OpenPlanetClient
 import numpy as np
 import mss
 import pickle
@@ -8,7 +9,6 @@ import cv2
 from inputs import get_gamepad
 import gym
 import keyboard
-from gym_tmrl.envs.tmrl_env import TM2020OpenPlanetClient
 
 KEY_START_RECORD = 'e'
 KEY_STOP_RECORD = 't'
@@ -106,7 +106,7 @@ def record_tmnf_keyboard(path_dataset):
 
     env_config = DEFAULT_CONFIG_DICT
     env_config["interface"] = TMInterface
-    env = gym.make("gym_tmrl:gym-tmrl-v0")
+    env = gym.make("gym_real_time:gym-rt-v0")
     env.reset()
 
     is_recording = False
@@ -152,7 +152,7 @@ def record_tmnf_lidar_keyboard(path_dataset):
     env_config = DEFAULT_CONFIG_DICT
     env_config["interface"] = TMInterfaceLidar
 
-    env = gym.make("gym_tmrl:gym-tmrl-v0")
+    env = gym.make("gym_real_time:gym-rt-v0")
     env.reset()
 
     is_recording = False
@@ -202,7 +202,7 @@ def record_tm20_lidar(path_dataset):
     env_config = DEFAULT_CONFIG_DICT
     env_config["interface"] = TM2020InterfaceLidar
     env_config["ep_max_length"] = 2000
-    env = gym.make("gym_tmrl:gym-tmrl-v0")
+    env = gym.make("gym_real_time:gym-rt-v0")
     env.reset()
 
     is_recording = False
@@ -248,7 +248,7 @@ def record_tm20(path_dataset):
 
     env_config = DEFAULT_CONFIG_DICT
     env_config["interface"] = TM2020Interface
-    env = gym.make("gym_tmrl:gym-tmrl-v0")
+    env = gym.make("gym_real_time:gym-rt-v0")
     env.reset()
 
     is_recording = False

@@ -2,7 +2,7 @@ import gym
 from gym import spaces
 import random
 import time
-from gym_tmrl.envs.tmrl_env import DEFAULT_CONFIG_DICT, TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
+from gym_real_time.envs.real_time_env import DEFAULT_CONFIG_DICT, TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
 
 NB_STEPS = 1000
 ACT_COMPUTE_MIN = 0.02
@@ -12,7 +12,7 @@ action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,))
 
 env_config = DEFAULT_CONFIG_DICT
 env_config["interface"] = TM2020InterfaceLidar
-env = gym.make("gym_tmrl:gym-tmrl-v0", config=env_config)
+env = gym.make("gym_real_time:gym-rt-v0", config=env_config)
 
 t_d = time.time()
 obs = env.reset()
