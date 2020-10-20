@@ -13,6 +13,7 @@ def main(args):
         RedisServer(samples_per_redis_batch=1000, localhost=cfg.LOCALHOST)
     elif args.worker or args.test:
         rw = RolloutWorker(env_id="gym_real_time:gym-rt-v0",
+                           env_config=cfg.CONFIG_DICT,
                            actor_module_cls=partial(cfg.POLICY, act_in_obs=cfg.ACT_IN_OBS),
                            get_local_buffer_sample=cfg.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
@@ -48,11 +49,11 @@ def main_train(args):
                       device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
                       Model=partial(cfg.TRAIN_MODEL, act_in_obs=cfg.ACT_IN_OBS),
                       memory_size=1000000,
-                      batchsize=128,  # 64
+                      batchsize=128,  # default: 256
                       lr=0.0003,  # default 0.0003
-                      discount=0.99,
+                      discount=0.995,  # default and best tmnf so far: 0.99
                       target_update=0.005,
-                      reward_scale=0.5,  # default: 5.0
+                      reward_scale=0.1,  # default: 5.0, best tmnf so far: 0.5
                       entropy_scale=1.0),  # default: 1.0
     )
 

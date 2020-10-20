@@ -4,7 +4,7 @@ from agents.util import partial
 from agents.sac_models import Mlp, MlpPolicy
 from agents.custom.custom_models import Tm_hybrid_1, TMPolicy
 from agents.custom.custom_gym_interfaces import TM2020InterfaceLidar, TMInterfaceLidar, TM2020Interface, TMInterface
-from agents.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs
+from agents.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, sample_preprocessor_tm_lidar_act_in_obs
 from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020
 
 
@@ -24,14 +24,14 @@ DATASET_PATH = r"D:\data2020" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Deskto
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "tm2020_test_1"
+WANDB_RUN_ID = "SAC_tmnf_test_2"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
 
 os.environ['WANDB_API_KEY'] = WANDB_KEY
 
-# MODEL, GYM ENVIRONMENT AND TRAINING: =========================
+# MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
 TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
 POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
@@ -54,8 +54,12 @@ CONFIG_DICT = {
     "benchmark": BENCHMARK,
 }
 
-OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else obs_preprocessor_tm_act_in_obs
+# to compress a sample before sending it over the local network/Internet:
 SAMPLE_COMPRESSOR = get_local_buffer_sample
+# to preprocess observations that come out of the gym environment and of the replay buffer:
+OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else obs_preprocessor_tm_act_in_obs
+# to augment data that comes out of the replay buffer (applied after observation preprocessing):
+SAMPLE_PREPROCESSOR = sample_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else None
 
 if PRAGMA_LIDAR:
     MEM = MemoryTMNFLidar
@@ -65,7 +69,8 @@ MEMORY = partial(MEM,
                  path_loc=DATASET_PATH,
                  imgs_obs=1 if PRAGMA_LIDAR else 4,
                  act_in_obs=ACT_IN_OBS,
-                 obs_preprocessor=OBS_PREPROCESSOR
+                 obs_preprocessor=OBS_PREPROCESSOR,
+                 sample_preprocessor=SAMPLE_PREPROCESSOR
                  )
 
 # NETWORKING: ==================================================

@@ -7,12 +7,13 @@ from agents.util import collate
 
 
 class MemoryDataloading:
-    def __init__(self, memory_size, batchsize, device, path_loc, remove_size=100, obs_preprocessor: callable = None):
+    def __init__(self, memory_size, batchsize, device, path_loc, remove_size=100, obs_preprocessor: callable = None, sample_preprocessor: callable = None):
         self.device = device
         self.batchsize = batchsize
         self.memory_size = memory_size
         self.remove_size = remove_size
         self.obs_preprocessor = obs_preprocessor
+        self.sample_preprocessor = sample_preprocessor
 
         # These stats are here because they reach the trainer along with the buffer:
         self.stat_test_return = 0.0
@@ -51,6 +52,8 @@ class MemoryDataloading:
         if self.obs_preprocessor is not None:
             last_obs = self.obs_preprocessor(last_obs)
             new_obs = self.obs_preprocessor(new_obs)
+        if self.sample_preprocessor is not None:
+            last_obs, new_act, rew, new_obs, done = self.sample_preprocessor(last_obs, new_act, rew, new_obs, done)
         return last_obs, new_act, rew, new_obs, done
 
     def sample_indices(self):

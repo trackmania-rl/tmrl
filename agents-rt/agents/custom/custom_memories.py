@@ -18,16 +18,17 @@ def get_local_buffer_sample(prev_act, obs, rew, done, info):
     """
     obs_mod = (obs[0], obs[1][-1])  # speed and most recent image only
     rew_mod = np.float32(rew)
-    return prev_act, obs_mod, rew_mod, done, info
+    done_mod = False  # we cancel dones because our reward function is not meant for the episodic setting
+    return prev_act, obs_mod, rew_mod, done_mod, info
 
 
 # MEMORY DATALOADING ===========================================
 
 class MemoryTMNF(MemoryDataloading):
-    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None):
+    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None, sample_preprocessor: callable = None):
         self.imgs_obs = imgs_obs
         self.act_in_obs = act_in_obs
-        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor)
+        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor)
 
     def append(self, buffer):
         return self
@@ -155,11 +156,18 @@ class MemoryTMNFLidar(MemoryTMNF):
 
 
 class MemoryTM2020(MemoryDataloading):  # TODO
-    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4,
-                 act_in_obs=True, obs_preprocessor: callable = None):
-        super().__init__(self, memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor)
+    def __init__(self,
+                 memory_size,
+                 batchsize,
+                 device,
+                 remove_size=100,
+                 path_loc=r"D:\data", imgs_obs=4,
+                 act_in_obs=True,
+                 obs_preprocessor: callable = None,
+                 sample_preprocessor: callable = None):
         self.imgs_obs = imgs_obs
         self.act_in_obs = act_in_obs
+        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor)
 
     def append(self, buffer):
         return self

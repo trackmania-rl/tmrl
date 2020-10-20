@@ -365,7 +365,7 @@ class TMInterfaceLidar(TMInterface):
     def grab_lidar_and_speed(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         speed = np.array([get_speed(img, self.digits), ], dtype='float32')
-        lidar = self.lidar.lidar_20(im=img)
+        lidar = self.lidar.lidar_20(im=img, show=False)
         return lidar, speed
 
     def reset(self):

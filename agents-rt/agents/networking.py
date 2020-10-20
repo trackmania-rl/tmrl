@@ -521,6 +521,7 @@ class TrainerInterface:
 class RolloutWorker:
     def __init__(self,
                  env_id,
+                 env_config,
                  actor_module_cls,
                  # obs_space,
                  # act_space,
@@ -533,7 +534,7 @@ class RolloutWorker:
                  ):
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = get_local_buffer_sample
-        self.env = UntouchedGymEnv(id=env_id, gym_kwargs={"config": cfg.CONFIG_DICT})
+        self.env = UntouchedGymEnv(id=env_id, gym_kwargs={"config": env_config})
         obs_space = self.env.observation_space
         act_space = self.env.action_space
         self.model_path = model_path
