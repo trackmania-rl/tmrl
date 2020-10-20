@@ -35,28 +35,14 @@ while True:  # when this loop is broken, the current time-step will timeout
 	obs = env.step(act)  # the step function transparently adapts to this duration
 ```
 
-The Real-Time Gym framework is clocked by the following [code snippet](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89):
-```python
-now = time.time()
-# if either still in the previous time-step of within its allowed elasticity
-if now < self.__t_end + self.time_step_timeout:
-	# the new time-step starts when the previous time-step is supposed to end or to have ended
-	self.__t_start = self.__t_end
-# if after the allowed elasticity
-else:
-	print(f"INFO: time-step timed out.")
-	# the elasticity is broken and reset
-	# (this should happen only after 'pausing' the environment)
-	self.__t_start = now
-# update time at which observation should be retrieved
-self.__t_co = self.__t_start + self.start_obs_capture
-# update time at which the new time-step should end
-self.__t_end = self.__t_start + self.time_step_duration
-```
-
-This timing allows us to implement the core meachnism of Real-Time Gym environments, which can be visualized as follows:
+You may want to have a look at the [timestamps updating](https://github.com/yannbouteiller/tmrl/blob/984e3277a81686c190e1c4e147b573cc28a56eb8/gym-rt/gym_real_time/envs/real_time_env.py#L169) method of gym-real-time, which is reponsible for elastically clocking time-steps.
+This method describes the core meachnism of Gym Real-Time environments:
 
 ![Gym Real-Time Framework](figures/rt_gym_env.png "Gym Real-Time Framework")
+
+Time-steps are being elastically constrained to their nominal duration. When this constraint cannot be satisfied, either because the environment has been 'paused' or because your system is ill-designed:
+- The inference duration of your model, i.e. the elapsed duration between two calls of the step() function, may be too long for the time-step you are trying to use.
+- Your procedure to retrieve observations takes too much time or is called too late (tweak this in the configuration dictionary). Remember that, if observation capture is too long, it must not be part of the get_obs_rew_done() method of your interface. Instead, this method must simply retrieve the latest available observation, and the action buffer must be long enough to handle the observation capture duration.
 
 ## Distant training architecture
 
