@@ -1,11 +1,11 @@
 # TMRL
-Real-Time Reinforcement Learning python framework with example applications to the Trackmania videogame.
+Real-Time Reinforcement Learning python framework and application to the Trackmania videogame.
 
 ## Authors:
 - Yann Bouteiller
 - Edouard Geze
 
-### Other contributors:
+### Other main contributors:
 - Simon Ramstedt
 
 ## Real-Time Gym Environment
