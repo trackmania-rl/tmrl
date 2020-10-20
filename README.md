@@ -18,7 +18,7 @@ It can be reused fairly easily by creating an ad-hoc interface for your applicat
 
 Interfaces must inherit the [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) class and implement all its abstract methods.
 
-Then, you need to copy the gym-real-time default [configuration dictionary](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89) and replace the ``` 'interface' ``` entry with your the class of your custom interface. You may also want to modify other entries in this dictionary depending on your application.
+Then, you need to copy the gym-real-time default [configuration dictionary](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89) in your code and replace the ``` 'interface' ``` entry with your the class of your custom interface. You probably also want to modify other entries in this dictionary depending on your application.
 
 Once your interface is implemented, your can simply follow this pattern:
 
@@ -35,13 +35,12 @@ while True:  # when this loop is broken, the current time-step will timeout
 	obs = env.step(act)  # the step function transparently adapts to this duration
 ```
 
-Our Real-Time Gym framework is clocked by the following code snippet:
+The Real-Time Gym framework is clocked by the following [code snippet](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89):
 ```python
 now = time.time()
 # if either still in the previous time-step of within its allowed elasticity
 if now < self.__t_end + self.time_step_timeout:
-	# the new time-step starts when the previous time-step is supposed to finish
-	# or to have finished
+	# the new time-step starts when the previous time-step is supposed to end or to have ended
 	self.__t_start = self.__t_end
 # if after the allowed elasticity
 else:
@@ -51,7 +50,7 @@ else:
 	self.__t_start = now
 # update time at which observation should be retrieved
 self.__t_co = self.__t_start + self.start_obs_capture
-# update time at which the new time-step should finish
+# update time at which the new time-step should end
 self.__t_end = self.__t_start + self.time_step_duration
 ```
 
