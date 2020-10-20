@@ -17,7 +17,7 @@ It can be reused fairly easily by creating an ad-hoc interface for your applicat
 
 Interfaces must inherit the [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) class and implement all its abrstract methods.
 
-Then, you need to copy the [gym-real-time default configuration dictionary](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89) and replace the ``` 'interface' ``` entry with your the class of your custom interface. You may also want to modify other entries in this dictionary depending on your application.
+Then, you need to copy the gym-real-time default [configuration dictionary](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89) and replace the ``` 'interface' ``` entry with your the class of your custom interface. You may also want to modify other entries in this dictionary depending on your application.
 
 Once your interface is implemented, your can simply follow this pattern:
 
