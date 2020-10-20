@@ -1,52 +1,48 @@
 # TMRL
-Real-Time Reinforcement Learning python framework with example applications to the Trackmania videogame.
+Real-Time Reinforcement Learning python framework and application to the Trackmania videogame.
 
 ## Authors:
+### Maintainers:
 - Yann Bouteiller
 - Edouard Geze
 
-### Other contributors:
+### Other main contributors:
 - Simon Ramstedt
 
 ## Real-Time Gym Environment
 This project is built with our threaded Real-Time Gym framework for real-world applications.
 
-Our threaded Gym framework enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
-Its purpose is to elastically constrain action application and observation capture times in a way that is transparent for the user.
-It can be reused fairly easily by creating an ad-hoc interface for your application. See the TM2020Interface class and DEFAULT_CONFIG_DICT for an example.
+The threaded Gym framework enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
+Its purpose is to elastically constrain the times at which action application and observation retrieval happen, in a way that is transparent for the user.
+It can be reused fairly easily by creating an ad-hoc interface for your application.
 
-Once your interface is implemented, your can simply follow the usual pattern:
+Custom interfaces must inherit the [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) class and implement all its abstract methods.
+
+Then, you need to copy the gym-real-time default [configuration dictionary](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89) in your code and replace the ``` 'interface' ``` entry with the class of your custom interface. You probably also want to modify other entries in this dictionary depending on your application.
+
+Once your interface is implemented, your can simply follow this pattern:
 
 ```python
+from gym_real_time.envs.real_time_env import DEFAULT_CONFIG_DICT
+gym_real_time_config = DEFAULT_CONFIG_DICT
+gym_real_time_config['interface'] = MyCustomInterface
+
+env = gym.make("gym_real_time:gym-rt-v0", gym_real_time_config)
+
 obs = env.reset()
 while True:  # when this loop is broken, the current time-step will timeout
 	act = model(obs)  # inference takes a random amount of time
 	obs = env.step(act)  # the step function transparently adapts to this duration
 ```
 
-Our Real-Time Gym framework is clocked by the following code snippet:
-```python
-now = time.time()
-# if either still in the previous time-step of within its allowed elasticity
-if now < self.__t_end + self.time_step_timeout:
-	# the new time-step starts when the previous time-step is supposed to finish
-	# or to have finished
-	self.__t_start = self.__t_end
-# if after the allowed elasticity
-else:
-	print(f"INFO: time-step timed out.")
-	# the elasticity is broken and reset
-	# (this should happen only after 'pausing' the environment)
-	self.__t_start = now
-# update time at which observation should be retrieved
-self.__t_co = self.__t_start + self.start_obs_capture
-# update time at which the new time-step should finish
-self.__t_end = self.__t_start + self.time_step_duration
-```
-
-This timing allows us to implement the core meachnism of Real-Time Gym environments, which can be visualized as follows:
+You may want to have a look at the [timestamps updating](https://github.com/yannbouteiller/tmrl/blob/984e3277a81686c190e1c4e147b573cc28a56eb8/gym-rt/gym_real_time/envs/real_time_env.py#L169) method of gym-real-time, which is reponsible for elastically clocking time-steps.
+This method describes the core meachnism of Gym Real-Time environments:
 
 ![Gym Real-Time Framework](figures/rt_gym_env.png "Gym Real-Time Framework")
+
+Time-steps are being elastically constrained to their nominal duration. When this constraint cannot be satisfied, the previous time-step will timeout and the new time-step will start from the current time. This happens either because the environment has been 'paused', or because your system is ill-designed:
+- The inference duration of your model, i.e. the elapsed duration between two calls of the step() function, may be too long for the time-step you are trying to use.
+- Your procedure to retrieve observations takes too much time or is called too late (tweak this in the configuration dictionary). Remember that, if observation capture is too long, it must not be part of the get_obs_rew_done() method of your interface. Instead, this method must simply retrieve the latest available observation, and the action buffer must be long enough to handle the observation capture duration.
 
 ## Distant training architecture
 
