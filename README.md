@@ -16,7 +16,7 @@ The threaded Gym framework enables efficient real-time implementations of Delaye
 Its purpose is to elastically constrain the times at which action application and observation capture happen, in a way that is transparent for the user.
 It can be reused fairly easily by creating an ad-hoc interface for your application.
 
-Interfaces must inherit the [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) class and implement all its abrstract methods.
+Interfaces must inherit the [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) class and implement all its abstract methods.
 
 Then, you need to copy the gym-real-time default [configuration dictionary](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89) and replace the ``` 'interface' ``` entry with your the class of your custom interface. You may also want to modify other entries in this dictionary depending on your application.
 
