@@ -2,6 +2,7 @@
 Real-Time Reinforcement Learning python framework and application to the Trackmania videogame.
 
 ## Authors:
+### Maintainers:
 - Yann Bouteiller
 - Edouard Geze
 
