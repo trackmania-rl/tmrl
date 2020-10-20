@@ -40,7 +40,7 @@ This method describes the core meachnism of Gym Real-Time environments:
 
 ![Gym Real-Time Framework](figures/rt_gym_env.png "Gym Real-Time Framework")
 
-Time-steps are being elastically constrained to their nominal duration. When this constraint cannot be satisfied, the previous time-step will timeout and the new timestep will start from the current time. This happens either because the environment has been 'paused', or because your system is ill-designed:
+Time-steps are being elastically constrained to their nominal duration. When this constraint cannot be satisfied, the previous time-step will timeout and the new time-step will start from the current time. This happens either because the environment has been 'paused', or because your system is ill-designed:
 - The inference duration of your model, i.e. the elapsed duration between two calls of the step() function, may be too long for the time-step you are trying to use.
 - Your procedure to retrieve observations takes too much time or is called too late (tweak this in the configuration dictionary). Remember that, if observation capture is too long, it must not be part of the get_obs_rew_done() method of your interface. Instead, this method must simply retrieve the latest available observation, and the action buffer must be long enough to handle the observation capture duration.
 
