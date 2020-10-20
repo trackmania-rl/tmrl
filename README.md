@@ -12,7 +12,7 @@ Real-Time Reinforcement Learning python framework with example applications to t
 This project is built with our threaded Real-Time Gym framework for real-world applications.
 
 The threaded Gym framework enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
-Its purpose is to elastically constrain action application and observation capture times in a way that is transparent for the user.
+Its purpose is to elastically constrain the times at which action application and observation capture happen in a way that is transparent for the user.
 It can be reused fairly easily by creating an ad-hoc interface for your application.
 
 Interfaces must inherit the [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) class and implement all its abrstract methods.
