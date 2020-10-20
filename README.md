@@ -36,13 +36,13 @@ while True:  # when this loop is broken, the current time-step will timeout
 ```
 
 You may want to have a look at the [timestamps updating](https://github.com/yannbouteiller/tmrl/blob/984e3277a81686c190e1c4e147b573cc28a56eb8/gym-rt/gym_real_time/envs/real_time_env.py#L169) method of gym-real-time, which is reponsible for elastically clocking time-steps.
-This method describes the core meachnism of Gym Real-Time environments:
+This method defines the core meachnism of Gym Real-Time environments:
 
 ![Gym Real-Time Framework](figures/rt_gym_env.png "Gym Real-Time Framework")
 
-Time-steps are being elastically constrained to their nominal duration. When this constraint cannot be satisfied, the previous time-step will timeout and the new time-step will start from the current time. This happens either because the environment has been 'paused', or because your system is ill-designed:
-- The inference duration of your model, i.e. the elapsed duration between two calls of the step() function, may be too long for the time-step you are trying to use.
-- Your procedure to retrieve observations takes too much time or is called too late (tweak this in the configuration dictionary). Remember that, if observation capture is too long, it must not be part of the get_obs_rew_done() method of your interface. Instead, this method must simply retrieve the latest available observation, and the action buffer must be long enough to handle the observation capture duration.
+Time-steps are being elastically constrained to their nominal duration. When this elastic constraint cannot be satisfied, the previous time-step timeouts and the new time-step starts from the current timestamp. This happens either because the environment has been 'paused', or because your system is ill-designed:
+- The inference duration of your model, i.e. the elapsed duration between two calls of the step() function, may be too long for the time-step duration that you are trying to use.
+- Your procedure to retrieve observations may take too much time or may be called too late (the latter can be tweaked in the configuration dictionary). Remember that, if observation capture is too long, it must not be part of the get_obs_rew_done() method of your interface. Instead, this method must simply retrieve the latest available observation from another process, and the action buffer must be long enough to handle the observation capture duration.
 
 ## Distant training architecture
 
