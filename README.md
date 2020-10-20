@@ -56,7 +56,7 @@ Periodically, each rollout worker also receives new policy weigths from the cent
 The central server is located either on the localhost of one of the rollout worker computers, on another computer on the local network, or on another computer on the Internet.
 It collects samples from all the connected rollout workers and stores them in a local buffer.
 This buffer is periodically sent to the trainer interface.
-Periodically, the central server receives updates policy weights from the trainer interface and broadcasts them to all connected rollout workers.
+Periodically, the central server receives updated policy weights from the trainer interface and broadcasts them to all connected rollout workers.
 
 The trainer interface is typically located on a non-rollout worker computer of the local network, or on another computer on the Internet (like a GPU farm).
 It is possible to locate it on localhost as well if needed.
