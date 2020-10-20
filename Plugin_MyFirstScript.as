@@ -11,10 +11,6 @@ bool send_data_float(Net::Socket@ sock, float val)
 		print("INFO: Disconnected, couldn't send data.");
 		return false;
 	}
-	else
-	{
-		print("sent " + val);
-	}
 	return true;
 }
 
@@ -52,6 +48,8 @@ void Main()
 			auto player = arena.Players[0];
 			CSmScriptPlayer@ api = cast<CSmScriptPlayer>(player.ScriptAPI);
 
+			auto race_state = playground.GameTerminals[0].UISequence_Current;
+			
 			// Sending data
 			cc = send_data_float(sock, api.Speed);
 			send_data_float(sock, api.Distance);
@@ -62,6 +60,10 @@ void Main()
 			send_data_float(sock, api.InputGasPedal);
 			if(api.InputIsBraking) send_data_float(sock, 1.0f);
 			else send_data_float(sock, 0.0f);
+			if(race_state == ESGamePlaygroundUIConfig__EUISequence::Finish) send_data_float(sock, 1.0f);
+			else send_data_float(sock, 0.0f);
+			
+			// send_data_float(sock,race.Finished);
 
 			yield();  // this statement stops the script until the next frame
 		}
@@ -69,5 +71,3 @@ void Main()
 		sock_serv.Close();
 	}
 }
-
-
