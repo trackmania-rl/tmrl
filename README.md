@@ -14,12 +14,20 @@ This project is built with our threaded Real-Time Gym framework for real-world a
 The threaded Gym framework enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
 Its purpose is to elastically constrain action application and observation capture times in a way that is transparent for the user.
 It can be reused fairly easily by creating an ad-hoc interface for your application.
-Interfaces must inherit the [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) class and all its abrstract methods.
-Then, you need to copy the [default config dictionary](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89) and replace the ``` 'interface' ``` entry with your the class of your custom interface.
 
-Once your interface is implemented, your can simply follow the usual pattern:
+Interfaces must inherit the [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) class and implement all its abrstract methods.
+
+Then, you need to copy the [gym-real-time default configuration dictionary](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L89) and replace the ``` 'interface' ``` entry with your the class of your custom interface. You may also want to modify other entries in this dictionary depending on your application.
+
+Once your interface is implemented, your can simply follow this pattern:
 
 ```python
+from gym_real_time.envs.real_time_env import DEFAULT_CONFIG_DICT
+gym_real_time_config = DEFAULT_CONFIG_DICT
+gym_real_time_config['interface'] = MyCustomInterface
+
+env = gym.make("gym_real_time:gym-rt-v0", gym_real_time_config)
+
 obs = env.reset()
 while True:  # when this loop is broken, the current time-step will timeout
 	act = model(obs)  # inference takes a random amount of time
