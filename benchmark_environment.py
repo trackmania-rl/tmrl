@@ -2,7 +2,8 @@ import gym
 from gym import spaces
 import random
 import time
-from gym_real_time.envs.real_time_env import DEFAULT_CONFIG_DICT, TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
+from gym_real_time.envs.real_time_env import DEFAULT_CONFIG_DICT
+from agents.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
 
 NB_STEPS = 1000
 ACT_COMPUTE_MIN = 0.02

@@ -1,6 +1,7 @@
 #name "TMRL grab data "
 #author "tmrl team"
 #category "TMRL"
+#perms "full"
 
 
 bool send_data_float(Net::Socket@ sock, float val)
