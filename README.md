@@ -163,7 +163,7 @@ for i in range(10):
         vel_y = 0.0
     rc_drone.send_control(vel_x, vel_y)
     pos_x, pos_y = rc_drone.get_observation()
-    print(f"iteration {i}, sent velocities: vel_x:{vel_x}, vel_y:{vel_y} - received positions: x:{pos_x:.3f}, y:{pos_y:.3f}")
+    print(f"iteration {i}, sent: vel_x:{vel_x}, vel_y:{vel_y} - received: x:{pos_x:.3f}, y:{pos_y:.3f}")
     time.sleep(0.05)
 ```
 
