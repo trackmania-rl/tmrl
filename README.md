@@ -196,7 +196,7 @@ To keep it simple, let us also say that 50ms is an upper bound of our inference 
 
 What we need to do in order to make the observation space Markovian in this setting is to augment the available observation with the 3 last sent actions. Indeed, the maximum total delay is 110ms, which is more than 2 and less than 3 time-steps (see the [Reinforcement Learning with Random Delays](https://arxiv.org/abs/2010.02966) paper for more explanations).
 
-This is what we will be doing now.
+Note that this will be taken care of automatically, so you don't need to worry about it when implementing your GymRealTimeInterface in the next section.
 
 ##### GymRealTimeInterface
 
