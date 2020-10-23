@@ -332,6 +332,7 @@ class RedisServer:
                         if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_TRAINER:
                             print("INFO: ACK timed-out, breaking connection")
                             self.__buffer_lock.release()
+                            wait_ack = False
                             break
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
                 # checks for weights
@@ -401,6 +402,7 @@ class RedisServer:
                     if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_WORKER:
                         print("INFO: ACK timed-out, breaking connection")
                         self.__weights_lock.release()
+                        # wait_ack = False  # not needed since we end the thread
                         break
             self.__weights_lock.release()  # END WEIGHTS LOCK...........................................................
             # checks for samples
@@ -476,6 +478,7 @@ class TrainerInterface:
                         if elapsed >= cfg.ACK_TIMEOUT_TRAINER_TO_REDIS:
                             print("INFO: ACK timed-out, breaking connection")
                             self.__weights_lock.release()
+                            wait_ack = False
                             break
                 self.__weights_lock.release()  # END WEIGHTS LOCK.......................................................
                 # checks for samples batch
@@ -590,6 +593,7 @@ class RolloutWorker:
                         if elapsed >= cfg.ACK_TIMEOUT_WORKER_TO_REDIS:
                             print("INFO: ACK timed-out, breaking connection")
                             self.__buffer_lock.release()
+                            wait_ack = False
                             break
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
                 # checks for new weights

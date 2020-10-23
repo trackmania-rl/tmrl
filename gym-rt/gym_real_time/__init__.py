@@ -1,4 +1,5 @@
-from gym_real_time.envs.real_time_env import GymRealTimeInterface
+from gym_real_time.envs.real_time_env import GymRealTimeInterface, DEFAULT_CONFIG_DICT
+from gym_real_time.tuto.dummy_drone import DummyRCDrone
 import logging
 from gym.envs.registration import register
 
