@@ -29,6 +29,12 @@ setup(
         'requests',
         # 'pybullet'
         # 'line_profiler',
+        'opencv-python',
+        'mss',
+        'scikit-image',
+        'inputs',
+        'keyboard',
+        'pyvjoy'
     ],
     extras_require={
 
