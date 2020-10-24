@@ -8,8 +8,6 @@ from threading import Thread, Lock
 # General Interface class ==============================================================================================
 # All user-defined interfaces should be subclasses of GymRealTimeInterface
 
-# TODO: implement a dummy example with the random delay wrapper on e.g. Pendulum
-
 class GymRealTimeInterface:
     """
     Implement this class for your application
@@ -30,7 +28,8 @@ class GymRealTimeInterface:
     def reset(self):
         """
         Returns:
-            obs: must be a list of numpy arrays
+            obs: must be a list
+        Note: Do NOT put the action buffer in the returned obs (automated)
         """
         # return obs
 
@@ -46,9 +45,10 @@ class GymRealTimeInterface:
     def get_obs_rew_done(self):
         """
         Returns:
-            obs: list of numpy arrays
+            obs: list
             rew: scalar
             done: boolean
+        Note: Do NOT put the action buffer in obs (automated)
         """
         # return obs, rew, done
 
@@ -58,6 +58,7 @@ class GymRealTimeInterface:
         """
         Returns:
             observation_space: gym.spaces.Tuple
+        Note: Do NOT put the action buffer here (automated)
         """
         # return spaces.Tuple(...)
 
@@ -67,7 +68,6 @@ class GymRealTimeInterface:
         """
         Returns:
             action_space: gym.spaces.Box
-        must be a Box
         """
         # return spaces.Box(...)
 
@@ -83,21 +83,34 @@ class GymRealTimeInterface:
 
         raise NotImplementedError
 
+    def render(self):
+        """
+        Optional: implement this if you want to use the render() method of the gym environment
+        """
+        pass
+
 
 # General purpose environment: =========================================================================================
 
 DEFAULT_CONFIG_DICT = {
-    "interface": GymRealTimeInterface,  # TODO: change this for a dummy interface
-    "time_step_duration": 0.05,
-    "start_obs_capture": 0.04,
-    "time_step_timeout_factor": 1.0,
-    "ep_max_length": 1000,  # np.inf
-    "real_time": True,
-    "async_threading": True,
-    "act_in_obs": True,
-    "act_buf_len": 1,
-    "reset_act_buf": True,
-    "benchmark": True
+    "interface": GymRealTimeInterface,  # replace this by your custom interface class
+    "interface_args": (),  # arguments of your interface
+    "interface_kwargs": {},  # key word arguments of your interface
+    "time_step_duration": 0.05,  # nominal duration of your time-step
+    "start_obs_capture": 0.05,  # observation retrieval will start this amount of time after the time-step begins
+    # start_obs_capture should be the same as "time_step_duration" unless observation capture is non-instantaneous and
+    # smaller than one time-step, and you want to capture it directly in your interface for convenience. Otherwise,
+    # you need to perform observation capture in a parallel process and simply retrieve the last available observation
+    # in the get_obs_rew_done() and reset() methods of your interface
+    "time_step_timeout_factor": 1.0,  # maximum elasticity in (fraction or number of time-steps)
+    "ep_max_length": 1000,  # maximum episode length
+    "real_time": True,  # True unless you want to revert to the usual turn-based RL setting (not tested yet)
+    "async_threading": True,  # True unless you want to revert to the usual turn-based RL setting (not tested yet)
+    "act_in_obs": True,  # When True, the action buffer will be appended to observations
+    "act_buf_len": 1,  # Length of the action buffer (max total delay + max observation capture duration, in time-steps)
+    "reset_act_buf": True,  # When True, the action buffer will be filled with default actions at reset
+    "benchmark": False,  # When True, a simple benchmark will be run to estimate the observation capture duration
+    "wait_on_done": False,  # Whether the wait() method should be called when done is True
 }
 
 
@@ -116,12 +129,16 @@ class RealTimeEnv(Env):
         :param act_prepro_func: function (optional, default None): function that maps the action input to the actual applied action
         :param obs_prepro_func: function (optional, default None): function that maps the observation output to the actual returned observation
         :param reset_act_buf: bool (optional, defaut True): whether action buffer should be re-initialized at reset
+        :param wait_on_done: bool (optional, defaut False): whether the wait() method should be called when done is True
         """
         # interface:
         interface_cls = config["interface"]
-        self.interface = interface_cls()
+        interface_args = config["interface_args"] if "interface_args" in config else ()
+        interface_kwargs = config["interface_kwargs"] if "interface_kwargs" in config else {}
+        self.interface = interface_cls(*interface_args, **interface_kwargs)
 
         # config variables:
+        self.wait_on_done = config["wait_on_done"] if "wait_on_done" in config else False
         self.act_prepro_func: callable = config["act_prepro_func"] if "act_prepro_func" in config else None
         self.obs_prepro_func = config["obs_prepro_func"] if "obs_prepro_func" in config else None
         self.ep_max_length = config["ep_max_length"]
@@ -326,7 +343,7 @@ class RealTimeEnv(Env):
         info = {}
         if self.real_time:
             self._run_time_step(action)
-        if done:
+        if done and self.wait_on_done:
             self.interface.wait()
         return obs, rew, done, info
 
@@ -340,7 +357,7 @@ class RealTimeEnv(Env):
     def benchmarks(self):
         """
         Returns the following running averages when the benchmark option is set:
-            - duration of __update_obs_rew_done()
+            duration of __update_obs_rew_done()
         """
         assert self.benchmark, "The benchmark option is not set. Set benchmark=True in the configuration dictionary of the environment"
         self.__b_lock.acquire()
@@ -353,4 +370,4 @@ class RealTimeEnv(Env):
         Visually renders the current state of the environment
         """
         self._join_thread()
-        print("render")
+        self.interface.render()
