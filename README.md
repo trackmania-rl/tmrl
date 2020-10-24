@@ -112,6 +112,7 @@ It has 6 abstract methods that you need to implement: ```get_observation_space``
 It also has a ```wait``` method that you may want to override.
 We will implement them all to understand their respective roles.
 
+---
 ##### Dummy drone
 
 You will of course want to implement this on a real system and can directly adapt this tutorial to your application if you feel comfortable, but for the needs of the tutorial we will instead be using a dummy remote controlled drone with random communication delays.
@@ -198,22 +199,20 @@ What we need to do in order to make the observation space Markovian in this sett
 
 Note that this will be taken care of automatically, so you don't need to worry about it when implementing your GymRealTimeInterface in the next section.
 
+---
 ##### GymRealTimeInterface
 
 Create a custom class that inherits the GymRealTimeInterface class:
 ```python
-from gym_real_time import GymRealTimeInterface
+from gym_real_time import GymRealTimeInterface, DummyRCDrone
+import gym.spaces as spaces
+import gym
+import numpy as np
 
 
 class MyRealTimeInterface(GymRealTimeInterface):
 
-    def send_control(self, control):
-        pass
-
-    def reset(self):
-        pass
-
-    def get_obs_rew_done(self):
+    def __init__(self):
         pass
 
     def get_observation_space(self):
@@ -224,12 +223,255 @@ class MyRealTimeInterface(GymRealTimeInterface):
 
     def get_default_action(self):
         pass
+
+    def send_control(self, control):
+        pass
+
+    def reset(self):
+        pass
+
+    def get_obs_rew_done(self):
+        pass
+
+    def wait(self):
+        pass
+```
+Note that, in addition to the mandatory abstract methods of the ```GymRealTimeInterface``` class, we override the ```wait``` method and implement a ```__init__``` method.
+The latter allows us to instantiate our remote controlled drone as an attribute of the interface, as well as other attributes:
+```python
+def __init__(self):
+    self.rc_drone = DummyRCDrone()
+    self.target = np.array([0.0, 0.0], dtype=np.float32)
 ```
 
+---
+The ```get_action_space``` method returns a ```gym.spaces.Box``` object.
+This object defines the shape and bounds of the ```control``` argument that will be passed to the ```send_control``` method.
 
+I our case, we have two actions: ```vel_x``` and ```vel_y```.
+Let us say we want them to be constrained between ```-10.0m/s``` and ```10.0m/s```.
+Our ```get_action_space``` method then looks like this:
+```python
+def get_action_space(self):
+    return spaces.Box(low=-10.0, high=10.0, shape=(2,))
+```
 
+---
+```GymRealTimeInterface``` also requires a default action.
+This is to initialize the action buffer, and optionally to reinitialize it when the environment is reset.
+If the ```wait``` method is not overridden, it will also apply this default action when called.
+This default action is returned as a numpy array by the ```get_default_action``` method.
+Of course, the default action must be within the action space that we defined in ```get_action_space```.
 
+With our dummy RC drone, it makes sense that this action be ```vel_x = 0.0``` and ```vel_y = 0.0```, which is the 'stay still' control:
+```python
+def get_default_action(self):
+    return np.array([0.0, 0.0], dtype='float32')
+```
 
+---
+We can now implement the method that will send the actions computed by the inference procedure to the actual device.
+This is done in ```send_control```.
+This method takes a numpy array as input, named ```control```, which is within the action space that we defined in ```get_action_space```.
+
+In our case, the ```DummyRCDrone``` class readily simulates the control-sending procedure in its own ```send_control``` method.
+However, just so we have something to do here, ```DummyRCDrone.send_control``` doesn't have the same signature as ```GymRealTimeInterface.send_control```:
+```python
+def send_control(self, control):
+    vel_x = control[0]
+    vel_y = control[1]
+    self.rc_drone.send_control(vel_x, vel_y)
+```
+
+---
+Now, let us take some time to talk about the ```wait``` method.
+As you know if you are familiar with Reinforcement Learning, the underlying mathematical framework of most RL algorithms, called Markov Decision Process, is by nature turn-based.
+This means that RL algorithms consider the world as a fixed state, from which an action is taken that leads to a new fixed state, and so on.
+
+However, real applications are of course often far from this assumption, which is why we developed the gym_real_time framework.
+Usually, RL theorists use fake Gym environments that are paused between each call to the step() function.
+By contrast, gym_real_time environments are never really paused, because you simply cannot pause the real world.
+
+Instead, when calling step() in a gym_real_time environment, an internal procedure will ensure that the call takes effect at the beginning of the next real time-step.
+The step() function will block until this point and a new observation will be retrieved.
+Then, step() will return so that inference can be performed in parallel to this next time-step, and so on.
+
+This is convenient because the user doesn't have to worry about these kind of complicated dynamics and simply alternates between inference and calls to step() as they would usually do with any Gym environment.
+However, this needs to be done repeatedly, otherwise step() will time-out.
+
+Yet, you may still want to artificially 'pause' the environment occasionally, e.g. because you collected a batch of samples, or because you want to pause the whole experiment.
+This is the role of the ```wait``` method.
+
+By default, its behaviour is to send the default action:
+```python
+def wait(self):
+    self.send_control(self.get_default_action())
+```
+But you may want to override this behavior by redefining this method:
+```python
+def wait(self):
+    self.send_control(np.array([0.0, 0.0], dtype='float32'))
+```
+Ok, in this case this is actually equivalent, but you get the idea. You may want your drone to land when this function is called for example.
+Note that, currently, the ```wait``` method is called by the environment whenever ```done``` is ```True```. This behaviour may change in the future.
+
+---
+The ```get_observation_space``` method outputs a ```gym.spaces.Tuple``` object.
+This object describes the structure of the observations returned from the ```reset``` and ```get_obs_rew_done``` methods of our interface.
+ 
+In our case, the observation will contain ```pos_x``` and ```pos_y```, which are both constrained between ```-1.0``` and ```1.0``` in our simple 2D world.
+It will also contain target coordinates ```tar_x``` and ```tar_y```, constrained between ```-0.5``` and ```0.5```.
+
+Note that, on top of these observations, the gym_real_time framework will automatically append a buffer of the 3 last actions, but the observation space you define here must not take this buffer into account.
+
+In a nutshell, our ```get_observation_space``` method must look like this:
+```python
+def get_observation_space(self):
+    pos_x_space = spaces.Box(low=-1.0, high=1.0, shape=(1,))
+    pos_y_space = spaces.Box(low=-1.0, high=1.0, shape=(1,))
+    tar_x_space = spaces.Box(low=-0.5, high=0.5, shape=(1,))
+    tar_y_space = spaces.Box(low=-0.5, high=0.5, shape=(1,))
+    return spaces.Tuple((pos_x_space, pos_y_space, tar_x_space, tar_y_space))
+```
+
+---
+We can now implement the RL mechanics of our environment (i.e. is the reward function and whether we consider the task ```done``` in the episodic setting), and a procedure to retrieve observations from our dummy drone.
+This is done in the ```get_obs_rew_done``` method.
+
+For this tutorial, we will implement a simple task.
+
+At the beginning of each episode, the drone will be given a random target.
+Its task will be to reach the target as fast as possible.
+
+The reward for this task will be the negative distance to the target.
+The episode will end whenever an observation is received in which the drone is less than ```0.01m``` from the target.
+Additionally, we will end the episode if the task is not completed after 100 time-steps.
+
+The task is easy, but not as straightforward as it looks.
+Indeed, the presence of random communication delays and the fact that the drone keeps moving in real time makes it difficult to precisely reach the target.
+
+```get_obs_rew_done``` outputs 3 values:
+- ```obs```: a list of all the components of the last retrieved observation, except for the action buffer
+- ```rew```: a float that is your reward
+- ```done```: a boolean that tells whether the episode is finished (always False in the non-episodic setting)
+
+For our simple task, the implementation is fairly straightforward.
+```obs``` contains the last available coordinates and the target, ```rew``` is the negative distance to the target, and ```done``` is True when the target has been reached:
+```python
+def get_obs_rew_done(self):
+    pos_x, pos_y = self.rc_drone.get_observation()
+    tar_x = self.target[0]
+    tar_y = self.target[1]
+    obs = [pos_x, pos_y, tar_x, tar_y]
+    rew = -np.linalg.norm(np.array([pos_x, pos_y], dtype=np.float32) - self.target)
+    done = rew > -0.01
+    return obs, rew, done
+```
+We did not implement the 100 time-steps limit here because this will be done later in the configuration dictionary.
+
+---
+Finally, the last mandatory method that we need to implement is ```reset```, which will be called at the beginning of each new episode.
+This method is responsible for setting up a new episode in the episodic setting.
+In our case, it will randomly place a new target.
+```reset``` returns an initial observation ```obs``` that will be used to compute the first action.
+
+A good practice is to implement a mechanism that runs only once and instantiates everything that is heavy in ```reset``` instead of ```__init__```.
+This is because RL implementations will often create a dummy environment just to retrieve the action and observation spaces, and you don't want a drone flying just for that.
+
+Replace the ```__init__``` method by:
+```python
+def __init__(self):
+    self.rc_drone = None
+    self.target = np.array([0.0, 0.0], dtype=np.float32)
+    self.initialized = False
+```
+And implement the ```reset``` method as follows:
+```python
+def reset(self):
+    if not self.initialized:
+        self.rc_drone = DummyRCDrone()
+        self.initialized = True
+    pos_x, pos_y = self.rc_drone.get_observation()
+    self.target[0] = np.random.uniform(-0.5, 0.5)
+    self.target[1] = np.random.uniform(-0.5, 0.5)
+    return [pos_x, pos_y, self.target[0], self.target[1]]
+```
+
+We have now fully implemented our custom ```GymRealTimeInterface``` and can use it to instantiate a Gym environment for our real-time application.
+To do this, we simply pass our custom interface as a parameter to ```gym.make``` in a configuration dictionary, as illustrated in the next section.
+
+---
 #### Create a configuration dictionary
+
+Now that our custom interface in implemented, we can easily intantiate a fully fledged Gym environment for our dummy RC drone.
+This is done by loading the gym_real_time ```DEFAULT_CONFIG_DICT``` and replacing the value stored under the ```"interface"``` key by our custom interface:
+
+```python
+from gym_real_time import DEFAULT_CONFIG_DICT
+
+my_config = DEFAULT_CONFIG_DICT
+my_config["interface"] = MyRealTimeInterface
+```
+
+We also want to change other entries in our configuration dictionary:
+```python
+my_config["time_step_duration"] = 0.05
+my_config["start_obs_capture"] = 0.05
+my_config["time_step_timeout_factor"] = 1.0
+my_config["ep_max_length"] = 100
+my_config["act_buf_len"] = 3
+my_config["reset_act_buf"] = False
+```
+The ```"time_step_duration"``` entry defines the duration of the time-step.
+The gym_real_time environment will ensure that the control frequency sticks to this clock.
+
+The ```"start_obs_capture"``` entry is usually the same as the ```"time_step_duration"``` entry.
+It defines the time at which an observation starts being retrieved, which should usually happen instantly at the end of the time-step.
+However, in some situations, you will want to actually capture an observation in ```get_obs_rew_done``` and the capture duration will not be negligible.
+In such situations, if observation capture is less than 1 time-step, you can do this and use ```"start_obs_capture"``` in order to tell the environment to call ```get_obs_rew_done``` before the end of the time-step.
+If observation capture is more than 1 time-step, it needs to be performed in a parallel process and the last available observation should be used at each time-step.
+
+In any case, keep in mind that when observation capture is not instantaneous, you should add its maximum duration to the maximum delay, and increase the size of the action buffer accordingly. See the [Reinforcement Learning with Random Delays](https://arxiv.org/abs/2010.02966) appendix for more details.
+
+In our situation, observation capture is instantaneous. Only its transmission is random.
+
+The ```"time_step_timeout_factor"``` entry defines the maximum elasticity of the framework before a time-step times-out.
+When it is ```1.0```, a time-step can be stretched up to twice its length, and the framework will compensate by shrinking the durations of the next time-steps.
+When the elasticity cannot be maintained, the framework breaks it for one time-step and informs the user.
+This is meant to happen after the environment gets 'paused' with ```wait```, and this might happen after calls to reset().
+However, if this happens repeatedly in other situations, it probably means that your inference time is too long for the time-step you are trying to use.
+
+The ```"ep_max_length"``` entry is the maximum length of an episode.
+When this number of time-steps have been performed since the last reset(), ```done``` will be ```True```.
+In the non-episodic setting, set this to ```np.inf```.
+
+The ```"act_buf_len"``` entry is the size of the action buffer. In our case, we need it to contain the 3 last actions.
+
+Finally, the ```"reset_act_buf"``` entry tells whether the action buffer should be reset with default actions when reset() is called.
+In our case, we don't want this to happen, because calls to reset() only change the position of the target, and not the dynamics of the drone.
+Therefore we set this to ```False```.
+
+#### Instantiate the custom real-time environment
+
+We are all done!
+Instantiating our Gym environment is now as simple as:
+
+```python
+env = gym.make("gym_real_time:gym-rt-v0", config=my_config)
+``` 
+
+We can use it as any usual Gym environment:
+
+```python
+def model(obs):
+    return np.array([obs[2] - obs[0], obs[3] - obs[1]], dtype=np.float32) * 20.0
+
+done = False
+obs = env.reset()
+while not done:
+    act = model(obs)
+    obs, rew, done, info = env.step(act)
+    print(f"rew:{rew}")
+```
 
 ### Custom networking interface
