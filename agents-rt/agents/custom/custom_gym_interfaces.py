@@ -99,6 +99,23 @@ class TM2020Interface(GymRealTimeInterface):
         self.client = None
         self.gamepad = gamepad
         self.j = None
+        if self.gamepad:
+            self.j = pyvjoy.VJoyDevice(1)
+            print("DEBUG: virtual joystick in use")
+            import signal
+            import sys
+
+            def signal_handler(sig, frame):
+
+                self.j.reset()
+                self.j.reset_buttons()
+                self.j.reset_povs()
+                control_all([0.0, 0.0, 0.0], self.j)
+                print('You pressed Ctrl+C!')
+                sys.exit(0)
+
+            signal.signal(signal.SIGINT, signal_handler)
+
         self.initialized = False
 
     def initialize(self):
@@ -109,8 +126,6 @@ class TM2020Interface(GymRealTimeInterface):
         self.img = None
         self.reward_function = RewardFunction(reward_data_path=REWARD_PATH, nb_obs_forward=NB_OBS_FORWARD)
         self.client = TM2020OpenPlanetClient()
-        if self.gamepad:
-            self.j = pyvjoy.VJoyDevice(1)
         self.initialized = True
 
     def send_control(self, control):
@@ -200,11 +215,11 @@ class TM2020Interface(GymRealTimeInterface):
         """
         initial action at episode start
         """
-        return np.array([0.0, 0.0, 0.0])
+        return np.array([0.0, 0.0, 0.0], dtype='float32')
 
 
 class TM2020InterfaceLidar(TM2020Interface):
-    def __init__(self, img_hist_len=4, gamepad=False, road_point=(440, 479), record=False):
+    def __init__(self, img_hist_len=1, gamepad=False, road_point=(440, 479), record=False):
         super().__init__(img_hist_len, gamepad)
         self.lidar = Lidar(monitor=self.monitor, road_point=road_point)
         self.record = record
@@ -213,7 +228,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         data = self.client.retrieve_data()
         speed = np.array([data[0], ], dtype='float32')
-        lidar = self.lidar.lidar_20(im=img)
+        lidar = self.lidar.lidar_20(im=img, show=False)
         return lidar, speed, data
 
     def reset(self):
@@ -230,6 +245,7 @@ class TM2020InterfaceLidar(TM2020Interface):
             self.img_hist.append(img)
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
+        self.reward_function.reset()
         return obs  # if not self.record else data
 
     def get_obs_rew_done(self):
