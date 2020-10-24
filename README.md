@@ -307,13 +307,13 @@ By default, its behaviour is to send the default action:
 def wait(self):
     self.send_control(self.get_default_action())
 ```
-But you may want to override this behavior by redefining this method:
+But you may want to override 
+vior by redefining this method:
 ```python
 def wait(self):
     self.send_control(np.array([0.0, 0.0], dtype='float32'))
 ```
 Ok, in this case this is actually equivalent, but you get the idea. You may want your drone to land when this function is called for example.
-Note that, currently, the ```wait``` method is called by the environment whenever ```done``` is ```True```. This behaviour may change in the future.
 
 ---
 The ```get_observation_space``` method outputs a ```gym.spaces.Tuple``` object.
@@ -352,7 +352,7 @@ Indeed, the presence of random communication delays and the fact that the drone 
 
 ```get_obs_rew_done``` outputs 3 values:
 - ```obs```: a list of all the components of the last retrieved observation, except for the action buffer
-- ```rew```: a float that is your reward
+- ```rew```: a float that is our reward
 - ```done```: a boolean that tells whether the episode is finished (always False in the non-episodic setting)
 
 For our simple task, the implementation is fairly straightforward.
@@ -450,6 +450,8 @@ The ```"act_buf_len"``` entry is the size of the action buffer. In our case, we 
 Finally, the ```"reset_act_buf"``` entry tells whether the action buffer should be reset with default actions when reset() is called.
 In our case, we don't want this to happen, because calls to reset() only change the position of the target, and not the dynamics of the drone.
 Therefore we set this to ```False```.
+
+---
 
 #### Instantiate the custom real-time environment
 
