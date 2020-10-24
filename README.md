@@ -352,7 +352,7 @@ Indeed, the presence of random communication delays and the fact that the drone 
 
 ```get_obs_rew_done``` outputs 3 values:
 - ```obs```: a list of all the components of the last retrieved observation, except for the action buffer
-- ```rew```: a float that is your reward
+- ```rew```: a float that is our reward
 - ```done```: a boolean that tells whether the episode is finished (always False in the non-episodic setting)
 
 For our simple task, the implementation is fairly straightforward.
