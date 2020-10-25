@@ -18,7 +18,7 @@ def get_local_buffer_sample(prev_act, obs, rew, done, info):
     """
     obs_mod = (obs[0], obs[1][-1])  # speed and most recent image only
     rew_mod = np.float32(rew)
-    done_mod = False  # we cancel dones because our reward function is not meant for the episodic setting
+    done_mod = done  # we cancel dones because our reward function is not meant for the episodic setting
     return prev_act, obs_mod, rew_mod, done_mod, info
 
 

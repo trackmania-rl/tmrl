@@ -3,6 +3,7 @@ import cv2
 import os
 import math
 from pathlib import Path
+import time
 
 def load_digits():
     p = Path(os.path.dirname(os.path.realpath(__file__))) / 'digits'
@@ -114,11 +115,10 @@ class Lidar:
         res = np.array(distances, dtype=np.float32)
         if show:
             cv2.imshow("PipeLine", img)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                return res
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
         return res
 
 
 if __name__ == "__main__":
     pass
-

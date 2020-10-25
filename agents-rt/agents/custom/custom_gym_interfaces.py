@@ -115,7 +115,6 @@ class TM2020Interface(GymRealTimeInterface):
                 sys.exit(0)
 
             signal.signal(signal.SIGINT, signal_handler)
-
         self.initialized = False
 
     def initialize(self):
