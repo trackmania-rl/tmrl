@@ -10,10 +10,10 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN = True  # True if Edouard, False if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
-PRAGMA_CUDA = True  # True if CUDA, False if CPU
+PRAGMA_CUDA = False  # True if CUDA, False if CPU
 
 # FILE SYSTEM: =================================================
 

@@ -1,6 +1,7 @@
 import time
 from threading import Thread, Lock
 import random
+import math
 
 
 def clip(val, min_val, max_val):
@@ -13,7 +14,7 @@ class DummyRCDrone:
                  friction=1.0,
                  communication_delay_min=0.02,
                  communication_delay_max=0.05,
-                 max_vel=1.0,
+                 max_vel=2.0,
                  world_size=1.0,
                  control_sleep=0.01):
         self.max_vel = max_vel
@@ -34,8 +35,10 @@ class DummyRCDrone:
         self.__run_th = Thread(target=self.__run, args=(), kwargs={}, daemon=True).start()
 
     def send_control(self, vel_x, vel_y):
-        vel_x = clip(vel_x, - self.max_vel, self.max_vel)
-        vel_y = clip(vel_y, - self.max_vel, self.max_vel)
+        norm = math.hypot(vel_x, vel_y)
+        if norm > self.max_vel:
+            vel_x = vel_x * self.max_vel / norm
+            vel_y = vel_y * self.max_vel / norm
         Thread(target=self.__send_act, args=(vel_x, vel_y), kwargs={}, daemon=True).start()
 
     def get_observation(self):

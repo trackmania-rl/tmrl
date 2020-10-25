@@ -249,11 +249,11 @@ The ```get_action_space``` method returns a ```gym.spaces.Box``` object.
 This object defines the shape and bounds of the ```control``` argument that will be passed to the ```send_control``` method.
 
 I our case, we have two actions: ```vel_x``` and ```vel_y```.
-Let us say we want them to be constrained between ```-10.0m/s``` and ```10.0m/s```.
+Let us say we want them to be constrained between ```-2.0m/s``` and ```2.0m/s```.
 Our ```get_action_space``` method then looks like this:
 ```python
 def get_action_space(self):
-    return spaces.Box(low=-10.0, high=10.0, shape=(2,))
+    return spaces.Box(low=-2.0, high=2.0, shape=(2,))
 ```
 
 ---
@@ -475,5 +475,45 @@ while not done:
     obs, rew, done, info = env.step(act)
     print(f"rew:{rew}")
 ```
+
+#### Bonus: implement a render() method
+Optionally, you can also implement a ```render``` method in your ```GymRealTimeInterface```.
+This allows you to call ```env.render()``` to display a visualization of your environment.
+
+Implement the following in your custom interface (you need opencv-python installed and to import cv2 in your script) :
+```python
+def render(self):
+    image = np.ones((400, 400, 3), dtype=np.uint8) * 255
+    pos_x, pos_y = self.rc_drone.get_observation()
+    image = cv2.circle(img=image,
+                       center=(int(pos_x * 200) + 200, int(pos_y * 200) + 200),
+                       radius=10,
+                       color=(255, 0, 0),
+                       thickness=1)
+    image = cv2.circle(img=image,
+                       center=(int(self.target[0] * 200) + 200, int(self.target[1] * 200) + 200),
+                       radius=5,
+                       color=(0, 0, 255),
+                       thickness=-1)
+    cv2.imshow("PipeLine", image)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        return
+```
+
+You can now visualize the environment on your screen:
+```python
+def model(obs):
+    return np.array([obs[2] - obs[0], obs[3] - obs[1]], dtype=np.float32) * 20.0
+
+done = False
+obs = env.reset()
+while not done:
+    env.render()
+    act = model(obs)
+    obs, rew, done, info = env.step(act)
+    print(f"rew:{rew}")
+cv2.waitKey(0)
+```
+
 
 ### Custom networking interface
