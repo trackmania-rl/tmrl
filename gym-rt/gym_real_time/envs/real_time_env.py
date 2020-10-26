@@ -149,9 +149,9 @@ class RealTimeEnv(Env):
         self.time_step_timeout = self.time_step_duration * self.time_step_timeout_factor  # time after which elastic time-stepping is dropped
         self.real_time = config["real_time"]
         self.async_threading = config["async_threading"] if "async_threading" in config else True
-        self.__t_start = time.time()  # beginning of the time-step
-        self.__t_co = time.time()  # time at which observation starts being captured during the time step
-        self.__t_end = time.time()  # end of the time-step
+        self.__t_start = None  # beginning of the time-step
+        self.__t_co = None  # time at which observation starts being captured during the time step
+        self.__t_end = None  # end of the time-step
         if not self.real_time:
             self.async_threading = False
         if self.async_threading:
@@ -230,6 +230,9 @@ class RealTimeEnv(Env):
         This allows creating a dummy environment for retrieving action space and observation space without performing these initializations
         """
         self.init_action_buffer()
+        self.__t_start = time.time()  # beginning of the time-step
+        self.__t_co = time.time()  # time at which observation starts being captured during the time step
+        self.__t_end = time.time()  # end of the time-step
         self.initialized = True
 
     def _get_action_space(self):
@@ -312,9 +315,9 @@ class RealTimeEnv(Env):
         if not self.initialized:
             self._initialize()
         self.current_step = 0
-        elt = self.interface.reset()
         if self.reset_act_buf:
             self.init_action_buffer()
+        elt = self.interface.reset()
         if self.act_in_obs:
             elt = elt + list(self.act_buf)
         if self.obs_prepro_func:

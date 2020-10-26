@@ -259,6 +259,7 @@ def get_action_space(self):
 ---
 ```GymRealTimeInterface``` also requires a default action.
 This is to initialize the action buffer, and optionally to reinitialize it when the environment is reset.
+In addition, ```send_control``` is called with the default action as parameter when the Gym environment is reset.
 If the ```wait``` method is not overridden, it will also apply this default action when called.
 This default action is returned as a numpy array by the ```get_default_action``` method.
 Of course, the default action must be within the action space that we defined in ```get_action_space```.
@@ -292,9 +293,9 @@ However, real applications are of course often far from this assumption, which i
 Usually, RL theorists use fake Gym environments that are paused between each call to the step() function.
 By contrast, gym_real_time environments are never really paused, because you simply cannot pause the real world.
 
-Instead, when calling step() in a gym_real_time environment, an internal procedure will ensure that the call takes effect at the beginning of the next real time-step.
-The step() function will block until this point and a new observation will be retrieved.
-Then, step() will return so that inference can be performed in parallel to this next time-step, and so on.
+Instead, when calling step() in a gym_real_time environment, an internal procedure will ensure that the control passed as argument is sent at the beginning of the next real time-step.
+The step() function will block until this point, when a new observation is retrieved.
+Then, step() will return the observation so that inference can be performed in parallel to the next time-step, and so on.
 
 This is convenient because the user doesn't have to worry about these kind of complicated dynamics and simply alternates between inference and calls to step() as they would usually do with any Gym environment.
 However, this needs to be done repeatedly, otherwise step() will time-out.

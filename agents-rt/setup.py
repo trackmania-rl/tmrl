@@ -2,10 +2,35 @@ from setuptools import setup
 from setuptools import find_packages
 # from pip._internal import main as pipmain
 # from os.path import join, dirname
+import platform
 import sys
 
 if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
+
+
+install_req = [
+    'numpy',
+    'torch',
+    'imageio',
+    'imageio-ffmpeg',
+    'pandas',
+    'gym',
+    'pyyaml',
+    'wandb',
+    'requests',
+    # 'pybullet'
+    # 'line_profiler',
+    'opencv-python',
+    'mss',
+    'scikit-image',
+    'inputs',
+    'keyboard',
+    'pyvjoy']
+
+if platform.system() == "Windows":
+    install_req.append('pypiwin32')
+
 
 setup(
     name='agents',
@@ -16,26 +41,7 @@ setup(
     url='N/A',
     download_url='',
     license='',
-    install_requires=[
-        'numpy',
-        'torch',
-        'imageio',
-        'imageio-ffmpeg',
-        'pandas',
-        'gym',
-        'pyyaml',
-        'wandb',
-        'pypiwin32',
-        'requests',
-        # 'pybullet'
-        # 'line_profiler',
-        'opencv-python',
-        'mss',
-        'scikit-image',
-        'inputs',
-        'keyboard',
-        'pyvjoy'
-    ],
+    install_requires=install_req,
     extras_require={
 
     },
