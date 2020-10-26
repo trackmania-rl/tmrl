@@ -403,7 +403,7 @@ To do this, we simply pass our custom interface as a parameter to ```gym.make```
 ---
 #### Create a configuration dictionary
 
-Now that our custom interface in implemented, we can easily intantiate a fully fledged Gym environment for our dummy RC drone.
+Now that our custom interface is implemented, we can easily intantiate a fully fledged Gym environment for our dummy RC drone.
 This is done by loading the gym_real_time ```DEFAULT_CONFIG_DICT``` and replacing the value stored under the ```"interface"``` key by our custom interface:
 
 ```python
