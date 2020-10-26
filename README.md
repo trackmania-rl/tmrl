@@ -4,7 +4,7 @@ Python framework for Real-Time Reinforcement Learning, demonstrated on the Track
 ## Quick links
 - [Real-time Gym framework](#real-time-gym-framework)
 - [Distant training architecture](#distant-training-architecture)
-- [Tutorial: use the framework to implement you own custom tasks](#getting-started)
+- [Tutorial: Implement custom tasks](#getting-started)
 
 ## Authors:
 ### Maintainers:
@@ -108,8 +108,8 @@ from gym_real_time import GymRealTimeInterface
 
 The [GymRealTimeInterface](https://github.com/yannbouteiller/tmrl/blob/875f7f78f58a1d08a32e7afe72ade751b667509d/gym-rt/gym_real_time/envs/real_time_env.py#L13) is all you need to implement in order to create your custom real-time Gym environment.
 
-It has 6 abstract methods that you need to implement: ```get_observation_space```, ```get_action_space```, ```get_default_action```, ```reset```, ```get_obs_rew_done``` and ```send_control```.
-It also has a ```wait``` method that you may want to override.
+This class has 6 abstract methods that you need to implement: ```get_observation_space```, ```get_action_space```, ```get_default_action```, ```reset```, ```get_obs_rew_done``` and ```send_control```.
+It also has a ```wait``` and a ```render``` methods that you may want to override.
 We will implement them all to understand their respective roles.
 
 ---
