@@ -24,7 +24,7 @@ DATASET_PATH = r"D:\data2020" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Deskto
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_0"
+WANDB_RUN_ID = "SAC_tm20_test_2"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
