@@ -52,7 +52,7 @@ Time-steps are being elastically constrained to their nominal duration. When thi
 ## Distant training architecture
 
 To train our model, we developped a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
-Our client-server architecture is not secured and it is nowhere close to compete with Ray, but it is much simpler to use and modify, and works on both Windows and Linux.
+Our client-server architecture is not secured and it is not meant to compete with Ray, but it is much simpler to use and modify, and works on both Windows and Linux.
 
 We collect training samples from several rollout workers, typically several computers and/or robots.
 Each rollout worker stores its collected samples in a local buffer, and periodically sends this replay buffer to the central server.
