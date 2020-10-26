@@ -2,9 +2,9 @@
 Python framework for Real-Time Reinforcement Learning, demonstrated on the Trackmania videogame.
 
 ## Quick links
-- [Getting started](#getting-started)
 - [Real-time Gym framework](#real-time-gym-framework)
 - [Distant training architecture](#distant-training-architecture)
+- [Tutorial: use the framework to implement you own custom tasks](#getting-started)
 
 ## Authors:
 ### Maintainers:
