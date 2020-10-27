@@ -12,7 +12,7 @@ def main(args):
     if args.server:
         RedisServer(samples_per_redis_batch=1000, localhost=cfg.LOCALHOST)
     elif args.worker or args.test:
-        rw = RolloutWorker(env_id="gym_real_time:gym-rt-v0",
+        rw = RolloutWorker(env_id="rtgym:real-time-gym-v0",
                            env_config=cfg.CONFIG_DICT,
                            actor_module_cls=partial(cfg.POLICY, act_in_obs=cfg.ACT_IN_OBS),
                            get_local_buffer_sample=cfg.SAMPLE_COMPRESSOR,
@@ -36,7 +36,7 @@ def main(args):
 def main_train(args):
     sac_tm = partial(
         TrainingOffline,
-        Env=partial(UntouchedGymEnv, id="gym_real_time:gym-rt-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
+        Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
         epochs=400,  # 10
         rounds=10,  # 50
         steps=1000,  # 2000

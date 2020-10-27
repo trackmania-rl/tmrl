@@ -1,26 +1,28 @@
-from agents.networking import *
 from agents import TrainingOffline, run_wandb_tm
 from agents.util import partial
 from agents.sac import Agent
 from agents.envs import UntouchedGymEnv
+import agents.custom.config as cfg
+import time
+from agents.networking import RedisServer, TrainerInterface, RolloutWorker
 
-rs = RedisServer(samples_per_redis_batch=5, localhost=LOCALHOST)
-
-time.sleep(3.0)
-print("STOPPED SLEEPING")
-
-interface = TrainerInterface(redis_ip=REDIS_IP, model_path=MODEL_PATH_TRAINER)
+rs = RedisServer(samples_per_redis_batch=5, localhost=cfg.LOCALHOST)
 
 time.sleep(3.0)
 print("STOPPED SLEEPING")
 
-rw = RolloutWorker(env_id="gym_real_time:gym-rt-v0",
-                   actor_module_cls=partial(POLICY, act_in_obs=ACT_IN_OBS),
-                   device='cuda' if PRAGMA_CUDA else 'cpu',
-                   redis_ip=REDIS_IP,
+interface = TrainerInterface(redis_ip=cfg.REDIS_IP, model_path=cfg.MODEL_PATH_TRAINER)
+
+time.sleep(3.0)
+print("STOPPED SLEEPING")
+
+rw = RolloutWorker(env_id="rtgym:real-time-gym-v0",
+                   actor_module_cls=partial(cfg.POLICY, act_in_obs=cfg.ACT_IN_OBS),
+                   device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
+                   redis_ip=cfg.REDIS_IP,
                    samples_per_worker_batch=5,
-                   model_path=MODEL_PATH_WORKER,
-                   obs_preprocessor=OBS_PREPROCESSOR)
+                   model_path=cfg.MODEL_PATH_WORKER,
+                   obs_preprocessor=cfg.OBS_PREPROCESSOR)
 
 time.sleep(3.0)
 print("STOPPED SLEEPING")
@@ -45,8 +47,8 @@ print("STOPPED SLEEPING")
 Sac_tm = partial(
     TrainingOffline,
     Env=partial(UntouchedGymEnv,
-                id="gym_real_time:gym-rt-v0",
-                gym_kwargs={"config": CONFIG_DICT}),
+                id="rtgym:real-time-gym-v0",
+                gym_kwargs={"config": cfg.CONFIG_DICT}),
     epochs=1,
     rounds=1,
     steps=1,
@@ -55,10 +57,10 @@ Sac_tm = partial(
     max_training_steps_per_env_step=1.0,
     Agent=partial(Agent,
                   OutputNorm=partial(beta=0., zero_debias=False),
-                  Memory=MEMORY,
-                  device='cuda' if PRAGMA_CUDA else 'cpu',
-                  Model=partial(TRAIN_MODEL,
-                                act_in_obs=ACT_IN_OBS),
+                  Memory=cfg.MEMORY,
+                  device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
+                  Model=partial(cfg.TRAIN_MODEL,
+                                act_in_obs=cfg.ACT_IN_OBS),
                   memory_size=500000,
                   batchsize=1,
                   lr=0.0003,  # default 0.0003

@@ -12,7 +12,7 @@ import struct
 from threading import Thread, Lock
 import pyvjoy
 
-from gym_real_time import GymRealTimeInterface
+from rtgym import RealTimeGymInterface
 
 from agents.custom.utils.tools import load_digits, get_speed, Lidar
 from agents.custom.utils.key_event import apply_control, keyres
@@ -79,7 +79,7 @@ class TM2020OpenPlanetClient:
         return data
 
 
-class TM2020Interface(GymRealTimeInterface):
+class TM2020Interface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control Trackmania2020
     """
@@ -166,7 +166,7 @@ class TM2020Interface(GymRealTimeInterface):
             self.initialize()
         self.send_control(self.get_default_action())
         keyres()
-        time.sleep(0.05)  # must be long enough for image to be refreshed
+        # time.sleep(0.05)  # must be long enough for image to be refreshed
         data, img = self.grab_data_and_img()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
@@ -238,7 +238,7 @@ class TM2020InterfaceLidar(TM2020Interface):
             self.initialize()
         self.send_control(self.get_default_action())
         keyres()
-        time.sleep(0.05)  # must be long enough for image to be refreshed
+        # time.sleep(0.05)  # must be long enough for image to be refreshed
         img, speed, data = self.grab_lidar_speed_and_data()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
@@ -273,7 +273,7 @@ class TM2020InterfaceLidar(TM2020Interface):
 
 # Interface for Trackmania Nations Forever: ============================================================================
 
-class TMInterface(GymRealTimeInterface):
+class TMInterface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control Trackmania Nations Forever
     """
@@ -322,7 +322,7 @@ class TMInterface(GymRealTimeInterface):
         """
         self.send_control(self.get_default_action())
         keyres()
-        time.sleep(0.05)  # must be long enough for image to be refreshed
+        # time.sleep(0.05)  # must be long enough for image to be refreshed
         img, speed = self.grab_img_and_speed()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
@@ -389,7 +389,7 @@ class TMInterfaceLidar(TMInterface):
         """
         self.send_control(self.get_default_action())
         keyres()
-        time.sleep(0.05)  # must be long enough for image to be refreshed
+        # time.sleep(0.05)  # must be long enough for image to be refreshed
         img, speed = self.grab_lidar_and_speed()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)

@@ -11,7 +11,7 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 # HIGH-LEVEL PRAGMAS: ==========================================
 
 PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann  # TODO: remove for release
-PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
+PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA = False  # True if CUDA, False if CPU
 
@@ -24,7 +24,7 @@ DATASET_PATH = r"D:\data2020" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Deskto
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_2"
+WANDB_RUN_ID = "SAC_tmnf_test"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release

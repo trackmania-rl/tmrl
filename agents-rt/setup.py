@@ -16,6 +16,7 @@ install_req = [
     'imageio-ffmpeg',
     'pandas',
     'gym',
+    'rtgym',
     'pyyaml',
     'wandb',
     'requests',
