@@ -24,11 +24,13 @@ def get_local_buffer_sample(prev_act, obs, rew, done, info):
 
 # MEMORY DATALOADING ===========================================
 
+# TODO: add info dicts everywhere for CRC debugging
+
 class MemoryTMNF(MemoryDataloading):
-    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None, sample_preprocessor: callable = None):
+    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None, sample_preprocessor: callable = None, crc_debug=False):
         self.imgs_obs = imgs_obs
         self.act_in_obs = act_in_obs
-        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor)
+        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
 
     def append(self, buffer):
         return self
@@ -69,6 +71,7 @@ class MemoryTMNFLidar(MemoryTMNF):
             i.e. in a sample, the observation is what step returned after being fed act
             therefore, in the RTRL setting, act is appended to obs
         So we load 5 images from here...
+        Don't forget the info dict for CRC debugging
         """
         # print(f"DEBUG: getitem ---")
         idx_last = item + self.imgs_obs-1
@@ -86,8 +89,10 @@ class MemoryTMNFLidar(MemoryTMNF):
         # print(f"DEBUG WARNING!!!: new_act:{new_act}")
         new_obs = (self.data[2][idx_now], imgs[1:], new_act) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
         # print(f"DEBUG: new_obs:{new_obs}")
-        done = np.float32(self.data[4][idx_now])
-        return last_obs, new_act, rew, new_obs, done
+        # done = np.float32(self.data[4][idx_now])
+        done = self.data[4][idx_now]
+        info = self.data[6][idx_now]
+        return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):
         res = []
@@ -99,7 +104,8 @@ class MemoryTMNFLidar(MemoryTMNF):
 
     def append(self, buffer):
         """
-        buffer is a list of (obs, act, rew, done, info)
+        buffer is a list of samples (obs, act, rew, done, info)
+        don't forget to keep the info dictionary in the sample for CRC debugging
         """
         # print(f"DEBUG: appending buffer to replay memory")
         # print(f"DEBUG: len(self.data):{len(self.data)}, len(buffer):{len(buffer)}")
@@ -121,6 +127,7 @@ class MemoryTMNFLidar(MemoryTMNF):
             d3 = [b[1][1] for b in buffer.memory]  # images
             d4 = [b[3] for b in buffer.memory]  # dones
             d5 = [b[2] for b in buffer.memory]  # rewards
+            d6 = [b[4] for b in buffer.memory]  # infos
 
             if self.__len__() > 0:
                 self.data[0] += d0
@@ -129,6 +136,7 @@ class MemoryTMNFLidar(MemoryTMNF):
                 self.data[3] += d3
                 self.data[4] += d4
                 self.data[5] += d5
+                self.data[6] += d6
             else:
                 self.data.append(d0)
                 self.data.append(d1)
@@ -136,6 +144,7 @@ class MemoryTMNFLidar(MemoryTMNF):
                 self.data.append(d3)
                 self.data.append(d4)
                 self.data.append(d5)
+                self.data.append(d6)
 
             to_trim = self.__len__() - self.memory_size
             if to_trim > 0:
@@ -146,6 +155,7 @@ class MemoryTMNFLidar(MemoryTMNF):
                 self.data[3] = self.data[3][to_trim:]
                 self.data[4] = self.data[4][to_trim:]
                 self.data[5] = self.data[5][to_trim:]
+                self.data[6] = self.data[6][to_trim:]
 
             self.stat_train_return = buffer.stat_train_return
             self.stat_test_return = buffer.stat_test_return

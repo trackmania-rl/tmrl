@@ -8,6 +8,7 @@ import numpy as np
 from requests import get
 import socket
 import os
+import zlib
 
 from agents.sac_models import ActorModule
 from agents.envs import UntouchedGymEnv
@@ -533,7 +534,8 @@ class RolloutWorker:
                  redis_ip=None,
                  samples_per_worker_batch=1000,
                  model_path=cfg.MODEL_PATH_WORKER,
-                 obs_preprocessor: callable = None
+                 obs_preprocessor: callable = None,
+                 crc_debug=False,
                  ):
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = get_local_buffer_sample
@@ -551,6 +553,7 @@ class RolloutWorker:
         self.__weights = None
         self.__weights_lock = Lock()
         self.samples_per_worker_batch = samples_per_worker_batch
+        self.crc_debug = crc_debug
 
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
@@ -628,8 +631,13 @@ class RolloutWorker:
     def reset(self, train, collect_samples):
         act = self.env.default_action.astype(np.float32)
         obs = self.env.reset()
+        rew = 0.0
+        done = False
+        info = {}
         if collect_samples:
-            sample = self.get_local_buffer_sample(act, obs, 0.0, False, {})
+            if self.crc_debug:
+                info['crc_sample'] = (act, obs, rew, done)
+            sample = self.get_local_buffer_sample(act, obs, rew, done, info)
             self.buffer.append_sample(sample)
         return obs
 
@@ -637,6 +645,8 @@ class RolloutWorker:
         act = self.act(obs, train=train)
         obs, rew, done, info = self.env.step(act)
         if collect_samples:
+            if self.crc_debug:
+                info['crc_sample'] = (act, obs, rew, done)
             sample = self.get_local_buffer_sample(act, obs, rew, done, info)
             self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return obs, rew, done, info
@@ -684,6 +694,8 @@ class RolloutWorker:
             print("INFO: checking for new weights")
             self.update_actor_weights()
             episode += 1
+            if cfg.CRC_DEBUG:
+                break
 
     def send_and_clear_buffer(self):
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................

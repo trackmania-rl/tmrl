@@ -10,7 +10,8 @@ import time
 
 def main(args):
     if args.server:
-        RedisServer(samples_per_redis_batch=1000, localhost=cfg.LOCALHOST)
+        RedisServer(samples_per_redis_batch=1000 if not cfg.CRC_DEBUG else 2,
+                    localhost=cfg.LOCALHOST)
     elif args.worker or args.test:
         rw = RolloutWorker(env_id="rtgym:real-time-gym-v0",
                            env_config=cfg.CONFIG_DICT,
@@ -18,9 +19,10 @@ def main(args):
                            get_local_buffer_sample=cfg.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
                            redis_ip=cfg.REDIS_IP,
-                           samples_per_worker_batch=1000,
+                           samples_per_worker_batch=1000 if not cfg.CRC_DEBUG else 2,
                            model_path=cfg.MODEL_PATH_WORKER,
-                           obs_preprocessor=cfg.OBS_PREPROCESSOR)
+                           obs_preprocessor=cfg.OBS_PREPROCESSOR,
+                           crc_debug=cfg.CRC_DEBUG)
         if args.worker:
             rw.run()
         else:

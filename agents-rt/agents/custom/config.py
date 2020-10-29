@@ -14,6 +14,7 @@ PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann  # TODO: remove fo
 PRAGMA_TM2020_TMNF = False  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA = False  # True if CUDA, False if CPU
+CRC_DEBUG = True  # Only for checking the consistency of the custom networking methods, set it to False otherwise
 
 # FILE SYSTEM: =================================================
 
@@ -70,7 +71,8 @@ MEMORY = partial(MEM,
                  imgs_obs=1 if PRAGMA_LIDAR else 4,
                  act_in_obs=ACT_IN_OBS,
                  obs_preprocessor=OBS_PREPROCESSOR,
-                 sample_preprocessor=SAMPLE_PREPROCESSOR
+                 sample_preprocessor=SAMPLE_PREPROCESSOR,
+                 crc_debug=CRC_DEBUG
                  )
 
 # NETWORKING: ==================================================

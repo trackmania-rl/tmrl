@@ -27,7 +27,9 @@ install_req = [
     'scikit-image',
     'inputs',
     'keyboard',
-    'pyvjoy']
+    'pyvjoy',
+    'zlib',
+]
 
 if platform.system() == "Windows":
     install_req.append('pypiwin32')

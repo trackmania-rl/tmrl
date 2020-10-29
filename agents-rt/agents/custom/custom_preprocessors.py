@@ -24,6 +24,7 @@ def obs_preprocessor_tm_lidar_act_in_obs(obs):
 # SAMPLE PREPROCESSING =======================================
 # these can be called when sampling from the replay memory, on the whole sample after observation preprocesing
 # this is useful in particular for data augmentation
+# be careful whatever you do here is consistent, because consistency after this will NOT be checked by CRC
 
 def sample_preprocessor_tm_lidar_act_in_obs(last_obs, act, rew, new_obs, done):
     return last_obs, act, rew, new_obs, done

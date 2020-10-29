@@ -10,6 +10,8 @@ from inputs import get_gamepad
 import gym
 import keyboard
 
+# TODO: add info dicts everywhere for CRC debugging
+
 KEY_START_RECORD = 'e'
 KEY_STOP_RECORD = 't'
 KEY_FORWARD = 'up'
