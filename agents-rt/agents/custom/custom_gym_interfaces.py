@@ -18,12 +18,12 @@ from agents.custom.utils.tools import load_digits, get_speed, Lidar
 from agents.custom.utils.key_event import apply_control, keyres
 from agents.custom.utils.gamepad_event import control_all
 from agents.custom.utils.compute_reward import RewardFunction
+import agents.custom.config as cfg
 
 # from pynput.keyboard import Key, Controller
 
 # Globals ==============================================================================================================
 
-REWARD_PATH = r"D:\data2020reward\reward_mod.pkl"
 NB_OBS_FORWARD = 500  # if reward is collected at 100Hz, this allows (and rewards) 5s cuts
 
 
@@ -123,7 +123,7 @@ class TM2020Interface(RealTimeGymInterface):
         self.digits = load_digits()
         self.img_hist = deque(maxlen=self.img_hist_len)
         self.img = None
-        self.reward_function = RewardFunction(reward_data_path=REWARD_PATH, nb_obs_forward=NB_OBS_FORWARD)
+        self.reward_function = RewardFunction(reward_data_path=cfg.REWARD_PATH, nb_obs_forward=NB_OBS_FORWARD)
         self.client = TM2020OpenPlanetClient()
         self.initialized = True
 

@@ -91,7 +91,12 @@ class MemoryTMNFLidar(MemoryTMNF):
         # print(f"DEBUG: new_obs:{new_obs}")
         # done = np.float32(self.data[4][idx_now])
         done = self.data[4][idx_now]
-        info = self.data[6][idx_now]
+        if self.crc_debug:
+            info = self.data[6][idx_now]
+            prev_info = self.data[6][idx_last]
+            info['prev_crc_sample'] = prev_info['crc_sample']
+        else:
+            info = {}
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):
