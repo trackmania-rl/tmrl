@@ -29,6 +29,7 @@ install_req = [
     'keyboard',
     'pyvjoy',
     'zlib',
+    'pyautogui',
 ]
 
 if platform.system() == "Windows":

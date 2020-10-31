@@ -55,7 +55,7 @@ def main_train(args):
                       lr=0.0003,  # default 0.0003
                       discount=0.995,  # default and best tmnf so far: 0.99
                       target_update=0.005,
-                      reward_scale=1.0,  # default: 5.0, best tmnf so far: 0.1
+                      reward_scale=2.0,  # default: 5.0, best tmnf so far: 0.1
                       entropy_scale=1.0),  # default: 1.0
     )
 

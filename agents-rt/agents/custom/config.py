@@ -14,7 +14,7 @@ PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann  # TODO: remove fo
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA = False  # True if CUDA, False if CPU
-CRC_DEBUG = True  # Only for checking the consistency of the custom networking methods, set it to False otherwise
+CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise
 
 # FILE SYSTEM: =================================================
 
@@ -26,7 +26,7 @@ REWARD_PATH = r"D:\data2020reward\reward_mod.pkl" if PRAGMA_EDOUARD_YANN else r"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tmnf_test"
+WANDB_RUN_ID = "SAC_tm20_test_yann_02"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
@@ -54,6 +54,7 @@ CONFIG_DICT = {
     "async_threading": True,
     "act_in_obs": ACT_IN_OBS,
     "benchmark": BENCHMARK,
+    "wait_on_done": True
 }
 
 # to compress a sample before sending it over the local network/Internet:

@@ -8,6 +8,18 @@ import numpy as np
 from agents.util import collate
 
 
+def check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done):
+    assert pickle.dumps(po) == pickle.dumps(prev_obs), f"previous observations don't match: {po} != {prev_obs}"
+    assert pickle.dumps(a) == pickle.dumps(new_act), f"actions don't match: {a} != {new_act}"
+    assert pickle.dumps(o) == pickle.dumps(new_obs), f"observations don't match: {o} != {new_obs}"
+    assert pickle.dumps(r) == pickle.dumps(rew), f"rewards don't match: {r} != {rew}"
+    assert pickle.dumps(d) == pickle.dumps(done), f"dones don't match: {d} != {done}"
+    test_crc = zlib.crc32(pickle.dumps((a, o, r, d)))
+    crc = zlib.crc32(pickle.dumps((new_act, new_obs, rew, done)))
+    assert crc == test_crc, f"CRC failed: new crc:{crc} != old crc:{test_crc}. Either the custom pipeline is corrupted, or crc_debug is False in the rollout worker."
+    print("DEBUG: CRC check passed.")
+
+
 class MemoryDataloading:
     def __init__(self, memory_size, batchsize, device, path_loc, remove_size=100, obs_preprocessor: callable = None, sample_preprocessor: callable = None, crc_debug=False):
         self.device = device
@@ -21,6 +33,8 @@ class MemoryDataloading:
         # These stats are here because they reach the trainer along with the buffer:
         self.stat_test_return = 0.0
         self.stat_train_return = 0.0
+        self.stat_test_steps = 0
+        self.stat_train_steps = 0
 
         # init memory
         self.path = Path(path_loc)
@@ -37,9 +51,9 @@ class MemoryDataloading:
             # TODO: crop to memory_size
             print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
-    def append(self, buffer):
+    def append_buffer(self, buffer):
         """
-        Careful you don't forget to append the info dictionary for using CRC debugging.
+        CAUTION: don't forget to append the info dictionary if you want to use CRC debugging.
         """
         raise NotImplementedError
 
@@ -54,19 +68,19 @@ class MemoryDataloading:
         """
         raise NotImplementedError
 
+    def append(self, buffer):
+        if len(buffer) > 0:
+            self.stat_train_return = buffer.stat_train_return
+            self.stat_test_return = buffer.stat_test_return
+            self.stat_train_steps = buffer.stat_train_steps
+            self.stat_test_steps = buffer.stat_test_steps
+            self.append_buffer(buffer)
+
     def __getitem__(self, item):
         prev_obs, new_act, rew, new_obs, done, info = self.get_transition(item)
         if self.crc_debug:
-            crc = zlib.crc32(pickle.dumps((new_act, new_obs, rew, done)))
-            a, o, r, d = info['crc_sample']
-            _, lo, _, _, = info['prev_crc_sample']
-            assert pickle.dumps(lo) == pickle.dumps(prev_obs), f"previous observations don't match: {lo} != {prev_obs}"
-            assert pickle.dumps(a) == pickle.dumps(new_act), f"actions don't match: {a} != {new_act}"
-            assert pickle.dumps(o) == pickle.dumps(new_obs), f"observations don't match: {o} != {new_obs}"
-            assert pickle.dumps(r) == pickle.dumps(rew), f"rewards don't match: {r} != {rew}"
-            assert pickle.dumps(d) == pickle.dumps(done), f"dones don't match: {d} != {done}"
-            test_crc = zlib.crc32(pickle.dumps((a, o, r, d)))
-            assert crc == test_crc, f"CRC failed: new crc:{crc} != old crc:{info['crc']}. Either the custom pipeline is corrupted, or crc_debug is False in the rollout worker."
+            po, a, o, r, d = info['crc_sample']
+            check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done)
         if self.obs_preprocessor is not None:
             prev_obs = self.obs_preprocessor(prev_obs)
             new_obs = self.obs_preprocessor(new_obs)

@@ -238,6 +238,8 @@ class Buffer:
         self.memory = []
         self.stat_train_return = 0.0
         self.stat_test_return = 0.0
+        self.stat_train_steps = 0
+        self.stat_test_steps = 0
 
     def append_sample(self, sample):
         self.memory.append(sample)
@@ -255,6 +257,8 @@ class Buffer:
         self.memory += other.memory
         self.stat_train_return = other.stat_train_return
         self.stat_test_return = other.stat_test_return
+        self.stat_train_steps = other.stat_train_steps
+        self.stat_test_steps = other.stat_test_steps
         return self
 
 
@@ -629,27 +633,28 @@ class RolloutWorker:
         return action
 
     def reset(self, train, collect_samples):
+        obs = None
         act = self.env.default_action.astype(np.float32)
-        obs = self.env.reset()
+        new_obs = self.env.reset()
         rew = 0.0
         done = False
         info = {}
         if collect_samples:
             if self.crc_debug:
-                info['crc_sample'] = (act, obs, rew, done)
-            sample = self.get_local_buffer_sample(act, obs, rew, done, info)
+                info['crc_sample'] = (obs, act, new_obs, rew, done)
+            sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
             self.buffer.append_sample(sample)
-        return obs
+        return new_obs
 
     def step(self, obs, train, collect_samples):
         act = self.act(obs, train=train)
-        obs, rew, done, info = self.env.step(act)
+        new_obs, rew, done, info = self.env.step(act)
         if collect_samples:
             if self.crc_debug:
-                info['crc_sample'] = (act, obs, rew, done)
-            sample = self.get_local_buffer_sample(act, obs, rew, done, info)
+                info['crc_sample'] = (obs, act, new_obs, rew, done)
+            sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
             self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
-        return obs, rew, done, info
+        return new_obs, rew, done, info
 
     def collect_train_episode(self, max_samples):
         """
@@ -657,14 +662,16 @@ class RolloutWorker:
         stores episode and train return in the local buffer of the worker
         """
         ret = 0.0
+        steps = 0
         obs = self.reset(train=True, collect_samples=True)
         for _ in range(max_samples):
             obs, rew, done, info = self.step(obs=obs, train=True, collect_samples=True)
             ret += rew
+            steps += 1
             if done:
                 break
         self.buffer.stat_train_return = ret
-        print(f"DEBUG:self.buffer.stat_train_return:{self.buffer.stat_train_return}")
+        self.buffer.stat_train_steps = steps
 
     def run_test_episode(self, max_samples):
         """
@@ -672,14 +679,16 @@ class RolloutWorker:
         stores test return in the local buffer of the worker
         """
         ret = 0.0
+        steps = 0
         obs = self.reset(train=False, collect_samples=False)
         for _ in range(max_samples):
             obs, rew, done, info = self.step(obs=obs, train=False, collect_samples=False)
             ret += rew
+            steps += 1
             if done:
                 break
         self.buffer.stat_test_return = ret
-        print(f"DEBUG:self.buffer.stat_test_return:{self.buffer.stat_test_return}")
+        self.buffer.stat_test_steps = steps
 
     def run(self, test_episode_interval=20):  # TODO: check number of collected samples are collected before sending
         episode = 0
@@ -699,7 +708,7 @@ class RolloutWorker:
 
     def send_and_clear_buffer(self):
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
-        self.__buffer = deepcopy(self.buffer)
+        self.__buffer += self.buffer
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
         self.buffer.clear()
 

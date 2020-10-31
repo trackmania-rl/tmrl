@@ -18,6 +18,7 @@ from agents.custom.utils.tools import load_digits, get_speed, Lidar
 from agents.custom.utils.key_event import apply_control, keyres
 from agents.custom.utils.gamepad_event import control_all
 from agents.custom.utils.compute_reward import RewardFunction
+from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
 import agents.custom.config as cfg
 
 # from pynput.keyboard import Key, Controller
@@ -181,6 +182,9 @@ class TM2020Interface(RealTimeGymInterface):
         The agent stays 'paused', waiting in position
         """
         self.send_control(self.get_default_action())
+        keyres()
+        time.sleep(0.5)
+        mouse_close_finish_pop_up_tm20()
 
     def get_obs_rew_done(self):
         """
@@ -259,6 +263,8 @@ class TM2020InterfaceLidar(TM2020Interface):
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         done = bool(data[8])
+        if done:
+            pass  # TODO: find a way to get rid of the annoying pop up
         # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
         return obs, rew, done  # if not self.record else data, rew, done
 

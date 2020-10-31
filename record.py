@@ -352,8 +352,8 @@ def record_reward_dist(path_reward=PATH_REWARD):
             is_recording = True
         if is_recording:
             data = client.retrieve_data()
-            positions.append([data[2], data[3], data[4]])
-            if keyboard.is_pressed('q'):
+            done = bool(data[8])
+            if keyboard.is_pressed('q') or done:
                 print("Smoothing, get fixed dist and saving pickle file...")
                 positions = np.array(positions)
                 print("position init ", len(positions))
@@ -381,6 +381,8 @@ def record_reward_dist(path_reward=PATH_REWARD):
                 pickle.dump(final_positions, open(path + "reward.pkl", "wb"))
                 print("All done")
                 return
+            else:
+                positions.append([data[2], data[3], data[4]])
 
 
 def line(pt1, pt2, dist):

@@ -70,6 +70,8 @@ class TrainingOffline:
                 stats_training_dict = self.agent.train()
                 stats_training_dict["return_test"] = self.agent.memory.stat_test_return
                 stats_training_dict["return_train"] = self.agent.memory.stat_train_return
+                stats_training_dict["episode_length_test"] = self.agent.memory.stat_test_steps
+                stats_training_dict["episode_length_train"] = self.agent.memory.stat_train_steps
                 stats_training += stats_training_dict,
                 self.total_updates += 1
                 if self.total_updates % self.update_model_interval == 0:

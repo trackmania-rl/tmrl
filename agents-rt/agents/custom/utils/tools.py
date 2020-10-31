@@ -115,8 +115,7 @@ class Lidar:
         res = np.array(distances, dtype=np.float32)
         if show:
             cv2.imshow("PipeLine", img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            cv2.waitKey(1)
         return res
 
 
