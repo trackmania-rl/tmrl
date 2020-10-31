@@ -28,7 +28,6 @@ install_req = [
     'inputs',
     'keyboard',
     'pyvjoy',
-    'zlib',
     'pyautogui',
 ]
 

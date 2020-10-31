@@ -95,9 +95,7 @@ def apply_control(action):  # move_fast
         ReleaseKey(D)
 
 
-def delete():
-    PressKey(BACKSPACE)
-    ReleaseKey(BACKSPACE)
+
 
 def keyres():
     PressKey(ENTER)

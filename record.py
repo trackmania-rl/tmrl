@@ -1,6 +1,7 @@
 from agents.custom.utils.tools import load_digits, get_speed
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 from agents.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar, TM2020OpenPlanetClient
+import agents.custom.config as cfg
 import numpy as np
 import mss
 import pickle
@@ -20,9 +21,10 @@ KEY_RIGHT = 'right'
 KEY_LEFT = 'left'
 KEY_RESET = 'r'
 
-PATH_REWARD = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/"
-PATH_DATASET = r"C:/Users/Yann/Desktop/git/tmrl/data/"  # r"D:/data2020/"
+# PATH_REWARD = r"D:\data2020reward # r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/"
+# PATH_DATASET = r"C:/Users/Yann/Desktop/git/tmrl/data/"  # r"D:/data2020/"
 
+PATH_REWARD = cfg.REWARD_PATH
 
 def record_tmnf_gamepad(path_dataset):
     """
@@ -378,7 +380,7 @@ def record_reward_dist(path_reward=PATH_REWARD):
                 final_positions = np.array(final_positions)
                 print("position fin ", len(final_positions))
 
-                pickle.dump(final_positions, open(path + "reward.pkl", "wb"))
+                pickle.dump(final_positions, open(path, "wb"))
                 print("All done")
                 return
             else:

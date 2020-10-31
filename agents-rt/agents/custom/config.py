@@ -10,7 +10,7 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN = False  # True if Edouard, False if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN = True  # True if Edouard, False if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA = False  # True if CUDA, False if CPU
@@ -22,7 +22,7 @@ MODEL_PATH_WORKER = r"D:\cp\weights\exp.pth" if PRAGMA_EDOUARD_YANN else r"C:\Us
 MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
 CHECKPOINT_PATH = r"D:\cp\exp0" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
 DATASET_PATH = r"D:\data2020" if PRAGMA_EDOUARD_YANN else r"C:\Users\Yann\Desktop\git\tmrl\data"
-REWARD_PATH = r"D:\data2020reward\reward_mod.pkl" if PRAGMA_EDOUARD_YANN else r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
+REWARD_PATH = r"D:\data2020reward\reward.pkl" if PRAGMA_EDOUARD_YANN else r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
