@@ -78,12 +78,7 @@ def send_object(sock, obj, ping=False, pong=False, ack=False):
         msg = bytes(f"{len(msg):<{cfg.HEADER_SIZE}}", 'utf-8') + msg
     try:
         nb_bytes = len(msg) - cfg.HEADER_SIZE
-        # if nb_bytes > 0:
-        #     print(f"DEBUG: sending object of {nb_bytes} bytes")
-        t_start = time.time()
         sock.sendall(msg)
-        # if nb_bytes > 0:
-        #     print(f"DEBUG: finished sending after {time.time() - t_start}s")
     except OSError:  # connection closed or broken
         return False
     return True
@@ -234,15 +229,23 @@ def poll_and_recv_or_close_socket(conn):
 # BUFFER: ===========================================
 
 class Buffer:
-    def __init__(self):
+    def __init__(self, maxlen=100000):
         self.memory = []
         self.stat_train_return = 0.0
         self.stat_test_return = 0.0
         self.stat_train_steps = 0
         self.stat_test_steps = 0
+        self.maxlen = maxlen
+
+    def clip_to_maxlen(self):
+        lenmem = len(self.memory)
+        if lenmem > self.maxlen:
+            print("INFO: buffer overflow. Discarding old samples.")
+            self.memory = self.memory[(lenmem - self.maxlen):]
 
     def append_sample(self, sample):
         self.memory.append(sample)
+        self.clip_to_maxlen()
 
     def clear(self):
         """
@@ -255,6 +258,7 @@ class Buffer:
 
     def __iadd__(self, other):
         self.memory += other.memory
+        self.clip_to_maxlen()
         self.stat_train_return = other.stat_train_return
         self.stat_test_return = other.stat_test_return
         self.stat_train_steps = other.stat_train_steps
@@ -278,6 +282,7 @@ class RedisServer:
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
         self.__weights = None
+        self.__weights_id = 0  # this increments each time new weights are received
         self.samples_per_redis_batch = samples_per_redis_batch
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
@@ -309,14 +314,6 @@ class RedisServer:
             # Here we could spawn a Trainer communication thread, but since there is only one trainer we move on
             i = 0
             while True:
-                # ping client
-                # if time.time() - last_ping >= PING_INTERVAL:
-                #     print("INFO: sending ping to trainer")
-                #     if ping_pong(conn):
-                #         last_ping = time.time()
-                #     else:
-                #         print("INFO: ping to trainer client failed")
-                #         break
                 # send samples
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 if len(self.__buffer) >= self.samples_per_redis_batch:
@@ -349,6 +346,7 @@ class RedisServer:
                     print(f"DEBUG INFO: trainer thread received obj")
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
+                    self.__weights_id += 1
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
                 elif obj == 'ACK':
                     wait_ack = False
@@ -377,20 +375,13 @@ class RedisServer:
         Thread handling connection to a single RolloutWorker
         """
         # last_ping = time.time()
+        worker_weights_id = 0
         ack_time = time.time()
         wait_ack = False
         while True:
-            # ping client
-            # if time.time() - last_ping >= PING_INTERVAL:
-            #     print("INFO: sending ping to worker")
-            #     if ping_pong(conn):
-            #         last_ping = time.time()
-            #     else:
-            #         print("INFO: ping to trainer client failed")
-            #         break
             # send weights
             self.__weights_lock.acquire()  # WEIGHTS LOCK...............................................................
-            if self.__weights is not None:  # new weigths
+            if worker_weights_id != self.__weights_id:  # new weigths
                 if not wait_ack:
                     obj = self.__weights
                     if select_and_send_or_close_socket(obj, conn):
@@ -400,10 +391,10 @@ class RedisServer:
                         self.__weights_lock.release()
                         print("DEBUG: select_and_send_or_close_socket failed in worker thread")
                         break
-                    self.__weights = None
+                    worker_weights_id = self.__weights_id
                 else:
                     elapsed = time.time() - ack_time
-                    print(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                    print(f"INFO: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                     if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_WORKER:
                         print("INFO: ACK timed-out, breaking connection")
                         self.__weights_lock.release()
@@ -431,7 +422,7 @@ class RedisServer:
 class TrainerInterface:
     """
     This is the trainer's network interface
-    This connects to the redis server
+    This connects to the server
     This receives samples batches and sends new weights
     """
     def __init__(self,
@@ -531,8 +522,6 @@ class RolloutWorker:
                  env_id,
                  env_config,
                  actor_module_cls,
-                 # obs_space,
-                 # act_space,
                  get_local_buffer_sample: callable,
                  device="cpu",
                  redis_ip=None,
@@ -548,9 +537,9 @@ class RolloutWorker:
         act_space = self.env.action_space
         self.model_path = model_path
         self.actor = actor_module_cls(obs_space, act_space).to(device)
-        if os.path.isfile(self.model_path):
-            self.actor.load_state_dict(torch.load(self.model_path))
         self.device = device
+        if os.path.isfile(self.model_path):
+            self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
         self.buffer = Buffer()
         self.__buffer = Buffer()  # deepcopy for sending
         self.__buffer_lock = Lock()
@@ -720,7 +709,7 @@ class RolloutWorker:
         if self.__weights is not None:  # new weights available
             with open(self.model_path, 'wb') as f:  # FIXME: check that this deletes the old file
                 f.write(self.__weights)
-            self.actor.load_state_dict(torch.load(self.model_path))
+            self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
             print("INFO: model weights have been updated")
             self.__weights = None
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
