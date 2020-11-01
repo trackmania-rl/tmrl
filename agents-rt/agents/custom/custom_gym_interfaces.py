@@ -10,7 +10,7 @@ from collections import deque
 import socket
 import struct
 from threading import Thread, Lock
-import pyvjoy
+# import pyvjoy  # CAUTION: not compatible with Linux
 
 from rtgym import RealTimeGymInterface
 
@@ -101,21 +101,22 @@ class TM2020Interface(RealTimeGymInterface):
         self.gamepad = gamepad
         self.j = None
         if self.gamepad:
-            self.j = pyvjoy.VJoyDevice(1)
-            print("DEBUG: virtual joystick in use")
-            import signal
-            import sys
-
-            def signal_handler(sig, frame):
-
-                self.j.reset()
-                self.j.reset_buttons()
-                self.j.reset_povs()
-                control_all([0.0, 0.0, 0.0], self.j)
-                print('You pressed Ctrl+C!')
-                sys.exit(0)
-
-            signal.signal(signal.SIGINT, signal_handler)
+            pass
+        #     self.j = pyvjoy.VJoyDevice(1)
+        #     print("DEBUG: virtual joystick in use")
+        #     import signal
+        #     import sys
+        #
+        #     def signal_handler(sig, frame):
+        #
+        #         self.j.reset()
+        #         self.j.reset_buttons()
+        #         self.j.reset_povs()
+        #         control_all([0.0, 0.0, 0.0], self.j)
+        #         print('You pressed Ctrl+C!')
+        #         sys.exit(0)
+        #
+        #     signal.signal(signal.SIGINT, signal_handler)
         self.initialized = False
 
     def initialize(self):
@@ -137,8 +138,9 @@ class TM2020Interface(RealTimeGymInterface):
             control: np.array: [forward,backward,right,left]
         """
         if self.gamepad:
-            if control is not None:
-                control_all(control, self.j)
+            pass
+        #     if control is not None:
+        #         control_all(control, self.j)
         else:
             if control is not None:
                 actions = []

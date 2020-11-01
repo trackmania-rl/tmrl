@@ -1,4 +1,3 @@
-import pyvjoy
 import numpy as np
 
 MAX_VJOY = 32768
