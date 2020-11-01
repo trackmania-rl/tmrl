@@ -1,5 +1,7 @@
-# This is an environment for Trackmania
+ # This is an environment for Trackmania
 # http://www.flint.jp/misc/?q=dik&lang=en  key indicator
+
+import agents.custom.config as cfg
 
 import gym.spaces as spaces
 import numpy as np
@@ -14,12 +16,19 @@ from threading import Thread, Lock
 
 from rtgym import RealTimeGymInterface
 
-from agents.custom.utils.tools import load_digits, get_speed, Lidar
-from agents.custom.utils.key_event import apply_control, keyres
-from agents.custom.utils.gamepad_event import control_all
-from agents.custom.utils.compute_reward import RewardFunction
-from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
-import agents.custom.config as cfg
+if cfg.SYSTEM == "Windows":
+    from agents.custom.utils.key_event import apply_control, keyres
+    from agents.custom.utils.tools import load_digits, get_speed, Lidar
+    from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
+    from agents.custom.utils.compute_reward import RewardFunction
+else:
+    apply_control, keyres = None, None
+    load_digits, get_speed, Lidar = None, None, None
+    mouse_close_finish_pop_up_tm20 = None
+    RewardFunction = None
+
+# from agents.custom.utils.gamepad_event import control_all
+
 
 # from pynput.keyboard import Key, Controller
 
@@ -101,7 +110,7 @@ class TM2020Interface(RealTimeGymInterface):
         self.gamepad = gamepad
         self.j = None
         if self.gamepad:
-            pass
+            import pyvjoy
         #     self.j = pyvjoy.VJoyDevice(1)
         #     print("DEBUG: virtual joystick in use")
         #     import signal

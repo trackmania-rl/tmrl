@@ -6,7 +6,12 @@ from agents.custom.custom_models import Tm_hybrid_1, TMPolicy
 from agents.custom.custom_gym_interfaces import TM2020InterfaceLidar, TMInterfaceLidar, TM2020Interface, TMInterface
 from agents.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, sample_preprocessor_tm_lidar_act_in_obs
 from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020
+import platform
 
+
+# OS:
+
+SYSTEM = platform.system()
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
