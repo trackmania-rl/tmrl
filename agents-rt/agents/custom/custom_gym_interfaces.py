@@ -1,8 +1,6 @@
  # This is an environment for Trackmania
 # http://www.flint.jp/misc/?q=dik&lang=en  key indicator
 
-import agents.custom.config as cfg
-
 import gym.spaces as spaces
 import numpy as np
 import time
@@ -13,10 +11,11 @@ import socket
 import struct
 from threading import Thread, Lock
 # import pyvjoy  # CAUTION: not compatible with Linux
+import platform
 
 from rtgym import RealTimeGymInterface
 
-if cfg.SYSTEM == "Windows":
+if platform.system() == "Windows":
     from agents.custom.utils.key_event import apply_control, keyres
     from agents.custom.utils.tools import load_digits, get_speed, Lidar
     from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
@@ -26,6 +25,8 @@ else:
     load_digits, get_speed, Lidar = None, None, None
     mouse_close_finish_pop_up_tm20 = None
     RewardFunction = None
+
+import agents.custom.config as cfg
 
 # from agents.custom.utils.gamepad_event import control_all
 
