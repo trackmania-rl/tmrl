@@ -9,6 +9,7 @@ if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
 
 
+
 install_req = [
     'numpy',
     'torch',
@@ -31,8 +32,13 @@ install_req = [
     'pyautogui',
 ]
 
+# if platform.system() == "Linux":
+#     install_req.append('scikit-build')
+
 if platform.system() == "Windows":
     install_req.append('pypiwin32')
+
+
 
 
 setup(
