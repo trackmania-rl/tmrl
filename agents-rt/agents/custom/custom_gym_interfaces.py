@@ -1,4 +1,4 @@
- # This is an environment for Trackmania
+# This is an environment for Trackmania
 # http://www.flint.jp/misc/?q=dik&lang=en  key indicator
 
 import gym.spaces as spaces
@@ -11,20 +11,13 @@ import socket
 import struct
 from threading import Thread, Lock
 # import pyvjoy  # CAUTION: not compatible with Linux
-import platform
 
 from rtgym import RealTimeGymInterface
 
-if platform.system() == "Windows":
-    from agents.custom.utils.key_event import apply_control, keyres
-    from agents.custom.utils.tools import load_digits, get_speed, Lidar
-    from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
-    from agents.custom.utils.compute_reward import RewardFunction
-else:
-    apply_control, keyres = None, None
-    load_digits, get_speed, Lidar = None, None, None
-    mouse_close_finish_pop_up_tm20 = None
-    RewardFunction = None
+from agents.custom.utils.key_event import apply_control, keyres
+from agents.custom.utils.tools import load_digits, get_speed, Lidar
+from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
+from agents.custom.utils.compute_reward import RewardFunction
 
 import agents.custom.config as cfg
 
@@ -111,7 +104,7 @@ class TM2020Interface(RealTimeGymInterface):
         self.gamepad = gamepad
         self.j = None
         if self.gamepad:
-            import pyvjoy
+            pass
         #     self.j = pyvjoy.VJoyDevice(1)
         #     print("DEBUG: virtual joystick in use")
         #     import signal

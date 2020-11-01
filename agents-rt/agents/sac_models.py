@@ -1,11 +1,17 @@
 from dataclasses import InitVar, dataclass
 import torch
-import math
 import numpy as np
 from agents.util import collate, partition
 from agents.nn import TanhNormalLayer, SacLinear
 from torch.nn import Linear, Sequential, ReLU, ModuleList, Module
 import gym
+
+from functools import reduce  # Required in Python 3
+import operator
+
+
+def prod(iterable):
+    return reduce(operator.mul, iterable, 1)
 
 
 class ActorModule(Module):
@@ -35,7 +41,7 @@ class ActorModule(Module):
 
 class MlpActionValue(Sequential):
     def __init__(self, obs_space, act_space, hidden_units):
-        dim_obs = sum(math.prod(s for s in space.shape) for space in obs_space)
+        dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
         dim_act = act_space.shape[0]
         super().__init__(
             SacLinear(dim_obs + dim_act, hidden_units), ReLU(),
@@ -51,7 +57,7 @@ class MlpActionValue(Sequential):
 
 class MlpPolicy(Sequential):
     def __init__(self, obs_space, act_space, hidden_units=256, act_in_obs=False):
-        dim_obs = sum(math.prod(s for s in space.shape) for space in obs_space)
+        dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
         dim_act = act_space.shape[0]
         super().__init__(
             SacLinear(dim_obs, hidden_units), ReLU(),
