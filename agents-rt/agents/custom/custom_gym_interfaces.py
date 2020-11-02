@@ -7,15 +7,12 @@ import time
 import cv2
 import mss
 from collections import deque
-import socket
-import struct
-from threading import Thread, Lock
 # import pyvjoy  # CAUTION: not compatible with Linux
 
 from rtgym import RealTimeGymInterface
 
 from agents.custom.utils.key_event import apply_control, keyres
-from agents.custom.utils.tools import load_digits, get_speed, Lidar
+from agents.custom.utils.tools import load_digits, get_speed, Lidar, TM2020OpenPlanetClient
 from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
 from agents.custom.utils.compute_reward import RewardFunction
 
@@ -33,56 +30,6 @@ NB_OBS_FORWARD = 500  # if reward is collected at 100Hz, this allows (and reward
 
 # Interface for Trackmania 2020 ========================================================================================
 
-class TM2020OpenPlanetClient:
-    def __init__(self,
-                 host='127.0.0.1',
-                 port=9000):
-        self._host = host
-        self._port = port
-
-        # Threading attributes:
-        self.__lock = Lock()
-        self.__data = None
-        self.__t_client = Thread(target=self.__client_thread, args=(), kwargs={}, daemon=True)
-        self.__t_client.start()
-
-    def __client_thread(self):
-        """
-        Thread of the client.
-        This listens for incoming data until the object is destroyed
-        TODO: handle disconnection
-        """
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((self._host, self._port))
-            data_raw = b''
-            while True:  # main loop
-                while len(data_raw) < 36:
-                    data_raw += s.recv(1024)
-                div = len(data_raw) // 36
-                data_used = data_raw[(div - 1) * 36:div * 36]
-                data_raw = data_raw[div * 36:]
-                self.__lock.acquire()
-                self.__data = data_used
-                self.__lock.release()
-
-    def retrieve_data(self, sleep_if_empty=0.1):
-        """
-        Retrieves the most recently received data
-        Use this function to retrieve the most recently received data
-        If block if nothing has been received so far
-        """
-        c = True
-        while c:
-            self.__lock.acquire()
-            if self.__data is not None:
-                data = struct.unpack('<fffffffff', self.__data)
-                c = False
-            self.__lock.release()
-            if c:
-                time.sleep(sleep_if_empty)
-        return data
-
-
 class TM2020Interface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control Trackmania2020
@@ -92,7 +39,7 @@ class TM2020Interface(RealTimeGymInterface):
         """
         Args:
         """
-        self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
+        self.monitor = {"top": 32, "left": 1, "width": 256, "height": 127}
         self.sct = None
         self.last_time = None
         self.digits = None
@@ -159,8 +106,8 @@ class TM2020Interface(RealTimeGymInterface):
 
     def grab_data_and_img(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
+        img = np.moveaxis(img, -1, 0)
         data = self.client.retrieve_data()
-        img = cv2.resize(img, (191, 98))
         self.img = img  # for render()
         return data, img
 
@@ -174,10 +121,13 @@ class TM2020Interface(RealTimeGymInterface):
         keyres()
         # time.sleep(0.05)  # must be long enough for image to be refreshed
         data, img = self.grab_data_and_img()
+        speed = np.array([data[0], ], dtype='float32')
+        gear = np.array([data[9], ], dtype='float32')
+        rpm = np.array([data[10], ], dtype='float32')
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
         imgs = np.array(list(self.img_hist))
-        obs = [data, imgs]
+        obs = [speed, gear, rpm, imgs]
         self.reward_function.reset()
         return obs
 
@@ -189,7 +139,7 @@ class TM2020Interface(RealTimeGymInterface):
         self.send_control(self.get_default_action())
         keyres()
         time.sleep(0.5)
-        mouse_close_finish_pop_up_tm20()
+        mouse_close_finish_pop_up_tm20(small_window=True)
 
     def get_obs_rew_done(self):
         """
@@ -197,12 +147,15 @@ class TM2020Interface(RealTimeGymInterface):
         obs must be a list of numpy arrays
         """
         data, img = self.grab_data_and_img()
+        speed = np.array([data[0], ], dtype='float32')
+        gear = np.array([data[9], ], dtype='float32')
+        rpm = np.array([data[10], ], dtype='float32')
         rew = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
         rew = np.float32(rew)
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist))
-        obs = [data, imgs]
-        done = bool(data[8])  # FIXME: check that this works
+        obs = [speed, gear, rpm, imgs]
+        done = bool(data[8])
         return obs, rew, done
 
     def get_observation_space(self):
@@ -210,8 +163,10 @@ class TM2020Interface(RealTimeGymInterface):
         must be a Tuple
         """
         speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 3, 48, 191))  # because the dataloader crops imgs
-        return spaces.Tuple((speed, img))
+        gear = spaces.Box(low=0.0, high=6, shape=(1,))
+        rpm = spaces.Box(low=0.0, high=np.inf, shape=(1,))
+        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 3, 127, 256))
+        return spaces.Tuple((speed, gear, rpm, img))
 
     def get_action_space(self):
         """
@@ -229,6 +184,7 @@ class TM2020Interface(RealTimeGymInterface):
 class TM2020InterfaceLidar(TM2020Interface):
     def __init__(self, img_hist_len=1, gamepad=False, road_point=(440, 479), record=False):
         super().__init__(img_hist_len, gamepad)
+        self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
         self.lidar = Lidar(monitor=self.monitor, road_point=road_point)
         self.record = record
 
@@ -256,6 +212,16 @@ class TM2020InterfaceLidar(TM2020Interface):
         self.reward_function.reset()
         return obs  # if not self.record else data
 
+    def wait(self):
+        """
+        Non-blocking function
+        The agent stays 'paused', waiting in position
+        """
+        self.send_control(self.get_default_action())
+        keyres()
+        time.sleep(0.5)
+        mouse_close_finish_pop_up_tm20(small_window=False)
+
     def get_obs_rew_done(self):
         """
         returns the observation, the reward, and a done signal for end of episode
@@ -268,9 +234,6 @@ class TM2020InterfaceLidar(TM2020Interface):
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         done = bool(data[8])
-        if done:
-            pass  # TODO: find a way to get rid of the annoying pop up
-        # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
         return obs, rew, done  # if not self.record else data, rew, done
 
     def get_observation_space(self):

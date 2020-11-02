@@ -61,6 +61,8 @@ void Main()
 			else send_data_float(sock, 0.0f);
 			if(race_state == ESGamePlaygroundUIConfig__EUISequence::Finish) send_data_float(sock, 1.0f);
 			else send_data_float(sock, 0.0f);
+			send_data_float(sock, api.EngineCurGear);
+			send_data_float(sock, api.EngineRpm);
 			
 			// send_data_float(sock,race.Finished);
 

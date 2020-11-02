@@ -695,6 +695,19 @@ class RolloutWorker:
             if cfg.CRC_DEBUG:
                 break
 
+    def profile_step(self, nb_steps=100):
+        import torch.autograd.profiler as profiler
+        obs = self.reset(train=True, collect_samples=True)
+        use_cuda = True if self.device == 'cuda' else False
+        print(f"DEBUG: use_cuda:{use_cuda}")
+        with profiler.profile(record_shapes=True, use_cuda=use_cuda) as prof:
+            obs = collate([obs], device=self.device)
+            with profiler.record_function("pytorch_profiler"):
+                with torch.no_grad():
+                    action_distribution = self.actor(obs)
+                    action = action_distribution.sample()
+        print(prof.key_averages().table(row_limit=20, sort_by="cpu_time_total"))
+
     def send_and_clear_buffer(self):
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
         self.__buffer += self.buffer

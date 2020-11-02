@@ -13,6 +13,7 @@ if sys.version_info < (3, 7):
 install_req = [
     'numpy',
     'torch',
+    'torchvision',
     'imageio',
     'imageio-ffmpeg',
     'pandas',
