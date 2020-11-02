@@ -15,6 +15,7 @@ from agents.custom.utils.key_event import apply_control, keyres
 from agents.custom.utils.tools import load_digits, get_speed, Lidar, TM2020OpenPlanetClient
 from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
 from agents.custom.utils.compute_reward import RewardFunction
+from agents.custom.utils.drone_interface import DroneUDPInterface1
 
 import agents.custom.config as cfg
 
@@ -392,3 +393,87 @@ class TMInterfaceLidar(TMInterface):
         speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
         imgs = spaces.Box(low=0.0, high=np.inf, shape=(self.img_hist_len, 19,))  # lidars
         return spaces.Tuple((speed, imgs))
+
+
+# Interface for the Cognifly robot: ====================================================================================
+
+class CogniflyInterfaceTask1(RealTimeGymInterface):
+
+    # Cognifly UDP controller: cognifly_vel_controller.py
+    # messages sent to Cognifly: [vel, arm, time_step_id]
+    # messages sent by Cognifly: [alt, vel, acc, ubatt, time_step_id]
+    # Cognifly config: balloon3_debug_agl
+
+    def __init__(self, img_hist_len=4, gamepad=False):
+        """
+        Args:
+        """
+        self.last_time = None
+        self.img_hist_len = img_hist_len
+        self.img_hist = None
+        self.img = None
+        self.udpi = None
+        self.initialized = False
+        self.drone_int = None
+
+    def initialize(self):
+        self.drone_int = DroneUDPInterface1(
+            udp_send_ip="192.168.0.200",
+            udp_recv_ip="192.168.0.201",
+            udp_send_port=55557,
+            udp_recv_port=55558,
+            min_altitude=0.0,
+            max_altitude=100.0,
+            low_batt=7.5)
+        self.drone_int.arm_disarm(arm=True, wait_time=2.0)
+        self.drone_int.take_off(takeoff_vel=10.0, target_alt=40.0, sleep_time=0.1)
+        self.initialized = True
+
+    def send_control(self, control):
+        pass
+
+    def reset(self):
+        """
+        obs must be a list of numpy arrays
+        """
+        if not self.initialized:
+            self.initialize()
+            self.initialized = True
+        pass
+        # return obs
+
+    def wait(self):
+        self.send_control(self.get_default_action())
+
+    def get_obs_rew_done(self):
+        """
+        returns the observation, the reward, and a done signal for end of episode
+        obs must be a list of numpy arrays
+        """
+        print(f"obs: {self.drone_int.read_obs()}")
+        pass
+        # return obs, rew, done
+
+    def get_observation_space(self):
+        """
+        must be a Tuple
+        """
+        alt = spaces.Box(low=0.0, high=100.0, shape=(1,))
+        vel = spaces.Box(low=-1000.0, high=1000.0, shape=(1,))
+        acc = spaces.Box(low=-1000.0, high=1000.0, shape=(1,))
+        total_delay = spaces.Box(low=0.0, high=1000.0, shape=(1,))
+        return spaces.Tuple((alt, vel, acc, total_delay))
+
+    def get_action_space(self):
+        """
+        must return a Box
+        """
+        vel = spaces.Box(low=-100.0, high=100.0, shape=(1,))
+        return vel
+
+    def get_default_action(self):
+        """
+        initial action at episode start
+        """
+        pass
+        # return np.array([0.0, 0.0, 0.0], dtype='float32')

@@ -1,6 +1,5 @@
 # from dataclasses import InitVar, dataclass
 import torch
-import torchvision
 import torch.nn as nn
 from torch.nn import functional as F
 from agents.nn import TanhNormalLayer
