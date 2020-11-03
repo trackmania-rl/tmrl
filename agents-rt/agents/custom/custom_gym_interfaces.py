@@ -430,7 +430,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.initialized = True
 
     def send_control(self, control):
-        pass
+        self.drone_int.send_control(control[0].item(), time.time())
 
     def reset(self):
         """
@@ -439,6 +439,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         if not self.initialized:
             self.initialize()
             self.initialized = True
+        print(f"reset obs: {self.drone_int.read_obs()}")
         pass
         # return obs
 
