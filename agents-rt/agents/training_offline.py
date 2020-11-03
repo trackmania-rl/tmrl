@@ -84,7 +84,7 @@ class TrainingOffline:
 
             stats += pandas_dict(
                 round_time=Timestamp.utcnow() - t0,
-                round_time_total=Timestamp.utcnow() - t0,
+                round_time_total=Timestamp.utcnow() - t0,  # FIXME: this is the same as round_time
                 **DataFrame(stats_training).mean(skipna=True)
             ),
 
