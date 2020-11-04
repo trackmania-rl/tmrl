@@ -60,10 +60,11 @@ class TrainingOffline:
             print(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
             print(f"DEBUG: SAC (Training): current memory size:{len(self.agent.memory)}")
 
-            t0 = pd.Timestamp.utcnow()
             stats_training = []
 
+            t0 = pd.Timestamp.utcnow()
             self.check_ratio(interface)
+            t1 = pd.Timestamp.utcnow()
             for step in range(self.steps):
                 if self.total_updates == 0:
                     print("starting training")
@@ -81,10 +82,12 @@ class TrainingOffline:
                     # retrieve local buffer in replay memory
                     self.update_buffer(interface)
                 self.check_ratio(interface)
-
+            
+            round_time = Timestamp.utcnow() - t0
+            idle_time = t1 - t0
             stats += pandas_dict(
-                round_time=Timestamp.utcnow() - t0,
-                round_time_total=Timestamp.utcnow() - t0,  # FIXME: this is the same as round_time
+                round_time=round_time,
+                idle_time=idle_time,
                 **DataFrame(stats_training).mean(skipna=True)
             ),
 

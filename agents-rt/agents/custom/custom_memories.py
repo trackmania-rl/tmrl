@@ -3,7 +3,7 @@ import cv2
 from agents.memory_dataloading import MemoryDataloading
 
 
-# LOCAL BUFFERS ================================================
+# LOCAL BUFFER COMPRESSION ==============================
 
 def get_local_buffer_sample(prev_act, obs, rew, done, info):
     """
@@ -18,8 +18,28 @@ def get_local_buffer_sample(prev_act, obs, rew, done, info):
     """
     obs_mod = (obs[0], obs[1][-1])  # speed and most recent image only
     rew_mod = np.float32(rew)
-    done_mod = done  # we cancel dones because our reward function is not meant for the episodic setting
+    done_mod = done
     return prev_act, obs_mod, rew_mod, done_mod, info
+
+
+def get_local_buffer_sample_tm20_imgs(prev_act, obs, rew, done, info):
+    """
+    Sample compressor for MemoryTM2020
+    Input:
+        prev_act: action computed from a previous observation and applied to yield obs in the transition
+        obs, rew, done, info: outcome of the transition
+    this function creates the object that will actually be stored in local buffers for networking
+    this is to compress the sample before sending it over the Internet/local network
+    buffers of such samples will be given as input to the append() method of the dataloading memory
+    the user must define both this function and the append() method of the dataloading memory
+    CAUTION: prev_act is the action that comes BEFORE obs (i.e. prev_obs, prev_act(prev_obs), obs(prev_act))
+    """
+    prev_act_mod = prev_act
+    obs_mod = (obs[0], obs[1], obs[2], obs[3][-1])  # speed, gear, rpm, last image
+    rew_mod = np.float32(rew)
+    done_mod = done
+    info_mod = info
+    return prev_act_mod, obs_mod, rew_mod, done_mod, info_mod
 
 
 # MEMORY DATALOADING ===========================================
@@ -169,7 +189,8 @@ class MemoryTM2020(MemoryDataloading):  # TODO
                  batchsize,
                  device,
                  remove_size=100,
-                 path_loc=r"D:\data", imgs_obs=4,
+                 path_loc=r"D:\data",
+                 imgs_obs=4,
                  act_in_obs=True,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None):
