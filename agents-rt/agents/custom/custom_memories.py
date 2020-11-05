@@ -198,7 +198,6 @@ class MemoryTM2020(MemoryDataloading):  # TODO
         d3 = [b[1][1] for b in buffer.memory]  # gear
         d4 = [b[1][2] for b in buffer.memory]  # rpm
         for bi, di in zip(buffer.memory, d0):
-            print("0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000shape img before save : ", bi[1][3].shape)
             cv2.imwrite(str(self.path / (str(di) + '.png')), np.moveaxis(bi[1][3], 0, -1))
         d5 = [b[3] for b in buffer.memory]  # dones
         d6 = [b[2] for b in buffer.memory]  # rewards
@@ -239,11 +238,11 @@ class MemoryTM2020(MemoryDataloading):  # TODO
     def __len__(self):
         if len(self.data) < self.imgs_obs + 1:
             return 0
-        test = len(self.data[0]) - self.imgs_obs - 1
-        if test < 0:
+        res = len(self.data[0]) - self.imgs_obs - 1
+        if res < 0:
             return 0
         else:
-            return test
+            return res
 
     def get_transition(self, item):
         idx_last = item + self.imgs_obs - 1
@@ -273,7 +272,7 @@ class MemoryTM2020(MemoryDataloading):  # TODO
                        np.array([self.data[4][idx_now], ], dtype=np.float32),
                        imgs[:-1])
         done = np.float32(self.data[5][idx_now])
-        info = self.data[idx_now]
+        info = self.data[7][idx_now]
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):

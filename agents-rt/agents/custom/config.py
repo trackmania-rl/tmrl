@@ -9,11 +9,12 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 1  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = False  # True if Lidar, False if images
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
 CRC_DEBUG = True  # Only for checking the consistency of the custom networking methods, set it to False otherwise
+CRC_DEBUG_SAMPLES = 5  # Number of samples collected in CRC_DEBUG mode
 
 # FILE SYSTEM: =================================================
 
