@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 from agents.memory_dataloading import MemoryDataloading
-import os
 
 
 # LOCAL BUFFER COMPRESSION ==============================
@@ -48,7 +47,17 @@ def get_local_buffer_sample_tm20_imgs(prev_act, obs, rew, done, info):
 # TODO: add info dicts everywhere for CRC debugging
 
 class MemoryTMNF(MemoryDataloading):
-    def __init__(self, memory_size, batchsize, device, remove_size=100, path_loc=r"D:\data", imgs_obs=4, act_in_obs=True, obs_preprocessor: callable = None, sample_preprocessor: callable = None, crc_debug=False):
+    def __init__(self,
+                 memory_size,
+                 batchsize,
+                 device,
+                 remove_size=100,
+                 path_loc=r"D:\data",
+                 imgs_obs=4,
+                 act_in_obs=True,
+                 obs_preprocessor: callable = None,
+                 sample_preprocessor: callable = None,
+                 crc_debug=False):
         self.imgs_obs = imgs_obs
         self.act_in_obs = act_in_obs
         super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
@@ -170,10 +179,11 @@ class MemoryTM2020(MemoryDataloading):  # TODO
                  imgs_obs=4,
                  act_in_obs=True,
                  obs_preprocessor: callable = None,
-                 sample_preprocessor: callable = None):
+                 sample_preprocessor: callable = None,
+                 crc_debug=False):
         self.imgs_obs = imgs_obs
         self.act_in_obs = act_in_obs
-        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor)
+        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
 
     def append_buffer(self, buffer):
         """
@@ -188,8 +198,8 @@ class MemoryTM2020(MemoryDataloading):  # TODO
         d3 = [b[1][1] for b in buffer.memory]  # gear
         d4 = [b[1][2] for b in buffer.memory]  # rpm
         for bi, di in zip(buffer.memory, d0):
-            print("shape img before save : ", bi[1][3].shape)
-            cv2.imwrite(str(self.path / str(di) + '.png'), np.moveaxis(bi[1][3], 0, -1))
+            print("0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000shape img before save : ", bi[1][3].shape)
+            cv2.imwrite(str(self.path / (str(di) + '.png')), np.moveaxis(bi[1][3], 0, -1))
         d5 = [b[3] for b in buffer.memory]  # dones
         d6 = [b[2] for b in buffer.memory]  # rewards
         d7 = [b[4] for b in buffer.memory]  # infos
@@ -227,7 +237,13 @@ class MemoryTM2020(MemoryDataloading):  # TODO
         return self
 
     def __len__(self):
-        return len(self.data[0])-self.imgs_obs-1
+        if len(self.data) < self.imgs_obs + 1:
+            return 0
+        test = len(self.data[0]) - self.imgs_obs - 1
+        if test < 0:
+            return 0
+        else:
+            return test
 
     def get_transition(self, item):
         idx_last = item + self.imgs_obs - 1

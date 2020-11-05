@@ -5,15 +5,15 @@ from agents.sac_models import Mlp, MlpPolicy
 from agents.custom.custom_models import Tm_hybrid_1, TMPolicy
 from agents.custom.custom_gym_interfaces import TM2020InterfaceLidar, TMInterfaceLidar, TM2020Interface, TMInterface
 from agents.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, sample_preprocessor_tm_lidar_act_in_obs
-from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020
+from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020, get_local_buffer_sample_tm20_imgs
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 1  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
-PRAGMA_LIDAR = True  # True if Lidar, False if images
+PRAGMA_LIDAR = False  # True if Lidar, False if images
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
-CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise
+CRC_DEBUG = True  # Only for checking the consistency of the custom networking methods, set it to False otherwise
 
 # FILE SYSTEM: =================================================
 
@@ -38,7 +38,7 @@ elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_cc_0"
+WANDB_RUN_ID = "SAC_tm20_test_edi_2"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
@@ -55,7 +55,7 @@ BENCHMARK = False
 if PRAGMA_LIDAR:
     INT = partial(TM2020InterfaceLidar, img_hist_len=1) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1)
 else:
-    INT = TM2020Interface if PRAGMA_TM2020_TMNF else TMInterface
+    INT = partial(TM2020Interface, img_hist_len=4) if PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=4)
 CONFIG_DICT = {
     "interface": INT,
     "time_step_duration": 0.05,
@@ -70,7 +70,7 @@ CONFIG_DICT = {
 }
 
 # to compress a sample before sending it over the local network/Internet:
-SAMPLE_COMPRESSOR = get_local_buffer_sample
+SAMPLE_COMPRESSOR = get_local_buffer_sample if PRAGMA_LIDAR else get_local_buffer_sample_tm20_imgs
 # to preprocess observations that come out of the gym environment and of the replay buffer:
 OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else obs_preprocessor_tm_act_in_obs
 # to augment data that comes out of the replay buffer (applied after observation preprocessing):
