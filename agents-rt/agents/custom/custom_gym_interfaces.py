@@ -404,7 +404,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
     # messages sent by Cognifly: [alt, vel, acc, ubatt, time_step_id]
     # Cognifly config: balloon3_debug_agl
 
-    def __init__(self, img_hist_len=4, gamepad=False):
+    def __init__(self, img_hist_len=4):
         """
         Args:
         """
@@ -415,22 +415,25 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.udpi = None
         self.initialized = False
         self.drone_int = None
+        self.min_target_alt = 40
+        self.max_target_alt = 70
+        self.target = self.min_target_alt
 
     def initialize(self):
         self.drone_int = DroneUDPInterface1(
-            udp_send_ip="192.168.0.200",
-            udp_recv_ip="192.168.0.201",
-            udp_send_port=55557,
-            udp_recv_port=55558,
+            udp_send_ip="192.168.0.201",
+            udp_recv_ip="192.168.0.200",
+            udp_send_port=55558,
+            udp_recv_port=55557,
             min_altitude=0.0,
             max_altitude=100.0,
             low_batt=7.5)
         self.drone_int.arm_disarm(arm=True, wait_time=2.0)
-        self.drone_int.take_off(takeoff_vel=10.0, target_alt=40.0, sleep_time=0.1)
+        self.drone_int.take_off(takeoff_vel=100.0, target_alt=40.0, sleep_time=0.1)
         self.initialized = True
 
     def send_control(self, control):
-        self.drone_int.send_control(control[0].item(), time.time())
+        self.drone_int.send_control(control[0], time.time())
 
     def reset(self):
         """
@@ -439,9 +442,11 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         if not self.initialized:
             self.initialize()
             self.initialized = True
-        print(f"reset obs: {self.drone_int.read_obs()}")
-        pass
-        # return obs
+        self.target = np.random.uniform(self.min_target_alt, self.max_target_alt)
+        self.drone_int.update()
+        obs = self.drone_int.read_obs()
+        # print(f"reset drone obs: {obs}")
+        return [np.array([obs[0], obs[1], obs[2], self.target, 0.0], dtype=np.float32), ]
 
     def wait(self):
         self.send_control(self.get_default_action())
@@ -451,9 +456,13 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         returns the observation, the reward, and a done signal for end of episode
         obs must be a list of numpy arrays
         """
-        print(f"obs: {self.drone_int.read_obs()}")
-        pass
-        # return obs, rew, done
+        self.drone_int.update()
+        obs = self.drone_int.read_obs()
+        # print(f"obs:{obs}")
+        o = [np.array([obs[0], obs[1], obs[2], self.target, time.time() - obs[4]], dtype=np.float32), ]
+        r = - np.float32(abs(self.target - obs[0]))
+        d = (r >= -1)
+        return o, r, d
 
     def get_observation_space(self):
         """
@@ -462,8 +471,9 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         alt = spaces.Box(low=0.0, high=100.0, shape=(1,))
         vel = spaces.Box(low=-1000.0, high=1000.0, shape=(1,))
         acc = spaces.Box(low=-1000.0, high=1000.0, shape=(1,))
+        tar = spaces.Box(low=40.0, high=70.0, shape=(1,))
         total_delay = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        return spaces.Tuple((alt, vel, acc, total_delay))
+        return spaces.Tuple((alt, vel, acc, tar, total_delay))
 
     def get_action_space(self):
         """
@@ -476,5 +486,4 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         """
         initial action at episode start
         """
-        pass
-        # return np.array([0.0, 0.0, 0.0], dtype='float32')
+        return np.array([0.0, ], dtype='float32')

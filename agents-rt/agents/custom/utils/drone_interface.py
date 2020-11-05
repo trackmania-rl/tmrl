@@ -74,9 +74,9 @@ class DroneUDPInterface1:
         Args:
             control: float: throttle
         """
-        print(f"DEBUG: apply_train_control:{control}")
+        # print(f"DEBUG: apply_train_control:{control}")
         ctrl = [control, 1.0, time_step_id]
-        print(f"DEBUG: ctrl:{ctrl}")
+        # print(f"DEBUG: ctrl:{ctrl}")
         self.udp_int.send_msg(ctrl)
 
     def take_off(self, takeoff_vel=10.0, target_alt=40.0, sleep_time=0.1):
