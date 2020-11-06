@@ -35,7 +35,8 @@ def get_local_buffer_sample_tm20_imgs(prev_act, obs, rew, done, info):
     CAUTION: prev_act is the action that comes BEFORE obs (i.e. prev_obs, prev_act(prev_obs), obs(prev_act))
     """
     prev_act_mod = prev_act
-    obs_mod = (obs[0], obs[1], obs[2], obs[3][-1])  # speed, gear, rpm, last image
+    compressed_img = cv2.imencode('.PNG', np.moveaxis(obs[3][-1], 0, -1))
+    obs_mod = (obs[0], obs[1], obs[2], compressed_img)  # speed, gear, rpm, last image
     rew_mod = np.float32(rew)
     done_mod = done
     info_mod = info
@@ -197,7 +198,7 @@ class MemoryTM2020(MemoryDataloading):  # TODO
         d3 = [b[1][1] for b in buffer.memory]  # gear
         d4 = [b[1][2] for b in buffer.memory]  # rpm
         for bi, di in zip(buffer.memory, d0):
-            cv2.imwrite(str(self.path / (str(di) + '.png')), np.moveaxis(bi[1][3], 0, -1))
+            cv2.imwrite(str(self.path / (str(di) + '.png')), cv2.imdecode(np.array(bi[1][3][1]), cv2.IMREAD_UNCHANGED))
         d5 = [b[3] for b in buffer.memory]  # dones
         d6 = [b[2] for b in buffer.memory]  # rewards
         d7 = [b[4] for b in buffer.memory]  # infos

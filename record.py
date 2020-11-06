@@ -10,6 +10,7 @@ import cv2
 from inputs import get_gamepad
 import gym
 import keyboard
+import os
 
 # TODO: add info dicts everywhere for CRC debugging
 
@@ -25,6 +26,7 @@ KEY_RESET = 'r'
 # PATH_DATASET = r"C:/Users/Yann/Desktop/git/tmrl/data/"  # r"D:/data2020/"
 
 PATH_REWARD = cfg.REWARD_PATH
+DATASET_PATH = cfg.DATASET_PATH
 
 def record_tmnf_gamepad(path_dataset):
     """
@@ -248,7 +250,7 @@ def record_tm20(path_dataset):
     """
     path = path_dataset
     iteration = 0
-    iters, speeds, distances, positions, inputs, dones, rews = [], [], [], [], [], [], []
+    iters, speeds, gear, rpm, dones, rews = [], [], [], [], [], []
 
     env_config = DEFAULT_CONFIG_DICT
     env_config["interface"] = TM2020Interface
@@ -256,6 +258,8 @@ def record_tm20(path_dataset):
     env.reset()
 
     is_recording = False
+    video = cv2.VideoWriter(os.path.join(path, 'video.avi'), cv2.VideoWriter_fourcc(*'FFV1'), 20, (256, 127))
+
     while True:
         obs, rew, done, info = env.step(None)
         # obs = (obs[0], obs[1], obs[0][-3:])
@@ -268,19 +272,22 @@ def record_tm20(path_dataset):
             is_recording = True
 
         if is_recording:
-            cv2.imwrite(path + str(iteration) + ".png", obs[1][-1])
+            #cv2.imwrite(os.path.join(path, str(iteration) + ".png"), np.moveaxis(obs[3][-1], 0, -1))
+            video.write(np.moveaxis(obs[3][-1], 0, -1))
             iters.append(iteration)
             speeds.append(obs[0][0])
-            distances.append(obs[0][1])
-            positions.append([obs[0][2], obs[0][3], obs[0][4]])
-            inputs.append([obs[0][6], obs[0][7], obs[0][5]])  # FIXME: check this thoroughly
+            gear.append(obs[1][0])
+            rpm.append(obs[2][0])
             dones.append(done)
             rews.append(rew)
             iteration = iteration + 1
 
             if keyboard.is_pressed(KEY_STOP_RECORD):
                 print("Saving pickle file...")
-                pickle.dump((iters, speeds, distances, positions, inputs, dones, rews), open(path + "data.pkl", "wb"))
+                pickle.dump((iters, speeds, gear, rpm, dones, rews), open(path + "data.pkl", "wb"))
+                # create video
+                cv2.destroyAllWindows()
+                video.release()
                 print("All done")
                 return
 
@@ -402,6 +409,6 @@ if __name__ == "__main__":
     #record_tm20_lidar(PATH_DATASET)
     # record_tmnf_lidar_keyboard(PATH_DATASET)
     # record_tmnf_keyboard(PATH_DATASET)
-    # record_tm20(PATH_DATASET)
+    record_tm20(DATASET_PATH)
     # record_reward(PATH_REWARD)
-    record_reward_dist(path_reward=PATH_REWARD)
+    # record_reward_dist(path_reward=PATH_REWARD)
