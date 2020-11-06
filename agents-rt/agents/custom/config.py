@@ -13,7 +13,7 @@ PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TOD
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = False  # True if Lidar, False if images
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
-CRC_DEBUG = True  # Only for checking the consistency of the custom networking methods, set it to False otherwise
+CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise
 CRC_DEBUG_SAMPLES = 5  # Number of samples collected in CRC_DEBUG mode
 
 # FILE SYSTEM: =================================================
@@ -95,9 +95,11 @@ MEMORY = partial(MEM,
 LOCALHOST = False  # set to True to enforce localhost
 REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"
 
+PRINT_BYTESIZES = True
+
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
-BUFFER_SIZE = 268435456  # 1048576  # 8192  # 32768  # socket buffer size (200 000 000 is large enough for 1000 images right now)
+BUFFER_SIZE = 536870912  # 268435456  # socket buffer size (200 000 000 is large enough for 1000 images right now)
 HEADER_SIZE = 12  # fixed number of characters used to describe the data length
 
 SOCKET_TIMEOUT_CONNECT_TRAINER = 300.0

@@ -51,7 +51,7 @@ def main_train(args):
                       device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
                       Model=partial(cfg.TRAIN_MODEL, act_in_obs=cfg.ACT_IN_OBS),
                       memory_size=1000000,
-                      batchsize=512,  # default: 256
+                      batchsize=32,  # 512,  # default: 256
                       lr=0.0003,  # default 0.0003
                       discount=0.995,  # default and best tmnf so far: 0.99
                       target_update=0.005,

@@ -8,7 +8,6 @@ import numpy as np
 from requests import get
 import socket
 import os
-import zlib
 
 from agents.sac_models import ActorModule
 from agents.envs import UntouchedGymEnv
@@ -76,8 +75,9 @@ def send_object(sock, obj, ping=False, pong=False, ack=False):
     else:
         msg = pickle.dumps(obj)
         msg = bytes(f"{len(msg):<{cfg.HEADER_SIZE}}", 'utf-8') + msg
+        if cfg.PRINT_BYTESIZES:
+            print(f"Sending {len(msg)} bytes.")
     try:
-        nb_bytes = len(msg) - cfg.HEADER_SIZE
         sock.sendall(msg)
     except OSError:  # connection closed or broken
         return False

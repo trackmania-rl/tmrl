@@ -8,15 +8,15 @@ import numpy as np
 from agents.util import collate
 
 
-def check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done):
-    assert pickle.dumps(po) == pickle.dumps(prev_obs), f"previous observations don't match: {po} != {prev_obs}"
-    assert pickle.dumps(a) == pickle.dumps(new_act), f"actions don't match: {a} != {new_act}"
-    assert pickle.dumps(o) == pickle.dumps(new_obs), f"observations don't match: {o} != {new_obs}"
-    assert pickle.dumps(r) == pickle.dumps(rew), f"rewards don't match: {r} != {rew}"
-    assert pickle.dumps(d) == pickle.dumps(done), f"dones don't match: {d} != {done}"
-    test_crc = zlib.crc32(pickle.dumps((a, o, r, d)))
-    crc = zlib.crc32(pickle.dumps((new_act, new_obs, rew, done)))
-    assert crc == test_crc, f"CRC failed: new crc:{crc} != old crc:{test_crc}. Either the custom pipeline is corrupted, or crc_debug is False in the rollout worker."
+def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d):
+    assert pickle.dumps(original_po) == pickle.dumps(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}"
+    assert pickle.dumps(original_a) == pickle.dumps(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}"
+    assert pickle.dumps(original_o) == pickle.dumps(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
+    assert pickle.dumps(original_r) == pickle.dumps(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}"
+    assert pickle.dumps(original_d) == pickle.dumps(rebuilt_d), f"dones don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}"
+    original_crc = zlib.crc32(pickle.dumps((original_a, original_o, original_r, original_d)))
+    crc = zlib.crc32(pickle.dumps((rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)))
+    assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}. Either the custom pipeline is corrupted, or crc_debug is False in the rollout worker."
     print("DEBUG: CRC check passed.")
 
 

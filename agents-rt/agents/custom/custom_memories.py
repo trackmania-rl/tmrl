@@ -157,7 +157,6 @@ class MemoryTMNFLidar(MemoryTMNF):
 
         to_trim = self.__len__() - self.memory_size
         if to_trim > 0:
-            print(f"DEBUG: trimming {to_trim} elements")
             self.data[0] = self.data[0][to_trim:]
             self.data[1] = self.data[1][to_trim:]
             self.data[2] = self.data[2][to_trim:]
@@ -192,7 +191,7 @@ class MemoryTM2020(MemoryDataloading):  # TODO
         """
 
         first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
-        d0 = [first_data_idx + i for i, _ in enumerate(buffer.memory)]  # indexes
+        d0 = [(first_data_idx + i) % self.memory_size for i, _ in enumerate(buffer.memory)]  # indexes  # FIXME: check that this works
         d1 = [b[0] for b in buffer.memory]  # actions
         d2 = [b[1][0] for b in buffer.memory]  # speeds
         d3 = [b[1][1] for b in buffer.memory]  # gear
@@ -224,7 +223,6 @@ class MemoryTM2020(MemoryDataloading):  # TODO
 
         to_trim = self.__len__() - self.memory_size
         if to_trim > 0:
-            print(f"DEBUG: trimming {to_trim} elements")
             self.data[0] = self.data[0][to_trim:]
             self.data[1] = self.data[1][to_trim:]
             self.data[2] = self.data[2][to_trim:]
@@ -250,28 +248,16 @@ class MemoryTM2020(MemoryDataloading):  # TODO
         imgs = self.load_imgs(item)
         last_act = np.array(self.data[1][idx_last], dtype=np.float32)
         if self.act_in_obs:
-            last_obs = (np.array([self.data[2][idx_last], ], dtype=np.float32),
-                        np.array([self.data[3][idx_last], ], dtype=np.float32),
-                        np.array([self.data[4][idx_last], ], dtype=np.float32),
-                        imgs[:-1], last_act)
+            last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], imgs[:-1], last_act)
         else:
-            last_obs = (np.array([self.data[2][idx_last], ], dtype=np.float32),
-                        np.array([self.data[3][idx_last], ], dtype=np.float32),
-                        np.array([self.data[4][idx_last], ], dtype=np.float32),
-                        imgs[:-1])
+            last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], imgs[:-1])
         rew = np.float32(self.data[6][idx_now])
         new_act = np.array(self.data[1][idx_now], dtype=np.float32)
         if self.act_in_obs:
-            new_obs = (np.array([self.data[2][idx_now], ], dtype=np.float32),
-                       np.array([self.data[3][idx_now], ], dtype=np.float32),
-                       np.array([self.data[4][idx_now], ], dtype=np.float32),
-                       imgs[:-1], last_act)
+            new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], imgs[1:], new_act)
         else:
-            new_obs = (np.array([self.data[2][idx_now], ], dtype=np.float32),
-                       np.array([self.data[3][idx_now], ], dtype=np.float32),
-                       np.array([self.data[4][idx_now], ], dtype=np.float32),
-                       imgs[:-1])
-        done = np.float32(self.data[5][idx_now])
+            new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], imgs[1:])
+        done = self.data[5][idx_now]
         info = self.data[7][idx_now]
         return last_obs, new_act, rew, new_obs, done, info
 
