@@ -9,14 +9,14 @@ from agents.util import collate
 
 
 def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d):
-    assert pickle.dumps(original_po) == pickle.dumps(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}"
-    assert pickle.dumps(original_a) == pickle.dumps(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}"
-    assert pickle.dumps(original_o) == pickle.dumps(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
-    assert pickle.dumps(original_r) == pickle.dumps(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}"
-    assert pickle.dumps(original_d) == pickle.dumps(rebuilt_d), f"dones don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}"
-    original_crc = zlib.crc32(pickle.dumps((original_a, original_o, original_r, original_d)))
-    crc = zlib.crc32(pickle.dumps((rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)))
-    assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}. Either the custom pipeline is corrupted, or crc_debug is False in the rollout worker."
+    assert str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}"
+    assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}"
+    assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
+    assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}"
+    assert str(original_d) == str(rebuilt_d), f"dones don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}"
+    original_crc = zlib.crc32(str.encode(str((original_a, original_o, original_r, original_d))))
+    crc = zlib.crc32(str.encode(str((rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d))))
+    assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}.\nEither the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\noriginal sample:\n{(original_a, original_o, original_r, original_d)}\n!= rebuilt sample:\n{(rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)}"
     print("DEBUG: CRC check passed.")
 
 

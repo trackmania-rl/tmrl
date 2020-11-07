@@ -6,6 +6,7 @@ from agents.nn import TanhNormalLayer
 from torch.nn import Linear, Sequential, ReLU, ModuleList, Module, Conv2d, MaxPool2d
 import gym
 from agents.sac_models import ActorModule
+from agents.sac_models import prod, SacLinear, MlpActionValue
 
 
 # === Trackmania =======================================================================================================

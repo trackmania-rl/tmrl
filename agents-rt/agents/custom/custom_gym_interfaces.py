@@ -421,10 +421,10 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
 
     def initialize(self):
         self.drone_int = DroneUDPInterface1(
-            udp_send_ip="192.168.0.201",
-            udp_recv_ip="192.168.0.200",
-            udp_send_port=55558,
-            udp_recv_port=55557,
+            udp_send_ip="192.168.0.201",  # Cognifly IP
+            udp_recv_ip="192.168.0.200",  # Local IP
+            udp_send_port=55558,  # Cognifly port
+            udp_recv_port=55557,  # Local port
             min_altitude=0.0,
             max_altitude=100.0,
             low_batt=7.5)
@@ -433,7 +433,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.initialized = True
 
     def send_control(self, control):
-        self.drone_int.send_control(control[0], time.time())
+        self.drone_int.send_control(control[0] * 100.0, time.time())  # this env uses a normalized action-space
 
     def reset(self):
         """
@@ -446,7 +446,11 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.drone_int.update()
         obs = self.drone_int.read_obs()
         # print(f"reset drone obs: {obs}")
-        return [np.array([obs[0], obs[1], obs[2], self.target, 0.0], dtype=np.float32), ]
+        return [np.array([obs[0], ], dtype=np.float32),
+                np.array([obs[1], ], dtype=np.float32),
+                np.array([obs[2], ], dtype=np.float32),
+                np.array([self.target, ], dtype=np.float32),
+                np.array([0.0, ], dtype=np.float32), ]
 
     def wait(self):
         self.send_control(self.get_default_action())
@@ -459,7 +463,11 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.drone_int.update()
         obs = self.drone_int.read_obs()
         # print(f"obs:{obs}")
-        o = [np.array([obs[0], obs[1], obs[2], self.target, time.time() - obs[4]], dtype=np.float32), ]
+        o = [np.array([obs[0], ], dtype=np.float32),
+             np.array([obs[1], ], dtype=np.float32),
+             np.array([obs[2], ], dtype=np.float32),
+             np.array([self.target, ], dtype=np.float32),
+             np.array([time.time() - obs[4], ], dtype=np.float32), ]
         r = - np.float32(abs(self.target - obs[0]))
         d = (r >= -1)
         return o, r, d
@@ -479,7 +487,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         """
         must return a Box
         """
-        vel = spaces.Box(low=-100.0, high=100.0, shape=(1,))
+        vel = spaces.Box(low=-1.0, high=1.0, shape=(1,))
         return vel
 
     def get_default_action(self):

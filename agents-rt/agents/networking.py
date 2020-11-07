@@ -139,6 +139,7 @@ def recv_object(sock):
 def get_listening_socket(timeout, ip_bind, port_bind):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(timeout)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # to reuse address on Linux
     s.bind((ip_bind, port_bind))
     s.listen(5)
     return s
@@ -519,8 +520,7 @@ class TrainerInterface:
 
 class RolloutWorker:
     def __init__(self,
-                 env_id,
-                 env_config,
+                 env_cls,
                  actor_module_cls,
                  get_local_buffer_sample: callable,
                  device="cpu",
@@ -532,7 +532,7 @@ class RolloutWorker:
                  ):
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = get_local_buffer_sample
-        self.env = UntouchedGymEnv(id=env_id, gym_kwargs={"config": env_config})
+        self.env = env_cls()
         obs_space = self.env.observation_space
         act_space = self.env.action_space
         self.model_path = model_path
@@ -573,6 +573,7 @@ class RolloutWorker:
                 # send buffer
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 if len(self.__buffer) >= self.samples_per_worker_batch:  # a new batch is available
+                    print("DEBUG: new batch available")
                     if not wait_ack:
                         obj = self.__buffer
                         if select_and_send_or_close_socket(obj, s):
@@ -682,7 +683,7 @@ class RolloutWorker:
     def run(self, test_episode_interval=20):  # TODO: check number of collected samples are collected before sending
         episode = 0
         while True:
-            if episode % test_episode_interval == 0:
+            if episode % test_episode_interval == 0 and not self.crc_debug:
                 print("INFO: running test episode")
                 self.run_test_episode(self.samples_per_worker_batch)
             print("INFO: collecting train episode")
@@ -692,7 +693,7 @@ class RolloutWorker:
             print("INFO: checking for new weights")
             self.update_actor_weights()
             episode += 1
-            if cfg.CRC_DEBUG:
+            if self.crc_debug:
                 break
 
     def profile_step(self, nb_steps=100):

@@ -13,8 +13,7 @@ def main(args):
         RedisServer(samples_per_redis_batch=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                     localhost=cfg.LOCALHOST)
     elif args.worker or args.test:
-        rw = RolloutWorker(env_id="rtgym:real-time-gym-v0",
-                           env_config=cfg.CONFIG_DICT,
+        rw = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
                            actor_module_cls=partial(cfg.POLICY, act_in_obs=cfg.ACT_IN_OBS),
                            get_local_buffer_sample=cfg.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
@@ -51,11 +50,11 @@ def main_train(args):
                       device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
                       Model=partial(cfg.TRAIN_MODEL, act_in_obs=cfg.ACT_IN_OBS),
                       memory_size=1000000,
-                      batchsize=32,  # 512,  # default: 256
+                      batchsize=256,  # 512,  # default: 256
                       lr=0.0003,  # default 0.0003
                       discount=0.995,  # default and best tmnf so far: 0.99
                       target_update=0.005,
-                      reward_scale=2.0,  # default: 5.0, best tmnf so far: 0.1
+                      reward_scale=1.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
                       entropy_scale=1.0),  # default: 1.0
     )
 
