@@ -48,7 +48,7 @@ def get_local_buffer_sample_cognifly(prev_act, obs, rew, done, info):
     Sample compressor for cognifly
     """
     prev_act_mod = prev_act
-    obs_mod = (obs[0], obs[1], obs[2], obs[3], obs[4])  # alt, vel, acc, tar, total_delay
+    obs_mod = (obs[0], obs[1], obs[2], obs[3], obs[4], obs[5])  # alt, vel, acc, tar, total_delay, total_delay_kappa
     rew_mod = rew
     done_mod = done
     info_mod = info
@@ -311,10 +311,11 @@ class MemoryCognifly(MemoryDataloading):
         d4 = [b[1][2] for b in buffer.memory]  # acc
         d5 = [b[1][3] for b in buffer.memory]  # tar
         d6 = [b[1][4] for b in buffer.memory]  # del
+        d7 = [b[1][5] for b in buffer.memory]  # del_k
 
-        d7 = [b[3] for b in buffer.memory]  # dones
-        d8 = [b[2] for b in buffer.memory]  # rewards
-        d9 = [b[4] for b in buffer.memory]  # infos
+        d8 = [b[3] for b in buffer.memory]  # dones
+        d9 = [b[2] for b in buffer.memory]  # rewards
+        d10 = [b[4] for b in buffer.memory]  # infos
 
         if self.__len__() > 0:
             self.data[0] += d0
@@ -327,6 +328,7 @@ class MemoryCognifly(MemoryDataloading):
             self.data[7] += d7
             self.data[8] += d8
             self.data[9] += d9
+            self.data[10] += d10
         else:
             self.data.append(d0)
             self.data.append(d1)
@@ -338,6 +340,7 @@ class MemoryCognifly(MemoryDataloading):
             self.data.append(d7)
             self.data.append(d8)
             self.data.append(d9)
+            self.data.append(d10)
 
         to_trim = self.__len__() - self.memory_size
         if to_trim > 0:
@@ -351,6 +354,7 @@ class MemoryCognifly(MemoryDataloading):
             self.data[7] = self.data[7][to_trim:]
             self.data[8] = self.data[8][to_trim:]
             self.data[9] = self.data[9][to_trim:]
+            self.data[10] = self.data[10][to_trim:]
         return self
 
     def __len__(self):
@@ -368,12 +372,12 @@ class MemoryCognifly(MemoryDataloading):
         acts = self.load_acts(item)
         last_act_buf = acts[:-1]
         new_act_buf = acts[1:]
-        last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], self.data[5][idx_last], self.data[6][idx_last], *last_act_buf)
-        rew = np.float32(self.data[8][idx_now])
+        last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], self.data[5][idx_last], self.data[6][idx_last], self.data[7][idx_last], *last_act_buf)
+        rew = np.float32(self.data[9][idx_now])
         new_act = np.array(self.data[1][idx_now], dtype=np.float32)
-        new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], self.data[5][idx_now], self.data[6][idx_now], *new_act_buf)
-        done = self.data[7][idx_now]
-        info = self.data[9][idx_now]
+        new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], self.data[5][idx_now], self.data[6][idx_now], self.data[7][idx_now], *new_act_buf)
+        done = self.data[8][idx_now]
+        info = self.data[10][idx_now]
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):

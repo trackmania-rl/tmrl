@@ -132,7 +132,7 @@ if CONFIG_COGNIFLY:
         MODEL_PATH_TRAINER = r"/home/yann/Desktop/git/projets_perso/tmrl_cognifly_data/expcgnt.pth"
         CHECKPOINT_PATH = r"/home/yann/Desktop/git/projets_perso/tmrl_cognifly_data/expcgn0"
 
-    WANDB_RUN_ID = "SAC_cognifly_test_1"
+    WANDB_RUN_ID = "SAC_cognifly_test_2"
     WANDB_PROJECT = "cognifly"
 
     TRAIN_MODEL = Mlp
@@ -151,7 +151,7 @@ if CONFIG_COGNIFLY:
     CONFIG_DICT["time_step_duration"] = 0.05
     CONFIG_DICT["start_obs_capture"] = 0.05
     CONFIG_DICT["time_step_timeout_factor"] = 1.0
-    CONFIG_DICT["ep_max_length"] = 100
+    CONFIG_DICT["ep_max_length"] = 200
     CONFIG_DICT["act_buf_len"] = ACT_BUF_SIZE
     CONFIG_DICT["reset_act_buf"] = False
     CONFIG_DICT["act_in_obs"] = True

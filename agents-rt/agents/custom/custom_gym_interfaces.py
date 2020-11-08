@@ -433,7 +433,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.initialized = True
 
     def send_control(self, control):
-        self.drone_int.send_control(control[0] * 100.0, time.time())  # this env uses a normalized action-space
+        self.drone_int.send_control(control[0] * 1000.0, time.time())  # this env uses a normalized action-space
 
     def reset(self):
         """
@@ -450,6 +450,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
                 np.array([obs[1], ], dtype=np.float32),
                 np.array([obs[2], ], dtype=np.float32),
                 np.array([self.target, ], dtype=np.float32),
+                np.array([0.0, ], dtype=np.float32),
                 np.array([0.0, ], dtype=np.float32), ]
 
     def wait(self):
@@ -463,13 +464,15 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.drone_int.update()
         obs = self.drone_int.read_obs()
         # print(f"obs:{obs}")
+        t_now = time.time()
         o = [np.array([obs[0], ], dtype=np.float32),
              np.array([obs[1], ], dtype=np.float32),
              np.array([obs[2], ], dtype=np.float32),
              np.array([self.target, ], dtype=np.float32),
-             np.array([time.time() - obs[4], ], dtype=np.float32), ]
+             np.array([t_now - obs[4], ], dtype=np.float32),
+             np.array([t_now - obs[5], ], dtype=np.float32),]
         r = - np.float32(abs(self.target - obs[0]))
-        d = (r >= -1)
+        d = (r >= -0.5)
         return o, r, d
 
     def get_observation_space(self):
@@ -480,8 +483,9 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         vel = spaces.Box(low=-1000.0, high=1000.0, shape=(1,))
         acc = spaces.Box(low=-1000.0, high=1000.0, shape=(1,))
         tar = spaces.Box(low=40.0, high=70.0, shape=(1,))
-        total_delay = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        return spaces.Tuple((alt, vel, acc, tar, total_delay))
+        total_delay = spaces.Box(low=0.0, high=np.inf, shape=(1,))
+        total_delay_kappa = spaces.Box(low=0.0, high=np.inf, shape=(1,))
+        return spaces.Tuple((alt, vel, acc, tar, total_delay, total_delay_kappa))
 
     def get_action_space(self):
         """
