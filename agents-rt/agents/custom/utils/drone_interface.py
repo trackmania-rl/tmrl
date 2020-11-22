@@ -8,12 +8,13 @@ from copy import deepcopy
 
 class DroneUDPInterface1:
     """
-    This is the API needed for the algorithm to control the drone
+    This is the API needed for the algorithm to control the drone, kappa_id
     It also has a listener thread that retrieves observations from the drone
     Since the environment is single-agent, recovery functions block execution
     Communications are performed by UDP
     The controller sends [ZVelocity, arm(1.0)/disarm(0.0), brain_timestamp]
     The drone observations are [alt, vel, acc, ubatt, time_step_id]
+    Cognifly controller is cognifly_vel_controller
     """
     def __init__(self, udp_send_ip, udp_recv_ip, udp_send_port, udp_recv_port,
                  min_altitude=0.0,
