@@ -10,7 +10,7 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
@@ -105,7 +105,7 @@ MEMORY = partial(MEM,
 
 # NETWORKING: ==================================================
 
-LOCALHOST = True  # set to True to enforce localhost
+LOCALHOST = False  # set to True to enforce localhost
 REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"
 
 PRINT_BYTESIZES = True
