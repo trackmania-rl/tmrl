@@ -13,40 +13,45 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
-
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
+CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
 
-CONFIG_COGNIFLY = True  # if True, will override config with Cognifly's config
-
-# CRC debugging: ===============================================
+# CRC DEBUGGING: ===============================================
 
 CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise
 CRC_DEBUG_SAMPLES = 10  # Number of samples collected in CRC_DEBUG mode
 
+# BUFFERS: =====================================================
+
+ACT_BUF_LEN = 2
+IMG_HIST_LEN = 4
+
 # FILE SYSTEM: =================================================
 
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Compute Canada
-    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/expt.pth"
-    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/exp0"
+    # MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/expt.pth"
+    # CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/exp0"
+    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/expt1.pth"
+    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/exp1"
     DATASET_PATH = r"/home/yannbout/scratch/base_tmrl/data/dataset"
-    MODEL_PATH_WORKER = r"/home/yannbout/scratch/base_tmrl/data/exp.pth"
     REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
+    MODEL_PATH_WORKER = r"/home/yannbout/scratch/base_tmrl/data/exp1.pth"
 elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
-    MODEL_PATH_WORKER = r"D:\cp\weights\exp.pth"
-    MODEL_PATH_TRAINER = r"D:\cp\weights\expt.pth"
-    CHECKPOINT_PATH = r"D:\cp\exp0"
+    MODEL_PATH_WORKER = r"D:\cp\weights\exp1.pth"
+    MODEL_PATH_TRAINER = r"D:\cp\weights\expt1.pth"
+    CHECKPOINT_PATH = r"D:\cp\exp1"
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp0"
+    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp1.pth"
+    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt1.pth"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp1"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_edi_2"
+WANDB_RUN_ID = "SAC_tm20_test_yann_03"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
@@ -55,15 +60,15 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
+ACT_IN_OBS = (ACT_BUF_LEN > 0)
 TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
 POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
-ACT_IN_OBS = True
 BENCHMARK = False
 
 if PRAGMA_LIDAR:
-    INT = partial(TM2020InterfaceLidar, img_hist_len=1) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=1)
+    INT = partial(TM2020InterfaceLidar, img_hist_len=IMG_HIST_LEN) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=IMG_HIST_LEN)
 else:
-    INT = partial(TM2020Interface, img_hist_len=4) if PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=4)
+    INT = partial(TM2020Interface, img_hist_len=IMG_HIST_LEN) if PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=IMG_HIST_LEN)
 CONFIG_DICT = {
     "interface": INT,
     "time_step_duration": 0.05,
@@ -73,8 +78,9 @@ CONFIG_DICT = {
     "real_time": True,
     "async_threading": True,
     "act_in_obs": ACT_IN_OBS,
+    "act_buf_len": ACT_BUF_LEN,
     "benchmark": BENCHMARK,
-    "wait_on_done": True
+    "wait_on_done": True,
 }
 
 # to compress a sample before sending it over the local network/Internet:
@@ -90,8 +96,8 @@ else:
     MEM = MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF
 MEMORY = partial(MEM,
                  path_loc=DATASET_PATH,
-                 imgs_obs=1 if PRAGMA_LIDAR else 4,
-                 act_in_obs=ACT_IN_OBS,
+                 imgs_obs=IMG_HIST_LEN,
+                 act_buf_len=ACT_BUF_LEN,
                  obs_preprocessor=OBS_PREPROCESSOR,
                  sample_preprocessor=SAMPLE_PREPROCESSOR,
                  crc_debug=CRC_DEBUG
@@ -139,7 +145,7 @@ if CONFIG_COGNIFLY:
     POLICY = MlpPolicy
     BENCHMARK = False
 
-    ACT_BUF_SIZE = 4
+    ACT_BUF_LEN = 4
     IMGS_OBS = 0
 
     INT = partial(CogniflyInterfaceTask1, img_hist_len=0)
@@ -152,7 +158,7 @@ if CONFIG_COGNIFLY:
     CONFIG_DICT["start_obs_capture"] = 0.05
     CONFIG_DICT["time_step_timeout_factor"] = 1.0
     CONFIG_DICT["ep_max_length"] = 200
-    CONFIG_DICT["act_buf_len"] = ACT_BUF_SIZE
+    CONFIG_DICT["act_buf_len"] = ACT_BUF_LEN
     CONFIG_DICT["reset_act_buf"] = False
     CONFIG_DICT["act_in_obs"] = True
     CONFIG_DICT["benchmark"] = BENCHMARK
@@ -167,7 +173,7 @@ if CONFIG_COGNIFLY:
     MEMORY = partial(MEM,
                      path_loc=DATASET_PATH,
                      imgs_obs=IMGS_OBS,
-                     act_buf_len=ACT_BUF_SIZE,
+                     act_buf_len=ACT_BUF_LEN,
                      obs_preprocessor=OBS_PREPROCESSOR,
                      sample_preprocessor=SAMPLE_PREPROCESSOR,
                      crc_debug=CRC_DEBUG

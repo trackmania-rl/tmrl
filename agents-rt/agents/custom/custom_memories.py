@@ -57,8 +57,6 @@ def get_local_buffer_sample_cognifly(prev_act, obs, rew, done, info):
 
 # MEMORY DATALOADING ===========================================
 
-# TODO: add info dicts everywhere for CRC debugging
-
 class MemoryTMNF(MemoryDataloading):
     def __init__(self,
                  memory_size,
@@ -67,43 +65,32 @@ class MemoryTMNF(MemoryDataloading):
                  remove_size=100,
                  path_loc=r"D:\data",
                  imgs_obs=4,
-                 act_in_obs=True,
+                 act_buf_len=1,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False):
         self.imgs_obs = imgs_obs
-        self.act_in_obs = act_in_obs
+        self.act_buf_len = act_buf_len
+        self.min_samples = max(self.imgs_obs, self.act_buf_len)
+        self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
+        self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
         super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
 
-    def append_buffer(self, buffer):
+    def append_buffer(self, buffer):  # TODO
         return self
 
     def __len__(self):
-        if len(self.data) < self.imgs_obs + 1:
+        if len(self.data) < self.min_samples + 1:
             return 0
-        return len(self.data[0])-self.imgs_obs-1
+        res = len(self.data[0]) - self.min_samples - 1
+        if res < 0:
+            return 0
+        else:
+            return res
 
-    def get_transition(self, item):
-        idx_last = item + self.imgs_obs - 1
-        idx_now = item + self.imgs_obs
-        imgs = self.load_imgs(item)
-
-        last_act = self.data[1][idx_last]
-        last_obs = (self.data[2][idx_last], imgs[:-1], last_act) if self.act_in_obs else (
-        self.data[2][idx_last], imgs[:-1])
-        rew = np.float32(self.data[4][idx_now])
-        new_act = self.data[1][idx_now]
-        new_obs = (self.data[2][idx_now], imgs[1:], new_act) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
-        done = np.float32(0.0)
-        return last_obs, new_act, rew, new_obs, done
-
-    def load_imgs(self, item):
-        res = []
-        for i in range(item, item+self.imgs_obs+1):
-            img = cv2.imread(str(self.path / (str(self.data[0][i]) + ".png")))
-            img = img.astype('float32')
-            res.append(img)
-        return np.array(res)
+    def get_transition(self, item):  # TODO
+        pass
+        # return last_obs, new_act, rew, new_obs, done
 
 
 class MemoryTMNFLidar(MemoryTMNF):
@@ -116,24 +103,31 @@ class MemoryTMNFLidar(MemoryTMNF):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
-        idx_last = item + self.imgs_obs-1
-        idx_now = item + self.imgs_obs
+        idx_last = item + self.min_samples - 1
+        idx_now = item + self.min_samples
+        acts = self.load_acts(item)
+        last_act_buf = acts[:-1]
+        new_act_buf = acts[1:]
         imgs = self.load_imgs(item)
-        last_act = self.data[1][idx_last]
-        last_obs = (self.data[2][idx_last], imgs[:-1], last_act) if self.act_in_obs else (self.data[2][idx_last], imgs[:-1])
+        last_obs = (self.data[2][idx_last], imgs[:-1], *last_act_buf)
         rew = np.float32(self.data[5][idx_now])
         new_act = self.data[1][idx_now]
-        new_obs = (self.data[2][idx_now], imgs[1:], new_act) if self.act_in_obs else (self.data[2][idx_now], imgs[1:])
+        new_obs = (self.data[2][idx_now], imgs[1:], *new_act_buf)
         done = self.data[4][idx_now]
         info = self.data[6][idx_now]
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):
-        res = []
-        for i in range(item, item+self.imgs_obs+1):
-            img = self.data[3][i]
-            res.append(img)
+        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
+        # res = []
+        # for i in range(item, item+self.imgs_obs+1):
+        #     img = self.data[3][i]
+        #     res.append(img)
         return np.stack(res)
+
+    def load_acts(self, item):
+        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        return res
 
     def append_buffer(self, buffer):
         """
@@ -181,7 +175,7 @@ class MemoryTMNFLidar(MemoryTMNF):
         return self
 
 
-class MemoryTM2020(MemoryDataloading):
+class MemoryTM2020(MemoryDataloading):  # TODO: action buffer
     def __init__(self,
                  memory_size,
                  batchsize,
@@ -189,12 +183,12 @@ class MemoryTM2020(MemoryDataloading):
                  remove_size=100,
                  path_loc=r"D:\data",
                  imgs_obs=4,
-                 act_in_obs=True,
+                 act_buf_len=1,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False):
         self.imgs_obs = imgs_obs
-        self.act_in_obs = act_in_obs
+        self.act_in_obs = bool(act_buf_len)  # TODO
         super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
 
     def append_buffer(self, buffer):
@@ -380,7 +374,7 @@ class MemoryCognifly(MemoryDataloading):
         info = self.data[10][idx_now]
         return last_obs, new_act, rew, new_obs, done, info
 
-    def load_imgs(self, item):
+    def load_imgs(self, item):  # TODO
         res = []
         for i in range(item, item+self.imgs_obs+1):
             img = cv2.imread(str(self.path / (str(self.data[0][i]) + ".png")))
