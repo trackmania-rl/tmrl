@@ -10,7 +10,7 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
@@ -31,11 +31,11 @@ IMG_HIST_LEN = 4
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Compute Canada
     # MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/expt.pth"
     # CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/exp0"
-    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/expt1.pth"
-    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/exp1"
+    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/expt3.pth"
+    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/exp3"
     DATASET_PATH = r"/home/yannbout/scratch/base_tmrl/data/dataset"
     REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
-    MODEL_PATH_WORKER = r"/home/yannbout/scratch/base_tmrl/data/exp1.pth"
+    MODEL_PATH_WORKER = r"/home/yannbout/scratch/base_tmrl/data/exp3.pth"
 elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
     MODEL_PATH_WORKER = r"D:\cp\weights\exp1.pth"
     MODEL_PATH_TRAINER = r"D:\cp\weights\expt1.pth"
@@ -43,15 +43,15 @@ elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp1.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt1.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp1"
+    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp3.pth"
+    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt3.pth"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp3"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_yann_03"
+WANDB_RUN_ID = "SAC_tm20_test_yann_005"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
