@@ -188,7 +188,10 @@ class MemoryTM2020(MemoryDataloading):  # TODO: action buffer
                  sample_preprocessor: callable = None,
                  crc_debug=False):
         self.imgs_obs = imgs_obs
-        self.act_in_obs = bool(act_buf_len)  # TODO
+        self.act_buf_len = act_buf_len
+        self.min_samples = max(self.imgs_obs, self.act_buf_len)
+        self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
+        self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
         super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
 
     def append_buffer(self, buffer):
@@ -196,7 +199,6 @@ class MemoryTM2020(MemoryDataloading):  # TODO: action buffer
         buffer is a list of samples (act, obs, rew, done, info)
         don't forget to keep the info dictionary in the sample for CRC debugging
         """
-
         first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
         d0 = [(first_data_idx + i) % self.memory_size for i, _ in enumerate(buffer.memory)]  # indexes  # FIXME: check that this works
         d1 = [b[0] for b in buffer.memory]  # actions
@@ -241,39 +243,42 @@ class MemoryTM2020(MemoryDataloading):  # TODO: action buffer
         return self
 
     def __len__(self):
-        if len(self.data) < self.imgs_obs + 1:
+        if len(self.data) < self.min_samples + 1:
             return 0
-        res = len(self.data[0]) - self.imgs_obs - 1
+        res = len(self.data[0]) - self.min_samples - 1
         if res < 0:
             return 0
         else:
             return res
 
     def get_transition(self, item):
-        idx_last = item + self.imgs_obs - 1
-        idx_now = item + self.imgs_obs
+        idx_last = item + self.min_samples - 1
+        idx_now = item + self.min_samples
+
         imgs = self.load_imgs(item)
-        last_act = np.array(self.data[1][idx_last], dtype=np.float32)
-        if self.act_in_obs:
-            last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], imgs[:-1], last_act)
-        else:
-            last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], imgs[:-1])
+        acts = self.load_acts(item)
+
+        last_act_buf = acts[:-1]
+        new_act_buf = acts[1:]
+
+        last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], imgs[:-1], *last_act_buf)
         rew = np.float32(self.data[6][idx_now])
         new_act = np.array(self.data[1][idx_now], dtype=np.float32)
-        if self.act_in_obs:
-            new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], imgs[1:], new_act)
-        else:
-            new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], imgs[1:])
+        new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], imgs[1:], *new_act_buf)
         done = self.data[5][idx_now]
         info = self.data[7][idx_now]
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):
         res = []
-        for i in range(item, item+self.imgs_obs+1):
+        for i in range(item + self.start_imgs_offset, item + self.start_imgs_offset + self.imgs_obs + 1):
             img = cv2.imread(str(self.path / (str(self.data[0][i]) + ".png")))
             res.append(np.moveaxis(img, -1, 0))
         return np.array(res)
+
+    def load_acts(self, item):
+        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        return res
 
 
 class MemoryCognifly(MemoryDataloading):

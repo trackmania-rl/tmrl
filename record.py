@@ -409,6 +409,6 @@ if __name__ == "__main__":
     #record_tm20_lidar(PATH_DATASET)
     # record_tmnf_lidar_keyboard(PATH_DATASET)
     # record_tmnf_keyboard(PATH_DATASET)
-    record_tm20(DATASET_PATH)
+    #record_tm20(DATASET_PATH)
     # record_reward(PATH_REWARD)
-    # record_reward_dist(path_reward=PATH_REWARD)
+    record_reward_dist(path_reward=PATH_REWARD)

@@ -14,7 +14,7 @@ def main(args):
                     localhost=cfg.LOCALHOST)
     elif args.worker or args.test:
         rw = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
-                           actor_module_cls=partial(cfg.POLICY, act_in_obs=cfg.ACT_IN_OBS),
+                           actor_module_cls=partial(cfg.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
                            get_local_buffer_sample=cfg.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
                            redis_ip=cfg.REDIS_IP,
@@ -48,9 +48,9 @@ def main_train(args):
                       OutputNorm=partial(beta=0., zero_debias=False),
                       Memory=cfg.MEMORY,
                       device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
-                      Model=partial(cfg.TRAIN_MODEL, act_in_obs=cfg.ACT_IN_OBS),
+                      Model=partial(cfg.TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
                       memory_size=1000000,
-                      batchsize=512,  # 512,  # default: 256
+                      batchsize=8,  # 512,  # default: 256
                       lr=0.0003,  # default 0.0003
                       discount=0.995,  # default and best tmnf so far: 0.99
                       target_update=0.005,

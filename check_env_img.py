@@ -20,5 +20,5 @@ while True:
     cv2.imshow("PipeLine", img)
     cv2.waitKey(1)
     img = np.moveaxis(img, -1, 0)
-    print(img.shape)
+    #print(img.shape)
 
