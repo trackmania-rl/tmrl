@@ -17,7 +17,7 @@ time.sleep(3.0)
 print("STOPPED SLEEPING")
 
 rw = RolloutWorker(env_id="rtgym:real-time-gym-v0",
-                   actor_module_cls=partial(cfg.POLICY, act_in_obs=cfg.ACT_IN_OBS),
+                   actor_module_cls=partial(cfg.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
                    device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
                    redis_ip=cfg.REDIS_IP,
                    samples_per_worker_batch=5,
@@ -60,7 +60,7 @@ Sac_tm = partial(
                   Memory=cfg.MEMORY,
                   device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
                   Model=partial(cfg.TRAIN_MODEL,
-                                act_in_obs=cfg.ACT_IN_OBS),
+                                act_buf_len=cfg.ACT_BUF_LEN),
                   memory_size=500000,
                   batchsize=1,
                   lr=0.0003,  # default 0.0003
