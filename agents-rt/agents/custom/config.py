@@ -6,15 +6,16 @@ from agents.sac_models import Mlp, MlpPolicy
 from agents.custom.custom_models import Tm_hybrid_1, TMPolicy
 from agents.custom.custom_gym_interfaces import TM2020InterfaceLidar, TMInterfaceLidar, TM2020Interface, TMInterface, CogniflyInterfaceTask1
 from agents.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, sample_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_cognifly
-from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020, get_local_buffer_sample_tm20_imgs, get_local_buffer_sample_cognifly, MemoryCognifly
+from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020, get_local_buffer_sample_tm20_imgs, get_local_buffer_sample_cognifly, MemoryCognifly, TrajMemoryTMNFLidar
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 1  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
-PRAGMA_LIDAR = False  # True if Lidar, False if images
+PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
 CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
+PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 # CRC DEBUGGING: ===============================================
 
@@ -43,15 +44,15 @@ elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp3.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt3.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp3"
+    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp4.pth"
+    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt4.pth"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp4"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_img_1"
+WANDB_RUN_ID = "SAC_tm20_test_yann_007"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
@@ -60,7 +61,6 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
-#ACT_IN_OBS = (ACT_BUF_LEN > 0)
 TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
 POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
 BENCHMARK = False
@@ -106,9 +106,8 @@ MEMORY = partial(MEM,
 # NETWORKING: ==================================================
 
 LOCALHOST = False  # set to True to enforce localhost
-#REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"
-REDIS_IP = "173.179.182.4" if not LOCALHOST else "127.0.0.1"
-
+REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"
+# REDIS_IP = "173.179.182.4" if not LOCALHOST else "127.0.0.1"
 
 PRINT_BYTESIZES = True
 

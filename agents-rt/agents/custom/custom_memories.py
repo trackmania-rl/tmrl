@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from agents.memory_dataloading import MemoryDataloading
+from agents.memory_dataloading import MemoryDataloading, TrajMemoryDataloading
 
 
 # LOCAL BUFFER COMPRESSION ==============================
@@ -80,7 +80,7 @@ class MemoryTMNF(MemoryDataloading):
         return self
 
     def __len__(self):
-        if len(self.data) < self.min_samples + 1:
+        if len(self.data) == 0:
             return 0
         res = len(self.data[0]) - self.min_samples - 1
         if res < 0:
@@ -173,6 +173,136 @@ class MemoryTMNFLidar(MemoryTMNF):
             self.data[6] = self.data[6][to_trim:]
 
         return self
+
+
+class TrajMemoryTMNF(TrajMemoryDataloading):
+    def __init__(self,
+                 memory_size,
+                 batchsize,
+                 device,
+                 remove_size=100,
+                 path_loc=r"D:\data",
+                 imgs_obs=4,
+                 act_buf_len=1,
+                 obs_preprocessor: callable = None,
+                 crc_debug=False,
+                 traj_len=2):
+        self.imgs_obs = imgs_obs
+        self.act_buf_len = act_buf_len
+        self.traj_len = traj_len
+        self.min_samples = max(self.imgs_obs, self.act_buf_len)
+        self.min_samples += self.traj_len - 1
+        self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
+        self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
+        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, crc_debug, traj_len)
+
+    def append_buffer(self, buffer):  # TODO
+        return self
+
+    def __len__(self):
+        if len(self.data) == 0:
+            return 0
+        res = len(self.data[0]) - self.min_samples - 1
+        if res < 0:
+            return 0
+        else:
+            return res
+
+    def get_trajectory(self, item):  # TODO
+        pass
+        # return last_obs, new_act, rew, new_obs, done
+
+
+class TrajMemoryTMNFLidar(TrajMemoryTMNF):
+    def get_trajectory(self, item):
+        """
+        CAUTION: item is the first index of the 4 images in the images history of the OLD observation
+        CAUTION: in the buffer, a sample is (act, obs(act)) and NOT (obs, act(obs))
+            i.e. in a sample, the observation is what step returned after being fed act
+            therefore, in the RTRL setting, act is appended to obs
+        So we load 5 images from here...
+        Don't forget the info dict for CRC debugging
+        """
+        idx_now = item + self.min_samples
+        all_acts = self.load_acts_traj(item)
+        # new_act_buf = acts[1:]
+        all_imgs = self.load_imgs_traj(item)
+
+        # rew = np.float32(self.data[5][idx_now])
+
+        rew_traj = [np.float32(self.data[5][idx_now + i]) for i in range(self.traj_len)]
+
+        # new_act = self.data[1][idx_now]
+
+        # new_obs = (self.data[2][idx_now], imgs[1:], *new_act_buf)
+
+        augm_obs_traj = [(self.data[2][idx_now + i], all_imgs[1 + i:self.imgs_obs + i], *all_acts[1 + i:self.act_buf_len + i]) for i in range(self.traj_len)]
+
+        # done = self.data[4][idx_now]
+
+        done_traj = [self.data[4][idx_now + i] for i in range(self.traj_len)]
+
+        # info = self.data[6][idx_now]
+
+        info_traj = [self.data[6][idx_now + i] for i in range(self.traj_len)]
+
+        return augm_obs_traj, rew_traj, done_traj, info_traj
+
+    def load_imgs_traj(self, item):
+        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + self.traj_len - 1)]
+        return np.stack(res)
+
+    def load_acts_traj(self, item):
+        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.traj_len - 1)]
+        return res
+
+    def append_buffer(self, buffer):
+        """
+        buffer is a list of samples ( act, obs, rew, done, info)
+        don't forget to keep the info dictionary in the sample for CRC debugging
+        """
+
+        first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
+
+        d0 = [first_data_idx + i for i, _ in enumerate(buffer.memory)]  # indexes
+        d1 = [b[0] for b in buffer.memory]  # actions
+        d2 = [b[1][0] for b in buffer.memory]  # speeds
+        d3 = [b[1][1] for b in buffer.memory]  # lidar
+        d4 = [b[3] for b in buffer.memory]  # dones
+        d5 = [b[2] for b in buffer.memory]  # rewards
+        d6 = [b[4] for b in buffer.memory]  # infos
+
+        if self.__len__() > 0:
+            self.data[0] += d0
+            self.data[1] += d1
+            self.data[2] += d2
+            self.data[3] += d3
+            self.data[4] += d4
+            self.data[5] += d5
+            self.data[6] += d6
+        else:
+            self.data.append(d0)
+            self.data.append(d1)
+            self.data.append(d2)
+            self.data.append(d3)
+            self.data.append(d4)
+            self.data.append(d5)
+            self.data.append(d6)
+
+        to_trim = self.__len__() - self.memory_size
+        if to_trim > 0:
+            self.data[0] = self.data[0][to_trim:]
+            self.data[1] = self.data[1][to_trim:]
+            self.data[2] = self.data[2][to_trim:]
+            self.data[3] = self.data[3][to_trim:]
+            self.data[4] = self.data[4][to_trim:]
+            self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
+
+        return self
+
+
+
 
 
 class MemoryTM2020(MemoryDataloading):  # TODO: action buffer
