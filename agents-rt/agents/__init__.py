@@ -149,6 +149,7 @@ def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOff
     wandb_dir = mkdtemp()  # prevent wandb from polluting the home directory
     atexit.register(shutil.rmtree, wandb_dir, ignore_errors=True)  # clean up after wandb atexit handler finishes
     import wandb
+    print(run_cls)
     config = partial_to_dict(run_cls)
     config['seed'] = config['seed'] or randrange(1, 1000000)  # if seed == 0 replace with random
     config['environ'] = log_environment_variables()

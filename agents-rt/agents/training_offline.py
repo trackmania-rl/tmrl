@@ -32,6 +32,8 @@ class TrainingOffline:
 
     def __post_init__(self):
         self.epoch = 0
+        # print(self.Agent)
+        # print(self.Env)
         self.agent = self.Agent(Env=self.Env)
         self.total_samples = len(self.agent.memory)
         print(f"DEBUG: initial total_samples:{self.total_samples}")

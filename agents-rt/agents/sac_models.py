@@ -56,7 +56,7 @@ class MlpActionValue(Sequential):
 
 
 class MlpPolicy(Sequential):
-    def __init__(self, obs_space, act_space, hidden_units=256, act_in_obs=False):
+    def __init__(self, obs_space, act_space, hidden_units=256, act_buf_len=0):
         dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
         dim_act = act_space.shape[0]
         super().__init__(
@@ -71,7 +71,7 @@ class MlpPolicy(Sequential):
 
 
 class Mlp(ActorModule):
-    def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2, act_in_obs=False):
+    def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2, act_buf_len=0):
         super().__init__()
         assert isinstance(observation_space, gym.spaces.Tuple), f"{observation_space}"
         self.critics = ModuleList(MlpActionValue(observation_space, action_space, hidden_units) for _ in range(num_critics))

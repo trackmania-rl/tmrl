@@ -236,7 +236,7 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
 
         # new_obs = (self.data[2][idx_now], imgs[1:], *new_act_buf)
 
-        augm_obs_traj = [(self.data[2][idx_now + i], all_imgs[1 + i:self.imgs_obs + i], *all_acts[1 + i:self.act_buf_len + i]) for i in range(self.traj_len)]
+        augm_obs_traj = [(self.data[2][idx_now + i], all_imgs[1 + i:self.imgs_obs + i + 1], *all_acts[1 + i:self.act_buf_len + i + 1]) for i in range(self.traj_len)]
 
         # done = self.data[4][idx_now]
 
@@ -249,11 +249,11 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
         return augm_obs_traj, rew_traj, done_traj, info_traj
 
     def load_imgs_traj(self, item):
-        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + self.traj_len - 1)]
+        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + self.traj_len)]
         return np.stack(res)
 
     def load_acts_traj(self, item):
-        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.traj_len - 1)]
+        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.traj_len)]
         return res
 
     def append_buffer(self, buffer):

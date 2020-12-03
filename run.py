@@ -1,10 +1,10 @@
 from argparse import ArgumentParser, ArgumentTypeError
-from agents import TrainingOffline, run_wandb_tm, run_tm
+from agents import run_wandb_tm, run_tm
 from agents.util import partial
-from agents.sac import Agent
 from agents.envs import UntouchedGymEnv
 from agents.networking import RedisServer, RolloutWorker, TrainerInterface
 import agents.custom.config as cfg
+import agents.custom.config_training as cfg_train
 import time
 
 
@@ -35,49 +35,27 @@ def main(args):
 
 
 def main_train(args):
-    from pyinstrument import Profiler
-    profiler = Profiler()
+    # from pyinstrument import Profiler
+    # profiler = Profiler()
 
-    sac_tm = partial(
-        TrainingOffline,
-        Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
-        epochs=100000,  # 10
-        rounds=10,  # 50
-        steps=10,  # 2000
-        update_model_interval=10,
-        update_buffer_interval=1000,
-        max_training_steps_per_env_step=1.0,
-        Agent=partial(Agent,
-                      OutputNorm=partial(beta=0., zero_debias=False),
-                      Memory=cfg.MEMORY,
-                      device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
-                      Model=partial(cfg.TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
-                      memory_size=1000000,
-                      batchsize=128,  # 512,  # default: 256
-                      lr=0.0003,  # default 0.0003
-                      discount=0.995,  # default and best tmnf so far: 0.99
-                      target_update=0.005,
-                      reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
-                      entropy_scale=1.0),  # default: 1.0
-    )
+    train_cls = cfg_train.TRAINER
 
-
-    print("--- NOW RUNNING: SAC trackmania ---")
+    print("--- NOW RUNNING: SAC/DCAC trackmania ---")
     interface = TrainerInterface(redis_ip=cfg.REDIS_IP, model_path=cfg.MODEL_PATH_TRAINER)
     if not args.no_wandb:
-        print("start profiling")
-        profiler.start()
+        # print("start profiling")
+        # profiler.start()
         run_wandb_tm(entity=cfg.WANDB_ENTITY,
                      project=cfg.WANDB_PROJECT,
                      run_id=cfg.WANDB_RUN_ID,
                      interface=interface,
-                     run_cls=sac_tm,
+                     run_cls=train_cls,
                      checkpoint_path=cfg.CHECKPOINT_PATH)
-        profiler.stop()
-        print(profiler.output_text(unicode=True, color=False))
+        # profiler.stop()
+        # print(profiler.output_text(unicode=True, color=False))
     else:
         run_tm(interface=interface,
-               run_cls=sac_tm,
+               run_cls=train_cls,
                checkpoint_path=cfg.CHECKPOINT_PATH)
 
 
@@ -90,4 +68,5 @@ if __name__ == "__main__":
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='if you do not want to log results on Weights and Biases, use this option')
     args = parser.parse_args()
     print(args)
+
     main(args)

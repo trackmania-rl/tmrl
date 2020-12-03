@@ -10,7 +10,6 @@ import socket
 import os
 
 from agents.sac_models import ActorModule
-from agents.envs import UntouchedGymEnv
 from agents.util import collate, partition
 import agents.custom.config as cfg
 

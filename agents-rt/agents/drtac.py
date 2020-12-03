@@ -10,7 +10,6 @@ from torch.nn.functional import mse_loss
 
 import agents.sac
 import agents.sac_undelayed
-from agents.memory import TrajMemoryNoHidden
 from agents.nn import no_grad, exponential_moving_average
 from agents.util import partial
 
@@ -26,153 +25,191 @@ def print_debug(st):
 
 
 class DcacInterface:
-    def replace_act_buf_in_augm_obs_tensor(self, augm_obs_tensor, act_buf_tensor):
+    def get_total_delay_tensor_from_augm_obs_tuple_of_tensors(self, augm_obs_tuple_of_tensors):
+        """
+        Returns:
+            tot_del_tensor: (batch, 1)
+        """
+
+        # return tot_del_tensor
+
+        raise NotImplementedError
+
+    def replace_act_buf_in_augm_obs_tuple_of_tensors(self, augm_obs_tuple_of_tensors, act_buf_tuple_of_tensors):
         """
         must return a tensor with replaced action buffer
+        the actions in act_buf are from the most recent at idx 0 to the oldest at idx -1
+        Args:
+            augm_obs_tuple_of_tensors
+            act_buf_tuple_of_tensors
+        Returns:
+            mod_augm_obs_tuple_of_tensors
         """
 
         # return mod_augm_obs_tensor
 
         raise NotImplementedError
 
-    def get_act_buf_in_augm_obs_tensor(self, augm_obs_tensor, act_buf_tensor):
+    def get_act_buf_tuple_of_tensors_from_augm_obs_tuple_of_tensors(self, augm_obs_tuple_of_tensors):
         """
-        must return a tensor with replaced action buffer
+        the actions in act_buf are from the oldest at idx -1 to the most recent at idx 0
+        Args:
+            augm_obs_tuple_of_tensors
+        Returns:
+            act_buf_tuple_of_tensors
         """
 
-        # return mod_augm_obs_tensor
+        # return act_buf_tuple_of_tensors
+
+        raise NotImplementedError
+
+    def get_act_buf_size(self):
+        """
+        Returns:
+            act_buf_size: int
+        """
+
+        # return act_buf_size
+
+        raise NotImplementedError
+
+    def get_constant_and_max_possible_delay(self):
+        """
+        Returns:
+            is_constant: (bool) whether the delays are constant
+            max_possible_delay: (int) value of the maximum possible delay (must be <= act_buf_size)
+        """
+
+        # return is_constant, max_possible_delay
 
         raise NotImplementedError
 
 
 @dataclass(eq=0)
 class Agent(agents.sac.Agent):
+    Interface: type = DcacInterface
     Model: type = Mlp
     loss_alpha: float = 0.2
-    rtac: bool = False
-    constant: int = 0  # if > 0, no delays are looked up in the observation, instead the total delay is set to constant (caution: this is the true constant delays, including the inference delay, contrary to the action delay used in the rest of the algorithm)
 
     def __post_init__(self, Env):
         with Env() as env:
             observation_space, action_space = env.observation_space, env.action_space
-            if self.constant:
-                self.act_buf_size = self.constant
-            else:
-                self.sup_obs_delay = env.obs_delay_range.stop
-                self.sup_act_delay = env.act_delay_range.stop
-                self.act_buf_size = self.sup_obs_delay + self.sup_act_delay - 1  # - 1 because self.sup_act_delay is actually max_act_delay as defined in the paper (self.sup_obs_delay is max_obs_delay+1)
-            # print_debug(f"self.sup_obs_delay: {self.sup_obs_delay}")
-            # print_debug(f"self.sup_act_delay: {self.sup_act_delay}")
-            self.old_act_buf_size = deepcopy(self.act_buf_size)
-            if self.rtac:
-                # print_debug(f"RTAC FLAG IS TRUE, HISTORY OF SIZE 1")
-                self.act_buf_size = 1
 
         assert self.device is not None
         device = self.device  # or ("cuda" if torch.cuda.is_available() else "cpu")
         model = self.Model(observation_space, action_space)
         self.model = model.to(device)
+        # print_debug(f"self.model:{self.model}")
         self.model_target = no_grad(deepcopy(self.model))
+
+        self.interface = self.Interface()
+        self.act_buf_size = self.interface.get_act_buf_size()
+        is_constant, max_possible_delay = self.interface.get_constant_and_max_possible_delay()
+        if is_constant:
+            self.constant = max_possible_delay
+        else:
+            self.constant = 0
+        self.max_possible_delay = max_possible_delay
 
         self.outputnorm = self.OutputNorm(self.model.critic_output_layers)
         self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         self.memory = self.Memory(self.memory_size, self.batchsize, device)
-        self.traj_new_actions = [None, ] * self.act_buf_size
-        self.traj_new_actions_detach = [None, ] * self.act_buf_size
-        self.traj_new_actions_log_prob = [None, ] * self.act_buf_size
-        self.traj_new_actions_log_prob_detach = [None, ] * self.act_buf_size
-        self.traj_new_augm_obs = [None, ] * (self.act_buf_size + 1)  # + 1 because the trajectory is obs0 -> rew1(obs0,act0) -> obs1 -> ...
+        self.traj_new_actions = [None, ] * self.max_possible_delay
+        self.traj_new_actions_detach = [None, ] * self.max_possible_delay
+        self.traj_new_actions_log_prob = [None, ] * self.max_possible_delay
+        self.traj_new_actions_log_prob_detach = [None, ] * self.max_possible_delay
+        self.traj_new_augm_obs = [None, ] * (self.max_possible_delay + 1)  # + 1 because the trajectory is obs0 -> rew1(obs0,act0) -> obs1 -> ...
 
         self.is_training = False
 
     def train(self):
         # TODO: remove requires_grad everywhere it should not be
 
-        # sample a trajectory of length self.act_buf_size
+        # sample a trajectory of length self.max_possible_delay
         augm_obs_traj, rew_traj, done_traj = self.memory.sample()
         # TODO: act_traj is useless, it could be removed from the replay memory
 
-        batch_size = done_traj.shape[0]
-        print_debug(f"batch_size: {batch_size}")
+        batch_size = done_traj[0].shape[0]
+        # print_debug(f"batch_size: {batch_size}")
 
-        print_debug(f"augm_obs_traj: {augm_obs_traj}")
-        print_debug(f"rew_traj: {rew_traj}")
-        print_debug(f"done_traj: {done_traj}")
+        # print_debug(f"augm_obs_traj: {augm_obs_traj}")
+        # print_debug(f"rew_traj: {rew_traj}")
+        # print_debug(f"done_traj: {done_traj}")
 
-        print("DEBUG EXIT")
-        exit()
-
+        # print_debug(f"augm_obs_traj[0]: {augm_obs_traj[0]}")
         # value of the first augmented state:
         values = [c(augm_obs_traj[0]).squeeze() for c in self.model.critics]
         # print_debug(f"values: {values}")
 
         # to determine the length of the n-step backup, nstep_len is the time at which the currently computed action (== i) or any action that followed (< i) has been applied first:
-        # when nstep_len is k (in 0..self.act_buf_size-1), it means that the action computed with the first augmented observation of the trajectory will have an effect k+1 steps later
+        # when nstep_len is k (in 0..self.max_possible_delaye-1), it means that the action computed with the first augmented observation of the trajectory will have an effect k+1 steps later
         # (either it will be applied, or an action that follows it will be applied)
-        int_tens_type = obs_del = augm_obs_traj[0][2].dtype
+        int_tens_type = torch.int64
         ones_tens = torch.ones(batch_size, device=self.device, dtype=int_tens_type, requires_grad=False)
         zeros_tens = torch.zeros(batch_size, device=self.device, dtype=int_tens_type, requires_grad=False)
 
-        if not self.rtac:
-            nstep_len = ones_tens * self.act_buf_size
-            for i in reversed(range(self.act_buf_size)):  # caution: we don't care about the delay of the first observation in the trajectory, but we care about the last one
-                if self.constant:
-                    tot_del = ones_tens * (self.constant - 1)  # -1 because of the convention we use for action delays
-                else:
-                    obs_del = augm_obs_traj[i + 1][2]
-                    act_del = augm_obs_traj[i + 1][3]
-                    tot_del = obs_del + act_del
-                done = done_traj[i + 1]
-                # print_debug(f"i + 1: {i + 1}")
-                # print_debug(f"obs_del: {obs_del}")
-                # print_debug(f"act_del: {act_del}")
-                # print_debug(f"tot_del: {tot_del}")
-                # print_debug(f"nstep_len before: {nstep_len}")
-                nstep_len = torch.where(((tot_del <= i) & (tot_del < nstep_len) | done), ones_tens * i, nstep_len)
-                # print_debug(f"nstep_len after: {nstep_len}")
-            print_debug(f"nstep_len: {nstep_len}")
-            nstep_max_len = torch.max(nstep_len)
-            assert nstep_max_len < self.act_buf_size, "Delays longer than the action buffer (e.g. infinite) are not supported"
-            print_debug(f"nstep_max_len: {nstep_max_len}")
-            nstep_one_hot = torch.zeros(len(nstep_len), nstep_max_len + 1, device=self.device, requires_grad=False).scatter_(1, nstep_len.unsqueeze(1), 1.)
-            # print_debug(f"nstep_one_hot: {nstep_one_hot}")
-        else:  # RTAC is equivalent to doing only 1-step backups (i.e. nstep_len==0)
-            nstep_len = torch.zeros(batch_size, device=self.device, dtype=int_tens_type, requires_grad=False)
-            nstep_max_len = torch.max(nstep_len)
-            nstep_one_hot = torch.zeros(len(nstep_len), nstep_max_len + 1, device=self.device, requires_grad=False).scatter_(1, nstep_len.unsqueeze(1), 1.)
-            # terminals = terminals if self.act_buf_size == 1 else terminals * 0.0  # the way the replay memory works, RTAC will never encounter terminal states for buffers of more than 1 action
+        nstep_len = ones_tens * self.max_possible_delay
+        for i in reversed(range(self.max_possible_delay)):  # caution: we don't care about the delay of the first observation in the trajectory, but we care about the last one
+            if self.constant:
+                tot_del = ones_tens * (self.constant - 1)  # -1 because of the convention we use for action delays
+            else:
+                # print_debug(f"self.constant:{self.constant}")
+                # obs_del = augm_obs_traj[i + 1][2]
+                # act_del = augm_obs_traj[i + 1][3]
+                # tot_del = obs_del + act_del
+                tot_del = self.interface.get_total_delay_tensor_from_augm_obs_tuple_of_tensors(augm_obs_traj[i + 1]) - 1  # -1 because act delay...
+            # print_debug(f"i + 1:{i + 1}")
+            # print_debug(f"done_traj:{done_traj}")
+            done = done_traj[i + 1]
+            # print_debug(f"i + 1: {i + 1}")
+            # print_debug(f"obs_del: {obs_del}")
+            # print_debug(f"act_del: {act_del}")
+            # print_debug(f"tot_del: {tot_del}")
+            # print_debug(f"nstep_len before: {nstep_len}")
+            nstep_len = torch.where((((tot_del <= i) & (tot_del < nstep_len)) | (done > 0.0)), ones_tens * i, nstep_len)  # FIXME: done ?
+            # print_debug(f"nstep_len after: {nstep_len}")
         # print_debug(f"nstep_len: {nstep_len}")
+        nstep_max_len = torch.max(nstep_len)
+        assert nstep_max_len < self.max_possible_delay, "Delays longer than the maximum possible delay are not supported (please clip them)"
+        # print_debug(f"nstep_max_len: {nstep_max_len}")
+        nstep_one_hot = torch.zeros(len(nstep_len), nstep_max_len + 1, device=self.device, requires_grad=False).scatter_(1, nstep_len.unsqueeze(1), 1.)
+        # print_debug(f"nstep_one_hot: {nstep_one_hot}")
+        #
         # print_debug(f"nstep_max_len: {nstep_max_len}")
         # print_debug(f"nstep_one_hot: {nstep_one_hot}")
 
         # we compute the terminals tensor here
-        terminals = torch.where((done_traj[nstep_len + 1]), ones_tens, zeros_tens)
 
-        print_debug(f"terminals: {terminals}")
-        print("DEBUG EXIT")
-        exit()
+        # print_debug(f"nstep_len: {nstep_len}")
+        # print_debug(f"done_traj: {done_traj}")
+        terminals = torch.tensor([done_traj[i][ibatch] for ibatch, i in enumerate((nstep_len + 1).tolist())], device=self.device)
+        # print_debug(f"terminals: {terminals}")
 
+        # CAUTION: act_buf_len is not the max possible delay !
         # use the current policy to compute a new trajectory of actions of length self.act_buf_size
-        for i in range(self.act_buf_size + 1):
+        for i in range(self.max_possible_delay + 1):
             # compute a new action and update the corresponding *next* augmented observation:
             augm_obs = augm_obs_traj[i]  # FIXME: this modifies augm_obs_traj, check that this is not an issue
             # print_debug(f"augm_obs at index {i}: {augm_obs}")
-            if i > 0:
+            if i > 0:  # we don't need to modify the first obs of the trajectory
                 # FIXME: check that this won't mess with autograd
-                # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                act_slice = tuple(self.traj_new_actions[self.act_buf_size - i:self.act_buf_size])  # FIXME: check that first action in the action buffer is indeed the last computed action
-                augm_obs = augm_obs[:1] + ((act_slice + augm_obs[1][i:]), ) + augm_obs[2:]
+                act_slice = tuple(self.traj_new_actions[self.max_possible_delay - i:self.max_possible_delay])  # FIXME: check order
+                # augm_obs = augm_obs[:1] + ((act_slice + augm_obs[1][i:]), ) + augm_obs[2:]
+                act_buf = self.interface.get_act_buf_tuple_of_tensors_from_augm_obs_tuple_of_tensors(augm_obs)  # most recent action at idx 0, oldest at idx -1
+                act_buf = (*act_slice, *act_buf[i:],)  # resampled actions with the most recently resampled at idx 0 in the buffer
+                augm_obs = self.interface.replace_act_buf_in_augm_obs_tuple_of_tensors(augm_obs, act_buf)
                 # print_debug(f"augm_obs at index {i} after replacing actions: {augm_obs}")
-            if i < self.act_buf_size:  # we don't compute the action for the last observation of the trajectory
+            if i < self.max_possible_delay:  # we don't need to compute the action for the last observation of the trajectory
+                # in the action buffer, the most recent action is at idx 0, the oldest at idx -1
                 new_action_distribution = self.model.actor(augm_obs)
-                # this is stored in right -> left order for replacing correctly in augm_obs:
-                self.traj_new_actions[self.act_buf_size - i - 1] = new_action_distribution.rsample()
-                self.traj_new_actions_detach[self.act_buf_size - i - 1] = self.traj_new_actions[self.act_buf_size - i - 1].detach()
-                # print_debug(f"self.traj_new_actions[self.act_buf_size - i - 1]: {self.traj_new_actions[self.act_buf_size - i - 1]}")
+                # this is stored in right -> left order for replacing correctly in augm_obs:  # FIXME: check order
+                self.traj_new_actions[self.max_possible_delay - i - 1] = new_action_distribution.rsample()
+                self.traj_new_actions_detach[self.max_possible_delay - i - 1] = self.traj_new_actions[self.max_possible_delay - i - 1].detach()
+                # print_debug(f"self.traj_new_actions[self.max_possible_delay - i - 1]: {self.traj_new_actions[self.max_possible_delay - i - 1]}")
                 # this is stored in left -> right order for to be consistent with the reward trajectory:
-                self.traj_new_actions_log_prob[i] = new_action_distribution.log_prob(self.traj_new_actions[self.act_buf_size - i - 1])
+                self.traj_new_actions_log_prob[i] = new_action_distribution.log_prob(self.traj_new_actions[self.max_possible_delay - i - 1])
                 self.traj_new_actions_log_prob_detach[i] = self.traj_new_actions_log_prob[i].detach()
                 # print_debug(f"self.traj_new_actions_log_prob[i]: {self.traj_new_actions_log_prob[i]}")
             # this is stored in left -> right order:
@@ -184,17 +221,18 @@ class Agent(agents.sac.Agent):
         # We now compute the state-value estimate of the augmented states at which the computed actions will be applied for each trajectory of the batch
         # (caution: this can be a different position in the trajectory for each element of the batch).
 
-        # We expect each augmented state to be of shape (obs:tensor, act_buf:(tensor, ..., tensor), obs_del:tensor, act_del:tensor). Each tensor is batched.
         # We want to execute only 1 forward pass in the state-value estimator, therefore we recreate an artificially batched augmented state for this specific purpose.
 
-        # TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # TODO
+        # # print_debug(f"nstep_len: {nstep_len}")
+        # obs_s = torch.stack([self.traj_new_augm_obs[i + 1][0][ibatch] for ibatch, i in enumerate(nstep_len)])
+        # act_s = tuple(torch.stack([self.traj_new_augm_obs[i + 1][1][iact][ibatch] for ibatch, i in enumerate(nstep_len)]) for iact in range(self.act_buf_size))
+        # od_s = torch.stack([self.traj_new_augm_obs[i + 1][2][ibatch] for ibatch, i in enumerate(nstep_len)])
+        # ad_s = torch.stack([self.traj_new_augm_obs[i + 1][3][ibatch] for ibatch, i in enumerate(nstep_len)])
+        # mod_augm_obs = tuple((obs_s, act_s, od_s, ad_s))
 
-        # print_debug(f"nstep_len: {nstep_len}")
-        obs_s = torch.stack([self.traj_new_augm_obs[i + 1][0][ibatch] for ibatch, i in enumerate(nstep_len)])
-        act_s = tuple(torch.stack([self.traj_new_augm_obs[i + 1][1][iact][ibatch] for ibatch, i in enumerate(nstep_len)]) for iact in range(self.old_act_buf_size))
-        od_s = torch.stack([self.traj_new_augm_obs[i + 1][2][ibatch] for ibatch, i in enumerate(nstep_len)])
-        ad_s = torch.stack([self.traj_new_augm_obs[i + 1][3][ibatch] for ibatch, i in enumerate(nstep_len)])
-        mod_augm_obs = tuple((obs_s, act_s, od_s, ad_s))
+        mod_augm_obs = tuple((torch.stack([self.traj_new_augm_obs[i + 1][itup][ibatch] for ibatch, i in enumerate(nstep_len)]) for itup in range(len(self.traj_new_augm_obs[0]))))
+
         # print_debug(f"mod_augm_obs: {mod_augm_obs}")
 
         # print_debug(" --- CRITIC LOSS ---")
@@ -206,6 +244,8 @@ class Agent(agents.sac.Agent):
             # print_debug(f"target_mod_val of all critics: {target_mod_val}")
             target_mod_val = reduce(torch.min, torch.stack(target_mod_val)).squeeze()  # minimum target estimate
             # print_debug(f"target_mod_val before removing terminal states: {target_mod_val}")
+            # print_debug(f"terminals.device:{terminals.device}")
+            # print_debug(f"target_mod_val.device:{target_mod_val.device}")
             target_mod_val = target_mod_val * (1. - terminals)
             # print_debug(f"target_mod_val after removing terminal states: {target_mod_val}")
 

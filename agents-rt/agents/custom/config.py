@@ -3,9 +3,11 @@ import os
 from agents.util import partial
 
 from agents.sac_models import Mlp, MlpPolicy
+from agents.drtac_models import Mlp as SV_Mlp
+from agents.drtac_models import MlpPolicy as SV_MlpPolicy
 from agents.custom.custom_models import Tm_hybrid_1, TMPolicy
 from agents.custom.custom_gym_interfaces import TM2020InterfaceLidar, TMInterfaceLidar, TM2020Interface, TMInterface, CogniflyInterfaceTask1
-from agents.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, sample_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_cognifly
+from agents.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_cognifly
 from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020, get_local_buffer_sample_tm20_imgs, get_local_buffer_sample_cognifly, MemoryCognifly, TrajMemoryTMNFLidar
 
 # HIGH-LEVEL PRAGMAS: ==========================================
@@ -15,11 +17,15 @@ PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA = True  # True if CUDA, False if CPU
 CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
-PRAGMA_DCAC = False  # True for DCAC, False for SAC
+PRAGMA_DCAC = True  # True for DCAC, False for SAC
+
+LOCALHOST = False  # set to True to enforce localhost
+REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"
+# REDIS_IP = "173.179.182.4" if not LOCALHOST else "127.0.0.1"
 
 # CRC DEBUGGING: ===============================================
 
-CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise
+CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise. Caution: difficult to handle if reset transitions are collected.
 CRC_DEBUG_SAMPLES = 10  # Number of samples collected in CRC_DEBUG mode
 
 # BUFFERS: =====================================================
@@ -44,15 +50,15 @@ elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp4.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt4.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp4"
+    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp5.pth"
+    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt5.pth"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp5"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_yann_007"
+WANDB_RUN_ID = "DCAC_tm20_test_yann_002"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
@@ -61,8 +67,12 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
-TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
-POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
+if PRAGMA_DCAC:
+    TRAIN_MODEL = SV_Mlp
+    POLICY = SV_MlpPolicy
+else:
+    TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
+    POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
 BENCHMARK = False
 
 if PRAGMA_LIDAR:
@@ -88,26 +98,33 @@ SAMPLE_COMPRESSOR = get_local_buffer_sample if PRAGMA_LIDAR else get_local_buffe
 # to preprocess observations that come out of the gym environment and of the replay buffer:
 OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else obs_preprocessor_tm_act_in_obs
 # to augment data that comes out of the replay buffer (applied after observation preprocessing):
-SAMPLE_PREPROCESSOR = sample_preprocessor_tm_lidar_act_in_obs if PRAGMA_LIDAR else None
+SAMPLE_PREPROCESSOR = None
 
 if PRAGMA_LIDAR:
-    MEM = MemoryTMNFLidar
+    MEM = TrajMemoryTMNFLidar if PRAGMA_DCAC else MemoryTMNFLidar
 else:
+    assert not PRAGMA_DCAC, "DCAC not implemented here"
     MEM = MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF
-MEMORY = partial(MEM,
-                 path_loc=DATASET_PATH,
-                 imgs_obs=IMG_HIST_LEN,
-                 act_buf_len=ACT_BUF_LEN,
-                 obs_preprocessor=OBS_PREPROCESSOR,
-                 sample_preprocessor=SAMPLE_PREPROCESSOR,
-                 crc_debug=CRC_DEBUG
-                 )
+
+if PRAGMA_DCAC:
+    MEMORY = partial(MEM,
+                     path_loc=DATASET_PATH,
+                     imgs_obs=IMG_HIST_LEN,
+                     act_buf_len=ACT_BUF_LEN,
+                     obs_preprocessor=OBS_PREPROCESSOR,
+                     crc_debug=CRC_DEBUG
+                     )
+else:
+    MEMORY = partial(MEM,
+                     path_loc=DATASET_PATH,
+                     imgs_obs=IMG_HIST_LEN,
+                     act_buf_len=ACT_BUF_LEN,
+                     obs_preprocessor=OBS_PREPROCESSOR,
+                     sample_preprocessor=SAMPLE_PREPROCESSOR,
+                     crc_debug=CRC_DEBUG
+                     )
 
 # NETWORKING: ==================================================
-
-LOCALHOST = False  # set to True to enforce localhost
-REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"
-# REDIS_IP = "173.179.182.4" if not LOCALHOST else "127.0.0.1"
 
 PRINT_BYTESIZES = True
 
