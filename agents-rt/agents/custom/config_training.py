@@ -16,7 +16,7 @@ if cfg.PRAGMA_DCAC:
                     device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
                     Model=partial(cfg.TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
                     memory_size=1000000,
-                    batchsize=3 if cfg.PRAGMA_LIDAR else 64,  # 512,  # default: 256
+                    batchsize=128 if cfg.PRAGMA_LIDAR else 64,  # 512,  # default: 256
                     lr=0.0003,  # default 0.0003
                     discount=0.995,  # default and best tmnf so far: 0.99
                     target_update=0.005,
@@ -39,9 +39,9 @@ else:
 if cfg.PRAGMA_LIDAR:
     TRAINER = partial(TrainingOffline,
                       Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
-                      epochs=400,  # 10
-                      rounds=10,  # 50
-                      steps=1000,  # 2000
+                      epochs=400,  # 400
+                      rounds=10,  # 10
+                      steps=1000,  # 1000
                       update_model_interval=1000,
                       update_buffer_interval=1000,
                       max_training_steps_per_env_step=1.0,

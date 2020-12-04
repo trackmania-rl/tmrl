@@ -231,7 +231,7 @@ class Agent(agents.sac.Agent):
         # ad_s = torch.stack([self.traj_new_augm_obs[i + 1][3][ibatch] for ibatch, i in enumerate(nstep_len)])
         # mod_augm_obs = tuple((obs_s, act_s, od_s, ad_s))
 
-        mod_augm_obs = tuple((torch.stack([self.traj_new_augm_obs[i + 1][itup][ibatch] for ibatch, i in enumerate(nstep_len)]) for itup in range(len(self.traj_new_augm_obs[0]))))
+        # mod_augm_obs = tuple((torch.stack([self.traj_new_augm_obs[i + 1][itup][ibatch] for ibatch, i in enumerate(nstep_len)]) for itup in range(len(self.traj_new_augm_obs[0]))))
 
         # print_debug(f"mod_augm_obs: {mod_augm_obs}")
 
@@ -240,14 +240,19 @@ class Agent(agents.sac.Agent):
         with torch.no_grad():
 
             # These are the delayed state-value estimates we are looking for:
-            target_mod_val = [c(mod_augm_obs) for c in self.model_target.critics]
+
+            # target_mod_val = [c(mod_augm_obs) for c in self.model_target.critics]
             # print_debug(f"target_mod_val of all critics: {target_mod_val}")
-            target_mod_val = reduce(torch.min, torch.stack(target_mod_val)).squeeze()  # minimum target estimate
+            # target_mod_val = reduce(torch.min, torch.stack(target_mod_val)).squeeze()  # minimum target estimate
             # print_debug(f"target_mod_val before removing terminal states: {target_mod_val}")
             # print_debug(f"terminals.device:{terminals.device}")
             # print_debug(f"target_mod_val.device:{target_mod_val.device}")
-            target_mod_val = target_mod_val * (1. - terminals)
+            # target_mod_val = target_mod_val * (1. - terminals)
             # print_debug(f"target_mod_val after removing terminal states: {target_mod_val}")
+
+            # print_debug(f"nstep_max_len: {nstep_max_len}")
+
+            target_mod_vals = [reduce(torch.min, torch.stack([c(self.traj_new_augm_obs[i + 1]) for c in self.model_target.critics])).squeeze() * (1. - terminals) for i in range(nstep_max_len + 1)]
 
             # Now let us use this to compute the state-value targets of the batch of initial augmented states:
 
@@ -263,7 +268,12 @@ class Agent(agents.sac.Agent):
                 # print_debug(f"i: {i}")
                 # print_debug(f"start_backup_mask: {start_backup_mask}")
                 # print_debug(f"backup_started: {backup_started}")
-                value_target = self.reward_scale * rew_traj[i] - self.entropy_scale * self.traj_new_actions_log_prob_detach[i] + backup_started * self.discount * (value_target + start_backup_mask * target_mod_val)
+                # print_debug(f"target_mod_vals[i]: {target_mod_vals[i]}")
+                # TODO:
+                # value_target = self.reward_scale * rew_traj[i] - self.entropy_scale * self.traj_new_actions_log_prob_detach[i] + backup_started * self.discount * (value_target + start_backup_mask * target_mod_val)
+
+                value_target = self.reward_scale * rew_traj[i] - self.entropy_scale * self.traj_new_actions_log_prob_detach[i] + backup_started * self.discount * (value_target + start_backup_mask * target_mod_vals[i])
+
                 # print_debug(f"rew_traj[i]: {rew_traj[i]}")
                 # print_debug(f"self.traj_new_actions_log_prob_detach[i]: {self.traj_new_actions_log_prob_detach[i]}")
                 # print_debug(f"new value_target: {value_target}")
@@ -284,12 +294,16 @@ class Agent(agents.sac.Agent):
 
         # print_debug(" --- ACTOR LOSS ---")
 
-        model_mod_val = [c(mod_augm_obs) for c in self.model_nograd.critics]
+        # model_mod_val = [c(mod_augm_obs) for c in self.model_nograd.critics]
         # print_debug(f"model_mod_val of all critics: {model_mod_val}")
-        model_mod_val = reduce(torch.min, torch.stack(model_mod_val)).squeeze()  # minimum model estimate
+        # model_mod_val = reduce(torch.min, torch.stack(model_mod_val)).squeeze()  # minimum model estimate
         # print_debug(f"model_mod_val before removing terminal states: {model_mod_val}")
-        model_mod_val = model_mod_val * (1. - terminals)
+        # model_mod_val = model_mod_val * (1. - terminals)
         # print_debug(f"model_mod_val after removing terminal states: {model_mod_val}")
+
+        model_mod_vals = [reduce(torch.min, torch.stack([c(self.traj_new_augm_obs[i + 1]) for c in self.model_nograd.critics])).squeeze() * (1. - terminals) for i in range(nstep_max_len + 1)]
+
+        # target_mod_vals = [reduce(torch.min, torch.stack([c(self.traj_new_augm_obs[i + 1]) for c in self.model_target.critics])).squeeze() * (1. - terminals) for i in range(nstep_max_len + 1)]
 
         loss_actor = torch.zeros(batch_size, device=self.device)
         backup_started = torch.zeros(batch_size, device=self.device)
@@ -303,7 +317,8 @@ class Agent(agents.sac.Agent):
             # print_debug(f"i: {i}")
             # print_debug(f"start_backup_mask: {start_backup_mask}")
             # print_debug(f"backup_started: {backup_started}")
-            loss_actor = - self.entropy_scale * self.traj_new_actions_log_prob[i] + backup_started * self.discount * (loss_actor + start_backup_mask * model_mod_val)
+            # loss_actor = - self.entropy_scale * self.traj_new_actions_log_prob[i] + backup_started * self.discount * (loss_actor + start_backup_mask * model_mod_val)
+            loss_actor = - self.entropy_scale * self.traj_new_actions_log_prob[i] + backup_started * self.discount * (loss_actor + start_backup_mask * model_mod_vals[i])
             # print_debug(f"self.traj_new_actions_log_prob[i]: {self.traj_new_actions_log_prob[i]}")
             # print_debug(f"new negative loss_actor: {loss_actor}")
         loss_actor = - loss_actor.mean(0)

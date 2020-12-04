@@ -30,6 +30,7 @@ CRC_DEBUG_SAMPLES = 10  # Number of samples collected in CRC_DEBUG mode
 
 # BUFFERS: =====================================================
 
+
 ACT_BUF_LEN = 2
 IMG_HIST_LEN = 4
 
@@ -58,7 +59,7 @@ elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "DCAC_tm20_test_yann_002"
+WANDB_RUN_ID = "DCAC_tm20_test_yann_003"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
