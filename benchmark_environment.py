@@ -6,13 +6,14 @@ from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 from agents.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
 
 NB_STEPS = 1000
-ACT_COMPUTE_MIN = 0.02
-ACT_COMPUTE_MAX = 0.03
+ACT_COMPUTE_MIN = 0.0
+ACT_COMPUTE_MAX = 0.05
 
 action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,))
 
 env_config = DEFAULT_CONFIG_DICT
 env_config["interface"] = TM2020InterfaceLidar
+env_config["benchmark"] = True
 env = gym.make("rtgym:real-time-gym-v0", config=env_config)
 
 t_d = time.time()
@@ -24,7 +25,7 @@ for idx in range(NB_STEPS-1):
 t_f = time.time()
 
 elapsed_time = t_f - t_d
-print(f"benchmark results: obs capture: {env.benchmarks()}")
+print(f"benchmark results: {env.benchmarks()}")
 print(f"elapsed time: {elapsed_time}")
 print(f"time-step duration: {elapsed_time / NB_STEPS}")
 

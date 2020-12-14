@@ -21,7 +21,7 @@ class Agent:
 
     Model: type = agents.sac_models.Mlp
     Memory: type = Memory
-    OutputNorm: type = PopArt
+    OutputNorm: type = PopArt  # not used anymore (commented)
     batchsize: int = 256  # training batch size
     memory_size: int = 1000000  # replay memory size
     lr: float = 0.0003  # learning rate
@@ -51,8 +51,8 @@ class Agent:
         #self.actor_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.actor_optimizer,self.lr/10,self.lr*10, step_size_up=2000)
         #self.critic_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.critic_optimizer,self.lr / 10,self.lr * 10, step_size_up=2000)
 
-        self.outputnorm = self.OutputNorm(self.model.critic_output_layers)
-        self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
+        # self.outputnorm = self.OutputNorm(self.model.critic_output_layers)
+        # self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
 
     def act(self, state, obs, r, done, info, train=False):
         state = self.model.reset() if state is None else state  # initialize state if necessary
@@ -74,8 +74,8 @@ class Agent:
         # print("DEBUG: sampling next values")
         next_value = [c(next_obs, next_actions) for c in self.model_target.critics]
         next_value = reduce(torch.min, next_value)  # minimum action-value
-        next_value = self.outputnorm_target.unnormalize(next_value)  # PopArt (not present in the original paper)
-        # next_value = self.outputnorm.unnormalize(next_value)  # PopArt (not present in the original paper)
+        # next_value = self.outputnorm_target.unnormalize(next_value)  # PopArt (not present in the original paper)
+        # # next_value = self.outputnorm.unnormalize(next_value)  # PopArt (not present in the original paper)
 
         # predict entropy rewards in a separate dimension from the normal rewards (not present in the original paper)
         next_action_entropy = - (1. - terminals) * self.discount * next_action_distribution.log_prob(next_actions)
@@ -85,12 +85,16 @@ class Agent:
         ), dim=1)  # shape = (batchsize, reward_components)
 
         value_target = reward_components + (1. - terminals[:, None]) * self.discount * next_value
-        normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
+        # normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
 
         # print("DEBUG: sampling old values")
         values = [c(obs, actions) for c in self.model.critics]
-        assert values[0].shape == normalized_value_target.shape and not normalized_value_target.requires_grad
-        loss_critic = sum(mse_loss(v, normalized_value_target) for v in values)
+
+        # assert values[0].shape == normalized_value_target.shape and not normalized_value_target.requires_grad
+        # loss_critic = sum(mse_loss(v, normalized_value_target) for v in values)
+
+        assert values[0].shape == value_target.shape and not value_target.requires_grad
+        loss_critic = sum(mse_loss(v, value_target) for v in values)
 
         # update critic
         self.critic_optimizer.zero_grad()
@@ -103,9 +107,10 @@ class Agent:
         new_value = reduce(torch.min, new_value)  # minimum action_values
         assert new_value.shape == (self.batchsize, 2)
 
-        new_value = self.outputnorm.unnormalize(new_value)
+        # new_value = self.outputnorm.unnormalize(new_value)
         new_value[:, -1] -= self.entropy_scale * new_action_distribution.log_prob(new_actions)
-        loss_actor = - self.outputnorm.normalize_sum(new_value.sum(1)).mean()  # normalize_sum preserves relative scale
+        # loss_actor = - self.outputnorm.normalize_sum(new_value.sum(1)).mean()  # normalize_sum preserves relative scale
+        loss_actor = - (new_value.sum(1)).mean()  # normalize_sum preserves relative scale
 
         # update actor
         self.actor_optimizer.zero_grad()
@@ -114,16 +119,16 @@ class Agent:
 
         # update target critics and normalizers
         exponential_moving_average(self.model_target.critics.parameters(), self.model.critics.parameters(), self.target_update)
-        exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(), self.target_update)
+        # exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(), self.target_update)
         #self.actor_lr_scheduler.step()
         #self.critic_lr_scheduler.step()
         return dict(
             loss_actor=loss_actor.detach(),
             loss_critic=loss_critic.detach(),
-            outputnorm_reward_mean=self.outputnorm.mean[0],
-            outputnorm_entropy_mean=self.outputnorm.mean[-1],
-            outputnorm_reward_std=self.outputnorm.std[0],
-            outputnorm_entropy_std=self.outputnorm.std[-1],
+            # outputnorm_reward_mean=self.outputnorm.mean[0],
+            # outputnorm_entropy_mean=self.outputnorm.mean[-1],
+            # outputnorm_reward_std=self.outputnorm.std[0],
+            # outputnorm_entropy_std=self.outputnorm.std[-1],
             memory_size=len(self.memory),
         )
 

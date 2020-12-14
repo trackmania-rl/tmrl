@@ -12,11 +12,11 @@ def main(args):
     if args.server:
         RedisServer(samples_per_redis_batch=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                     localhost=cfg.LOCALHOST)
-    elif args.worker or args.test:
+    elif args.worker or args.test or args.benchmark:
         rw = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
                            actor_module_cls=partial(cfg.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
                            get_local_buffer_sample=cfg.SAMPLE_COMPRESSOR,
-                           device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
+                           device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
                            redis_ip=cfg.REDIS_IP,
                            samples_per_worker_batch=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                            model_path=cfg.MODEL_PATH_WORKER,
@@ -24,6 +24,8 @@ def main(args):
                            crc_debug=cfg.CRC_DEBUG)
         if args.worker:
             rw.run()
+        elif args.benchmark:
+            rw.run_env_benchmark(nb_steps=1000, train=True)
         else:
             rw.run_test_episode(1000)
     elif args.trainer:
@@ -65,6 +67,7 @@ if __name__ == "__main__":
     parser.add_argument('--trainer', action='store_true')
     parser.add_argument('--worker', action='store_true')  # not used
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--benchmark', action='store_true')
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='if you do not want to log results on Weights and Biases, use this option')
     args = parser.parse_args()
     print(args)

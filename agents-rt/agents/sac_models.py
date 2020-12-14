@@ -51,6 +51,7 @@ class MlpActionValue(Sequential):
 
     # noinspection PyMethodOverriding
     def forward(self, obs, action):
+        # print(f"DEBUG: obs:{obs}")
         x = torch.cat((*obs, action), -1)
         return super().forward(x)
 
@@ -67,6 +68,7 @@ class MlpPolicy(Sequential):
 
     # noinspection PyMethodOverriding
     def forward(self, obs):
+        # print(f"DEBUG: obs:{obs}")
         return super().forward(torch.cat(obs, -1))  # XXX
 
 

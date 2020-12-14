@@ -708,6 +708,17 @@ class RolloutWorker:
                     action = action_distribution.sample()
         print(prof.key_averages().table(row_limit=20, sort_by="cpu_time_total"))
 
+    def run_env_benchmark(self, nb_steps, train=True):
+        """
+        This method is only compatible with rtgym environments
+        """
+        obs = self.reset(train=False, collect_samples=False)
+        for _ in range(nb_steps):
+            obs, rew, done, info = self.step(obs=obs, train=train, collect_samples=False)
+            if done:
+                obs = self.reset(train=False, collect_samples=False)
+        print(f"Benchmark results:\n{self.env.benchmarks()}")
+
     def send_and_clear_buffer(self):
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
         self.__buffer += self.buffer

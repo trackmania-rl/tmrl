@@ -13,7 +13,7 @@ if cfg.PRAGMA_DCAC:
                     Interface=Tm20rtgymDcacInterface,
                     OutputNorm=partial(beta=0., zero_debias=False),
                     Memory=cfg.MEMORY,
-                    device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
+                    device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
                     Model=partial(cfg.TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
                     memory_size=1000000,
                     batchsize=128 if cfg.PRAGMA_LIDAR else 64,  # 512,  # default: 256
@@ -26,10 +26,10 @@ else:
     AGENT = partial(SAC_Agent,
                     OutputNorm=partial(beta=0., zero_debias=False),
                     Memory=cfg.MEMORY,
-                    device='cuda' if cfg.PRAGMA_CUDA else 'cpu',
+                    device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
                     Model=partial(cfg.TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
                     memory_size=1000000,
-                    batchsize=128 if cfg.PRAGMA_LIDAR else 64,  # 512,  # default: 256
+                    batchsize=128 if cfg.PRAGMA_LIDAR else 64,  # 512,  # default: 256 128
                     lr=0.0003,  # default 0.0003
                     discount=0.995,  # default and best tmnf so far: 0.99
                     target_update=0.005,

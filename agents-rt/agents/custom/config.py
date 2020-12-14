@@ -15,21 +15,23 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
-PRAGMA_CUDA = True  # True if CUDA, False if CPU
+PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
+PRAGMA_CUDA_INFERENCE = False  # True if CUDA, False if CPU (rollout worker)
+
 CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
-PRAGMA_DCAC = True  # True for DCAC, False for SAC
+PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 LOCALHOST = False  # set to True to enforce localhost
 REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"
 # REDIS_IP = "173.179.182.4" if not LOCALHOST else "127.0.0.1"
 
-# CRC DEBUGGING: ===============================================
+# CRC DEBUGGING AND BENCHMARKING: ==============================
 
 CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise. Caution: difficult to handle if reset transitions are collected.
 CRC_DEBUG_SAMPLES = 10  # Number of samples collected in CRC_DEBUG mode
+BENCHMARK = False
 
 # BUFFERS: =====================================================
-
 
 ACT_BUF_LEN = 2
 IMG_HIST_LEN = 4
@@ -51,15 +53,15 @@ elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\exp5.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\expt5.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\exp5"
+    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_11.pth"
+    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_11_t.pth"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\4lidar_11"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "DCAC_tm20_test_yann_003"
+WANDB_RUN_ID = "SAC_tm20_test_yann_4lidar_nospeed_003"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
@@ -74,7 +76,6 @@ if PRAGMA_DCAC:
 else:
     TRAIN_MODEL = Mlp if PRAGMA_LIDAR else Tm_hybrid_1
     POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
-BENCHMARK = False
 
 if PRAGMA_LIDAR:
     INT = partial(TM2020InterfaceLidar, img_hist_len=IMG_HIST_LEN) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=IMG_HIST_LEN)
@@ -83,7 +84,7 @@ else:
 CONFIG_DICT = {
     "interface": INT,
     "time_step_duration": 0.05,
-    "start_obs_capture": 0.04,
+    "start_obs_capture": 0.02,  # lidar capture takes 0.03s
     "time_step_timeout_factor": 1.0,
     "ep_max_length": np.inf,
     "real_time": True,

@@ -192,7 +192,8 @@ class TM2020InterfaceLidar(TM2020Interface):
     def grab_lidar_speed_and_data(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         data = self.client.retrieve_data()
-        speed = np.array([data[0], ], dtype='float32')
+        # speed = np.array([data[0], ], dtype='float32')
+        speed = np.array([0.0, ], dtype='float32')  # FIXME: this is a test without speed
         lidar = self.lidar.lidar_20(im=img, show=False)
         return lidar, speed, data
 
