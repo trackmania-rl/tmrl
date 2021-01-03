@@ -24,5 +24,8 @@
 If you want to run the self-driving-car on Trackmania 2020, we will need to install 
 [Openplanet](https://openplanet.nl/).
 
-After that, copy the files `Plugin_MyFirstScript.as` and `Plugin_MyFirstScript.as.sig` and paste it in the  
+After that, copy the files `Plugin_MyFirstScript.as` and `Plugin_MyFirstScript.as.sig` and paste it in `C:\Users\username\OpenplanetNext\Scripts`
 
+Launch Trackmania 2020 game click `f3` to open Openplanet and reload the script 
+
+![Image](img/writingscripts_reload.png)

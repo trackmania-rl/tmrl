@@ -1,6 +1,8 @@
 # TMRL
 Tmrl is a Python framework for Real-Time Reinforcement Learning, demonstrated on the TrackMania video games.
 
+![Image](docs/img/tm_annimation.gif)
+
 ## Introduction
 
 The goal of Tmrl is to provide a high-performance self-driving car for TrackMania video games using the state of 
@@ -13,17 +15,20 @@ The code is designed to be flexible in order to be run on both TrackTania 2020 a
 policy in an off-policy way, forming a bridge between stochastic policy optimization and DDPG-style approaches.
     This is the state of the art algorithm in deep reinforcement learning
 
+
 * **Support different input devices**
 
     The framework can deals with keyboard input or game controller to control the car.
+
 
 * **Support different input data**
 
     To train or test the model you can use a LIDAR (Light Detection and Ranging) or a camera to get the environnement 
     of the run.
-    We use a fully connected neural network to to process the lidar and a backbone 
+    We use a fully connected neural network to process the lidar and a backbone 
     [MobileNetV3](https://arxiv.org/abs/1905.02244) for the camera.
   
+
 * **flexible for different game**
     We designed this framework to be as flexible as possible in other Vehicle simulation and RPG more generaly
     
@@ -115,6 +120,6 @@ Periodically, it sends the new policy weights to the central server.
 
 These mechanics can be visualized as follows:
 
-![Networking architecture](figures/network_interface.png "Networking Architecture")
+![Networking architecture](docs/img/network_interface.png "Networking Architecture")
 
 # License
