@@ -1,10 +1,47 @@
 # TMRL
-Python framework for Real-Time Reinforcement Learning, demonstrated on the Trackmania videogame.
+Tmrl is a Python framework for Real-Time Reinforcement Learning, demonstrated on the TrackMania video games.
+
+## Introduction
+
+The goal of Tmrl is to provide a high-performance self-driving car for TrackMania video games using the state of 
+the art algorithms in reinforcement learning.
+The code is designed to be flexible in order to be run on both TrackTania 2020 and TrackTania nations forever.
+### Major features
+* **State of the art algorithm**
+
+    We use [soft actor-critic](https://arxiv.org/abs/1801.01290)(SAC). SAC is an algorithm that optimizes a stochastic
+policy in an off-policy way, forming a bridge between stochastic policy optimization and DDPG-style approaches.
+    This is the state of the art algorithm in deep reinforcement learning
+
+* **Support different input devices**
+
+    The framework can deals with keyboard input or game controller to control the car.
+
+* **Support different input data**
+
+    To train or test the model you can use a LIDAR (Light Detection and Ranging) or a camera to get the environnement 
+    of the run.
+    We use a fully connected neural network to to process the lidar and a backbone 
+    [MobileNetV3](https://arxiv.org/abs/1905.02244) for the camera.
+  
+* **flexible for different game**
+    We designed this framework to be as flexible as possible in other Vehicle simulation and RPG more generaly
+    
+    
+## Installation
+
+Please find installation instructions in [Install.md](docs/Install.md)
+
+## Getting started
+
+Please see [get_started.md](docs/get_started.md) for usage of Tmrl, we provide full guidance for quick run with trained weight and a tutorial 
+to train, test and finetune the model. 
 
 ## Quick links
 - [Real-time Gym framework](#real-time-gym-framework)
 - [Distant training architecture](#distant-training-architecture)
 - [Real-Time Gym repository (with tutorial)](https://github.com/yannbouteiller/rtgym)
+
 
 ## Authors:
 ### Maintainers:
@@ -14,7 +51,11 @@ Python framework for Real-Time Reinforcement Learning, demonstrated on the Track
 ### Other main contributors:
 - Simon Ramstedt
 
-## Real-time Gym framework
+# Quick presentation of tmrl
+
+explain the whole process from gathering the reward , grabbing the images, to controlling the car, and give a quick explenation of how works the algorithm
+
+# Real-time Gym framework
 Real-Time Gym (```rtgym```) is a simple and efficient real-time threaded framework built on top of [OpenAI Gym](https://github.com/openai/gym#openai-gym).
 It is coded in python.
 
@@ -53,7 +94,7 @@ This happens either because the environment has been 'paused', or because the sy
 - The inference duration of the model, i.e. the elapsed duration between two calls of the step() function, may be too long for the time-step duration that the user is trying to use.
 - The procedure that retrieves observations may take too much time or may be called too late (the latter can be tweaked in the configuration dictionary). Remember that, if observation capture is too long, it must not be part of the get_obs_rew_done() method of your interface. Instead, this method must simply retrieve the latest available observation from another process, and the action buffer must be long enough to handle the observation capture duration. This is described in the Appendix of [Reinforcement Learning with Random Delays](https://arxiv.org/abs/2010.02966).
 
-## Distant training architecture
+# Distant training architecture
 
 To train our model, we developped a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
 Our client-server architecture is not secured and it is not meant to compete with Ray, but it is much simpler to use and modify, and works on both Windows and Linux.
@@ -76,3 +117,4 @@ These mechanics can be visualized as follows:
 
 ![Networking architecture](figures/network_interface.png "Networking Architecture")
 
+# License
