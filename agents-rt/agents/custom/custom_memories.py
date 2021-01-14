@@ -302,9 +302,6 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
         return self
 
 
-
-
-
 class MemoryTM2020(MemoryDataloading):  # TODO: action buffer
     def __init__(self,
                  memory_size,

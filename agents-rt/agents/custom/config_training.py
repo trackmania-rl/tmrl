@@ -30,7 +30,7 @@ else:
                     Model=partial(cfg.TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
                     memory_size=1000000,
                     batchsize=128 if cfg.PRAGMA_LIDAR else 64,  # 512,  # default: 256 128
-                    lr=0.00005,  # default 0.0003
+                    lr=0.0003,  # default 0.0003
                     discount=0.995,  # default and best tmnf so far: 0.99
                     target_update=0.005,
                     reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
