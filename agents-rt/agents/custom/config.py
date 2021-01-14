@@ -108,23 +108,16 @@ else:
     assert not PRAGMA_DCAC, "DCAC not implemented here"
     MEM = MemoryTM2020 if PRAGMA_TM2020_TMNF else MemoryTMNF
 
-if PRAGMA_DCAC:
-    MEMORY = partial(MEM,
-                     path_loc=DATASET_PATH,
-                     imgs_obs=IMG_HIST_LEN,
-                     act_buf_len=ACT_BUF_LEN,
-                     obs_preprocessor=OBS_PREPROCESSOR,
-                     crc_debug=CRC_DEBUG
-                     )
-else:
-    MEMORY = partial(MEM,
-                     path_loc=DATASET_PATH,
-                     imgs_obs=IMG_HIST_LEN,
-                     act_buf_len=ACT_BUF_LEN,
-                     obs_preprocessor=OBS_PREPROCESSOR,
-                     sample_preprocessor=SAMPLE_PREPROCESSOR,
-                     crc_debug=CRC_DEBUG
-                     )
+
+MEMORY = partial(MEM,
+                 path_loc=DATASET_PATH,
+                 imgs_obs=IMG_HIST_LEN,
+                 act_buf_len=ACT_BUF_LEN,
+                 obs_preprocessor=OBS_PREPROCESSOR,
+                 sample_preprocessor=None if PRAGMA_DCAC else SAMPLE_PREPROCESSOR,
+                 crc_debug=CRC_DEBUG
+                 )
+
 
 # NETWORKING: ==================================================
 
