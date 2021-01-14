@@ -12,7 +12,7 @@ from agents.nn import PopArt, no_grad, copy_shared, exponential_moving_average, 
 from agents.util import cached_property, partial
 import agents.sac_models
 
-import gym
+# import gym
 
 
 @dataclass(eq=0)
@@ -21,7 +21,7 @@ class Agent:
 
     Model: type = agents.sac_models.Mlp
     Memory: type = Memory
-    OutputNorm: type = PopArt  # not used anymore (commented)
+    OutputNorm: type = PopArt
     batchsize: int = 256  # training batch size
     memory_size: int = 1000000  # replay memory size
     lr: float = 0.0003  # learning rate
@@ -48,11 +48,11 @@ class Agent:
         self.critic_optimizer = torch.optim.Adam(self.model.critics.parameters(), lr=self.lr)
         self.memory = self.Memory(self.memory_size, self.batchsize, device)
 
-        #self.actor_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.actor_optimizer,self.lr/10,self.lr*10, step_size_up=2000)
-        #self.critic_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.critic_optimizer,self.lr / 10,self.lr * 10, step_size_up=2000)
+        # self.actor_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.actor_optimizer,self.lr/10,self.lr*10, step_size_up=2000)
+        # self.critic_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.critic_optimizer,self.lr / 10,self.lr * 10, step_size_up=2000)
 
-        # self.outputnorm = self.OutputNorm(self.model.critic_output_layers)
-        # self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
+        self.outputnorm = self.OutputNorm(self.model.critic_output_layers)
+        self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
 
     def act(self, state, obs, r, done, info, train=False):
         state = self.model.reset() if state is None else state  # initialize state if necessary
@@ -74,8 +74,8 @@ class Agent:
         # print("DEBUG: sampling next values")
         next_value = [c(next_obs, next_actions) for c in self.model_target.critics]
         next_value = reduce(torch.min, next_value)  # minimum action-value
-        # next_value = self.outputnorm_target.unnormalize(next_value)  # PopArt (not present in the original paper)
-        # # next_value = self.outputnorm.unnormalize(next_value)  # PopArt (not present in the original paper)
+        next_value = self.outputnorm_target.unnormalize(next_value)  # PopArt (not present in the original paper)
+        # next_value = self.outputnorm.unnormalize(next_value)  # PopArt (not present in the original paper)
 
         # predict entropy rewards in a separate dimension from the normal rewards (not present in the original paper)
         next_action_entropy = - (1. - terminals) * self.discount * next_action_distribution.log_prob(next_actions)
@@ -85,16 +85,12 @@ class Agent:
         ), dim=1)  # shape = (batchsize, reward_components)
 
         value_target = reward_components + (1. - terminals[:, None]) * self.discount * next_value
-        # normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
+        normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
 
         # print("DEBUG: sampling old values")
         values = [c(obs, actions) for c in self.model.critics]
-
-        # assert values[0].shape == normalized_value_target.shape and not normalized_value_target.requires_grad
-        # loss_critic = sum(mse_loss(v, normalized_value_target) for v in values)
-
-        assert values[0].shape == value_target.shape and not value_target.requires_grad
-        loss_critic = sum(mse_loss(v, value_target) for v in values)
+        assert values[0].shape == normalized_value_target.shape and not normalized_value_target.requires_grad
+        loss_critic = sum(mse_loss(v, normalized_value_target) for v in values)
 
         # update critic
         self.critic_optimizer.zero_grad()
@@ -107,10 +103,9 @@ class Agent:
         new_value = reduce(torch.min, new_value)  # minimum action_values
         assert new_value.shape == (self.batchsize, 2)
 
-        # new_value = self.outputnorm.unnormalize(new_value)
+        new_value = self.outputnorm.unnormalize(new_value)
         new_value[:, -1] -= self.entropy_scale * new_action_distribution.log_prob(new_actions)
-        # loss_actor = - self.outputnorm.normalize_sum(new_value.sum(1)).mean()  # normalize_sum preserves relative scale
-        loss_actor = - (new_value.sum(1)).mean()  # normalize_sum preserves relative scale
+        loss_actor = - self.outputnorm.normalize_sum(new_value.sum(1)).mean()  # normalize_sum preserves relative scale
 
         # update actor
         self.actor_optimizer.zero_grad()
@@ -119,78 +114,15 @@ class Agent:
 
         # update target critics and normalizers
         exponential_moving_average(self.model_target.critics.parameters(), self.model.critics.parameters(), self.target_update)
-        # exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(), self.target_update)
-        #self.actor_lr_scheduler.step()
-        #self.critic_lr_scheduler.step()
+        exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(), self.target_update)
+        # self.actor_lr_scheduler.step()
+        # self.critic_lr_scheduler.step()
         return dict(
             loss_actor=loss_actor.detach(),
             loss_critic=loss_critic.detach(),
-            # outputnorm_reward_mean=self.outputnorm.mean[0],
-            # outputnorm_entropy_mean=self.outputnorm.mean[-1],
-            # outputnorm_reward_std=self.outputnorm.std[0],
-            # outputnorm_entropy_std=self.outputnorm.std[-1],
+            outputnorm_reward_mean=self.outputnorm.mean[0],
+            outputnorm_entropy_mean=self.outputnorm.mean[-1],
+            outputnorm_reward_std=self.outputnorm.std[0],
+            outputnorm_entropy_std=self.outputnorm.std[-1],
             memory_size=len(self.memory),
         )
-
-
-# AvenueAgent = partial(
-#     Agent,
-#     entropy_scale=0.05,
-#     lr=0.0002,
-#     memory_size=500000,
-#     batchsize=100,
-#     # training_steps=1 / 4,
-#     # start_training=10000,
-#     Model=partial(agents.sac_models.ConvModel)
-# )
-
-
-# === tests ============================================================================================================
-# def test_agent():
-#     from agents import Training, run
-#     Sac_Test = partial(
-#         Training,
-#         epochs=3,
-#         rounds=5,
-#         steps=100,
-#         start_training=256,
-#         Agent=partial(Agent, device='cpu', memory_size=1000000, batchsize=4),
-#         Env=partial(id="Pendulum-v0", real_time=0),
-#     )
-#     run(Sac_Test)
-
-
-# def test_agent_avenue():
-#     from agents import Training, run
-#     from agents.envs import AvenueEnv
-#     Sac_Avenue_Test = partial(
-#         Training,
-#         epochs=3,
-#         rounds=5,
-#         steps=300,
-#         Agent=partial(AvenueAgent, device='cpu', training_interval=4, start_training=400),
-#         Env=partial(AvenueEnv, real_time=0),
-#         Test=partial(number=0),  # laptop can't handle more than that
-#     )
-#     run(Sac_Avenue_Test)
-#
-#
-# def test_agent_avenue_hd():
-#     from agents import Training, run
-#     from agents.envs import AvenueEnv
-#     Sac_Avenue_Test = partial(
-#         Training,
-#         epochs=3,
-#         rounds=5,
-#         steps=300,
-#         Agent=partial(AvenueAgent, device='cpu', training_interval=4, start_training=400, Model=partial(Conv=hd_conv)),
-#         Env=partial(AvenueEnv, real_time=0, width=368, height=368),
-#         Test=partial(number=0),  # laptop can't handle more than that
-#     )
-#     run(Sac_Avenue_Test)
-
-
-# if __name__ == "__main__":
-#     test_agent()
-# test_agent_avenue()
-# test_agent_avenue_hd()
