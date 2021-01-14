@@ -8,7 +8,7 @@ def obs_preprocessor_tm_act_in_obs(obs):
     This takes the output of gym as input
     Therefore the output of the memory must be the same as gym
     """
-    obs = (obs[0], obs[1], obs[2], obs[3], obs[4], obs[5])
+    obs = (obs[0], obs[1], obs[2], obs[3], obs[4], obs[5])  # 2 actions
     return obs
 
 
