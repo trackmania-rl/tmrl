@@ -8,7 +8,7 @@ from agents.util import partial
 
 # ALGORITHM: ===================================================
 
-if cfg.PRAGMA_DCAC:
+if cfg.PRAGMA_DCAC:  # DCAC
     AGENT = partial(DCAC_Agent,
                     Interface=Tm20rtgymDcacInterface,
                     OutputNorm=partial(beta=0., zero_debias=False),
@@ -22,7 +22,7 @@ if cfg.PRAGMA_DCAC:
                     target_update=0.005,
                     reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
                     entropy_scale=1.0)  # default: 1.0),  # default: 1.0
-else:
+else:  # SAC
     AGENT = partial(SAC_Agent,
                     OutputNorm=partial(beta=0., zero_debias=False),
                     Memory=cfg.MEMORY,
@@ -36,7 +36,7 @@ else:
                     reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
                     entropy_scale=1.0)  # default: 1.0),  # default: 1.0
 
-if cfg.PRAGMA_LIDAR:
+if cfg.PRAGMA_LIDAR:  # lidar
     TRAINER = partial(TrainingOffline,
                       Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
                       epochs=400,  # 400
@@ -46,7 +46,7 @@ if cfg.PRAGMA_LIDAR:
                       update_buffer_interval=1000,
                       max_training_steps_per_env_step=1.0,
                       Agent=AGENT)
-else:
+else:  # images
     TRAINER = partial(TrainingOffline,
                       Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
                       epochs=100000,  # 10
