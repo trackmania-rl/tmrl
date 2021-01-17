@@ -51,15 +51,15 @@ elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_2_act_0.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_2_act_0_t.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\4lidar_new_2_act_0"
+    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_2_act_1.pth"
+    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_2_act_1_t.pth"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\4lidar_new_2_act_1"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_yann_4lidar_new_2_act_0"
+WANDB_RUN_ID = "SAC_tm20_test_yann_4lidar_new_2_act_1"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release

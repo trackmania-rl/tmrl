@@ -229,7 +229,7 @@ def poll_and_recv_or_close_socket(conn):
 # BUFFER: ===========================================
 
 class Buffer:
-    def __init__(self, maxlen=100000):
+    def __init__(self, maxlen=2000):
         self.memory = []
         self.stat_train_return = 0.0
         self.stat_test_return = 0.0

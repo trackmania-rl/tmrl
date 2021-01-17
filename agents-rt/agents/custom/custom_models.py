@@ -74,7 +74,7 @@ class TMModuleResnet(Module):
         im3 = x[3].float()[:, 2]
         im4 = x[3].float()[:, 3]
         if self.act_buf_len:
-            prev_act1 = x[4].float()
+            prev_act1 = x[4].float()  # TODO: change this for any act_buf_len
             prev_act2 = x[5].float()
         else:
             raise NotImplementedError
