@@ -82,7 +82,7 @@ else:
 CONFIG_DICT = {
     "interface": INT,
     "time_step_duration": 0.05,
-    "start_obs_capture": 0.02,  # lidar capture takes 0.03s
+    "start_obs_capture": 0.04,  # /!\ lidar capture takes 0.03s
     "time_step_timeout_factor": 1.0,
     "ep_max_length": np.inf,
     "real_time": True,
