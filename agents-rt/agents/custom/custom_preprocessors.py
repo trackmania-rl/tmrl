@@ -1,5 +1,8 @@
 import numpy as np
 
+# for debugging:
+# np.set_printoptions(linewidth=200)
+
 
 # OBSERVATION PREPROCESSING ==================================
 
@@ -17,11 +20,11 @@ def obs_preprocessor_tm_lidar_act_in_obs(obs):
     This takes the output of gym as input
     Therefore the output of the memory must be the same as gym
     """
-    print(f"DEBUG (before prepro): obs:{obs}")
+    # print(f"DEBUG (before prepro): obs:{obs}")
     # exit()
     obs = (obs[0], np.ndarray.flatten(obs[1]), *obs[2:])  # >= 1  action
-    print(f"DEBUG (after prepro): obs:{obs}")
-    exit()
+    # print(f"DEBUG (after prepro): obs:{obs}")
+    # exit()
     return obs
 
 
