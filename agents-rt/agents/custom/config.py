@@ -18,11 +18,13 @@ PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
 PRAGMA_CUDA_INFERENCE = False  # True if CUDA, False if CPU (rollout worker)
 
+PRAGMA_GAMEPAD = True  # True to use gamepad, False to use keyboard
+
 CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
 PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 LOCALHOST = False  # set to True to enforce localhost
-REDIS_IP = "96.127.215.210" if not LOCALHOST else "127.0.0.1"
+REDIS_IP = "45.74.220.141" if not LOCALHOST else "127.0.0.1"
 # REDIS_IP = "173.179.182.4" if not LOCALHOST else "127.0.0.1"
 
 # CRC DEBUGGING AND BENCHMARKING: ==============================
@@ -51,15 +53,15 @@ elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_1_act_1.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_1_act_1_t.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\4lidar_new_1_act_1"
+    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_1_act_3.pth"
+    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_1_act_3_t.pth"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\4lidar_new_1_act_3"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_yann_4lidar_new_1_act_1_test"
+WANDB_RUN_ID = "SAC_tm20_test_yann_4lidar_new_1_act_3_test"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
@@ -76,9 +78,9 @@ else:
     POLICY = MlpPolicy if PRAGMA_LIDAR else TMPolicy
 
 if PRAGMA_LIDAR:
-    INT = partial(TM2020InterfaceLidar, img_hist_len=IMG_HIST_LEN) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=IMG_HIST_LEN)
+    INT = partial(TM2020InterfaceLidar, img_hist_len=IMG_HIST_LEN, gamepad = PRAGMA_GAMEPAD) if PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=IMG_HIST_LEN)
 else:
-    INT = partial(TM2020Interface, img_hist_len=IMG_HIST_LEN) if PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=IMG_HIST_LEN)
+    INT = partial(TM2020Interface, img_hist_len=IMG_HIST_LEN, gamepad = PRAGMA_GAMEPAD) if PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=IMG_HIST_LEN)
 CONFIG_DICT = {
     "interface": INT,
     "time_step_duration": 0.05,

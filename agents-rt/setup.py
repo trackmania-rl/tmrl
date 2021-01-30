@@ -1,19 +1,14 @@
 from setuptools import setup
 from setuptools import find_packages
-# from pip._internal import main as pipmain
-# from os.path import join, dirname
 import platform
 import sys
 
 if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
 
-
-
 install_req = [
     'numpy',
     'torch',
-    # 'torchvision',
     'imageio',
     'imageio-ffmpeg',
     'pandas',
@@ -22,8 +17,6 @@ install_req = [
     'pyyaml',
     'wandb',
     'requests',
-    # 'pybullet'
-    # 'line_profiler',
     'opencv-python',
     'mss',
     'scikit-image',
@@ -38,9 +31,7 @@ install_req = [
 
 if platform.system() == "Windows":
     install_req.append('pypiwin32')
-
-
-
+    install_req.append('vgamepad')
 
 setup(
     name='agents',

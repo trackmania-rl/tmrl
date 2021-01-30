@@ -7,11 +7,15 @@ import time
 import cv2
 import mss
 from collections import deque
-# import pyvjoy  # CAUTION: not compatible with Linux
+
+import platform
+if platform.system() == "Windows":
+    import vgamepad as vg
 
 from rtgym import RealTimeGymInterface
 
 from agents.custom.utils.key_event import apply_control, keyres
+from agents.custom.utils.control_gamepad import control_gamepad
 from agents.custom.utils.tools import load_digits, get_speed, Lidar, TM2020OpenPlanetClient
 from agents.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
 from agents.custom.utils.compute_reward import RewardFunction
@@ -52,9 +56,11 @@ class TM2020Interface(RealTimeGymInterface):
         self.gamepad = gamepad
         self.j = None
         if self.gamepad:
-            pass
-        #     self.j = pyvjoy.VJoyDevice(1)
-        #     print("DEBUG: virtual joystick in use")
+            assert platform.system() == "Windows", "Sorry, Only Windows is supported for gamepad control"
+
+            self.j = vg.VX360Gamepad()
+            print("DEBUG: virtual joystick in use")
+
         #     import signal
         #     import sys
         #
@@ -68,6 +74,7 @@ class TM2020Interface(RealTimeGymInterface):
         #         sys.exit(0)
         #
         #     signal.signal(signal.SIGINT, signal_handler)
+
         self.initialized = False
 
     def initialize(self):
@@ -89,9 +96,8 @@ class TM2020Interface(RealTimeGymInterface):
             control: np.array: [forward,backward,right,left]
         """
         if self.gamepad:
-            pass
-        #     if control is not None:
-        #         control_all(control, self.j)
+            if control is not None:
+                control_gamepad(self.j, control)
         else:
             if control is not None:
                 actions = []
