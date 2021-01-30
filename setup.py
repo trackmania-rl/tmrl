@@ -34,7 +34,7 @@ if platform.system() == "Windows":
     install_req.append('vgamepad')
 
 setup(
-    name='agents',
+    name='tmrl',
     version="0.1",
     description='',
     author='Yann Bouteiller, Edouard Geze, Simon Ramstedt',
@@ -47,7 +47,7 @@ setup(
 
     },
     scripts=[
-        "scripts/agents-parallel"
+        "scripts/tmrl-parallel"
     ],
     packages=find_packages()
 )

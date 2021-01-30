@@ -1,10 +1,10 @@
 from argparse import ArgumentParser, ArgumentTypeError
-from agents import run_wandb_tm, run_tm
-from agents.util import partial
-from agents.envs import UntouchedGymEnv
-from agents.networking import RedisServer, RolloutWorker, TrainerInterface
-import agents.custom.config as cfg
-import agents.custom.config_training as cfg_train
+from tmrl import run_wandb_tm, run_tm
+from tmrl.util import partial
+from tmrl.envs import UntouchedGymEnv
+from tmrl.networking import RedisServer, RolloutWorker, TrainerInterface
+import tmrl.custom.config as cfg
+import tmrl.custom.config_training as cfg_train
 import time
 
 

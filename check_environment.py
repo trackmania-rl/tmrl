@@ -6,8 +6,8 @@ import time
 import numpy as np
 import mss
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
-from agents.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
-from agents.custom.utils.tools import Lidar
+from tmrl.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
+from tmrl.custom.utils.tools import Lidar
 
 sct = mss.mss()
 monitor = {"top": 30, "left": 0, "width": 958, "height": 490}

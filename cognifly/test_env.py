@@ -1,5 +1,5 @@
 import gym
-from agents.custom.custom_gym_interfaces import CogniflyInterfaceTask1
+from tmrl.custom.custom_gym_interfaces import CogniflyInterfaceTask1
 from rtgym import DEFAULT_CONFIG_DICT
 import numpy as np
 

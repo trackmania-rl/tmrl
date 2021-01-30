@@ -1,7 +1,7 @@
-from agents.custom.utils.tools import load_digits, get_speed, TM2020OpenPlanetClient
+from tmrl.custom.utils.tools import load_digits, get_speed, TM2020OpenPlanetClient
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
-from agents.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
-import agents.custom.config as cfg
+from tmrl.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
+import tmrl.custom.config as cfg
 import numpy as np
 import mss
 import pickle
