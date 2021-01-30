@@ -5,15 +5,15 @@
 
 # Installation
 
-1. Create a conda environement 
-```shell
-    conda create -name tmrl
-    conda activate tmrl
-```
-2. Clone tmrl repository
+1. Clone tmrl repository
 ```shell
 git clone https://github.com/yannbouteiller/tmrl.git
 cd tmrl
+```
+2. Create a conda environement shell 
+```shell
+conda create --name tmrl
+conda activate tmrl
 ```
 
 2. Install the libraries
