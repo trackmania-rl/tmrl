@@ -55,11 +55,6 @@ class TM2020Interface(RealTimeGymInterface):
         self.client = None
         self.gamepad = gamepad
         self.j = None
-        if self.gamepad:
-            assert platform.system() == "Windows", "Sorry, Only Windows is supported for gamepad control"
-
-            self.j = vg.VX360Gamepad()
-            print("DEBUG: virtual joystick in use")
 
         #     import signal
         #     import sys
@@ -78,6 +73,11 @@ class TM2020Interface(RealTimeGymInterface):
         self.initialized = False
 
     def initialize(self):
+        if self.gamepad:
+            assert platform.system() == "Windows", "Sorry, Only Windows is supported for gamepad control"
+
+            self.j = vg.VX360Gamepad()
+            print("DEBUG: virtual joystick in use")
         self.sct = mss.mss()
         self.last_time = time.time()
         self.digits = load_digits()

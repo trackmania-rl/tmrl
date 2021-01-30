@@ -27,6 +27,7 @@ class TrainingOffline:
     stats_window: int = None  # default = steps, should be at least as long as a single episode
     seed: int = 0  # seed is currently not used
     tag: str = ''  # for logging, e.g. allows to compare groups of runs
+    profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the enc of each epoch
 
     total_updates = 0
 
@@ -67,6 +68,12 @@ class TrainingOffline:
             t0 = pd.Timestamp.utcnow()
             self.check_ratio(interface)
             t1 = pd.Timestamp.utcnow()
+
+            if self.profiling:
+                from pyinstrument import Profiler
+                pro = Profiler()
+                pro.start()
+
             for step in range(self.steps):
                 if self.total_updates == 0:
                     print("starting training")
@@ -94,6 +101,10 @@ class TrainingOffline:
             ),
 
             print(stats[-1].add_prefix("  ").to_string(), '\n')
+
+            if self.profiling:
+                pro.stop()
+                print(pro.output_text(unicode=True, color=False))
 
         self.epoch += 1
         return stats

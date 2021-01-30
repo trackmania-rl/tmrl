@@ -14,7 +14,7 @@ from agents.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLid
 
 PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
-PRAGMA_LIDAR = True  # True if Lidar, False if images
+PRAGMA_LIDAR = False  # True if Lidar, False if images
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
 PRAGMA_CUDA_INFERENCE = False  # True if CUDA, False if CPU (rollout worker)
 
@@ -23,7 +23,7 @@ PRAGMA_GAMEPAD = True  # True to use gamepad, False to use keyboard
 CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
 PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
-LOCALHOST = False  # set to True to enforce localhost
+LOCALHOST = True  # set to True to enforce localhost
 REDIS_IP = "45.74.220.141" if not LOCALHOST else "127.0.0.1"
 # REDIS_IP = "173.179.182.4" if not LOCALHOST else "127.0.0.1"
 
@@ -31,7 +31,8 @@ REDIS_IP = "45.74.220.141" if not LOCALHOST else "127.0.0.1"
 
 CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise. Caution: difficult to handle if reset transitions are collected.
 CRC_DEBUG_SAMPLES = 10  # Number of samples collected in CRC_DEBUG mode
-BENCHMARK = False
+PROFILE_TRAINER = True  # Will profile each epoch in the Trainer when True
+BENCHMARK = False  # The environment will be benchmarked when this is True
 
 # BUFFERS: =====================================================
 
@@ -41,27 +42,27 @@ IMG_HIST_LEN = 4
 # FILE SYSTEM: =================================================
 
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Compute Canada
-    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/4lidar_new_1_act_0_t.pth"
-    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/4lidar_new_1_act_0"
+    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_0_t.pth"
+    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_0"
     DATASET_PATH = r"/home/yannbout/scratch/base_tmrl/data/dataset"
     REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
-    MODEL_PATH_WORKER = r"/home/yannbout/scratch/base_tmrl/data/4lidar_new_1_act_0.pth"
+    MODEL_PATH_WORKER = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_0.pth"
 elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
-    MODEL_PATH_WORKER = r"D:\cp\weights\exp1.pth"
-    MODEL_PATH_TRAINER = r"D:\cp\weights\expt1.pth"
-    CHECKPOINT_PATH = r"D:\cp\exp1"
+    MODEL_PATH_WORKER = r"D:\cp\weights\4imgs_new_0.pth"
+    MODEL_PATH_TRAINER = r"D:\cp\weights\4imgs_new_0_t.pth"
+    CHECKPOINT_PATH = r"D:\cp\4imgs_new_0"
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_1_act_3.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4lidar_new_1_act_3_t.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\4lidar_new_1_act_3"
+    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4imgs_new_0.pth"
+    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4imgs_new_0_t.pth"
+    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\4imgs_new_0"
     DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
     REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_yann_4lidar_new_1_act_3_test"
+WANDB_RUN_ID = "SAC_tm20_test_yann_imgs_new_0_test"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
 WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release

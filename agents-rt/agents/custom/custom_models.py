@@ -74,17 +74,12 @@ class TMModuleResnet(Module):
         im3 = x[3].float()[:, 2]
         im4 = x[3].float()[:, 3]
         if self.act_buf_len:
-            prev_act1 = x[4].float()  # TODO: change this for any act_buf_len
-            prev_act2 = x[5].float()
+            all_acts = torch.cat((x[4:]), dim=1).float()  # if q network, the last action will be act
         else:
             raise NotImplementedError
         im = torch.cat((im1, im2, im3, im4), dim=2)  # TODO : check device
         im = self.cnn(im)
-        if self.is_q_network:
-            act = x[-1].float()
-            h = torch.cat((im, vel, gear, rpm, prev_act1, prev_act2, act), dim=1)
-        else:
-            h = torch.cat((im, vel, gear, rpm, prev_act1, prev_act2), dim=1)
+        h = torch.cat((im, vel, gear, rpm, all_acts), dim=1)
         h = self.fc1(h)
         return h
 
