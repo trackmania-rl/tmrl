@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from torch.nn.functional import mse_loss
 
-from tmrl.memory import Memory
+from tmrl.memory_dataloading import MemoryDataloading
 from tmrl.nn import PopArt, no_grad, copy_shared, exponential_moving_average, hd_conv
 from tmrl.util import cached_property, partial
 import tmrl.sac_models
@@ -20,7 +20,7 @@ class Agent:
     Env: InitVar
 
     Model: type = tmrl.sac_models.Mlp
-    Memory: type = Memory
+    Memory: type = MemoryDataloading
     OutputNorm: type = PopArt
     batchsize: int = 256  # training batch size
     memory_size: int = 1000000  # replay memory size

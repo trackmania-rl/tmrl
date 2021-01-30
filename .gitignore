@@ -125,3 +125,5 @@ venv.bak/
 dmypy.json
 
 *.pth
+
+.idea

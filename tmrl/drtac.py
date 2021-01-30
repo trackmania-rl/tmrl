@@ -9,14 +9,11 @@ import torch
 from torch.nn.functional import mse_loss
 
 import tmrl.sac
-import tmrl.sac_undelayed
 from tmrl.nn import no_grad, exponential_moving_average
 from tmrl.util import partial
 
 from tmrl.drtac_models import Mlp
 from tmrl.envs import RandomDelayEnv
-
-from tmrl import Training
 
 
 def print_debug(st):
@@ -349,106 +346,3 @@ class Agent(tmrl.sac.Agent):
         )
 
 
-DrtacTraining = partial(
-    Training,
-    Agent=partial(
-        Agent,
-        rtac=False,  # set this to True for reverting to RTAC
-        batchsize=128,
-        Model=partial(
-            Mlp,
-            act_delay=True,
-            obs_delay=True)),
-    Env=partial(
-        RandomDelayEnv,
-        id="Pendulum-v0",
-        min_observation_delay=0,
-        sup_observation_delay=1,
-        min_action_delay=0,
-        sup_action_delay=1),
-        # possible alternative values for the delays: [(0, 1, 0, 1), (0, 2, 0, 1), (0, 1, 0, 2), (1, 2, 1, 2), (0, 3, 0, 3)]
-    )
-
-DrtacTest = partial(
-    Training,
-    Agent=partial(
-        Agent,
-        rtac=True,  # set this to True for reverting to RTAC
-        batchsize=128,
-        start_training=256,
-        Model=partial(
-            Mlp,
-            act_delay=True,
-            obs_delay=True)),
-    Env=partial(
-        RandomDelayEnv,
-        id="Pendulum-v0",
-        min_observation_delay=0,
-        sup_observation_delay=2,
-        min_action_delay=0,
-        sup_action_delay=2))
-
-DrtacShortTimesteps = partial(  # works at 2/5 of the original Mujoco timescale
-    DrtacTraining,
-    Env=partial(frame_skip=2),  # only works with Mujoco tasks (for now)
-    steps=5000,
-    Agent=partial(memory_size=2500000, training_steps=2/5, start_training=25000, discount=0.996, entropy_scale=2/5)
-)
-
-# To compare against SAC:
-DelayedSacTraining = partial(
-    Training,
-    Agent=partial(
-        tmrl.sac.Agent,
-        batchsize=128,
-        Model=partial(
-            tmrl.sac_models_rd.Mlp,
-            act_delay=True,
-            obs_delay=True),
-        OutputNorm=partial(beta=0., zero_debias=False),
-    ),
-    Env=partial(
-        RandomDelayEnv,
-        id="Pendulum-v0",
-        min_observation_delay=0,
-        sup_observation_delay=1,
-        min_action_delay=0,
-        sup_action_delay=1,
-    ),
-)
-
-DelayedSacShortTimesteps = partial(  # works at 2/5 of the original Mujoco timescale
-    DelayedSacTraining,
-    Env=partial(frame_skip=2),  # only works with Mujoco tasks (for now)
-    steps=5000,
-    Agent=partial(memory_size=2500000, training_steps=2/5, start_training=25000, discount=0.996, entropy_scale=2/5)
-)
-
-
-UndelayedSacTraining = partial(
-    Training,
-    Agent=partial(
-        tmrl.sac_undelayed.Agent,
-        batchsize=128,
-        Model=partial(
-            tmrl.sac_models_rd.Mlp,
-            act_delay=True,
-            obs_delay=True),
-        OutputNorm=partial(beta=0., zero_debias=False),
-    ),
-    Env=partial(
-        RandomDelayEnv,
-        id="Pendulum-v0",
-        min_observation_delay=0,
-        sup_observation_delay=1,
-        min_action_delay=0,
-        sup_action_delay=1,
-    ),
-)
-
-
-if __name__ == "__main__":
-    from pandas.plotting import autocorrelation_plot
-
-    from tmrl import run
-    run(DrtacTraining)

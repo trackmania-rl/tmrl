@@ -14,17 +14,13 @@ import yaml
 
 # from tmrl.envs import AvenueEnv
 from tmrl.util import partial, save_json, partial_to_dict, partial_from_dict, load_json, dump, load, git_info
-from tmrl.training import Training
 from tmrl.training_offline import TrainingOffline
-import tmrl.rtac
-import tmrl.rrtac
 import tmrl.sac
-import tmrl.sac_nstep
 import tmrl.sac_models_rd
 from tmrl.networking import TrainerInterface
 
 
-def iterate_episodes(run_cls: type = Training, checkpoint_path: str = None):
+def iterate_episodes(run_cls: type = TrainingOffline, checkpoint_path: str = None):
     """Generator [1] yielding episode statistics (list of pd.Series) while running and checkpointing
     - run_cls: can by any callable that outputs an appropriate run object (e.g. has a 'run_epoch' method)
 
@@ -67,11 +63,11 @@ def log_environment_variables():
     return {k: os.environ.get(k, '') for k in os.environ.get('LOG_VARIABLES', '').strip().split()}
 
 
-def run(run_cls: type = Training, checkpoint_path: str = None):
+def run(run_cls: type = TrainingOffline, checkpoint_path: str = None):
     list(iterate_episodes(run_cls, checkpoint_path))
 
 
-def run_wandb(entity, project, run_id, run_cls: type = Training, checkpoint_path: str = None):
+def run_wandb(entity, project, run_id, run_cls: type = TrainingOffline, checkpoint_path: str = None):
     """run and save config and stats to https://wandb.com"""
     wandb_dir = mkdtemp()  # prevent wandb from polluting the home directory
     atexit.register(shutil.rmtree, wandb_dir, ignore_errors=True)  # clean up after wandb atexit handler finishes
@@ -86,7 +82,7 @@ def run_wandb(entity, project, run_id, run_cls: type = Training, checkpoint_path
         [wandb.log(json.loads(s.to_json())) for s in stats]
 
 
-def run_fs(path: str, run_cls: type = Training):
+def run_fs(path: str, run_cls: type = TrainingOffline):
     """run and save config and stats to `path` (with pickle)"""
     if not exists(path):
         os.mkdir(path)
@@ -168,80 +164,3 @@ def run_tm(interface, run_cls: type = TrainingOffline, checkpoint_path: str = No
     """
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path):
         pass
-
-# === specifications ===================================================================================================
-
-# TestTraining = partial(
-#     Training,
-#     epochs=3,
-#     rounds=5,
-#     steps=10,
-#     Agent=partial(memory_size=1000000),
-#     Env=partial(id="Pendulum-v0"),
-# )
-#
-# SacTraining = partial(
-#     Training,
-#     Agent=partial(tmrl.sac.Agent),
-#     Env=partial(id="Pendulum-v0"),
-#     Test=partial(number=1, workers=1),
-# )
-#
-# SacDelayTraining = partial(
-#     Training,
-#     Agent=partial(tmrl.sac.Agent, Model=tmrl.sac_models_rd.Mlp),
-#     Env=partial(envs.RandomDelayEnv, id="Pendulum-v0", sup_observation_delay=1, sup_action_delay=1),
-#     Test=partial(number=1, workers=1),
-# )
-#
-# SacNstepTraining = partial(
-#     Training,
-#     Agent=partial(tmrl.sac_nstep.Agent),
-#     Env=partial(id="Pendulum-v0", store_env=True),
-#     # Test=partial(number=1, workers=1),
-# )
-#
-# RtacTraining = partial(
-#     SacTraining,
-#     Agent=partial(tmrl.rtac.Agent),
-#     Env=partial(real_time=True),
-#     Test=partial(number=1, workers=1),
-# )
-#
-# SacAvenueTraining = partial(
-#     Training,
-#     epochs=20,
-#     rounds=10,
-#     steps=5000,
-#     Agent=partial(tmrl.sac.AvenueAgent),
-#     Env=partial(AvenueEnv, real_time=False),
-# )
-#
-# RtacAvenueTraining = partial(
-#     SacAvenueTraining,
-#     Agent=partial(tmrl.rtac.AvenueAgent),
-#     Env=partial(real_time=True),
-# )
-#
-# SacAvenueHdTraining = partial(
-#     Training,
-#     epochs=20,
-#     rounds=10,
-#     steps=5000,
-#     Agent=partial(tmrl.sac.AvenueAgent, training_steps=1 / 4, batchsize=32, memory_size=100000,
-#                   Model=partial(Conv=tmrl.nn.hd_conv)),
-#     Env=partial(AvenueEnv, real_time=0, width=368, height=368),
-#     Test=partial(number=0),  # laptop can't handle more than that
-# )
-#
-# RrtacTraining = partial(
-#     SacTraining,
-#     Agent=partial(tmrl.rrtac.Agent, batchsize=32, history_length=8),
-#     Env=partial(real_time=True),
-#     Test=partial(number=1, workers=1),
-# )
-#
-# # === tests ============================================================================================================
-# if __name__ == "__main__":
-#     run(TestTraining)
-#     # run(RrtacTraining)
