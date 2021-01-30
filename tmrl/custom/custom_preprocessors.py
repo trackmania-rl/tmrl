@@ -1,9 +1,5 @@
 import numpy as np
 
-# for debugging:
-# np.set_printoptions(linewidth=200)
-
-
 # OBSERVATION PREPROCESSING ==================================
 
 def obs_preprocessor_tm_act_in_obs(obs):
@@ -20,11 +16,7 @@ def obs_preprocessor_tm_lidar_act_in_obs(obs):
     This takes the output of gym as input
     Therefore the output of the memory must be the same as gym
     """
-    # print(f"DEBUG (before prepro): obs:{obs}")
-    # exit()
     obs = (obs[0], np.ndarray.flatten(obs[1]), *obs[2:])  # >= 1  action
-    # print(f"DEBUG (after prepro): obs:{obs}")
-    # exit()
     return obs
 
 
@@ -33,16 +25,6 @@ def obs_preprocessor_cognifly(obs):
     This takes the output of gym as input
     Therefore the output of the memory must be the same as gym
     """
-    # print(f"DEBUG: prepro obs: ---")
-    # print(f"DEBUG: alt:{obs[0][0]:.2f}")
-    # print(f"DEBUG: vel:{obs[1][0]:.2f}")
-    # print(f"DEBUG: acc:{obs[2][0]:.2f}")
-    # print(f"DEBUG: tar:{obs[3][0]:.2f}")
-    # print(f"DEBUG: del:{obs[4][0]:.2f}")
-    # print(f"DEBUG: a1:{obs[5][0]:.2f}")
-    # print(f"DEBUG: a2:{obs[6][0]:.2f}")
-    # print(f"DEBUG: a3:{obs[7][0]:.2f}")
-    # print(f"DEBUG: a4:{obs[8][0]:.2f}")
     return obs
 
 

@@ -16,7 +16,6 @@ import yaml
 from tmrl.util import partial, save_json, partial_to_dict, partial_from_dict, load_json, dump, load, git_info
 from tmrl.training_offline import TrainingOffline
 import tmrl.sac
-import tmrl.sac_models_rd
 from tmrl.networking import TrainerInterface
 
 

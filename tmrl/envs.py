@@ -8,7 +8,6 @@ from tmrl.wrappers import Float64ToFloat32, TimeLimitResetWrapper, NormalizeActi
 from tmrl.wrappers_rd import RandomDelayWrapper
 import numpy as np
 import pickle
-from tmrl.batch_env import get_env_state
 
 
 def mujoco_py_issue_424_workaround():
@@ -39,9 +38,6 @@ class Env(gym.Wrapper):
         next_state, reward, done, info = self.env.step(action)
         next_state = self.reset() if done else self.observation(next_state)
         self.transition = next_state, reward, done, info
-
-        if self.store_env:
-            info['env_state'] = pickle.dumps(get_env_state(self))
 
         return self.transition
 
