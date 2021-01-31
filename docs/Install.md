@@ -33,13 +33,15 @@ To install the free version of TM20, you can follow the instructions on the [off
 When you are on the game, go to the settings and set:
 - Display mode : windowed
 - Resolution : 958 /488
-- ( for the CNN Resolution : 256, 128)
+- for the CNN Resolution : 256, 128
 - show windows border : on
 - Maximum Fps : 40
 - Quality at minimum
 - GPU & CPU Synchronisation : immediate
 
-# ToDo explain the camera params in game in remove the interface
+#TODO the input
+
+#TODO explain the camera params in game in remove the interface
 
 ### Install Openplanet
 
