@@ -11,7 +11,8 @@ In TMRL the weights of the model are alawys saved at 'data/weights'
 
 TMRL provides 2 self driving car models, the car will either use a LIDAR or raw images to perceive its envoronement.
 
-you can
+
+Todo
 
 then you can run the following command:
 
@@ -20,4 +21,10 @@ Python tmrl/run.py --test
 ```
 
 # Train a new car
+ Now we will see how to train our own car with the track you want
+
+if you want to train the car with the lidar you will need to train it on road only, the lidar doesn't deal with other surfaces.
+
+You can train the car on wahtever surfaces if it is train with camera but you computer may need a good GPU to run both CNN and trackmania.
+
 # Use TMRL APIs in your favorite game
