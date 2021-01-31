@@ -2,3 +2,5 @@
 *
 # Except this file
 !.gitignore
+!LIDAR.pth
+!CAMERA.pth
