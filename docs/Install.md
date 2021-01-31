@@ -1,6 +1,6 @@
 # Requirements
 * Windows
-* Python ≥ 3.7
+* Python : 3.7 or 3.8
 * Trackmania 2020 or trackmania Forever
 
 # Installation
@@ -10,33 +10,46 @@
 git clone https://github.com/yannbouteiller/tmrl.git
 cd tmrl
 ```
-2. Create a conda environement shell 
+2. Create a conda environment
 ```shell
-conda create --name tmrl
+conda create -n tmrl python=3.8
 conda activate tmrl
 ```
 
-2. Install the libraries
+2. Install the library
 ```shell
- cd inputs-mod
- python setup.py install
- cd ..
- python setup.py install
- cd agent-rt
+pip install -e .
 ```
+During the installation, a driver will be installed to emulate a virtual gamepad in order to control the game.
+Accept the licence agreement and install the driver when prompted.
+
+![Image](img/Nefarius1.png)
+
 ## Trackmania 2020
+
+### Install Trackmania 2020
+To install the free version of TM20, you can follow the instructions on the [official website](https://www.trackmania.com/) .
+
+When you are on the game, go to the settings and set:
+- Display mode : windowed
+- Resolution : 958 /488
+- ( for the CNN Resolution : 256, 128)
+- show windows border : on
+- Maximum Fps : 40
+- Quality at minimum
+- GPU & CPU Synchronisation : immediate
+
+### Install Openplanet
+
 ![Image](img/openplanet.png)
 
-If you want to run the self-driving-car on Trackmania 2020, we will need to install 
-[Openplanet](https://openplanet.nl/).
+If you want to run the self-driving-car on Trackmania 2020, you will need to install 
+[Openplanet for trackmania](https://openplanet.nl/).
 
-After that, copy the files `Plugin_MyFirstScript.as` and `Plugin_MyFirstScript.as.sig` and paste it in `C:\Users\username\OpenplanetNext\Scripts`
+After that, copy the folder `Scripts` and paste it in `C:\Users\username\OpenplanetNext\`
 
-Launch Trackmania 2020 game click `f3` to open Openplanet and reload the script 
+Launch Trackmania 2020 game press `f3` to open Openplanet and click `Scripts > Reload scripts`
 
 ![Image](img/writingscripts_reload.png)
 
-
-## game controller
-
-If you want to control the car with a analogic input we will need to install [vjoy](http://vjoystick.sourceforge.net/site/index.php/download-a-install/download)
+Then press `f3` again to close the menu.

@@ -6,6 +6,9 @@ import sys
 if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
 
+if sys.version_info >= (3, 9):
+    sys.exit('Sorry, Python > 3.8 is not supported yet, we are working on it at the moment.')
+
 install_req = [
     'numpy',
     'torch',
@@ -46,8 +49,6 @@ setup(
     extras_require={
 
     },
-    scripts=[
-        "scripts/tmrl-parallel"
-    ],
+    scripts=[],
     packages=find_packages()
 )

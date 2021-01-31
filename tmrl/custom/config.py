@@ -10,6 +10,8 @@ from tmrl.custom.custom_gym_interfaces import TM2020InterfaceLidar, TMInterfaceL
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_cognifly
 from tmrl.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020, get_local_buffer_sample_tm20_imgs, get_local_buffer_sample_cognifly, MemoryCognifly, TrajMemoryTMNFLidar
 
+from pathlib import Path
+
 # HIGH-LEVEL PRAGMAS: ==========================================
 
 PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
@@ -47,18 +49,12 @@ if PRAGMA_EDOUARD_YANN_CC == 2:  # Compute Canada
     DATASET_PATH = r"/home/yannbout/scratch/base_tmrl/data/dataset"
     REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
     MODEL_PATH_WORKER = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_0.pth"
-elif PRAGMA_EDOUARD_YANN_CC == 1:  # Edouard
-    MODEL_PATH_WORKER = r"D:\cp\weights\4imgs_new_0.pth"
+else:
+    MODEL_PATH_WORKER = r"data\\weights\4imgs_new_0.pth"
     MODEL_PATH_TRAINER = r"D:\cp\weights\4imgs_new_0_t.pth"
     CHECKPOINT_PATH = r"D:\cp\4imgs_new_0"
     DATASET_PATH = r"D:\data2020"
     REWARD_PATH = r"D:\data2020reward\reward.pkl"
-elif PRAGMA_EDOUARD_YANN_CC == 0:  # Yann
-    MODEL_PATH_WORKER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4imgs_new_0.pth"
-    MODEL_PATH_TRAINER = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\weights\4imgs_new_0_t.pth"
-    CHECKPOINT_PATH = r"C:\Users\Yann\Desktop\git\tmrl\checkpoint\chk\4imgs_new_0"
-    DATASET_PATH = r"C:\Users\Yann\Desktop\git\tmrl\data"
-    REWARD_PATH = r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/reward.pkl"
 
 # WANDB: =======================================================
 
