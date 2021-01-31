@@ -43,6 +43,8 @@ IMG_HIST_LEN = 4
 
 # FILE SYSTEM: =================================================
 
+PATH_DATA = Path(__file__).parent.parent.parent.absolute() / 'data'  # TODO: check that this works with PyPI
+
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Compute Canada
     MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_0_t.pth"
     CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_0"
@@ -50,18 +52,18 @@ if PRAGMA_EDOUARD_YANN_CC == 2:  # Compute Canada
     REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
     MODEL_PATH_WORKER = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_0.pth"
 else:
-    MODEL_PATH_WORKER = r"data\\weights\4imgs_new_0.pth"
-    MODEL_PATH_TRAINER = r"D:\cp\weights\4imgs_new_0_t.pth"
-    CHECKPOINT_PATH = r"D:\cp\4imgs_new_0"
-    DATASET_PATH = r"D:\data2020"
-    REWARD_PATH = r"D:\data2020reward\reward.pkl"
+    MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "4imgs_0.pth")
+    MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / "4imgs_0_t.pth")
+    CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / "4imgs_0")
+    DATASET_PATH = str(PATH_DATA / "dataset")
+    REWARD_PATH = str(PATH_DATA / "reward" / "reward.pkl")
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_yann_imgs_new_0_test"
+WANDB_RUN_ID = "SAC_tm20_test_imgs_0_test"
 WANDB_PROJECT = "tmrl"
-WANDB_ENTITY = "yannbouteiller"  # TODO: remove for release
-WANDB_KEY = "9061c16ece78577b75f1a4af109a427d52b74b2a"  # TODO: remove for release
+WANDB_ENTITY = "tmrl"
+WANDB_KEY = "df28d4daa98d2df2557d74caf78e40c68adaf288"
 
 os.environ['WANDB_API_KEY'] = WANDB_KEY
 
