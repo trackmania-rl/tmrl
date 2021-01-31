@@ -39,6 +39,8 @@ When you are on the game, go to the settings and set:
 - Quality at minimum
 - GPU & CPU Synchronisation : immediate
 
+# ToDo explain the camera params in game in remove the interface
+
 ### Install Openplanet
 
 ![Image](img/openplanet.png)

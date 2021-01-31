@@ -56,20 +56,6 @@ class TM2020Interface(RealTimeGymInterface):
         self.gamepad = gamepad
         self.j = None
 
-        #     import signal
-        #     import sys
-        #
-        #     def signal_handler(sig, frame):
-        #
-        #         self.j.reset()
-        #         self.j.reset_buttons()
-        #         self.j.reset_povs()
-        #         control_all([0.0, 0.0, 0.0], self.j)
-        #         print('You pressed Ctrl+C!')
-        #         sys.exit(0)
-        #
-        #     signal.signal(signal.SIGINT, signal_handler)
-
         self.initialized = False
 
     def initialize(self):

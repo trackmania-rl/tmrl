@@ -1,11 +1,15 @@
 import numpy as np
 import pickle
+import os
 
 
 class RewardFunction:
     def __init__(self, reward_data_path, nb_obs_forward=10, nb_obs_backward=10):
-        with open(reward_data_path, 'rb') as f:
-            self.data = pickle.load(f)
+        if not os.path.exists(reward_data_path):
+            self.data = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
+        else:
+            with open(reward_data_path, 'rb') as f:
+                self.data = pickle.load(f)
         self.cur_idx = 0
         self.nb_obs_forward = nb_obs_forward
         self.nb_obs_backward = nb_obs_backward
