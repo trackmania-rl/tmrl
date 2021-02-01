@@ -1,5 +1,4 @@
-# This is an environment for Trackmania
-# http://www.flint.jp/misc/?q=dik&lang=en  key indicator
+# rtgym interfaces for Trackmania
 
 import gym.spaces as spaces
 import numpy as np
