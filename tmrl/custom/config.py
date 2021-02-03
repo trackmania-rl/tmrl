@@ -14,7 +14,7 @@ from pathlib import Path
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = False  # True if Lidar, False if images
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
@@ -25,8 +25,8 @@ PRAGMA_GAMEPAD = True  # True to use gamepad, False to use keyboard
 CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
 PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
-LOCALHOST = True  # set to True to enforce localhost
-REDIS_IP = "45.74.220.141" if not LOCALHOST else "127.0.0.1"
+LOCALHOST = False  # set to True to enforce localhost
+REDIS_IP = "45.74.221.204" if not LOCALHOST else "127.0.0.1"
 # REDIS_IP = "173.179.182.4" if not LOCALHOST else "127.0.0.1"
 
 # CRC DEBUGGING AND BENCHMARKING: ==============================
@@ -60,7 +60,7 @@ else:
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_test_imgs_0_test"
+WANDB_RUN_ID = "SAC_tm20_4imgs_new_0"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "tmrl"
 WANDB_KEY = "df28d4daa98d2df2557d74caf78e40c68adaf288"
