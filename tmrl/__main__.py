@@ -19,10 +19,8 @@ def parse_args(func, *a):
 
 
 if cmd == "run":
-    run(parse_args(*args))
-elif cmd == "run-fs":
-    run_fs(args[0], parse_args(*args[1:]))
+    run_tm(parse_args(*args))
 elif cmd == "run-wandb":
-    run_wandb(args[0], args[1], args[2], parse_args(*args[4:]), args[3])
+    run_wandb_tm(args[0], args[1], args[2], parse_args(*args[4:]), args[3])
 else:
     raise AttributeError("Undefined command: " + cmd)

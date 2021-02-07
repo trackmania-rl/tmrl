@@ -65,7 +65,7 @@ class TMModuleResnet(Module):
         self.fc1 = Linear(dim_fc1, 256)
 
     def forward(self, x):
-        assert isinstance(x, tuple), f"x is not a tuple: {x}"
+        # assert isinstance(x, tuple), f"x is not a tuple: {x}"
         vel = x[0].float()
         gear = x[1].float()
         rpm = x[2].float()

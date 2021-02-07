@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from random import randint
+from random import randint, random
 import pickle
 from pathlib import Path
 import os
 import zlib
 import numpy as np
-
 from tmrl.util import collate
+from torch.utils.data import Dataset, Sampler, DataLoader
 
 
 def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d):
@@ -31,16 +31,52 @@ def check_samples_crc_traj(original_o, original_r, original_d, rebuilt_o, rebuil
     print("DEBUG: CRC check passed.")
 
 
-class MemoryDataloading(ABC):
+class MemoryBatchSampler(Sampler):
+    """
+    Iterator over nb_steps randomly sampled batches of size batchsize
+    """
+    def __init__(self, data_source, nb_steps, batchsize):
+        super().__init__(data_source)
+        self._dataset = data_source
+        self._nb_steps = nb_steps
+        self._batchsize = batchsize
+
+    def __len__(self):
+        return self._nb_steps
+
+    def __iter__(self):
+        i = 0
+        while i < self._nb_steps:
+            i += 1
+            yield (int(len(self._dataset) * random()) - 1 for _ in range(self._batchsize))  # faster than randint
+
+
+class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but partial doesn't work with Dataset
+    """
+    To sample from a MemoryDataloading, use either the iterator OR the get_dataloader() method
+    CAUTION: the
+    e.g. either:
+        for batch in myMemoryDataloading:  # this uses single worker dataloading (directly collates on device, unlike pytorch)
+            operations on batch ...
+    OR:
+        for batch in myMemoryDataloading.get_dataloader():  # this uses pytorch dataloading (does NOT collate on device)
+            operations on batch ...
+    """
     def __init__(self,
                  memory_size,
                  batchsize,
-                 device,
-                 path_loc,
+                 path_loc="",
+                 nb_steps=1,
+                 use_dataloader=False,
+                 num_workers=0,
+                 pin_memory=False,
                  remove_size=100,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
-                 crc_debug=False):
+                 crc_debug=False,
+                 device="cpu"):
+        self.nb_steps = nb_steps
+        self.use_dataloader = use_dataloader
         self.device = device
         self.batchsize = batchsize
         self.memory_size = memory_size
@@ -69,6 +105,18 @@ class MemoryDataloading(ABC):
         if len(self) > self.memory_size:
             # TODO: crop to memory_size
             print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
+
+        # init dataloader
+        self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batchsize=batchsize)
+        self._dataloader = DataLoader(dataset=self, batch_sampler=self._batch_sampler, num_workers=num_workers, pin_memory=pin_memory)
+
+    def __iter__(self):
+        if not self.use_dataloader:
+            for _ in range(self.nb_steps):
+                yield self.sample()
+        else:
+            for batch in self._dataloader:
+                yield batch  # TODO: move this to self.device !!!
 
     @abstractmethod
     def append_buffer(self, buffer):
@@ -125,20 +173,29 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
     def __init__(self,
                  memory_size,
                  batchsize,
-                 device,
                  path_loc,
+                 traj_len=1,
+                 nb_steps=1,
+                 use_dataloader=False,
+                 num_workers: callable = 0,
+                 pin_memory=False,
                  remove_size=100,
                  obs_preprocessor: callable = None,
+                 sample_preprocessor: callable = None,
                  crc_debug=False,
-                 traj_len=2):
-        super().__init__(memory_size,
-                         batchsize,
-                         device,
-                         path_loc,
-                         remove_size,
-                         obs_preprocessor,
-                         sample_preprocessor=None,
-                         crc_debug=crc_debug)
+                 device="cpu"):
+        super().__init__(memory_size=memory_size,
+                         batchsize=batchsize,
+                         path_loc=path_loc,
+                         nb_steps=nb_steps,
+                         use_dataloader=use_dataloader,
+                         num_workers=num_workers,
+                         pin_memory=pin_memory,
+                         remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
         self.traj_len = traj_len  # this must be used in __len__() and in get_trajectory()
 
     def get_transition(self, item):

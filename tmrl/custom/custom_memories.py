@@ -61,20 +61,35 @@ class MemoryTMNF(MemoryDataloading):
     def __init__(self,
                  memory_size,
                  batchsize,
-                 device,
-                 remove_size=100,
-                 path_loc=r"D:\data",
+                 path_loc="",
                  imgs_obs=4,
                  act_buf_len=1,
+                 nb_steps=1,
+                 use_dataloader=False,
+                 num_workers=0,
+                 pin_memory=False,
+                 remove_size=100,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
-                 crc_debug=False):
+                 crc_debug=False,
+                 device="cpu"):
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
-        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
+        super().__init__(memory_size=memory_size,
+                         batchsize=batchsize,
+                         path_loc=path_loc,
+                         nb_steps=nb_steps,
+                         use_dataloader=use_dataloader,
+                         num_workers=num_workers,
+                         pin_memory=pin_memory,
+                         remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
 
     def append_buffer(self, buffer):  # TODO
         return self
@@ -179,14 +194,18 @@ class TrajMemoryTMNF(TrajMemoryDataloading):
     def __init__(self,
                  memory_size,
                  batchsize,
-                 device,
-                 remove_size=100,
-                 path_loc=r"D:\data",
+                 path_loc="",
                  imgs_obs=4,
                  act_buf_len=1,
+                 traj_len=1,
+                 nb_steps=1,
+                 use_dataloader=False,
+                 num_workers=0,
+                 pin_memory=False,
+                 remove_size=100,
                  obs_preprocessor: callable = None,
                  crc_debug=False,
-                 traj_len=2):
+                 device="cpu"):
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
         self.traj_len = traj_len
@@ -194,7 +213,17 @@ class TrajMemoryTMNF(TrajMemoryDataloading):
         self.min_samples += self.traj_len - 1
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
-        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, crc_debug, traj_len)
+        super().__init__(memory_size=memory_size,
+                         batchsize=batchsize,
+                         path_loc=path_loc,
+                         nb_steps=nb_steps,
+                         use_dataloader=use_dataloader,
+                         num_workers=num_workers,
+                         pin_memory=pin_memory,
+                         remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
 
     def append_buffer(self, buffer):  # TODO
         return self
@@ -302,24 +331,39 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
         return self
 
 
-class MemoryTM2020(MemoryDataloading):  # TODO: action buffer
+class MemoryTM2020(MemoryDataloading):
     def __init__(self,
                  memory_size,
                  batchsize,
-                 device,
-                 remove_size=100,
-                 path_loc=r"D:\data",
+                 path_loc="",
                  imgs_obs=4,
                  act_buf_len=1,
+                 nb_steps=1,
+                 use_dataloader=False,
+                 num_workers=0,
+                 pin_memory=False,
+                 remove_size=100,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
-                 crc_debug=False):
+                 crc_debug=False,
+                 device="cpu"):
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
-        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
+        super().__init__(memory_size=memory_size,
+                         batchsize=batchsize,
+                         path_loc=path_loc,
+                         nb_steps=nb_steps,
+                         use_dataloader=use_dataloader,
+                         num_workers=num_workers,
+                         pin_memory=pin_memory,
+                         remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
 
     def append_buffer(self, buffer):
         """
@@ -412,21 +456,36 @@ class MemoryCognifly(MemoryDataloading):
     def __init__(self,
                  memory_size,
                  batchsize,
-                 device,
-                 remove_size=100,
-                 path_loc=r"D:\data",
-                 imgs_obs=0,
+                 path_loc="",
+                 imgs_obs=4,
                  act_buf_len=1,
+                 nb_steps=1,
+                 use_dataloader=False,
+                 num_workers=0,
+                 pin_memory=False,
+                 remove_size=100,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
-                 crc_debug=False):
+                 crc_debug=False,
+                 device="cpu"):
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
         print(f"DEBUG: self.imgs_obs:{self.imgs_obs}, self.act_buf_len:{self.act_buf_len}, self.min_sample:{self.min_samples}, self.start_imgs_offset:{self.start_imgs_offset}, self.start_acts_offset:{self.start_acts_offset}")
-        super().__init__(memory_size, batchsize, device, path_loc, remove_size, obs_preprocessor, sample_preprocessor, crc_debug)
+        super().__init__(memory_size=memory_size,
+                         batchsize=batchsize,
+                         path_loc=path_loc,
+                         nb_steps=nb_steps,
+                         use_dataloader=use_dataloader,
+                         num_workers=num_workers,
+                         pin_memory=pin_memory,
+                         remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
 
     def append_buffer(self, buffer):
         first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0

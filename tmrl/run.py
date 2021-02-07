@@ -2,25 +2,24 @@ from argparse import ArgumentParser, ArgumentTypeError
 from tmrl import run_wandb_tm, run_tm
 from tmrl.util import partial
 from tmrl.envs import UntouchedGymEnv
-from tmrl.networking import RedisServer, RolloutWorker, TrainerInterface
-import tmrl.custom.config as cfg
-import tmrl.custom.config_training as cfg_train
+from tmrl.networking import Server, RolloutWorker, TrainerInterface
+import tmrl.custom.config_constants as cfg
+import tmrl.custom.config_objects as cfg_obj
 import time
 
 
 def main(args):
     if args.server:
-        RedisServer(samples_per_redis_batch=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
-                    localhost=cfg.LOCALHOST)
+        Server(samples_per_server_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES, localhost=False)
     elif args.worker or args.test or args.benchmark:
-        rw = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg.CONFIG_DICT}),
-                           actor_module_cls=partial(cfg.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
-                           get_local_buffer_sample=cfg.SAMPLE_COMPRESSOR,
+        rw = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg_obj.CONFIG_DICT}),
+                           actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
+                           get_local_buffer_sample=cfg_obj.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
-                           redis_ip=cfg.REDIS_IP,
-                           samples_per_worker_batch=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
+                           redis_ip=cfg.REDIS_IP_FOR_WORKER,
+                           samples_per_worker_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                            model_path=cfg.MODEL_PATH_WORKER,
-                           obs_preprocessor=cfg.OBS_PREPROCESSOR,
+                           obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
                            crc_debug=cfg.CRC_DEBUG)
         if args.worker:
             rw.run()
@@ -40,10 +39,10 @@ def main_train(args):
     # from pyinstrument import Profiler
     # profiler = Profiler()
 
-    train_cls = cfg_train.TRAINER
+    train_cls = cfg_obj.TRAINER
 
     print("--- NOW RUNNING: SAC/DCAC trackmania ---")
-    interface = TrainerInterface(redis_ip=cfg.REDIS_IP, model_path=cfg.MODEL_PATH_TRAINER)
+    interface = TrainerInterface(redis_ip=cfg.REDIS_IP_FOR_TRAINER, model_path=cfg.MODEL_PATH_TRAINER)
     if not args.no_wandb:
         # print("start profiling")
         # profiler.start()
@@ -52,13 +51,17 @@ def main_train(args):
                      run_id=cfg.WANDB_RUN_ID,
                      interface=interface,
                      run_cls=train_cls,
-                     checkpoint_path=cfg.CHECKPOINT_PATH)
+                     checkpoint_path=cfg.CHECKPOINT_PATH,
+                     dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
+                     load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
         # profiler.stop()
         # print(profiler.output_text(unicode=True, color=False))
     else:
         run_tm(interface=interface,
                run_cls=train_cls,
-               checkpoint_path=cfg.CHECKPOINT_PATH)
+               checkpoint_path=cfg.CHECKPOINT_PATH,
+               dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
+               load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
 
 
 if __name__ == "__main__":

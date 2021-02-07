@@ -20,12 +20,8 @@ from tmrl.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
 from tmrl.custom.utils.compute_reward import RewardFunction
 from tmrl.custom.utils.drone_interface import DroneUDPInterface1
 
-import tmrl.custom.config as cfg
+import tmrl.custom.config_constants as cfg
 
-# from tmrl.custom.utils.gamepad_event import control_all
-
-
-# from pynput.keyboard import Key, Controller
 
 # Globals ==============================================================================================================
 

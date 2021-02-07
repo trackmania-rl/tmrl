@@ -11,7 +11,7 @@ import os
 
 from tmrl.sac_models import ActorModule
 from tmrl.util import collate, partition
-import tmrl.custom.config as cfg
+import tmrl.custom.config_constants as cfg
 
 
 # NETWORK: ==========================================
@@ -268,34 +268,40 @@ class Buffer:
 
 # REDIS SERVER: =====================================
 
-class RedisServer:
+class Server:
     """
     This is the main server
     This lets 1 TrainerInterface and n RolloutWorkers connect
     This buffers experiences sent by RolloutWorkers
     This periodically sends the buffer to the TrainerInterface
     This also receives the weights from the TrainerInterface and broadcast them to the connected RolloutWorkers
-    If localhost, the ip is localhost. Otherwise, it is the public ip and requires fort forwarding.
+    If localhost is True, the server only listens on localhost. Then the trainer is expected to talk on localhost.
+    Otherwise, the server also listens to the local ip and the trainer is expected to talk on the local ip (port forwarding).
     """
-    def __init__(self, samples_per_redis_batch=1000, localhost=True):
+    def __init__(self, samples_per_server_packet=1000, localhost=False):
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
         self.__weights = None
         self.__weights_id = 0  # this increments each time new weights are received
-        self.samples_per_redis_batch = samples_per_redis_batch
+        self.samples_per_redis_batch = samples_per_server_packet
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
-        self.ip = '127.0.0.1' if localhost else self.local_ip
+        self.localhost = localhost
 
         print(f"INFO REDIS: local IP: {self.local_ip}")
         print(f"INFO REDIS: public IP: {self.public_ip}")
-        print(f"INFO REDIS: IP: {self.ip}")
+        print(f"INFO REDIS: localhost: {self.localhost}")
 
-        Thread(target=self.__rollout_workers_thread, args=(), kwargs={}, daemon=True).start()
-        Thread(target=self.__trainer_thread, args=(), kwargs={}, daemon=True).start()
+        if self.localhost:
+            Thread(target=self.__rollout_workers_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
+            Thread(target=self.__trainer_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
+        else:
+            Thread(target=self.__rollout_workers_thread, args=("127.0.0.1",), kwargs={}, daemon=True).start()
+            Thread(target=self.__rollout_workers_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
+            Thread(target=self.__trainer_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
 
-    def __trainer_thread(self, ):
+    def __trainer_thread(self, ip):
         """
         This waits for a TrainerInterface to connect
         Then, this periodically sends the local buffer to the TrainerInterface (when data is available)
@@ -304,7 +310,7 @@ class RedisServer:
         ack_time = time.time()
         wait_ack = False
         while True:  # main redis loop
-            s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_TRAINER, self.ip, cfg.PORT_TRAINER)
+            s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_TRAINER, ip, cfg.PORT_TRAINER)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
                 print("DEBUG: accept_or_close_socket failed in trainer thread")
@@ -355,13 +361,13 @@ class RedisServer:
                 i += 1
             s.close()
 
-    def __rollout_workers_thread(self):
+    def __rollout_workers_thread(self, ip):
         """
         This waits for new potential RolloutWorkers to connect
         When a new RolloutWorker connects, this instantiates a new thread to handle it
         """
         while True:  # main redis loop
-            s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_ROLLOUT, self.ip, cfg.PORT_ROLLOUT)
+            s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_ROLLOUT, ip, cfg.PORT_ROLLOUT)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
                 # print("DEBUG: accept_or_close_socket failed in workers thread")
@@ -524,7 +530,7 @@ class RolloutWorker:
                  get_local_buffer_sample: callable,
                  device="cpu",
                  redis_ip=None,
-                 samples_per_worker_batch=1000,
+                 samples_per_worker_packet=1000,
                  model_path=cfg.MODEL_PATH_WORKER,
                  obs_preprocessor: callable = None,
                  crc_debug=False,
@@ -544,7 +550,7 @@ class RolloutWorker:
         self.__buffer_lock = Lock()
         self.__weights = None
         self.__weights_lock = Lock()
-        self.samples_per_worker_batch = samples_per_worker_batch
+        self.samples_per_worker_batch = samples_per_worker_packet
         self.crc_debug = crc_debug
 
         self.public_ip = get('http://api.ipify.org').text
