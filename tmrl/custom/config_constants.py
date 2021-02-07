@@ -4,11 +4,11 @@ from pathlib import Path
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = False  # True if Lidar, False if images
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
-PRAGMA_CUDA_INFERENCE = False  # True if CUDA, False if CPU (rollout worker)
+PRAGMA_CUDA_INFERENCE = True  # True if CUDA, False if CPU (rollout worker)
 
 PRAGMA_GAMEPAD = True  # True to use gamepad, False to use keyboard
 

@@ -27,6 +27,7 @@ install_req = [
     'keyboard',
     'pyvjoy',
     'pyautogui',
+    'pyinstrument'
 ]
 
 # if platform.system() == "Linux":
