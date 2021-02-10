@@ -56,7 +56,6 @@ else:
     assert not cfg.PRAGMA_DCAC, "DCAC not implemented here"
     MEM = MemoryTM2020 if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
 
-
 MEMORY = partial(MEM,
                  path_loc=cfg.DATASET_PATH,
                  imgs_obs=cfg.IMG_HIST_LEN,
