@@ -93,6 +93,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 
         # init memory
         self.path = Path(path_loc)
+        print(f"DEBUG: MemoryDataloading self.path:{self.path}")
         if os.path.isfile(self.path / 'data.pkl'):
             with open(self.path / 'data.pkl', 'rb') as f:
                 self.data = list(pickle.load(f))
