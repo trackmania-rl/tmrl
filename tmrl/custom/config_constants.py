@@ -36,7 +36,10 @@ IMG_HIST_LEN = 4
 
 # FILE SYSTEM: =================================================
 
-PATH_DATA = Path(__file__).parent.parent.parent.absolute() / 'data'  # TODO: check that this works with PyPI
+PATH_FILE = Path(__file__)  # TODO: check that this works with PyPI
+print(f"DEBUG: PATH_FILE:{PATH_FILE}")
+PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
+print(f"DEBUG: PATH_DATA:{PATH_DATA}")
 
 MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "4imgs_1.pth")
 MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / "4imgs_1_t.pth")
