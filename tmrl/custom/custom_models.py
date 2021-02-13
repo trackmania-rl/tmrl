@@ -1,6 +1,5 @@
 # from dataclasses import InitVar, dataclass
 import torch
-import torch.nn as nn
 from torch.nn import functional as F
 from tmrl.nn import TanhNormalLayer
 from torch.nn import Linear, Sequential, ReLU, ModuleList, Module, Conv2d, MaxPool2d
@@ -11,14 +10,14 @@ from tmrl.sac_models import prod, SacLinear, MlpActionValue
 
 # === Trackmania =======================================================================================================
 
-class Net(nn.Module):
+class Net(Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(3, 8, (8, 8))
-        self.conv2 = nn.Conv2d(8, 16, (4, 4))
-        self.conv3 = nn.Conv2d(16, 32, (3, 3))
-        self.conv4 = nn.Conv2d(32, 64, (3, 3))
-        self.fc1 = nn.Linear(672, 253)
+        self.conv1 = Conv2d(3, 8, (8, 8))
+        self.conv2 = Conv2d(8, 16, (4, 4))
+        self.conv3 = Conv2d(16, 32, (3, 3))
+        self.conv4 = Conv2d(32, 64, (3, 3))
+        self.fc1 = Linear(672, 253)
 
     def forward(self, x):
         x = F.max_pool2d(F.relu(self.conv1(x)), (4, 4))
@@ -48,12 +47,6 @@ class TMModuleResnet(Module):
         self.is_q_network = is_q_network
         self.act_buf_len = act_buf_len
         self.act_dim = action_space.shape[0]
-
-        #self.cnn = torch.hub.load('pytorch/vision:v0.6.0', 'resnet101', pretrained=True)
-        #self.cnn.fc = nn.Linear(self.cnn.fc.in_features, 253)  # remove the last fc layer
-
-        #self.cnn = torch.hub.load('pytorch/vision:v0.6.0', 'mobilenet_v2', pretrained=False)
-        #self.cnn.classifier[1] = nn.Linear(self.cnn.classifier[1].in_features, 253)
 
         self.cnn = Net()
 

@@ -109,7 +109,7 @@ else:  # images
                       Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
                       Memory=MEMORY,
                       memory_size=1000000,
-                      batchsize=32,
+                      batchsize=16,
                       epochs=100000,  # 10
                       rounds=10,  # 50
                       steps=100,  # 2000

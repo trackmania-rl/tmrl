@@ -444,9 +444,7 @@ class MemoryTM2020(MemoryDataloading):
         res = []
         for i in range(item + self.start_imgs_offset, item + self.start_imgs_offset + self.imgs_obs + 1):
             img_path = str(self.path / (str(self.data[0][i]) + ".png"))
-            print(f"DEBUG: img_path:{img_path}")
             img = cv2.imread(img_path)
-            print(f"DEBUG: img.shape:{img.shape}")
             res.append(np.moveaxis(img, -1, 0))
         return np.array(res)
 

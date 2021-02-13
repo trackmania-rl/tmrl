@@ -41,6 +41,7 @@ class Agent:
             observation_space, action_space = env.observation_space, env.action_space
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         model = self.Model(observation_space, action_space)
+        print(f"DEBUG: device SAC: {device}")
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
 
