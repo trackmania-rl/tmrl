@@ -113,8 +113,8 @@ else:  # images
                       batchsize=128,
                       epochs=100000,  # 10
                       rounds=10,  # 50
-                      steps=10,  # 2000
-                      update_model_interval=10,
+                      steps=50,  # 2000
+                      update_model_interval=50,
                       update_buffer_interval=1,
                       max_training_steps_per_env_step=1.0,
                       profiling=cfg.PROFILE_TRAINER,
