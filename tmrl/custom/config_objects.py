@@ -83,8 +83,8 @@ else:  # SAC
                     OutputNorm=partial(beta=0., zero_debias=False),
                     device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
                     Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
-                    lr=0.00005,  # default 0.0003
-                    discount=0.995,  # default and best tmnf so far: 0.99
+                    lr=0.0003,  # default 0.0003
+                    discount=0.99,  # default and best tmnf so far: 0.99
                     target_update=0.005,
                     reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
                     entropy_scale=1.0)  # default: 1.0),  # default: 1.0
@@ -110,11 +110,11 @@ else:  # images
                       Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
                       Memory=MEMORY,
                       memory_size=1000000,
-                      batchsize=64,
+                      batchsize=128,
                       epochs=100000,  # 10
                       rounds=10,  # 50
                       steps=10,  # 2000
-                      update_model_interval=100,
+                      update_model_interval=10,
                       update_buffer_interval=1,
                       max_training_steps_per_env_step=1.0,
                       profiling=cfg.PROFILE_TRAINER,
