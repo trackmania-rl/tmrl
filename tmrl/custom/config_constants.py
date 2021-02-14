@@ -41,20 +41,20 @@ print(f"DEBUG: PATH_FILE:{PATH_FILE}")
 PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
 print(f"DEBUG: PATH_DATA:{PATH_DATA}")
 
-MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "4imgs_2.pth")
-MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / "4imgs_2_t.pth")
-CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / "4imgs_2")
+MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "4imgs_3.pth")
+MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / "4imgs_3_t.pth")
+CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / "4imgs_3")
 DATASET_PATH = str(PATH_DATA / "dataset")
 REWARD_PATH = str(PATH_DATA / "reward" / "reward.pkl")
 
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
-    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_2_t.pth"
-    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_2"
+    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_3_t.pth"
+    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_3"
     REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_4imgs_new_2_test"
+WANDB_RUN_ID = "SAC_tm20_4imgs_new_3_test"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "tmrl"
 WANDB_KEY = "df28d4daa98d2df2557d74caf78e40c68adaf288"
