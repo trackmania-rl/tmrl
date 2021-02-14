@@ -504,11 +504,16 @@ class TrainerInterface:
         model must be an ActorModule (sac_models.py)
         broadcasts the model's weights to all connected RolloutWorkers
         """
+        t0 = time.time()
         self.__weights_lock.acquire()  # WEIGHTS LOCK...................................................................
+        t1 = time.time()
         torch.save(model.state_dict(), self.model_path)
+        t2 = time.time()
         with open(self.model_path, 'rb') as f:
             self.__weights = f.read()
+        t3 = time.time()
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
+        print(f"DEBUG: broadcast_model: lock acquire: {t1 - t0}s, save dict: {t2 - t1}s, read dict: {t3 - t2}s")
 
     def retrieve_buffer(self):
         """

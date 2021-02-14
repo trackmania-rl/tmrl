@@ -30,7 +30,7 @@ class TrainingOffline:
     rounds: int = 50  # number of rounds per epoch, we generate statistics every round
     steps: int = 2000  # number of steps per round
     update_model_interval: int = 100  # number of steps between model broadcasts
-    # update_buffer_interval: int = 100  # number of steps between retrieving buffered experiences in the interface
+    update_buffer_interval: int = 100  # number of steps between retrieving buffered experiences in the interface
     max_training_steps_per_env_step: float = 1.0  # training will pause when above this ratio
     sleep_between_buffer_retrieval_attempts: float = 0.1  # algorithm will sleep for this amount of time when waiting for needed incoming samples
     stats_window: int = None  # default = steps, should be at least as long as a single episode
@@ -90,10 +90,12 @@ class TrainingOffline:
                 pro = Profiler()
                 pro.start()
 
-            # retrieve local buffer in replay memory
-            self.update_buffer(interface)
+            t2 = pd.Timestamp.utcnow()
 
-            for batch in self.memory:
+            for batch in self.memory:  # this samples a fixed number of batches
+                if self.total_updates % self.update_buffer_interval == 0:
+                    # retrieve local buffer in replay memory
+                    self.update_buffer(interface)
                 if self.total_updates == 0:
                     print("starting training")
                 stats_training_dict = self.agent.train(batch)
@@ -107,9 +109,14 @@ class TrainingOffline:
                     # broadcast model weights
                     interface.broadcast_model(self.agent.model_nograd.actor)
                 self.check_ratio(interface)
+
+            t3 = Timestamp.utcnow()
             
-            round_time = Timestamp.utcnow() - t0
+            round_time = t3 - t0
             idle_time = t1 - t0
+            update_buf_time = t2 - t1
+            train_time = t3 - t2
+            print(f"DEBUG: round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}")
             stats += pandas_dict(
                 memory_size=len(self.memory),
                 round_time=round_time,

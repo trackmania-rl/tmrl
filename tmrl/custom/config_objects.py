@@ -101,6 +101,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
                       rounds=10,  # 10
                       steps=1000,  # 1000
                       update_model_interval=1000,
+                      update_buffer_interval=1000,
                       max_training_steps_per_env_step=1.0,
                       profiling=cfg.PROFILE_TRAINER,
                       Agent=AGENT)
@@ -109,11 +110,12 @@ else:  # images
                       Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
                       Memory=MEMORY,
                       memory_size=1000000,
-                      batchsize=16,
+                      batchsize=64,
                       epochs=100000,  # 10
                       rounds=10,  # 50
-                      steps=100,  # 2000
+                      steps=10,  # 2000
                       update_model_interval=100,
+                      update_buffer_interval=1,
                       max_training_steps_per_env_step=1.0,
                       profiling=cfg.PROFILE_TRAINER,
                       Agent=AGENT)
