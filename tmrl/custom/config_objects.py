@@ -10,7 +10,7 @@ from tmrl.drtac_models import Mlp as SV_Mlp
 from tmrl.drtac_models import MlpPolicy as SV_MlpPolicy
 from tmrl.custom.custom_models import Tm_hybrid_1, TMPolicy
 from tmrl.custom.custom_gym_interfaces import TM2020InterfaceLidar, TMInterfaceLidar, TM2020Interface, TMInterface, CogniflyInterfaceTask1
-from tmrl.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020, get_local_buffer_sample_tm20_imgs, get_local_buffer_sample_cognifly, MemoryCognifly, TrajMemoryTMNFLidar
+from tmrl.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020RAM, get_local_buffer_sample_tm20_imgs, get_local_buffer_sample_cognifly, MemoryCognifly, TrajMemoryTMNFLidar
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_cognifly
 from tmrl.custom.custom_checkpoints import load_run_instance_images_dataset, dump_run_instance_images_dataset
 import numpy as np
@@ -54,7 +54,7 @@ if cfg.PRAGMA_LIDAR:
     MEM = TrajMemoryTMNFLidar if cfg.PRAGMA_DCAC else MemoryTMNFLidar
 else:
     assert not cfg.PRAGMA_DCAC, "DCAC not implemented here"
-    MEM = MemoryTM2020 if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
+    MEM = MemoryTM2020RAM if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
 
 MEMORY = partial(MEM,
                  path_loc=cfg.DATASET_PATH,
@@ -122,5 +122,5 @@ else:  # images
 
 # CHECKPOINTS: ===================================================
 
-DUMP_RUN_INSTANCE_FN = None if cfg.PRAGMA_LIDAR else dump_run_instance_images_dataset
-LOAD_RUN_INSTANCE_FN = None if cfg.PRAGMA_LIDAR else load_run_instance_images_dataset
+DUMP_RUN_INSTANCE_FN = None if cfg.PRAGMA_LIDAR else None  # dump_run_instance_images_dataset
+LOAD_RUN_INSTANCE_FN = None if cfg.PRAGMA_LIDAR else None  # load_run_instance_images_dataset
