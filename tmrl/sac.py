@@ -65,8 +65,6 @@ class Agent:
 
     def train(self, batch):
 
-        t_start_step = time.time()
-
         obs, actions, rewards, next_obs, terminals = batch
         # obs, actions, rewards, next_obs, terminals = self.memory.sample()  # sample a transition from the replay buffer
         # print("DEBUG: sampling new action")
@@ -125,8 +123,6 @@ class Agent:
         # self.actor_lr_scheduler.step()
         # self.critic_lr_scheduler.step()
 
-        t_end_step = time.time()
-
         return dict(
             loss_actor=loss_actor.detach(),
             loss_critic=loss_critic.detach(),
@@ -134,6 +130,5 @@ class Agent:
             outputnorm_entropy_mean=self.outputnorm.mean[-1],
             outputnorm_reward_std=self.outputnorm.std[0],
             outputnorm_entropy_std=self.outputnorm.std[-1],
-            training_step_duration=t_end_step - t_start_step,
             # memory_size=len(self.memory),
         )

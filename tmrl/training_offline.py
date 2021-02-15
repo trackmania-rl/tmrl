@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-import pandas as pd
-from pandas import DataFrame, Timestamp
-# import gym
+from pandas import DataFrame
 import time
 
 import tmrl.sac
@@ -81,28 +79,41 @@ class TrainingOffline:
 
             stats_training = []
 
-            t0 = pd.Timestamp.utcnow()
+            t0 = time.time()
             self.check_ratio(interface)
-            t1 = pd.Timestamp.utcnow()
+            t1 = time.time()
 
             if self.profiling:
                 from pyinstrument import Profiler
                 pro = Profiler()
                 pro.start()
 
-            t2 = pd.Timestamp.utcnow()
+            t2 = time.time()
+            
+            t_sample_prev = t2
 
             for batch in self.memory:  # this samples a fixed number of batches
+                
+                t_sample = time.time()
+                
                 if self.total_updates % self.update_buffer_interval == 0:
                     # retrieve local buffer in replay memory
                     self.update_buffer(interface)
+
+                t_update_buffer = time.time()
+
                 if self.total_updates == 0:
                     print("starting training")
                 stats_training_dict = self.agent.train(batch)
+
+                t_train = time.time()
+
                 stats_training_dict["return_test"] = self.memory.stat_test_return
                 stats_training_dict["return_train"] = self.memory.stat_train_return
                 stats_training_dict["episode_length_test"] = self.memory.stat_test_steps
                 stats_training_dict["episode_length_train"] = self.memory.stat_train_steps
+                stats_training_dict["sampling_duration"] = t_sample - t_sample_prev
+                stats_training_dict["training_step_duration"] = t_train - t_update_buffer
                 stats_training += stats_training_dict,
                 self.total_updates += 1
                 if self.total_updates % self.update_model_interval == 0:
@@ -110,7 +121,9 @@ class TrainingOffline:
                     interface.broadcast_model(self.agent.model_nograd.actor)
                 self.check_ratio(interface)
 
-            t3 = Timestamp.utcnow()
+                t_sample_prev = time.time()
+
+            t3 = time.time()
             
             round_time = t3 - t0
             idle_time = t1 - t0
