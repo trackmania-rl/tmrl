@@ -126,7 +126,7 @@ class TM20CNNModule(Module):
     def __init__(self, observation_space, action_space, is_q_network, act_buf_len=0):
         super().__init__()
         assert isinstance(observation_space, gym.spaces.Tuple)
-        torch.autograd.set_detect_anomaly(True)  # FIXME: remove for optimization
+        # torch.autograd.set_detect_anomaly(True)  # FIXME: remove for optimization
         self.img_dims = observation_space[3].shape
         self.vel_dim = observation_space[0].shape[0]
         self.gear_dim = observation_space[1].shape[0]
