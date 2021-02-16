@@ -6,9 +6,9 @@ from pathlib import Path
 
 PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
-PRAGMA_LIDAR = False  # True if Lidar, False if images
+PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
-PRAGMA_CUDA_INFERENCE = True  # True if CUDA, False if CPU (rollout worker)
+PRAGMA_CUDA_INFERENCE = False  # True if CUDA, False if CPU (rollout worker)
 
 PRAGMA_GAMEPAD = True  # True to use gamepad, False to use keyboard
 
@@ -17,7 +17,8 @@ CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
 PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 LOCALHOST_WORKER = True  # set to True for RolloutWorkers on the same machine as the Server
-PUBLIC_IP_REDIS = "45.74.221.204"
+# PUBLIC_IP_REDIS = "45.74.221.204"  # IP Yann
+PUBLIC_IP_REDIS = "173.179.182.4"  # IP Edouard
 
 REDIS_IP_FOR_WORKER = PUBLIC_IP_REDIS if not LOCALHOST_WORKER else "127.0.0.1"
 REDIS_IP_FOR_TRAINER = PUBLIC_IP_REDIS
@@ -41,20 +42,20 @@ print(f"DEBUG: PATH_FILE:{PATH_FILE}")
 PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
 print(f"DEBUG: PATH_DATA:{PATH_DATA}")
 
-MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "4imgs_7.pth")
-MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / "4imgs_7_t.pth")
-CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / "4imgs_7")
+MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Edouard.pth")
+MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Edouard_t.pth")
+CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / "SAC_4_LIDAR_Edouard")
 DATASET_PATH = str(PATH_DATA / "dataset")
 REWARD_PATH = str(PATH_DATA / "reward" / "reward.pkl")
 
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
-    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_7_t.pth"
-    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/4imgs_new_7"
+    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/SAC_4_LIDAR_Edouard_t.pth"
+    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/SAC_4_LIDAR_Edouard"
     REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_tm20_4imgs_new_7"
+WANDB_RUN_ID = "SAC_4_LIDAR_Edouard"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "tmrl"
 WANDB_KEY = "df28d4daa98d2df2557d74caf78e40c68adaf288"

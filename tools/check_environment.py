@@ -27,3 +27,4 @@ while True:
     lidar.lidar_20(img, True)
     if d:
         o = env.reset()
+# AK tech lambda kappa 9
