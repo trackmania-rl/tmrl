@@ -120,6 +120,8 @@ class TrainingOffline:
                     interface.broadcast_model(self.agent.model_nograd.actor)
                 self.check_ratio(interface)
 
+                torch.cuda.synchronize()  # FIXME: remove, this is for debugging
+
                 t_sample_prev = time.time()
 
             t3 = time.time()
