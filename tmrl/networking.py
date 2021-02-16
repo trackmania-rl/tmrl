@@ -7,6 +7,7 @@ from threading import Thread, Lock
 import numpy as np
 from requests import get
 import socket
+import datetime
 import os
 
 from tmrl.sac_models import ActorModule
@@ -562,6 +563,8 @@ class RolloutWorker:
         self.local_ip = socket.gethostbyname(socket.gethostname())
         self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
 
+        self.model_path_history = cfg.MODEL_PATH_SAVE_HISTORY
+
         print(f"local IP: {self.local_ip}")
         print(f"public IP: {self.public_ip}")
         print(f"redis IP: {self.redis_ip}")
@@ -742,7 +745,10 @@ class RolloutWorker:
         """
         self.__weights_lock.acquire()  # WEIGHTS LOCK...................................................................
         if self.__weights is not None:  # new weights available
-            with open(self.model_path, 'wb') as f:  # FIXME: check that this deletes the old file
+            with open(self.model_path, 'wb') as f:
+                f.write(self.__weights)
+            x = datetime.datetime.now()
+            with open(self.model_path_history + str(x.strftime("%d_%m_%Y_%H_%M_%S")) + ".pth", 'wb') as f:
                 f.write(self.__weights)
             self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
             print("INFO: model weights have been updated")

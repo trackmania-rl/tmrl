@@ -15,6 +15,7 @@ env_config = DEFAULT_CONFIG_DICT
 env_config["interface"] = TM2020InterfaceLidar
 env_config["benchmark"] = True
 env_config["running_average_factor"] = 0.05
+env_config["wait_on_done"] = True
 env = gym.make("rtgym:real-time-gym-v0", config=env_config)
 
 t_d = time.time()

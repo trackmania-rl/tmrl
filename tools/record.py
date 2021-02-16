@@ -22,9 +22,6 @@ KEY_RIGHT = 'right'
 KEY_LEFT = 'left'
 KEY_RESET = 'r'
 
-# PATH_REWARD = r"D:\data2020reward # r"C:/Users/Yann/Desktop/git/tmrl/tm20reward/"
-# PATH_DATASET = r"C:/Users/Yann/Desktop/git/tmrl/data/"  # r"D:/data2020/"
-
 PATH_REWARD = cfg.REWARD_PATH
 DATASET_PATH = cfg.DATASET_PATH
 

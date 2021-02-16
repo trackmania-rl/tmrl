@@ -43,6 +43,7 @@ PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
 print(f"DEBUG: PATH_DATA:{PATH_DATA}")
 
 MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Edouard.pth")
+MODEL_PATH_SAVE_HISTORY = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Edouard_")
 MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Edouard_t.pth")
 CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / "SAC_4_LIDAR_Edouard")
 DATASET_PATH = str(PATH_DATA / "dataset")
