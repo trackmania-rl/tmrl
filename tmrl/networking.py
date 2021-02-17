@@ -15,6 +15,14 @@ from tmrl.util import collate, partition
 import tmrl.custom.config_constants as cfg
 
 
+# PRINT: ============================================
+
+def print_with_timestamp(s):
+    x = datetime.datetime.now()
+    sx = x.strftime("%x %X ")
+    print(sx + str(s))
+
+
 # NETWORK: ==========================================
 
 def ping_pong(sock):
@@ -27,20 +35,20 @@ def ping_pong(sock):
     """
     _, wl, xl = select.select([], [sock], [sock], cfg.SELECT_TIMEOUT_OUTBOUND)  # select for writing
     if len(xl) != 0 or len(wl) == 0:
-        print("INFO: socket error/timeout while sending PING")
+        print_with_timestamp("INFO: socket error/timeout while sending PING")
         sock.close()
         return False
     send_ping(sock)
     rl, _, xl = select.select([sock], [], [sock], cfg.SELECT_TIMEOUT_PING_PONG)  # select for reading
     if len(xl) != 0 or len(rl) == 0:
-        print("INFO: socket error/timeout while waiting for PONG")
+        print_with_timestamp("INFO: socket error/timeout while waiting for PONG")
         sock.close()
         return False
     obj = recv_object(sock)
     if obj == 'PINGPONG':
         return True
     else:
-        print("INFO: PINGPONG received an object that is not PING or PONG")
+        print_with_timestamp("INFO: PINGPONG received an object that is not PING or PONG")
         sock.close()
         return False
 
@@ -76,7 +84,7 @@ def send_object(sock, obj, ping=False, pong=False, ack=False):
         msg = pickle.dumps(obj)
         msg = bytes(f"{len(msg):<{cfg.HEADER_SIZE}}", 'utf-8') + msg
         if cfg.PRINT_BYTESIZES:
-            print(f"Sending {len(msg)} bytes.")
+            print_with_timestamp(f"Sending {len(msg)} bytes.")
     try:
         sock.sendall(msg)
     except OSError:  # connection closed or broken
@@ -105,9 +113,9 @@ def recv_object(sock):
         except OSError:  # connection closed or broken
             return None
         l = len(msg)
-        # print(f"DEBUG: l:{l}")
-    # print("DEBUG: data len:", msg[:HEADER_SIZE])
-    # print(f"DEBUG: msg[:4]: {msg[:4]}")
+        # print_with_timestamp(f"DEBUG: l:{l}")
+    # print_with_timestamp("DEBUG: data len:", msg[:HEADER_SIZE])
+    # print_with_timestamp(f"DEBUG: msg[:4]: {msg[:4]}")
     if msg[:4] == b'PING' or msg[:4] == b'PONG':
         if msg[:4] == b'PING':
             send_pong(sock)
@@ -115,7 +123,7 @@ def recv_object(sock):
     if msg[:3] == b'ACK':
         return 'ACK'
     msglen = int(msg[:cfg.HEADER_SIZE])
-    # print(f"DEBUG: receiving {msglen} bytes")
+    # print_with_timestamp(f"DEBUG: receiving {msglen} bytes")
     t_start = time.time()
     # now, we receive the actual data (no more than the data length, again to prevent collisions)
     msg = b''
@@ -129,9 +137,9 @@ def recv_object(sock):
         except OSError:  # connection closed or broken
             return None
         l = len(msg)
-        # print(f"DEBUG2: l:{l}")
-    # print("DEBUG: final data len:", l)
-    # print(f"DEBUG: finished receiving after {time.time() - t_start}s.")
+        # print_with_timestamp(f"DEBUG2: l:{l}")
+    # print_with_timestamp("DEBUG: final data len:", l)
+    # print_with_timestamp(f"DEBUG: finished receiving after {time.time() - t_start}s.")
     send_ack(sock)
     return pickle.loads(msg)
 
@@ -155,7 +163,7 @@ def get_connected_socket(timeout, ip_connect, port_connect):
     try:
         s.connect((ip_connect, port_connect))
     except OSError:  # connection broken or timeout
-        print(f"INFO: connect() timed-out or failed, sleeping {cfg.WAIT_BEFORE_RECONNECTION}s")
+        print_with_timestamp(f"INFO: connect() timed-out or failed, sleeping {cfg.WAIT_BEFORE_RECONNECTION}s")
         s.close()
         time.sleep(cfg.WAIT_BEFORE_RECONNECTION)
         return None
@@ -174,7 +182,7 @@ def accept_or_close_socket(s):
         conn.settimeout(cfg.SOCKET_TIMEOUT_COMMUNICATE)
         return conn, addr
     except OSError:
-        # print(f"INFO: accept() timed-out or failed, sleeping {WAIT_BEFORE_RECONNECTION}s")
+        # print_with_timestamp(f"INFO: accept() timed-out or failed, sleeping {WAIT_BEFORE_RECONNECTION}s")
         if conn is not None:
             conn.close()
         s.close()
@@ -189,15 +197,15 @@ def select_and_send_or_close_socket(obj, conn):
     """
     _, wl, xl = select.select([], [conn], [conn], cfg.SELECT_TIMEOUT_OUTBOUND)  # select for writing
     if len(xl) != 0:
-        print("INFO: error when writing, closing socket")
+        print_with_timestamp("INFO: error when writing, closing socket")
         conn.close()
         return False
     if len(wl) == 0:
-        print("INFO: outbound select() timed out, closing socket")
+        print_with_timestamp("INFO: outbound select() timed out, closing socket")
         conn.close()
         return False
     elif not send_object(conn, obj):  # error or timeout
-        print("INFO: send_object() failed, closing socket")
+        print_with_timestamp("INFO: send_object() failed, closing socket")
         conn.close()
         return False
     return True
@@ -210,20 +218,20 @@ def poll_and_recv_or_close_socket(conn):
     """
     rl, _, xl = select.select([conn], [], [conn], 0.0)  # polling read channel
     if len(xl) != 0:
-        print("INFO: error when polling, closing sockets")
+        print_with_timestamp("INFO: error when polling, closing sockets")
         conn.close()
         return False, None
     if len(rl) == 0:  # nothing in the recv buffer
         return True, None
     obj = recv_object(conn)
     if obj is None:  # socket error
-        print("INFO: error when receiving object, closing sockets")
+        print_with_timestamp("INFO: error when receiving object, closing sockets")
         conn.close()
         return False, None
     elif obj == 'PINGPONG':
         return True, None
     else:
-        # print(f"DEBUG: received obj:{obj}")
+        # print_with_timestamp(f"DEBUG: received obj:{obj}")
         return True, obj
 
 
@@ -241,7 +249,7 @@ class Buffer:
     def clip_to_maxlen(self):
         lenmem = len(self.memory)
         if lenmem > self.maxlen:
-            print("INFO: buffer overflow. Discarding old samples.")
+            print_with_timestamp("INFO: buffer overflow. Discarding old samples.")
             self.memory = self.memory[(lenmem - self.maxlen):]
 
     def append_sample(self, sample):
@@ -276,10 +284,10 @@ class Server:
     This buffers experiences sent by RolloutWorkers
     This periodically sends the buffer to the TrainerInterface
     This also receives the weights from the TrainerInterface and broadcast them to the connected RolloutWorkers
-    If localhost is True, the server only listens on localhost. Then the trainer is expected to talk on localhost.
+    If trainer_on_localhost is True, the server only listens on trainer_on_localhost. Then the trainer is expected to talk on trainer_on_localhost.
     Otherwise, the server also listens to the local ip and the trainer is expected to talk on the local ip (port forwarding).
     """
-    def __init__(self, samples_per_server_packet=1000, localhost=False):
+    def __init__(self, samples_per_server_packet=1000, trainer_on_localhost=False, workers_on_localhost=True, workers_on_network=True):
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
@@ -288,18 +296,23 @@ class Server:
         self.samples_per_redis_batch = samples_per_server_packet
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
-        self.localhost = localhost
 
-        print(f"INFO REDIS: local IP: {self.local_ip}")
-        print(f"INFO REDIS: public IP: {self.public_ip}")
-        print(f"INFO REDIS: localhost: {self.localhost}")
+        print_with_timestamp(f"INFO REDIS: local IP: {self.local_ip}")
+        print_with_timestamp(f"INFO REDIS: public IP: {self.public_ip}")
+        print_with_timestamp(f"INFO REDIS: trainer expected on: {'localhost' if trainer_on_localhost else 'network'}")
+        print_with_timestamp(f"INFO REDIS: workers expected on localhost: {workers_on_localhost}")
+        print_with_timestamp(f"INFO REDIS: workers expected on network: {workers_on_network}")
 
-        if self.localhost:
-            Thread(target=self.__rollout_workers_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
+        # workers threads:
+        if workers_on_localhost:
+            Thread(target=self.__rollout_workers_thread, args=("127.0.0.1",), kwargs={}, daemon=True).start()
+        if workers_on_network:
+            Thread(target=self.__rollout_workers_thread, args=(self.local_ip,), kwargs={}, daemon=True).start()
+
+        # trainer thread:
+        if trainer_on_localhost:
             Thread(target=self.__trainer_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
         else:
-            Thread(target=self.__rollout_workers_thread, args=("127.0.0.1",), kwargs={}, daemon=True).start()
-            Thread(target=self.__rollout_workers_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
             Thread(target=self.__trainer_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
 
     def __trainer_thread(self, ip):
@@ -314,10 +327,10 @@ class Server:
             s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_TRAINER, ip, cfg.PORT_TRAINER)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
-                print("DEBUG: accept_or_close_socket failed in trainer thread")
+                print_with_timestamp("DEBUG: accept_or_close_socket failed in trainer thread")
                 continue
             # last_ping = time.time()
-            print(f"INFO TRAINER THREAD: redis connected by trainer at address {addr}")
+            print_with_timestamp(f"INFO TRAINER THREAD: redis connected by trainer at address {addr}")
             # Here we could spawn a Trainer communication thread, but since there is only one trainer we move on
             i = 0
             while True:
@@ -326,20 +339,20 @@ class Server:
                 if len(self.__buffer) >= self.samples_per_redis_batch:
                     if not wait_ack:
                         obj = self.__buffer
-                        print(f"INFO: sending obj {i}")
+                        print_with_timestamp(f"INFO: sending obj {i}")
                         if select_and_send_or_close_socket(obj, conn):
                             wait_ack = True
                             ack_time = time.time()
                         else:
-                            print("INFO: failed sending object to trainer")
+                            print_with_timestamp("INFO: failed sending object to trainer")
                             self.__buffer_lock.release()
                             break
                         self.__buffer.clear()
                     else:
                         elapsed = time.time() - ack_time
-                        print(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                        print_with_timestamp(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                         if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_TRAINER:
-                            print("INFO: ACK timed-out, breaking connection")
+                            print_with_timestamp("INFO: ACK timed-out, breaking connection")
                             self.__buffer_lock.release()
                             wait_ack = False
                             break
@@ -347,20 +360,22 @@ class Server:
                 # checks for weights
                 success, obj = poll_and_recv_or_close_socket(conn)
                 if not success:
-                    print("DEBUG: poll failed in trainer thread")
+                    print_with_timestamp("DEBUG: poll failed in trainer thread")
                     break
                 elif obj is not None and obj != 'ACK':
-                    print(f"DEBUG INFO: trainer thread received obj")
+                    print_with_timestamp(f"DEBUG INFO: trainer thread received obj")
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
                     self.__weights_id += 1
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
                 elif obj == 'ACK':
                     wait_ack = False
-                    print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
+                    print_with_timestamp(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
                 time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
                 i += 1
+            print_with_timestamp(f"DEBUG: out of trainer thread inner loop: closing socket")
             s.close()
+            print_with_timestamp(f"DEBUG: out of trainer thread inner loop: socket closed")
 
     def __rollout_workers_thread(self, ip):
         """
@@ -371,9 +386,9 @@ class Server:
             s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_ROLLOUT, ip, cfg.PORT_ROLLOUT)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
-                # print("DEBUG: accept_or_close_socket failed in workers thread")
+                # print_with_timestamp("DEBUG: accept_or_close_socket failed in workers thread")
                 continue
-            print(f"INFO WORKERS THREAD: redis connected by worker at address {addr}")
+            print_with_timestamp(f"INFO WORKERS THREAD: redis connected by worker at address {addr}")
             Thread(target=self.__rollout_worker_thread, args=(conn, ), kwargs={}, daemon=True).start()  # we don't keep track of this for now
             s.close()
 
@@ -396,14 +411,14 @@ class Server:
                         wait_ack = True
                     else:
                         self.__weights_lock.release()
-                        print("DEBUG: select_and_send_or_close_socket failed in worker thread")
+                        print_with_timestamp("DEBUG: select_and_send_or_close_socket failed in worker thread")
                         break
                     worker_weights_id = self.__weights_id
                 else:
                     elapsed = time.time() - ack_time
-                    print(f"INFO: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                    print_with_timestamp(f"INFO: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                     if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_WORKER:
-                        print("INFO: ACK timed-out, breaking connection")
+                        print_with_timestamp("INFO: ACK timed-out, breaking connection")
                         self.__weights_lock.release()
                         # wait_ack = False  # not needed since we end the thread
                         break
@@ -411,16 +426,16 @@ class Server:
             # checks for samples
             success, obj = poll_and_recv_or_close_socket(conn)
             if not success:
-                print("DEBUG: poll failed in rollout thread")
+                print_with_timestamp("DEBUG: poll failed in rollout thread")
                 break
             elif obj is not None and obj != 'ACK':
-                print(f"DEBUG INFO: rollout worker thread received obj")
+                print_with_timestamp(f"DEBUG INFO: rollout worker thread received obj")
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 self.__buffer += obj  # concat worker batch to local batch
                 self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
             elif obj == 'ACK':
                 wait_ack = False
-                print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
+                print_with_timestamp(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
             time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
 
 
@@ -444,9 +459,9 @@ class TrainerInterface:
         self.local_ip = socket.gethostbyname(socket.gethostname())
         self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
 
-        print(f"local IP: {self.local_ip}")
-        print(f"public IP: {self.public_ip}")
-        print(f"redis IP: {self.redis_ip}")
+        print_with_timestamp(f"local IP: {self.local_ip}")
+        print_with_timestamp(f"public IP: {self.public_ip}")
+        print_with_timestamp(f"redis IP: {self.redis_ip}")
 
         Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
 
@@ -459,7 +474,7 @@ class TrainerInterface:
         while True:  # main client loop
             s = get_connected_socket(cfg.SOCKET_TIMEOUT_CONNECT_TRAINER, self.redis_ip, cfg.PORT_TRAINER)
             if s is None:
-                print("DEBUG: get_connected_socket failed in TrainerInterface thread")
+                print_with_timestamp("DEBUG: get_connected_socket failed in TrainerInterface thread")
                 continue
             while True:
                 # send weights
@@ -472,14 +487,14 @@ class TrainerInterface:
                             wait_ack = True
                         else:
                             self.__weights_lock.release()
-                            print("DEBUG: select_and_send_or_close_socket failed in TrainerInterface")
+                            print_with_timestamp("DEBUG: select_and_send_or_close_socket failed in TrainerInterface")
                             break
                         self.__weights = None
                     else:
                         elapsed = time.time() - ack_time
-                        print(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                        print_with_timestamp(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                         if elapsed >= cfg.ACK_TIMEOUT_TRAINER_TO_REDIS:
-                            print("INFO: ACK timed-out, breaking connection")
+                            print_with_timestamp("INFO: ACK timed-out, breaking connection")
                             self.__weights_lock.release()
                             wait_ack = False
                             break
@@ -487,16 +502,16 @@ class TrainerInterface:
                 # checks for samples batch
                 success, obj = poll_and_recv_or_close_socket(s)
                 if not success:
-                    print("DEBUG: poll failed in TrainerInterface thread")
+                    print_with_timestamp("DEBUG: poll failed in TrainerInterface thread")
                     break
                 elif obj is not None and obj != 'ACK':  # received buffer
-                    print(f"DEBUG INFO: trainer interface received obj")
+                    print_with_timestamp(f"DEBUG INFO: trainer interface received obj")
                     self.__buffer_lock.acquire()  # BUFFER LOCK.........................................................
                     self.__buffer += obj
                     self.__buffer_lock.release()  # END BUFFER LOCK.....................................................
                 elif obj == 'ACK':
                     wait_ack = False
-                    print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
+                    print_with_timestamp(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
                 time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
@@ -514,7 +529,7 @@ class TrainerInterface:
             self.__weights = f.read()
         t3 = time.time()
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
-        print(f"DEBUG: broadcast_model: lock acquire: {t1 - t0}s, save dict: {t2 - t1}s, read dict: {t3 - t2}s")
+        print_with_timestamp(f"DEBUG: broadcast_model: lock acquire: {t1 - t0}s, save dict: {t2 - t1}s, read dict: {t3 - t2}s")
 
     def retrieve_buffer(self):
         """
@@ -568,9 +583,9 @@ class RolloutWorker:
         self.local_ip = socket.gethostbyname(socket.gethostname())
         self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
 
-        print(f"local IP: {self.local_ip}")
-        print(f"public IP: {self.public_ip}")
-        print(f"redis IP: {self.redis_ip}")
+        print_with_timestamp(f"local IP: {self.local_ip}")
+        print_with_timestamp(f"public IP: {self.public_ip}")
+        print_with_timestamp(f"redis IP: {self.redis_ip}")
 
         Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
 
@@ -583,13 +598,13 @@ class RolloutWorker:
         while True:  # main client loop
             s = get_connected_socket(cfg.SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.redis_ip, cfg.PORT_ROLLOUT)
             if s is None:
-                print("DEBUG: get_connected_socket failed in worker")
+                print_with_timestamp("DEBUG: get_connected_socket failed in worker")
                 continue
             while True:
                 # send buffer
                 self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
                 if len(self.__buffer) >= self.samples_per_worker_batch:  # a new batch is available
-                    print("DEBUG: new batch available")
+                    print_with_timestamp("DEBUG: new batch available")
                     if not wait_ack:
                         obj = self.__buffer
                         if select_and_send_or_close_socket(obj, s):
@@ -597,14 +612,14 @@ class RolloutWorker:
                             wait_ack = True
                         else:
                             self.__buffer_lock.release()
-                            print("DEBUG: select_and_send_or_close_socket failed in worker")
+                            print_with_timestamp("DEBUG: select_and_send_or_close_socket failed in worker")
                             break
                         self.__buffer.clear()  # empty sent batch
                     else:
                         elapsed = time.time() - ack_time
-                        print(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                        print_with_timestamp(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                         if elapsed >= cfg.ACK_TIMEOUT_WORKER_TO_REDIS:
-                            print("INFO: ACK timed-out, breaking connection")
+                            print_with_timestamp("INFO: ACK timed-out, breaking connection")
                             self.__buffer_lock.release()
                             wait_ack = False
                             break
@@ -612,16 +627,16 @@ class RolloutWorker:
                 # checks for new weights
                 success, obj = poll_and_recv_or_close_socket(s)
                 if not success:
-                    print(f"INFO: rollout worker poll failed")
+                    print_with_timestamp(f"INFO: rollout worker poll failed")
                     break
                 elif obj is not None and obj != 'ACK':
-                    print(f"DEBUG INFO: rollout worker received obj")
+                    print_with_timestamp(f"DEBUG INFO: rollout worker received obj")
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
                 elif obj == 'ACK':
                     wait_ack = False
-                    print(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
+                    print_with_timestamp(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
                 time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
@@ -700,13 +715,13 @@ class RolloutWorker:
         episode = 0
         while True:
             if episode % test_episode_interval == 0 and not self.crc_debug:
-                print("INFO: running test episode")
+                print_with_timestamp("INFO: running test episode")
                 self.run_test_episode(self.samples_per_worker_batch)
-            print("INFO: collecting train episode")
+            print_with_timestamp("INFO: collecting train episode")
             self.collect_train_episode(self.samples_per_worker_batch)
-            print("INFO: copying buffer for sending")
+            print_with_timestamp("INFO: copying buffer for sending")
             self.send_and_clear_buffer()
-            print("INFO: checking for new weights")
+            print_with_timestamp("INFO: checking for new weights")
             self.update_actor_weights()
             episode += 1
             if self.crc_debug:
@@ -716,14 +731,14 @@ class RolloutWorker:
         import torch.autograd.profiler as profiler
         obs = self.reset(train=True, collect_samples=True)
         use_cuda = True if self.device == 'cuda' else False
-        print(f"DEBUG: use_cuda:{use_cuda}")
+        print_with_timestamp(f"DEBUG: use_cuda:{use_cuda}")
         with profiler.profile(record_shapes=True, use_cuda=use_cuda) as prof:
             obs = collate([obs], device=self.device)
             with profiler.record_function("pytorch_profiler"):
                 with torch.no_grad():
                     action_distribution = self.actor(obs)
                     action = action_distribution.sample()
-        print(prof.key_averages().table(row_limit=20, sort_by="cpu_time_total"))
+        print_with_timestamp(prof.key_averages().table(row_limit=20, sort_by="cpu_time_total"))
 
     def run_env_benchmark(self, nb_steps, train=True):
         """
@@ -734,7 +749,7 @@ class RolloutWorker:
             obs, rew, done, info = self.step(obs=obs, train=train, collect_samples=False)
             if done:
                 obs = self.reset(train=False, collect_samples=False)
-        print(f"Benchmark results:\n{self.env.benchmarks()}")
+        print_with_timestamp(f"Benchmark results:\n{self.env.benchmarks()}")
 
     def send_and_clear_buffer(self):
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
@@ -757,9 +772,9 @@ class RolloutWorker:
                     with open(self.model_path_history + str(x.strftime("%d_%m_%Y_%H_%M_%S")) + ".pth", 'wb') as f:
                         f.write(self.__weights)
                     self._cur_hist_cpt = 0
-                    print("INFO: model weights saved in history")
+                    print_with_timestamp("INFO: model weights saved in history")
             self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
-            print("INFO: model weights have been updated")
+            print_with_timestamp("INFO: model weights have been updated")
             self.__weights = None
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
 
