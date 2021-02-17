@@ -52,9 +52,9 @@ DATASET_PATH = str(PATH_DATA / "dataset")
 REWARD_PATH = str(PATH_DATA / "reward" / "reward.pkl")
 
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
-    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/SAC_4_LIDAR_Edouard_t.pth"
-    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/SAC_4_LIDAR_Edouard"
-    REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
+    MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl_edouard/data/SAC_4_LIDAR_Edouard_t.pth"
+    CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/SAC_4_LIDAR_Edouard"
+    REWARD_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/reward.pkl"
 
 # WANDB: =======================================================
 
