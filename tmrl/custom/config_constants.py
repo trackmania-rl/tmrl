@@ -58,7 +58,7 @@ if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_4_LIDAR_Edouard"
+WANDB_RUN_ID = "SAC_4_LIDAR_Edouard_test2"
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "tmrl"
 WANDB_KEY = "df28d4daa98d2df2557d74caf78e40c68adaf288"
