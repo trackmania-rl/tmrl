@@ -540,6 +540,8 @@ class RolloutWorker:
                  model_path=cfg.MODEL_PATH_WORKER,
                  obs_preprocessor: callable = None,
                  crc_debug=False,
+                 model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
+                 model_history=cfg.MODEL_HISTORY,  # if 0, doesn't save model history, else, the model is saved every model_history episode
                  ):
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = get_local_buffer_sample
@@ -547,6 +549,7 @@ class RolloutWorker:
         obs_space = self.env.observation_space
         act_space = self.env.action_space
         self.model_path = model_path
+        self.model_path_history = model_path_history
         self.actor = actor_module_cls(obs_space, act_space).to(device)
         self.device = device
         if os.path.isfile(self.model_path):
@@ -558,12 +561,12 @@ class RolloutWorker:
         self.__weights_lock = Lock()
         self.samples_per_worker_batch = samples_per_worker_packet
         self.crc_debug = crc_debug
+        self.model_history = model_history
+        self._cur_hist_cpt = 0
 
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
         self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
-
-        self.model_path_history = cfg.MODEL_PATH_SAVE_HISTORY
 
         print(f"local IP: {self.local_ip}")
         print(f"public IP: {self.public_ip}")
@@ -747,9 +750,14 @@ class RolloutWorker:
         if self.__weights is not None:  # new weights available
             with open(self.model_path, 'wb') as f:
                 f.write(self.__weights)
-            x = datetime.datetime.now()
-            with open(self.model_path_history + str(x.strftime("%d_%m_%Y_%H_%M_%S")) + ".pth", 'wb') as f:
-                f.write(self.__weights)
+            if self.model_history:
+                self._cur_hist_cpt += 1
+                if self._cur_hist_cpt == self.model_history:
+                    x = datetime.datetime.now()
+                    with open(self.model_path_history + str(x.strftime("%d_%m_%Y_%H_%M_%S")) + ".pth", 'wb') as f:
+                        f.write(self.__weights)
+                    self._cur_hist_cpt = 0
+                    print("INFO: model weights saved in history")
             self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
             print("INFO: model weights have been updated")
             self.__weights = None

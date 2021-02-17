@@ -5,6 +5,7 @@ from pathlib import Path
 # HIGH-LEVEL PRAGMAS: ==========================================
 
 PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_SERVER_ON_EDOUARD_YANN = 1  # 1 is server on Edouard's PC, 0 if server on Yann's PC
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
@@ -17,8 +18,7 @@ CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
 PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 LOCALHOST_WORKER = True  # set to True for RolloutWorkers on the same machine as the Server
-# PUBLIC_IP_REDIS = "45.74.221.204"  # IP Yann
-PUBLIC_IP_REDIS = "173.179.182.4"  # IP Edouard
+PUBLIC_IP_REDIS = "173.179.182.4" if PRAGMA_SERVER_ON_EDOUARD_YANN else "45.74.221.204"  # IP Edouard
 
 REDIS_IP_FOR_WORKER = PUBLIC_IP_REDIS if not LOCALHOST_WORKER else "127.0.0.1"
 REDIS_IP_FOR_TRAINER = PUBLIC_IP_REDIS
@@ -41,6 +41,8 @@ PATH_FILE = Path(__file__)  # TODO: check that this works with PyPI
 print(f"DEBUG: PATH_FILE:{PATH_FILE}")
 PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
 print(f"DEBUG: PATH_DATA:{PATH_DATA}")
+
+MODEL_HISTORY = 1  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
 
 MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Edouard.pth")
 MODEL_PATH_SAVE_HISTORY = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Edouard_")
