@@ -116,7 +116,7 @@ In a nutshell, whereas the previous reward function was measuring how fast the c
 In TMRL, the car can be controlled in two different ways:
 
 - TMRL can output simple (binary) arrow presses.
-- On Windows, TMRL controls the car with analog control by emulating an XBox360 controller thank to the [vgamepad](https://pypi.org/project/vgamepad/) library.
+- On Windows, TMRL controls the car with analog inputs by emulating an XBox360 controller thank to the [vgamepad](https://pypi.org/project/vgamepad/) library.
 
 ### Observation spaces
 
