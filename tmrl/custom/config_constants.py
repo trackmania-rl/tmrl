@@ -4,8 +4,8 @@ from pathlib import Path
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
-PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
+PRAGMA_EDOUARD_YANN_CC = 1  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_SERVER_ON_EDOUARD_YANN = 1  # 1 is server on Edouard's PC, 0 if server on Yann's PC
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
@@ -44,26 +44,28 @@ print(f"DEBUG: PATH_DATA:{PATH_DATA}")
 
 MODEL_HISTORY = 1  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
 
-MODEL_PATH_WORKER = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Yann_1.pth")
-MODEL_PATH_SAVE_HISTORY = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Yann_1_")
-MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / "SAC_4_LIDAR_Yann_1_t.pth")
-CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / "SAC_4_LIDAR_Yann_1")
+RUN_NAME = "SAC_4_LIDAR_Edouard_test_2"
+
+MODEL_PATH_WORKER = str(PATH_DATA / "weights" / RUN_NAME + ".pth")
+MODEL_PATH_SAVE_HISTORY = str(PATH_DATA / "weights" / RUN_NAME + "_")
+MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / RUN_NAME + "_t.pth")
+CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / RUN_NAME)
 DATASET_PATH = str(PATH_DATA / "dataset")
 REWARD_PATH = str(PATH_DATA / "reward" / "reward.pkl")
 
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
     if PRAGMA_SERVER_ON_EDOUARD_YANN == 1:  # Edouard
-        MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl_edouard/data/SAC_4_LIDAR_Edouard_t.pth"
-        CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/SAC_4_LIDAR_Edouard"
+        MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + RUN_NAME + "_t.pth"
+        CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + RUN_NAME
         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/reward.pkl"
     else:  # Yann
-        MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/SAC_4_LIDAR_Yann_1_t.pth"
-        CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/SAC_4_LIDAR_Yann_1"
+        MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME + "_t.pth"
+        CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME
         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
 
 # WANDB: =======================================================
 
-WANDB_RUN_ID = "SAC_4_LIDAR_Yann_1"
+WANDB_RUN_ID = RUN_NAME
 WANDB_PROJECT = "tmrl"
 WANDB_ENTITY = "tmrl"
 WANDB_KEY = "df28d4daa98d2df2557d74caf78e40c68adaf288"
