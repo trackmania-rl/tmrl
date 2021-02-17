@@ -20,7 +20,7 @@ TrackMania Reinforcement Learning (`tmrl`) consists in a Python framework for di
 
 TMRL uses actual video games, with no insider access, in order to train competitive self-driving Artificial Intelligences (AIs), also called "policies".
 
-These policies are trained with state-of-the-art Deep Reinforcement Learning algorithms, in real-time.
+These policies are trained with state-of-the-art Deep Reinforcement Learning (RL) algorithms, in real-time.
 
 The framework is demonstrated on TrackMania 2020 and TrackMania Nations Forever.
 
@@ -67,28 +67,77 @@ Please find installation instructions [here](docs/Install.md).
 
 ## Getting started
 
-Please see [get_started.md](docs/get_started.md) for starting using TMRL.
-We provide full guidance for a quick run with pre-trained weights and a tutorial to train, test and fine-tune the model. 
+Quick start instructions are provided [here](docs/get_started.md).
+
+Following this link, you will find full guidance toward testing pre-trained weights, as well as a tutorial to train, test and fine-tune your own models.
 
 
 ## TMRL presentation
 
 In TMRL, an AI that knows nothing about driving is set at the starting point of a track, and has to learn how to complete the track by exploring its own capacities and environment.
 
-The car feeds observations such as images through a neural network, which must output the best possible controls from these observations.
-This implies that the neural network must understand its environment.
-
-To achieve this understanding, the car will explore the world for millions and millions of time-steps, slowly gaining understanding of how to act on it.
-
+The car feeds observations such as images to an artificial neural network, which must output the best possible controls from these observations.
+This implies that the AI must understand its environment in some way.
+To achieve this understanding, the car explores the world for a few hours (up to a few days), slowly gaining understanding of how to act efficiently.
 This is accomplished through Deep Reinforcement Learning.
-More exactly, through the Soft Actor-Critic algorithm.
+More precisely, we use the Soft Actor-Critic (SAC) algorithm.
 
+### Soft Actor-Critic
+TODO explain soft actor critic
 
+### Choose a clever reward
 
-Lidar how it works
-rewards 1pt/1m  grab pos from openplanet
-soft actor critic
-multiple computer training
+As mentioned above, a reward function is needed to evaluate how well the policy performs.
+
+There are multiple reward function that could be used.
+For instance, one could directly use the raw speed of the car as a reward.
+This makes sense because the car slows down when it crashes and goes fast when it is performing well.
+Optimizing the speed as a reward incentives the car to run as fast as it can.
+We use exactly this as a reward in TrackMania Nations Forever.
+
+However, such approach is naive.
+Indeed, the actual goal of racing is not to move as fast as possible.
+Rather, one wants to complete the largest portion of the track in the smallest possible amount of time.
+This is not equivalent as one should consider the optimal trajectory, which may imply slowing down on sharp turns to take the apex of the curve.
+
+In Trackmania 2020, we use a more advanced and conceptually more interesting reward function:
+
+![reward](docs/img/Reward.PNG)
+
+For a given track, we record one single demonstration trajectory.
+This does not have to be a good demonstration, but only to follow the track.
+Once the demonstration trajectory is recorded, it is automatically divided into equally spaced points.
+
+During training, at each time-step, the reward is then the number of such points that the car has passed since the previous time-step.
+In a nutshell, whereas the previous reward function was measuring how fast the car was, this new reward function measures how good it is at covering a big portion of the track in a given amount of time.
+
+### Action spaces
+
+In TMRL, the car can be controlled in two different ways:
+
+- TMRL can output simple (binary) arrow presses.
+- On Windows, TMRL controls the car with analog control by emulating an XBox360 controller thank to the [vgamepad](https://pypi.org/project/vgamepad/) library.
+
+### Observation spaces
+
+Different observation spaces are available in TMRL:
+
+- A LIDAR measurement computed from real-time screenshots in tracks with black borders
+- An history of several such LIDAR measurements (typically the last 4 time-steps)
+- An history of raw screenshots (typically 4)
+
+In addition, we provide the norm of the velocity as part of the observation space in all our experiments as we find this greatly helps convergence.
+
+A complete example of RL environment in TrackMania Nations Forever with a single LIDAR measurement is as follows:
+
+![reward](docs/img/lidar.png)
+
+In TrackMania Nations Forever, the raw speed is computed from screen captures thanks to the 1-NN algorithm.
+
+In TrackMania 2020, the [OpenPlanet](https://openplanet.nl) API is used to retrieve this raw speed directly.
+
+---
+
 experimentation
 
 
