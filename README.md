@@ -1,5 +1,5 @@
 # TMRL
-TMRL (`tmrl`) consists in a Python framework for distributed real-time Reinforcement Learning, demonstated on the TrackMania 2020 and TrackMania Nation Forever video games.
+TrackMania Reinforcement Learning (`tmrl`) consists in a Python framework for distributed real-time Reinforcement Learning, demonstated on the TrackMania 2020 and TrackMania Nation Forever video games.
 
 ![Image](docs/img/tm_annimation.gif)
 
@@ -73,7 +73,25 @@ We provide full guidance for a quick run with pre-trained weights and a tutorial
 
 ## TMRL presentation
 
-TODO: explain the whole process from gathering the reward , grabbing the images, to controlling the car, and give a quick explenation of how works the algorithm
+In TMRL, an AI that knows nothing about driving is set at the starting point of a track, and has to learn how to complete the track by exploring its own capacities and environment.
+
+The car feeds observations such as images through a neural network, which must output the best possible controls from these observations.
+This implies that the neural network must understand its environment.
+
+To achieve this understanding, the car will explore the world for millions and millions of time-steps, slowly gaining understanding of how to act on it.
+
+This is accomplished through Deep Reinforcement Learning.
+More exactly, through the Soft Actor-Critic algorithm.
+
+
+
+Lidar how it works
+rewards 1pt/1m  grab pos from openplanet
+soft actor critic
+multiple computer training
+experimentation
+
+
 
 ## Advanced stuff
 
