@@ -46,20 +46,20 @@ MODEL_HISTORY = 1  # 0 for not saving history, x for saving model history every 
 
 RUN_NAME = "SAC_4_LIDAR_Edouard_test_2"
 
-MODEL_PATH_WORKER = str(PATH_DATA / "weights" / RUN_NAME + ".pth")
-MODEL_PATH_SAVE_HISTORY = str(PATH_DATA / "weights" / RUN_NAME + "_")
-MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / RUN_NAME + "_t.pth")
+MODEL_PATH_WORKER = str(PATH_DATA / "weights" / (RUN_NAME + ".pth"))
+MODEL_PATH_SAVE_HISTORY = str(PATH_DATA / "weights" / (RUN_NAME + "_"))
+MODEL_PATH_TRAINER = str(PATH_DATA / "weights" / (RUN_NAME + "_t.pth"))
 CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / RUN_NAME)
 DATASET_PATH = str(PATH_DATA / "dataset")
 REWARD_PATH = str(PATH_DATA / "reward" / "reward.pkl")
 
 if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
     if PRAGMA_SERVER_ON_EDOUARD_YANN == 1:  # Edouard
-        MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + RUN_NAME + "_t.pth"
+        MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + (RUN_NAME + "_t.pth")
         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + RUN_NAME
         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/reward.pkl"
     else:  # Yann
-        MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME + "_t.pth"
+        MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/" + (RUN_NAME + "_t.pth")
         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME
         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
 
