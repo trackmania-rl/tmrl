@@ -34,7 +34,7 @@ BENCHMARK = False  # The environment will be benchmarked when this is True
 
 # BUFFERS: =====================================================
 
-ACT_BUF_LEN = 1
+ACT_BUF_LEN = 2
 IMG_HIST_LEN = 4
 
 # FILE SYSTEM: =================================================
