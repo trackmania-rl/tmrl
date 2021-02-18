@@ -67,6 +67,7 @@ class TrainingOffline:
                 ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 else -1.0
                 if ratio > self.max_training_steps_per_env_step or ratio == -1.0:
                     time.sleep(self.sleep_between_buffer_retrieval_attempts)
+            print("INFO: Resuming training")
 
     def run_epoch(self, interface: TrainerInterface):
         stats = []
