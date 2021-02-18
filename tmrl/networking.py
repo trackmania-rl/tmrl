@@ -195,7 +195,9 @@ def select_and_send_or_close_socket(obj, conn):
     Returns True if success
     False if disconnected (closes sockets)
     """
+    print_with_timestamp(f"DEBUG: start select")
     _, wl, xl = select.select([], [conn], [conn], cfg.SELECT_TIMEOUT_OUTBOUND)  # select for writing
+    print_with_timestamp(f"DEBUG: end select")
     if len(xl) != 0:
         print_with_timestamp("INFO: error when writing, closing socket")
         conn.close()

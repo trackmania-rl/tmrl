@@ -5,7 +5,9 @@ from pathlib import Path
 # HIGH-LEVEL PRAGMAS: ==========================================
 
 PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
-PRAGMA_SERVER_ON_EDOUARD_YANN = 1  # 1 is server on Edouard's PC, 0 if server on Yann's PC
+PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
+RUN_NAME = "SAC_4_LIDAR_Yann_test_3"
+
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
@@ -43,8 +45,6 @@ PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
 print(f"DEBUG: PATH_DATA:{PATH_DATA}")
 
 MODEL_HISTORY = 1  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
-
-RUN_NAME = "SAC_4_LIDAR_Edouard_test_2"
 
 MODEL_PATH_WORKER = str(PATH_DATA / "weights" / (RUN_NAME + ".pth"))
 MODEL_PATH_SAVE_HISTORY = str(PATH_DATA / "weights" / (RUN_NAME + "_"))
