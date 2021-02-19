@@ -313,71 +313,70 @@ class Server:
 
         # trainer thread:
         if trainer_on_localhost:
-            Thread(target=self.__trainer_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
+            Thread(target=self.__trainers_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
         else:
-            Thread(target=self.__trainer_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
+            Thread(target=self.__trainers_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
 
-    def __trainer_thread(self, ip):
+    def __trainers_thread(self, ip):
         """
-        This waits for a TrainerInterface to connect
-        Then, this periodically sends the local buffer to the TrainerInterface (when data is available)
-        When the TrainerInterface sends new weights, this broadcasts them to all connected RolloutWorkers
+        This waits for new potential Trainers to connect
+        When a new Trainer connects, this instantiates a new thread to handle it
         """
-        ack_time = time.time()
-        wait_ack = False
         while True:  # main redis loop
             s = get_listening_socket(cfg.SOCKET_TIMEOUT_ACCEPT_TRAINER, ip, cfg.PORT_TRAINER)
             conn, addr = accept_or_close_socket(s)
             if conn is None:
-                print_with_timestamp("DEBUG: accept_or_close_socket failed in trainer thread")
+                # print_with_timestamp("DEBUG: accept_or_close_socket failed in trainers thread")
                 continue
-            # last_ping = time.time()
-            print_with_timestamp(f"INFO TRAINER THREAD: redis connected by trainer at address {addr}")
-            # Here we could spawn a Trainer communication thread, but since there is only one trainer we move on
-            i = 0
-            while True:
-                # send samples
-                self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
-                if len(self.__buffer) >= self.samples_per_redis_batch:
-                    if not wait_ack:
-                        obj = self.__buffer
-                        print_with_timestamp(f"INFO: sending obj {i}")
-                        if select_and_send_or_close_socket(obj, conn):
-                            wait_ack = True
-                            ack_time = time.time()
-                        else:
-                            print_with_timestamp("INFO: failed sending object to trainer")
-                            self.__buffer_lock.release()
-                            break
-                        self.__buffer.clear()
-                    else:
-                        elapsed = time.time() - ack_time
-                        print_with_timestamp(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
-                        if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_TRAINER:
-                            print_with_timestamp("INFO: ACK timed-out, breaking connection")
-                            self.__buffer_lock.release()
-                            wait_ack = False
-                            break
-                self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
-                # checks for weights
-                success, obj = poll_and_recv_or_close_socket(conn)
-                if not success:
-                    print_with_timestamp("DEBUG: poll failed in trainer thread")
-                    break
-                elif obj is not None and obj != 'ACK':
-                    print_with_timestamp(f"DEBUG INFO: trainer thread received obj")
-                    self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
-                    self.__weights = obj
-                    self.__weights_id += 1
-                    self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
-                elif obj == 'ACK':
-                    wait_ack = False
-                    print_with_timestamp(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
-                time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
-                i += 1
-            print_with_timestamp(f"DEBUG: out of trainer thread inner loop: closing socket")
+            print_with_timestamp(f"INFO TRAINERS THREAD: redis connected by trainer at address {addr}")
+            Thread(target=self.__trainer_thread, args=(conn, ), kwargs={}, daemon=True).start()  # we don't keep track of this for now
             s.close()
-            print_with_timestamp(f"DEBUG: out of trainer thread inner loop: socket closed")
+
+    def __trainer_thread(self, conn):
+        """
+        This periodically sends the local buffer to the TrainerInterface (when data is available)
+        When the TrainerInterface sends new weights, this broadcasts them to all connected RolloutWorkers
+        """
+        ack_time = time.time()
+        wait_ack = False
+        while True:
+            # send samples
+            self.__buffer_lock.acquire()  # BUFFER LOCK.............................................................
+            if len(self.__buffer) >= self.samples_per_redis_batch:
+                if not wait_ack:
+                    obj = self.__buffer
+                    if select_and_send_or_close_socket(obj, conn):
+                        wait_ack = True
+                        ack_time = time.time()
+                    else:
+                        print_with_timestamp("INFO: failed sending object to trainer")
+                        self.__buffer_lock.release()
+                        break
+                    self.__buffer.clear()
+                else:
+                    elapsed = time.time() - ack_time
+                    print_with_timestamp(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                    if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_TRAINER:
+                        print_with_timestamp("INFO: ACK timed-out, breaking connection")
+                        self.__buffer_lock.release()
+                        wait_ack = False
+                        break
+            self.__buffer_lock.release()  # END BUFFER LOCK.........................................................
+            # checks for weights
+            success, obj = poll_and_recv_or_close_socket(conn)
+            if not success:
+                print_with_timestamp("DEBUG: poll failed in trainer thread")
+                break
+            elif obj is not None and obj != 'ACK':
+                print_with_timestamp(f"DEBUG INFO: trainer thread received obj")
+                self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
+                self.__weights = obj
+                self.__weights_id += 1
+                self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
+            elif obj == 'ACK':
+                wait_ack = False
+                print_with_timestamp(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
+            time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
 
     def __rollout_workers_thread(self, ip):
         """
