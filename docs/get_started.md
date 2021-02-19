@@ -1,18 +1,12 @@
 # Getting started with TMRL
 
-This document provides a brief intro of the usage of builtin command-line tools in TMRL, how to test a self-driving car in trackmania and how to train the car on whatever map you have choosen.
+In this document you can learn:
+- How to test a pre-trained self-driving car in TrackMania 2020.
+- How to train your own AI on any track (caution: the track cannot have weird triggered events such as GPS replays).
+- How to use the API in other games or applications.
 
-We will also see how you can use the API in other games.
 
-
-# Inference demo with existing models
-
-By inference, we mean using pre-trained AI to drive the car.
-Each provided model is trained for at least 10 hours on a specific track.
-The pre-trained models can be found in `data/weights`.
-
-## Set up the game
-
+## Demo of a pre-trained AI
 
 - Launch TrackMania 2020
 - In case the OpenPlanet menu is showing in the top part of the screen, hide it using the F3 key
@@ -32,7 +26,7 @@ Your screen should now look like this:
 
 ![screenshot1](img/screenshot1.PNG)
 
-- Open your terminal and put it somewhere where it does not overlap with the trackmania window.
+- Open a terminal and put it where it does not overlap with the trackmania window.
 For instance in the bottom-left corner of the screen.
 - Activate the python environment in which `tmrl` is installed.
 - cd to your `tmrl` repository.
@@ -41,7 +35,7 @@ For instance in the bottom-left corner of the screen.
 python tmrl/run.py --test
 ```
 
-The car should now drive autonomously.
+You should now see the car drive autonomously.
 
 (TODO: gif)
 
@@ -50,14 +44,14 @@ The car should now drive autonomously.
 
 
 
-# Train a new car
+## Train your own self-driving AIs
  Now we will see how to train our own car with the track you want
 
 if you want to train the car with the lidar you will need to train it on road only, the lidar doesn't deal with other surfaces.
 
 You can train the car on whatever surfaces if it is trained with camera but you computer may need a good GPU to run both CNN and trackmania.
 
-# Use TMRL APIs in your favorite game
+## Use the TMRL API in other applications
 
 you can simply run the code on tmnf by changing this option in config.py: `PRAGMA_TM2020_TMNF = True`
 
