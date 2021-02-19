@@ -1,40 +1,57 @@
 # Getting started with TMRL
 
-This document provides a brief intro of the usage of builtin command-line tools in TMRL, how to infer the self driving car trackmania map and how to train a car on whatever map you have choosen.
-Then We will how you how to use the API in other games.
+In this document you can learn:
+- How to test a pre-trained self-driving car in TrackMania 2020.
+- How to train your own AI on any track (caution: the track cannot have weird triggered events such as GPS replays).
+- How to use the API in other games or applications.
 
 
-# Inference Demo with existing models
+## Demo of a pre-trained AI
 
-By inference, we mean using trained models to drive the car, the each models are trainned for 10 hours on differents tracks.
-In TMRL the weights of the model are alawys saved at 'data/weights'
+- Launch TrackMania 2020
+- In case the OpenPlanet menu is showing in the top part of the screen, hide it using the F3 key
+- Set the game in windowed mode. To do this, bring the cursor to the top of the screen and a drop-down menu will show. Hit the windowed icon.
+- Bring the TrackMania window to the top left corner of the screen. On Windows10, it should automatically fit to a quarter of the screen.
+- In the drop-down menu, hit the `Settings` icon
+- In the `Graphics` tab, ensure that the resolution is 958 (width) * 488 (height) pixels.
+- In the `Input` tab, select `keyboard` in `edit device`. For `Give up`, set the `Enter` key.
+- In the `Interface` tab, set `player visibility for cockpit view` to `old`.
+- Close the `Settings` menu.
+- In the lobby, select `Training` and select track number 1.
+- Enter the first person view mode by hitting the `3` key.
+- Hide the user interface by hitting the `*` key. 
+- Hide the ghost by pressing the `g` key.
 
-TMRL provides 2 self driving car models, the car will either use a LIDAR or raw images to perceive its envoronement.
+Your screen should now look like this:
 
-## set the game
-first, you will need to set the game, to do that you have to put the windows game at the top left on your screenm you can bang the window to be sure and then resize the window at 958/488 for lidar and 256/128 for the camera
-If you want to use the lidar you will use `camera game 3` and `player visibility for cockpit view = old`
-Butm if you prefer to use the camera you cam use `camera game 1`  
-In both case you should remove the interface (time, ...)
+![screenshot1](img/screenshot1.PNG)
 
-To run the Lidar, go to tmrl, custom, config and set `PRAGMA_LIDAR = True`
-for the camera you can set to `False`
-
-`PRAGMA_CUDA_INFERENCE = False` if you want to use the gpu
-then you can run the following command:
+- Open a terminal and put it where it does not overlap with the trackmania window.
+For instance in the bottom-left corner of the screen.
+- Activate the python environment in which `tmrl` is installed.
+- cd to your `tmrl` repository.
+- Run the following command, and directly click somewhere in the TrackMania window so that the script can control the car.
 ```shell
-Python tmrl/run.py --test
+python tmrl/run.py --test
 ```
-then you can run this command and click directly on the game windows with your mouse
 
-# Train a new car
+You should now see the car drive autonomously.
+
+(TODO: gif)
+
+
+
+
+
+
+## Train your own self-driving AIs
  Now we will see how to train our own car with the track you want
 
 if you want to train the car with the lidar you will need to train it on road only, the lidar doesn't deal with other surfaces.
 
 You can train the car on whatever surfaces if it is trained with camera but you computer may need a good GPU to run both CNN and trackmania.
 
-# Use TMRL APIs in your favorite game
+## Use the TMRL API in other applications
 
 you can simply run the code on tmnf by changing this option in config.py: `PRAGMA_TM2020_TMNF = True`
 
