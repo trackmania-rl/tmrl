@@ -179,15 +179,16 @@ In TrackMania 2020, the [OpenPlanet](https://openplanet.nl) API is used to retri
 
 We encourage you to watch our series of (TODO: incomming) YouTube videos to visualize some AIs learnt in TMRL.
 
-We train Real-Time policies with one single LIDAR, with an history of LIDARs, and with an history of raw images.
-We show that our AIs are able to learn complex dynamics from history of LIDARs, leading to better policies:
+We train policies in Real-Time with several observation spaces.
+We show that our AIs are able to take advantage of the more complex ones in order to learn complex dynamics, leading to clever policies:
+
+In the following experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using an history of 4 LIDAR measurements.
+The positions of both cars are captured at constant time intervals in this animation:
 
 ![Turn](docs/img/turn_tm20.gif)
 
-In this experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using an history of the last 4 LIDAR measurements.
-
-The blue car learnt to drive at a constant speed, as it cannot infer complex dynamics from its observation space.
-Conversely, the red car is able to infer its dynamics from the history of 4 LIDARs, and successfully learnt to break, take the apex of the curve, and accelerate again after this sharp turn, which is slightly better in this situation.
+The blue car learnt to drive at a constant speed, as it is the best it can do from its naive observation space.
+Conversely, the red car is able to infer higher-order dynamics from the history of 4 LIDARs, and successfully learnt to break, take the apex of the curve, and accelerate again after this sharp turn, which is slightly better in this situation.
 
 
 ## Advanced stuff
