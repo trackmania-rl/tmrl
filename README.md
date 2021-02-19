@@ -1,5 +1,5 @@
 # TMRL
-TrackMania Reinforcement Learning (`tmrl`) consists in a Python framework for distributed real-time Reinforcement Learning, demonstated on the TrackMania 2020 and TrackMania Nation Forever video games.
+TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for distributed Real-Time Reinforcement Learning, demonstated on the TrackMania 2020 and TrackMania Nation Forever video games.
 
 ![Image](docs/img/tm_annimation.gif)
 
@@ -10,6 +10,11 @@ TrackMania Reinforcement Learning (`tmrl`) consists in a Python framework for di
 - [Installation](docs/Install.md)
 - [Getting started](docs/get_started.md)
 - [TMRL presentation](#tmrl-presentation)
+  - [Soft Actor-Critic](#soft-actor-critic)
+  - [A clever reward](#a-clever-reward)
+  - [Available action spaces](#available-action-spaces)
+  - [Available observation spaces](#available-observation-spaces)
+  - [Results](#results)
 - [Advanced stuff](#advanced-stuff)
     - [Real-time Gym framework](#real-time-gym-framework)
       - [rtgym repo](https://github.com/yannbouteiller/rtgym)
@@ -20,7 +25,7 @@ TrackMania Reinforcement Learning (`tmrl`) consists in a Python framework for di
 
 TMRL uses actual video games, with no insider access, in order to train competitive self-driving Artificial Intelligences (AIs), also called "policies".
 
-These policies are trained with state-of-the-art Deep Reinforcement Learning (RL) algorithms, in real-time.
+These policies are trained with state-of-the-art Deep Reinforcement Learning (RL) algorithms, in Real-Time.
 
 The framework is demonstrated on TrackMania 2020 and TrackMania Nations Forever.
 
@@ -28,7 +33,7 @@ The framework is demonstrated on TrackMania 2020 and TrackMania Nations Forever.
 * **State-of-the-art algorithm:**
 TMRL trains TrackMania policies with [Soft Actor-Critic](https://arxiv.org/abs/1801.01290) (SAC), an algorithm considered the state-of-the-art in Deep Reinforcement Learning.
 SAC stores collected samples in a large dataset, called the replay memory.
-In parallel, this dataset is used to train an artificial neural network ("model") that maps observations (images, speed...) to relevant actions (gas, steering angle...).
+In parallel, this dataset is used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, steering angle...).
 
 * **Different types of control:**
 TMRL is able to control the video game in several ways, using either a virtual keyboard, or a virtual game controller.
@@ -37,8 +42,8 @@ TMRL is able to control the video game in several ways, using either a virtual k
 The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots, or the raw unprocessed snapshots in order to perceive its environment.
 
 * **Models:**
-To process LIDAR measurements, TMRL uses a fully connected neural network.
-To process raw camera images (snapshots), it uses a backbone [MobileNetV3](https://arxiv.org/abs/1905.02244).
+To process LIDAR measurements, TMRL uses a Multi-Layer Perceptron (MLP).
+To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
 
 ### Developer features:
 * **Distributed training:**
@@ -58,47 +63,81 @@ For instance, in other projects, we use the same code base in order to train rob
 Advanced tutorial coming soon to develop your own applications.
 
 * **External libraries:**
-This project gave birth to sub-projects of more general interest that were cut out and packaged in standalone python libraries.
+This project gave birth to a few sub-projects of more general interest that were cut out and packaged in standalone python libraries.
 In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications, and [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers.
 
 ## Installation
 
-Please find installation instructions [here](docs/Install.md).
+For installation instructions, please follow [this link](docs/Install.md).
 
 ## Getting started
 
-Quick start instructions are provided [here](docs/get_started.md).
+Full guidance toward testing pre-trained weights, as well as a tutorial to train, test and fine-tune your own models,
+are provided at [this link](docs/get_started.md).
 
-Following this link, you will find full guidance toward testing pre-trained weights, as well as a tutorial to train, test and fine-tune your own models.
 
 
 ## TMRL presentation
 
-In TMRL, an AI that knows nothing about driving is set at the starting point of a track, and has to learn how to complete the track by exploring its own capacities and environment.
+In TMRL, an AI that knows absolutely nothing about driving is set at the starting point of a track.
+Its goal is to learn how to complete the track by exploring its own capacities and environment.
 
 The car feeds observations such as images to an artificial neural network, which must output the best possible controls from these observations.
 This implies that the AI must understand its environment in some way.
 To achieve this understanding, the car explores the world for a few hours (up to a few days), slowly gaining understanding of how to act efficiently.
-This is accomplished through Deep Reinforcement Learning.
+This is accomplished through Deep Reinforcement Learning (RL).
 More precisely, we use the Soft Actor-Critic (SAC) algorithm.
 
 ### Soft Actor-Critic
-TODO explain soft actor critic
+[Soft Actor-Critic](https://arxiv.org/abs/1801.01290) (SAC) is an algorithm that enables learning continuous stochastic controllers.
+Like most RL algorithms, it is based on a mathematical description of the environment called a Markov Decision Process (MDP).
+The policy trained by SAC interacts with this MDP as follows:
 
-### Choose a clever reward
+![reward](docs/img/mrp.png)
+
+In this illustration, the policy is represented as the stickman, and time is represented as time-steps of fixed duration.
+At each time-step, the policy applies an action (the values of gas, break and steering) computed from an observation.
+The action is applied to the environment, which yields a new observation at the end of the time-step.
+
+For the purpose of training this policy, the environment also provides another signal, called the "reward".
+Indeed, RL is derived from behaviorism, which relies on the fundamental idea that intelligence is the result of an history of positive and negative stimuli.
+The reward received by the AI at each time-step is a measure of how well it performs.
+
+In order to learn how to drive, the AI tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that the reward is maximized.
+
+More specifically, SAC does this using two separate Artificial Neural Networks (NNs):
+
+- The first one, called the "policy network" (or, in the literature, the "actor"), is the NN the user is ultimately interested in : the controller of the car.
+  It takes observations as input, and outputs actions.
+- The second, called the "value network" (or, in the literature, the "critic"), is only used to train the policy network.
+  It takes an observations ```x``` and an action ```a``` as input, to output a value.
+  This value is an estimate of the expected sum of future rewards if the AI observes ```x```, selects ```a```, and then uses the policy network forever (there is also a discount factor so that this sum is not infinite).
+
+Both networks are trained in parallel using each other.
+The reward signal is used to train the value network, and the value network is used to train the policy network.
+
+Fundamental advantages of SAC over other existing methods are the following:
+- It is able to store transitions in a huge circular buffer called the "replay memory" and reuse these transitions several times during training.
+  This is an important property for applications such as TMRL where only a relatively small number of transitions can be collected due to the Real-Time nature of the setting.
+- It is able to output analog controls. We use this property in particular for steering.
+- It maximizes the entropy of the learnt policy.
+  This means that the policy will be as random as possible while maximizing the reward.
+  This property helps exploring the environment and is known to produce policies that are robust to external perturbations, which is important for self-driving.
+
+### A clever reward
 
 As mentioned above, a reward function is needed to evaluate how well the policy performs.
 
-There are multiple reward function that could be used.
+There are multiple reward functions that could be used.
 For instance, one could directly use the raw speed of the car as a reward.
 This makes sense because the car slows down when it crashes and goes fast when it is performing well.
 Optimizing the speed as a reward incentives the car to run as fast as it can.
-We use exactly this as a reward in TrackMania Nations Forever.
+We use this as a reward in TrackMania Nations Forever.
 
 However, such approach is naive.
 Indeed, the actual goal of racing is not to move as fast as possible.
 Rather, one wants to complete the largest portion of the track in the smallest possible amount of time.
-This is not equivalent as one should consider the optimal trajectory, which may imply slowing down on sharp turns to take the apex of the curve.
+This is not equivalent as one should consider the optimal trajectory, which may imply slowing down on sharp turns in order to take the apex of the curve.
 
 In Trackmania 2020, we use a more advanced and conceptually more interesting reward function:
 
@@ -111,35 +150,44 @@ Once the demonstration trajectory is recorded, it is automatically divided into 
 During training, at each time-step, the reward is then the number of such points that the car has passed since the previous time-step.
 In a nutshell, whereas the previous reward function was measuring how fast the car was, this new reward function measures how good it is at covering a big portion of the track in a given amount of time.
 
-### Action spaces
+### Available action spaces
 
 In TMRL, the car can be controlled in two different ways:
 
-- TMRL can output simple (binary) arrow presses.
-- On Windows, TMRL controls the car with analog inputs by emulating an XBox360 controller thank to the [vgamepad](https://pypi.org/project/vgamepad/) library.
+- The policy can output simple (binary) arrow presses.
+- On Windows, the policy controls the car with analog inputs by emulating an XBox360 controller thank to the [vgamepad](https://pypi.org/project/vgamepad/) library.
 
-### Observation spaces
+### Available observation spaces
 
 Different observation spaces are available in TMRL:
 
-- A LIDAR measurement computed from real-time screenshots in tracks with black borders
-- An history of several such LIDAR measurements (typically the last 4 time-steps)
-- An history of raw screenshots (typically 4)
+- A LIDAR measurement computed from real-time screenshots in tracks with black borders.
+- An history of several such LIDAR measurements (typically the last 4 time-steps).
+- An history of raw screenshots (typically 4).
 
-In addition, we provide the norm of the velocity as part of the observation space in all our experiments as we find this greatly helps convergence.
+In addition, we provide the norm of the velocity as part of the observation space in all our experiments.
 
-A complete example of RL environment in TrackMania Nations Forever with a single LIDAR measurement is as follows:
+An example of TMRL environment in TrackMania Nations Forever with a single LIDAR measurement is as follows:
 
 ![reward](docs/img/lidar.png)
 
 In TrackMania Nations Forever, the raw speed is computed from screen captures thanks to the 1-NN algorithm.
 
-In TrackMania 2020, the [OpenPlanet](https://openplanet.nl) API is used to retrieve this raw speed directly.
+In TrackMania 2020, the [OpenPlanet](https://openplanet.nl) API is used to retrieve the raw speed directly.
 
----
+### Results
 
-experimentation
+We encourage you to watch our series of (TODO: incomming) YouTube videos to visualize some AIs learnt in TMRL.
 
+We train Real-Time policies with one single LIDAR, with an history of LIDARs, and with an history of raw images.
+We show that our AIs are able to learn complex dynamics from history of LIDARs, leading to better policies:
+
+![Turn](docs/img/turn_tm20.gif)
+
+In this experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using an history of the last 4 LIDAR measurements.
+
+The blue car learnt to drive at a constant speed, as it cannot infer complex dynamics from its observation space.
+Conversely, the red car is able to infer its dynamics from the history of 4 LIDARs, and successfully learnt to break, take the apex of the curve, and accelerate again after this sharp turn, which is slightly better in this situation.
 
 
 ## Advanced stuff
