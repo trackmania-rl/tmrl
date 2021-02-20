@@ -4,7 +4,12 @@ import os
 
 
 class RewardFunction:
-    def __init__(self, reward_data_path, nb_obs_forward=10, nb_obs_backward=10):
+    def __init__(self,
+                 reward_data_path,
+                 nb_obs_forward=10,
+                 nb_obs_backward=10,
+                 nb_zero_rew_before_early_done=10,
+                 min_nb_steps_before_early_done=int(3.5*20)):
         if not os.path.exists(reward_data_path):
             self.data = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
         else:
@@ -13,8 +18,14 @@ class RewardFunction:
         self.cur_idx = 0
         self.nb_obs_forward = nb_obs_forward
         self.nb_obs_backward = nb_obs_backward
+        self.nb_zero_rew_before_early_done = nb_zero_rew_before_early_done
+        self.min_nb_steps_before_early_done = min_nb_steps_before_early_done
+        self.step_counter = 0
+        self.early_done_counter = 0
 
     def compute_reward(self, pos):
+        done = False
+        self.step_counter += 1
         min_dist = np.inf
         index = self.cur_idx
         while True:
@@ -43,8 +54,16 @@ class RewardFunction:
                 # stop condition
                 if index == 0 or temp == 0:
                     break
+            if self.step_counter > self.min_nb_steps_before_early_done:
+                self.early_done_counter += 1
+                if self.early_done_counter > self.nb_zero_rew_before_early_done:
+                    done = True
+        else:
+            self.early_done_counter = 0
         self.cur_idx = best_index
-        return reward
+        return reward, done
 
     def reset(self):
         self.cur_idx = 0
+        self.step_counter = 0
+        self.early_done_counter = 0

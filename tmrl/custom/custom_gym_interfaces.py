@@ -137,12 +137,12 @@ class TM2020Interface(RealTimeGymInterface):
         speed = np.array([data[0], ], dtype='float32')
         gear = np.array([data[9], ], dtype='float32')
         rpm = np.array([data[10], ], dtype='float32')
-        rew = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
+        rew, done = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
         rew = np.float32(rew)
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist))
         obs = [speed, gear, rpm, imgs]
-        done = bool(data[8])
+        done = done or bool(data[8])
         return obs, rew, done
 
     def get_observation_space(self):
@@ -215,12 +215,12 @@ class TM2020InterfaceLidar(TM2020Interface):
         obs must be a list of numpy arrays
         """
         img, speed, data = self.grab_lidar_speed_and_data()
-        rew = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
+        rew, done = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
         rew = np.float32(rew)
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
-        done = bool(data[8])
+        done = done or bool(data[8])
         return obs, rew, done  # if not self.record else data, rew, done
 
     def get_observation_space(self):
