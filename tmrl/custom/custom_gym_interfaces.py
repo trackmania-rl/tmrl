@@ -125,7 +125,7 @@ class TM2020Interface(RealTimeGymInterface):
         """
         self.send_control(self.get_default_action())
         keyres()
-        time.sleep(0.5)
+        time.sleep(3.0)
         mouse_close_finish_pop_up_tm20(small_window=True)
 
     def get_obs_rew_done(self):
@@ -198,16 +198,6 @@ class TM2020InterfaceLidar(TM2020Interface):
         obs = [speed, imgs]
         self.reward_function.reset()
         return obs  # if not self.record else data
-
-    def wait(self):
-        """
-        Non-blocking function
-        The agent stays 'paused', waiting in position
-        """
-        self.send_control(self.get_default_action())
-        keyres()
-        time.sleep(0.5)
-        mouse_close_finish_pop_up_tm20(small_window=False)
 
     def get_obs_rew_done(self):
         """
