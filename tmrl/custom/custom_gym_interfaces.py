@@ -475,3 +475,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         initial action at episode start
         """
         return np.array([0.0, ], dtype='float32')
+
+
+if __name__ == "__main__":
+    pass

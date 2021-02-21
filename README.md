@@ -1,14 +1,14 @@
 # TMRL
 TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for distributed Real-Time Reinforcement Learning, demonstated on the TrackMania 2020 and TrackMania Nation Forever video games.
 
-![Image](docs/img/tm_annimation.gif)
+![Image](readme/img/tm_annimation.gif)
 
 ## Quick links
 - [Introduction](#introduction)
   - [User features](#user-features)
   - [Developer features](#developer-features)
-- [Installation](docs/Install.md)
-- [Getting started](docs/get_started.md)
+- [Installation](readme/Install.md)
+- [Getting started](readme/get_started.md)
 - [TMRL presentation](#tmrl-presentation)
   - [Soft Actor-Critic](#soft-actor-critic)
   - [A clever reward](#a-clever-reward)
@@ -68,12 +68,12 @@ In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implemen
 
 ## Installation
 
-For installation instructions, please follow [this link](docs/Install.md).
+For installation instructions, please follow [this link](readme/Install.md).
 
 ## Getting started
 
 Full guidance toward testing pre-trained weights, as well as a tutorial to train, test and fine-tune your own models,
-are provided at [this link](docs/get_started.md).
+are provided at [this link](readme/get_started.md).
 
 
 
@@ -93,7 +93,7 @@ More precisely, we use the Soft Actor-Critic (SAC) algorithm.
 Like most RL algorithms, it is based on a mathematical description of the environment called a Markov Decision Process (MDP).
 The policy trained by SAC interacts with this MDP as follows:
 
-![reward](docs/img/mrp.png)
+![reward](readme/img/mrp.png)
 
 In this illustration, the policy is represented as the stickman, and time is represented as time-steps of fixed duration.
 At each time-step, the policy applies an action (the values of gas, break and steering) computed from an observation.
@@ -141,7 +141,7 @@ This is not equivalent as one should consider the optimal trajectory, which may 
 
 In Trackmania 2020, we use a more advanced and conceptually more interesting reward function:
 
-![reward](docs/img/Reward.PNG)
+![reward](readme/img/Reward.PNG)
 
 For a given track, we record one single demonstration trajectory.
 This does not have to be a good demonstration, but only to follow the track.
@@ -169,7 +169,7 @@ In addition, we provide the norm of the velocity as part of the observation spac
 
 An example of TMRL environment in TrackMania Nations Forever with a single LIDAR measurement is as follows:
 
-![reward](docs/img/lidar.png)
+![reward](readme/img/lidar.png)
 
 In TrackMania Nations Forever, the raw speed is computed from screen captures thanks to the 1-NN algorithm.
 
@@ -185,7 +185,7 @@ We show that our AIs are able to take advantage of the more complex ones in orde
 In the following experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using an history of 4 LIDAR measurements.
 The positions of both cars are captured at constant time intervals in this animation:
 
-![Turn](docs/img/turn_tm20.gif)
+![Turn](readme/img/turn_tm20.gif)
 
 The blue car learnt to drive at a constant speed, as it is the best it can do from its naive observation space.
 Conversely, the red car is able to infer higher-order dynamics from the history of 4 LIDARs, and successfully learnt to break, take the apex of the curve, and accelerate again after this sharp turn, which is slightly better in this situation.
@@ -225,7 +225,7 @@ Periodically, it sends the new policy weights to the central server.
 
 These mechanics can be visualized as follows:
 
-![Networking architecture](docs/img/network_interface.png "Networking Architecture")
+![Networking architecture](readme/img/network_interface.png "Networking Architecture")
 
 ## Authors:
 ### Maintainers:
