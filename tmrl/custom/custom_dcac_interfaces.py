@@ -7,8 +7,9 @@ import tmrl.custom.config_constants as cfg
 class Tm20rtgymDcacInterface(DcacInterface):
     def get_total_delay_tensor_from_augm_obs_tuple_of_tensors(self, augm_obs_tuple_of_tensors):
         """
+
         Returns:
-            tot_del_tensor: (batch, 1)
+            tot_del_tensor (batch, 1)
         """
         print(f"DEV: get_total_delay_tensor_from_augm_obs_tuple_of_tensors: augm_obs_tuple_of_tensors:{augm_obs_tuple_of_tensors}")
         exit()
@@ -17,6 +18,7 @@ class Tm20rtgymDcacInterface(DcacInterface):
     def replace_act_buf_in_augm_obs_tuple_of_tensors(self, augm_obs_tuple_of_tensors, act_buf_tuple_of_tensors):
         """
         must return a tensor with replaced action buffer
+
         Args:
             augm_obs_tuple_of_tensors: (batch, obs_shape)
             act_buf_tuple_of_tensors: (batch, act_buf_len, act_shape) (most recent action at idx 0)
@@ -34,6 +36,7 @@ class Tm20rtgymDcacInterface(DcacInterface):
 
     def get_act_buf_tuple_of_tensors_from_augm_obs_tuple_of_tensors(self, augm_obs_tuple_of_tensors):
         """
+
         Args:
             augm_obs_tuple_of_tensors: (batch, obs_shape)
         Returns:
@@ -46,6 +49,7 @@ class Tm20rtgymDcacInterface(DcacInterface):
 
     def get_act_buf_size(self):
         """
+
         Returns:
             act_buf_size: int
         """

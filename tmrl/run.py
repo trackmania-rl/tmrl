@@ -36,8 +36,6 @@ def main(args):
 
 
 def main_train(args):
-    # from pyinstrument import Profiler
-    # profiler = Profiler()
 
     train_cls = cfg_obj.TRAINER
 
