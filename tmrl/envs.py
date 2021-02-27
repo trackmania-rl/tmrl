@@ -45,13 +45,7 @@ class Env(gym.Wrapper):
 
 
 class GymEnv(Env):
-    def __init__(self,
-                 seed_val=0,
-                 id: str = "Pendulum-v0",
-                 real_time: bool = False,
-                 frame_skip: int = 0,
-                 obs_scale: float = 0.,
-                 store_env: bool = False):
+    def __init__(self, seed_val=0, id: str = "Pendulum-v0", real_time: bool = False, frame_skip: int = 0, obs_scale: float = 0., store_env: bool = False):
         env = gym.make(id)
 
         if obs_scale:
@@ -104,12 +98,7 @@ class UntouchedGymEnv(gym.Wrapper):
 
 
 class AvenueEnv(Env):
-    def __init__(self,
-                 seed_val=0,
-                 id: str = "RaceSolo-v0",
-                 real_time: bool = False,
-                 width: int = 256,
-                 height: int = 64):
+    def __init__(self, seed_val=0, id: str = "RaceSolo-v0", real_time: bool = False, width: int = 256, height: int = 64):
         import avenue
         env = avenue.make(id, width=width, height=height)
         assert isinstance(env.action_space, gym.spaces.Box)
@@ -135,14 +124,14 @@ class AvenueEnv(Env):
 
 class RandomDelayEnv(Env):
     def __init__(
-        self,
-        seed_val=0,
-        id: str = "Pendulum-v0",
-        frame_skip: int = 0,
-        min_observation_delay: int = 0,
-        sup_observation_delay: int = 8,
-        min_action_delay: int = 0,  # this is equivalent to a MIN of 1 in the paper
-        sup_action_delay: int = 2):  # this is equivalent to a MAX of 2 in the paper
+            self,
+            seed_val=0,
+            id: str = "Pendulum-v0",
+            frame_skip: int = 0,
+            min_observation_delay: int = 0,
+            sup_observation_delay: int = 8,
+            min_action_delay: int = 0,  # this is equivalent to a MIN of 1 in the paper
+            sup_action_delay: int = 2):  # this is equivalent to a MAX of 2 in the paper
         env = gym.make(id)
 
         if frame_skip:
@@ -162,8 +151,7 @@ class RandomDelayEnv(Env):
         env = Float64ToFloat32(env)
         assert isinstance(env.action_space, gym.spaces.Box)
         env = NormalizeActionWrapper(env)
-        env = RandomDelayWrapper(env, range(min_observation_delay, sup_observation_delay),
-                                 range(min_action_delay, sup_action_delay))
+        env = RandomDelayWrapper(env, range(min_observation_delay, sup_observation_delay), range(min_action_delay, sup_action_delay))
         super().__init__(env)
 
 

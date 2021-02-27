@@ -50,8 +50,7 @@ class PopArt(Module):
         self.start_pop = start_pop
         self.beta = beta
         self.zero_debias = zero_debias
-        self.output_layers = output_layer if isinstance(output_layer,
-                                                        (tuple, list, torch.nn.ModuleList)) else (output_layer, )
+        self.output_layers = output_layer if isinstance(output_layer, (tuple, list, torch.nn.ModuleList)) else (output_layer, )
         shape = self.output_layers[0].bias.shape
         device = self.output_layers[0].bias.device
         assert all(shape == x.bias.shape for x in self.output_layers)
@@ -192,8 +191,7 @@ class AffineReLU(BasicReLU):
 
 class NormalizedReLU(torch.nn.Sequential):
     def __init__(self, in_features, out_features, prenorm_bias=True):
-        super().__init__(torch.nn.Linear(in_features, out_features, bias=prenorm_bias),
-                         torch.nn.LayerNorm(out_features), torch.nn.ReLU())
+        super().__init__(torch.nn.Linear(in_features, out_features, bias=prenorm_bias), torch.nn.LayerNorm(out_features), torch.nn.ReLU())
 
 
 class KaimingReLU(torch.nn.Linear):
@@ -216,8 +214,7 @@ AffineSimon = partial(AffineReLU, init_weight_bound=0.01, init_bias=1.)
 
 
 def dqn_conv(n):
-    return torch.nn.Sequential(torch.nn.Conv2d(n, 32, kernel_size=8, stride=4), torch.nn.ReLU(),
-                               torch.nn.Conv2d(32, 64, kernel_size=4, stride=2), torch.nn.ReLU(),
+    return torch.nn.Sequential(torch.nn.Conv2d(n, 32, kernel_size=8, stride=4), torch.nn.ReLU(), torch.nn.Conv2d(32, 64, kernel_size=4, stride=2), torch.nn.ReLU(),
                                torch.nn.Conv2d(64, 64, kernel_size=3, stride=1), torch.nn.ReLU())
 
 

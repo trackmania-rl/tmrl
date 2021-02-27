@@ -86,8 +86,7 @@ class Agent:
         reward_components = torch.cat((
             self.reward_scale * rewards[:, None],
             self.entropy_scale * next_action_entropy[:, None],
-        ),
-                                      dim=1)  # shape = (batchsize, reward_components)
+        ), dim=1)  # shape = (batchsize, reward_components)
 
         value_target = reward_components + (1. - terminals[:, None]) * self.discount * next_value
         normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
@@ -119,10 +118,8 @@ class Agent:
         self.actor_optimizer.step()
 
         # update target critics and normalizers
-        exponential_moving_average(self.model_target.critics.parameters(), self.model.critics.parameters(),
-                                   self.target_update)
-        exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(),
-                                   self.target_update)
+        exponential_moving_average(self.model_target.critics.parameters(), self.model.critics.parameters(), self.target_update)
+        exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(), self.target_update)
         # self.actor_lr_scheduler.step()
         # self.critic_lr_scheduler.step()
 

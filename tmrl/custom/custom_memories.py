@@ -266,8 +266,7 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
 
         # new_obs = (self.data[2][idx_now], imgs[1:], *new_act_buf)
 
-        augm_obs_traj = [(self.data[2][idx_now + i], all_imgs[1 + i:self.imgs_obs + i + 1],
-                          *all_acts[1 + i:self.act_buf_len + i + 1]) for i in range(self.traj_len)]
+        augm_obs_traj = [(self.data[2][idx_now + i], all_imgs[1 + i:self.imgs_obs + i + 1], *all_acts[1 + i:self.act_buf_len + i + 1]) for i in range(self.traj_len)]
 
         # done = self.data[4][idx_now]
 
@@ -280,13 +279,11 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
         return augm_obs_traj, rew_traj, done_traj, info_traj
 
     def load_imgs_traj(self, item):
-        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs +
-                                                            self.traj_len)]
+        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + self.traj_len)]
         return np.stack(res)
 
     def load_acts_traj(self, item):
-        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len +
-                                                            self.traj_len)]
+        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.traj_len)]
         return res
 
     def append_buffer(self, buffer):
@@ -375,8 +372,7 @@ class MemoryTM2020(MemoryDataloading):
         don't forget to keep the info dictionary in the sample for CRC debugging
         """
         first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
-        d0 = [(first_data_idx + i) % self.memory_size
-              for i, _ in enumerate(buffer.memory)]  # indexes  # FIXME: check that this works
+        d0 = [(first_data_idx + i) % self.memory_size for i, _ in enumerate(buffer.memory)]  # indexes  # FIXME: check that this works
         d1 = [b[0] for b in buffer.memory]  # actions
         d2 = [b[1][0] for b in buffer.memory]  # speeds
         d3 = [b[1][1] for b in buffer.memory]  # gear
@@ -468,8 +464,7 @@ class MemoryTM2020RAM(MemoryTM2020):
         don't forget to keep the info dictionary in the sample for CRC debugging
         """
         first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
-        d0 = [(first_data_idx + i) % self.memory_size
-              for i, _ in enumerate(buffer.memory)]  # indexes  # FIXME: check that this works
+        d0 = [(first_data_idx + i) % self.memory_size for i, _ in enumerate(buffer.memory)]  # indexes  # FIXME: check that this works
         d1 = [b[0] for b in buffer.memory]  # actions
         d2 = [b[1][0] for b in buffer.memory]  # speeds
         d3 = [b[1][1] for b in buffer.memory]  # gear
@@ -557,8 +552,7 @@ class MemoryCognifly(MemoryDataloading):
 
     def append_buffer(self, buffer):
         first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
-        d0 = [(first_data_idx + i) % self.memory_size
-              for i, _ in enumerate(buffer.memory)]  # indexes  # FIXME: check that this works
+        d0 = [(first_data_idx + i) % self.memory_size for i, _ in enumerate(buffer.memory)]  # indexes  # FIXME: check that this works
         d1 = [b[0] for b in buffer.memory]  # actions
         d2 = [b[1][0] for b in buffer.memory]  # alt
         d3 = [b[1][1] for b in buffer.memory]  # vel
@@ -626,12 +620,10 @@ class MemoryCognifly(MemoryDataloading):
         acts = self.load_acts(item)
         last_act_buf = acts[:-1]
         new_act_buf = acts[1:]
-        last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], self.data[5][idx_last],
-                    self.data[6][idx_last], self.data[7][idx_last], *last_act_buf)
+        last_obs = (self.data[2][idx_last], self.data[3][idx_last], self.data[4][idx_last], self.data[5][idx_last], self.data[6][idx_last], self.data[7][idx_last], *last_act_buf)
         rew = np.float32(self.data[9][idx_now])
         new_act = np.array(self.data[1][idx_now], dtype=np.float32)
-        new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], self.data[5][idx_now],
-                   self.data[6][idx_now], self.data[7][idx_now], *new_act_buf)
+        new_obs = (self.data[2][idx_now], self.data[3][idx_now], self.data[4][idx_now], self.data[5][idx_now], self.data[6][idx_now], self.data[7][idx_now], *new_act_buf)
         done = self.data[8][idx_now]
         info = self.data[10][idx_now]
         return last_obs, new_act, rew, new_obs, done, info

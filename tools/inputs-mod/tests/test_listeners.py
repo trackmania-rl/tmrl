@@ -611,8 +611,7 @@ class AppKitMouseBaseListenerTestCase(TestCase):
     @mock.patch.object(inputs.AppKitMouseBaseListener, 'handle_scrollwheel')
     @mock.patch.object(inputs.AppKitMouseBaseListener, '_get_event_type', return_value=22)
     @mock.patch.object(inputs.AppKitMouseBaseListener, 'handle_absolute')
-    def test_handle_input_with_scroll(self, mock_handle_absolute, mock_get_event_type, mock_handle_scrollwheel,
-                                      mock_handle_button, mock_write_to_pipe):
+    def test_handle_input_with_scroll(self, mock_handle_absolute, mock_get_event_type, mock_handle_scrollwheel, mock_handle_button, mock_write_to_pipe):
         """Mouse events are processed."""
         # pylint: disable=too-many-arguments
 
@@ -637,8 +636,7 @@ class AppKitMouseBaseListenerTestCase(TestCase):
     @mock.patch.object(inputs.AppKitMouseBaseListener, '_get_event_type', return_value=1)
     @mock.patch.object(inputs.AppKitMouseBaseListener, 'handle_relative')
     @mock.patch.object(inputs.AppKitMouseBaseListener, 'handle_absolute')
-    def test_handle_input_relative(self, mock_handle_absolute, mock_handle_relative, mock_handle_get_event_type,
-                                   mock_handle_button, mock_write_to_pipe):
+    def test_handle_input_relative(self, mock_handle_absolute, mock_handle_relative, mock_handle_get_event_type, mock_handle_button, mock_write_to_pipe):
         """Mouse events are processed."""
         # pylint: disable=too-many-arguments
         pipe = mock.MagicMock()
@@ -767,8 +765,7 @@ class AppKitKeyboardListenerTestCase(TestCase):
     @mock.patch.object(inputs.AppKitKeyboardListener, '_get_flag_value', return_value=0)
     @mock.patch.object(inputs.AppKitKeyboardListener, '_get_event_type', return_value=10)
     @mock.patch.object(inputs.AppKitKeyboardListener, '_get_event_key_code', return_value=256)
-    def test_handle_input_unknown_code(self, mock_get_event_key_code, mock_get_event_type, mock_get_flags,
-                                       mock_write_to_pipe):
+    def test_handle_input_unknown_code(self, mock_get_event_key_code, mock_get_event_type, mock_get_flags, mock_write_to_pipe):
         """Mac Keyboard events are processed."""
         pipe = mock.MagicMock()
         listener = inputs.AppKitKeyboardListener(pipe)

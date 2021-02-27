@@ -4,12 +4,7 @@ import os
 
 
 class RewardFunction:
-    def __init__(self,
-                 reward_data_path,
-                 nb_obs_forward=10,
-                 nb_obs_backward=10,
-                 nb_zero_rew_before_early_done=10,
-                 min_nb_steps_before_early_done=int(3.5 * 20)):
+    def __init__(self, reward_data_path, nb_obs_forward=10, nb_obs_backward=10, nb_zero_rew_before_early_done=10, min_nb_steps_before_early_done=int(3.5 * 20)):
         if not os.path.exists(reward_data_path):
             self.data = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
         else:

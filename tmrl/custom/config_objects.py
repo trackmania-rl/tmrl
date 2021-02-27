@@ -25,13 +25,9 @@ else:
     POLICY = MlpPolicy if cfg.PRAGMA_LIDAR else TMPolicy
 
 if cfg.PRAGMA_LIDAR:
-    INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN,
-                  gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar,
-                                                                                     img_hist_len=cfg.IMG_HIST_LEN)
+    INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
 else:
-    INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN,
-                  gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterface,
-                                                                                     img_hist_len=cfg.IMG_HIST_LEN)
+    INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=cfg.IMG_HIST_LEN)
 CONFIG_DICT = {
     "interface": INT,
     "time_step_duration": 0.05,

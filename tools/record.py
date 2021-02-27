@@ -55,9 +55,7 @@ def record_tmnf_gamepad(path_dataset):
     while not c:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(
-                f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}). Stopping recording."
-            )
+            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}). Stopping recording.")
             c = True
             break
         while not t2 - t1 >= time_step:
@@ -135,8 +133,7 @@ def record_tmnf_keyboard(path_dataset):
 
             iters.append(iteration)
             speeds.append(obs[0])
-            direc = np.array([direction[0], direction[1], direction[2] - direction[3]],
-                             dtype=np.float32)  # +1 for right and -1 for left
+            direc = np.array([direction[0], direction[1], direction[2] - direction[3]], dtype=np.float32)  # +1 for right and -1 for left
             dirs.append(direc)
             dones.append(done)
             rews.append(rew)
@@ -188,8 +185,7 @@ def record_tmnf_lidar_keyboard(path_dataset):
             iters.append(iteration)
             # print(f"DEBUG:speed:{obs[0]}")
             speeds.append(obs[0])
-            direc = np.array([direction[0], direction[1], direction[2] - direction[3]],
-                             dtype=np.float32)  # +1 for right and -1 for left
+            direc = np.array([direction[0], direction[1], direction[2] - direction[3]], dtype=np.float32)  # +1 for right and -1 for left
             # print(f"DEBUG:direction:{direc}")
             dirs.append(direc)
             # print(f"DEBUG:done:{done}")
@@ -316,9 +312,7 @@ def record_reward(path_reward=PATH_REWARD):
     while True:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(
-                f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1."
-            )
+            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
             t1 = time.time()
             # break
         while not t2 - t1 >= time_step:
@@ -363,9 +357,7 @@ def record_reward_dist(path_reward=PATH_REWARD):
     while True:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(
-                f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1."
-            )
+            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
             t1 = time.time()
             # break
         while not t2 - t1 >= time_step:

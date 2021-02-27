@@ -186,12 +186,10 @@ DEVICE_PROPERTIES = (
     (0x1f, "INPUT_PROP_MAX"),
     (0x1f + 1, "INPUT_PROP_CNT"))
 
-EVENT_TYPES = ((0x00, "Sync"), (0x01, "Key"), (0x02, "Relative"), (0x03, "Absolute"), (0x04, "Misc"), (0x05, "Switch"),
-               (0x11, "LED"), (0x12, "Sound"), (0x14, "Repeat"), (0x15, "ForceFeedback"), (0x16, "Power"),
-               (0x17, "ForceFeedbackStatus"), (0x1f, "Max"), (0x1f + 1, "Current"))
+EVENT_TYPES = ((0x00, "Sync"), (0x01, "Key"), (0x02, "Relative"), (0x03, "Absolute"), (0x04, "Misc"), (0x05, "Switch"), (0x11, "LED"), (0x12, "Sound"), (0x14, "Repeat"), (0x15, "ForceFeedback"),
+               (0x16, "Power"), (0x17, "ForceFeedbackStatus"), (0x1f, "Max"), (0x1f + 1, "Current"))
 
-SYNCHRONIZATION_EVENTS = ((0, "SYN_REPORT"), (1, "SYN_CONFIG"), (2, "SYN_MT_REPORT"), (3, "SYN_DROPPED"),
-                          (0xf, "SYN_MAX"), (0xf + 1, "SYN_CNT"))
+SYNCHRONIZATION_EVENTS = ((0, "SYN_REPORT"), (1, "SYN_CONFIG"), (2, "SYN_MT_REPORT"), (3, "SYN_DROPPED"), (0xf, "SYN_MAX"), (0xf + 1, "SYN_CNT"))
 
 KEYS_AND_BUTTONS = (
     (0, "KEY_RESERVED"),
@@ -727,9 +725,8 @@ KEYS_AND_BUTTONS = (
     (0x2ff, "KEY_MAX"),
     (0x2ff + 1, "KEY_CNT"))
 
-RELATIVE_AXES = ((0x00, "REL_X"), (0x01, "REL_Y"), (0x02, "REL_Z"), (0x03, "REL_RX"), (0x04, "REL_RY"),
-                 (0x05, "REL_RZ"), (0x06, "REL_HWHEEL"), (0x07, "REL_DIAL"), (0x08, "REL_WHEEL"), (0x09, "REL_MISC"),
-                 (0x0f, "REL_MAX"), (0x0f + 1, "REL_CNT"))
+RELATIVE_AXES = ((0x00, "REL_X"), (0x01, "REL_Y"), (0x02, "REL_Z"), (0x03, "REL_RX"), (0x04, "REL_RY"), (0x05, "REL_RZ"), (0x06, "REL_HWHEEL"), (0x07, "REL_DIAL"), (0x08, "REL_WHEEL"),
+                 (0x09, "REL_MISC"), (0x0f, "REL_MAX"), (0x0f + 1, "REL_CNT"))
 
 ABSOLUTE_AXES = (
     (0x00, "ABS_X"),
@@ -795,15 +792,12 @@ SWITCH_EVENTS = (
     (0x0f, "SW_MAX"),
     (0x0f + 1, "SW_CNT"))
 
-MISC_EVENTS = ((0x00, "MSC_SERIAL"), (0x01, "MSC_PULSELED"), (0x02, "MSC_GESTURE"), (0x03, "MSC_RAW"),
-               (0x04, "MSC_SCAN"), (0x05, "MSC_TIMESTAMP"), (0x07, "MSC_MAX"), (0x07 + 1, "MSC_CNT"))
+MISC_EVENTS = ((0x00, "MSC_SERIAL"), (0x01, "MSC_PULSELED"), (0x02, "MSC_GESTURE"), (0x03, "MSC_RAW"), (0x04, "MSC_SCAN"), (0x05, "MSC_TIMESTAMP"), (0x07, "MSC_MAX"), (0x07 + 1, "MSC_CNT"))
 
-LEDS = ((0x00, "LED_NUML"), (0x01, "LED_CAPSL"), (0x02, "LED_SCROLLL"), (0x03, "LED_COMPOSE"), (0x04, "LED_KANA"),
-        (0x05, "LED_SLEEP"), (0x06, "LED_SUSPEND"), (0x07, "LED_MUTE"), (0x08, "LED_MISC"), (0x09, "LED_MAIL"),
-        (0x0a, "LED_CHARGING"), (0x0f, "LED_MAX"), (0x0f + 1, "LED_CNT"))
+LEDS = ((0x00, "LED_NUML"), (0x01, "LED_CAPSL"), (0x02, "LED_SCROLLL"), (0x03, "LED_COMPOSE"), (0x04, "LED_KANA"), (0x05, "LED_SLEEP"), (0x06, "LED_SUSPEND"), (0x07, "LED_MUTE"), (0x08, "LED_MISC"),
+        (0x09, "LED_MAIL"), (0x0a, "LED_CHARGING"), (0x0f, "LED_MAX"), (0x0f + 1, "LED_CNT"))
 
-LED_TYPE_CODES = (('numlock', 0x00), ('capslock', 0x01), ('scrolllock', 0x02), ('compose', 0x03), ('kana', 0x04),
-                  ('sleep', 0x05), ('suspend', 0x06), ('mute', 0x07), ('misc', 0x08), ('mail', 0x09),
+LED_TYPE_CODES = (('numlock', 0x00), ('capslock', 0x01), ('scrolllock', 0x02), ('compose', 0x03), ('kana', 0x04), ('sleep', 0x05), ('suspend', 0x06), ('mute', 0x07), ('misc', 0x08), ('mail', 0x09),
                   ('charging', 0x0a), ('max', 0x0f), ('cnt', 0x0f + 1))
 
 AUTOREPEAT_VALUES = ((0x00, "REP_DELAY"), (0x01, "REP_PERIOD"), (0x01, "REP_MAX"), (0x01 + 1, "REP_CNT"))
@@ -1221,12 +1215,9 @@ MAX = ()
 CURRENT = ()
 
 EVENT_MAP = (('types', EVENT_TYPES), ('type_codes', ((value, key)
-                                                     for key, value in EVENT_TYPES)), ('wincodes', WINCODES),
-             ('specials', SPECIAL_DEVICES), ('xpad', XINPUT_MAPPING), ('Sync', SYNCHRONIZATION_EVENTS),
-             ('Key', KEYS_AND_BUTTONS), ('Relative', RELATIVE_AXES), ('Absolute', ABSOLUTE_AXES), ('Misc', MISC_EVENTS),
-             ('Switch', SWITCH_EVENTS), ('LED', LEDS), ('LED_type_codes', LED_TYPE_CODES), ('Sound', SOUNDS),
-             ('Repeat', AUTOREPEAT_VALUES), ('ForceFeedback', FORCE_FEEDBACK), ('Power', POWER),
-             ('ForceFeedbackStatus', FORCE_FEEDBACK_STATUS), ('Max', MAX), ('Current', CURRENT))
+                                                     for key, value in EVENT_TYPES)), ('wincodes', WINCODES), ('specials', SPECIAL_DEVICES), ('xpad', XINPUT_MAPPING), ('Sync', SYNCHRONIZATION_EVENTS),
+             ('Key', KEYS_AND_BUTTONS), ('Relative', RELATIVE_AXES), ('Absolute', ABSOLUTE_AXES), ('Misc', MISC_EVENTS), ('Switch', SWITCH_EVENTS), ('LED', LEDS), ('LED_type_codes', LED_TYPE_CODES),
+             ('Sound', SOUNDS), ('Repeat', AUTOREPEAT_VALUES), ('ForceFeedback', FORCE_FEEDBACK), ('Power', POWER), ('ForceFeedbackStatus', FORCE_FEEDBACK_STATUS), ('Max', MAX), ('Current', CURRENT))
 
 # Evdev style paths for the Mac
 
@@ -1259,8 +1250,7 @@ class MSLLHookStruct(ctypes.Structure):
     ms644970%28v=vs.85%29.aspx
     """
     # pylint: disable=too-few-public-methods
-    _fields_ = [("x_pos", ctypes.c_long), ("y_pos", ctypes.c_long), ('reserved', ctypes.c_short),
-                ('mousedata', ctypes.c_short), ("flags", DWORD), ("time", DWORD), ("extrainfo", ctypes.c_ulong)]
+    _fields_ = [("x_pos", ctypes.c_long), ("y_pos", ctypes.c_long), ('reserved', ctypes.c_short), ('mousedata', ctypes.c_short), ("flags", DWORD), ("time", DWORD), ("extrainfo", ctypes.c_ulong)]
 
 
 class XinputGamepad(ctypes.Structure):
@@ -1500,8 +1490,7 @@ class WindowsKeyboardListener(BaseListener):
         """Install the hook."""
         self.pointer = self.get_fptr()
 
-        self.hooked = ctypes.windll.user32.SetWindowsHookExA(13, self.pointer,
-                                                             ctypes.windll.kernel32.GetModuleHandleW(None), 0)
+        self.hooked = ctypes.windll.user32.SetWindowsHookExA(13, self.pointer, ctypes.windll.kernel32.GetModuleHandleW(None), 0)
         if not self.hooked:
             return False
         return True
@@ -1567,8 +1556,7 @@ class WindowsMouseListener(BaseListener):
         """Install the hook."""
         self.pointer = self.get_fptr()
 
-        self.hooked = ctypes.windll.user32.SetWindowsHookExA(14, self.pointer,
-                                                             ctypes.windll.kernel32.GetModuleHandleW(None), 0)
+        self.hooked = ctypes.windll.user32.SetWindowsHookExA(14, self.pointer, ctypes.windll.kernel32.GetModuleHandleW(None), 0)
         if not self.hooked:
             return False
         return True
@@ -1964,8 +1952,7 @@ def appkit_mouse_process(pipe):
     # pylint: disable=no-member, no-name-in-module
     from Foundation import NSObject
     from AppKit import NSApplication, NSApp
-    from Cocoa import (NSEvent, NSLeftMouseDownMask, NSLeftMouseUpMask, NSRightMouseDownMask, NSRightMouseUpMask,
-                       NSMouseMovedMask, NSLeftMouseDraggedMask, NSRightMouseDraggedMask, NSMouseEnteredMask,
+    from Cocoa import (NSEvent, NSLeftMouseDownMask, NSLeftMouseUpMask, NSRightMouseDownMask, NSRightMouseUpMask, NSMouseMovedMask, NSLeftMouseDraggedMask, NSRightMouseDraggedMask, NSMouseEnteredMask,
                        NSMouseExitedMask, NSScrollWheelMask, NSOtherMouseDownMask, NSOtherMouseUpMask)
     from PyObjCTools import AppHelper
     import objc
@@ -2267,12 +2254,7 @@ class InputDevice(object):  # pylint: disable=useless-object-inheritance
     def _make_event(self, tv_sec, tv_usec, ev_type, code, value):
         """Create a friendly Python object from an evdev style event."""
         event_type = self.manager.get_event_type(ev_type)
-        eventinfo = {
-            "ev_type": event_type,
-            "state": value,
-            "timestamp": tv_sec + (tv_usec / 1000000),
-            "code": self.manager.get_event_string(event_type, code)
-        }
+        eventinfo = {"ev_type": event_type, "state": value, "timestamp": tv_sec + (tv_usec / 1000000), "code": self.manager.get_event_string(event_type, code)}
 
         return InputEvent(self, eventinfo)
 
@@ -2677,8 +2659,7 @@ class GamePad(InputDevice):
 
     def __get_vibration_code(self, left_motor, right_motor, duration):
         """This is some crazy voodoo, if you can simplify it, please do."""
-        inner_event = struct.pack('2h6x2h2x2H28x', 0x50, -1, duration, 0, int(left_motor * 65535),
-                                  int(right_motor * 65535))
+        inner_event = struct.pack('2h6x2h2x2H28x', 0x50, -1, duration, 0, int(left_motor * 65535), int(right_motor * 65535))
         buf_conts = ioctl(self._write_device, 1076905344, inner_event)
         return int(codecs.encode(buf_conts[1:3], 'hex'), 16)
 
@@ -2972,8 +2953,7 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
             res = self.xinput.XInputGetState(device_number, ctypes.byref(state))
             if res == XINPUT_ERROR_SUCCESS:
                 # We found a gamepad
-                device_path = ("/dev/input/by_id/" +
-                               "usb-Microsoft_Corporation_Controller_%s-event-joystick" % device_number)
+                device_path = ("/dev/input/by_id/" + "usb-Microsoft_Corporation_Controller_%s-event-joystick" % device_number)
                 self.gamepads.append(GamePad(self, device_path))
                 continue
             if res != XINPUT_ERROR_DEVICE_NOT_CONNECTED:
@@ -2992,21 +2972,14 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
         """
         number_of_devices = ctypes.c_uint()
 
-        if ctypes.windll.user32.GetRawInputDeviceList(
-                ctypes.POINTER(ctypes.c_int)(), ctypes.byref(number_of_devices),
-                ctypes.sizeof(RawInputDeviceList)) == -1:
-            warn(
-                "Call to GetRawInputDeviceList was unsuccessful."
-                "We have no idea if a mouse or keyboard is attached.", RuntimeWarning)
+        if ctypes.windll.user32.GetRawInputDeviceList(ctypes.POINTER(ctypes.c_int)(), ctypes.byref(number_of_devices), ctypes.sizeof(RawInputDeviceList)) == -1:
+            warn("Call to GetRawInputDeviceList was unsuccessful." "We have no idea if a mouse or keyboard is attached.", RuntimeWarning)
             return
 
         devices_found = (RawInputDeviceList * number_of_devices.value)()
 
-        if ctypes.windll.user32.GetRawInputDeviceList(devices_found, ctypes.byref(number_of_devices),
-                                                      ctypes.sizeof(RawInputDeviceList)) == -1:
-            warn(
-                "Call to GetRawInputDeviceList was unsuccessful."
-                "We have no idea if a mouse or keyboard is attached.", RuntimeWarning)
+        if ctypes.windll.user32.GetRawInputDeviceList(devices_found, ctypes.byref(number_of_devices), ctypes.sizeof(RawInputDeviceList)) == -1:
+            warn("Call to GetRawInputDeviceList was unsuccessful." "We have no idea if a mouse or keyboard is attached.", RuntimeWarning)
             return
 
         for device in devices_found:
@@ -3100,10 +3073,7 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
         try:
             gpad = MicroBitPad(self)
         except ModuleNotFoundError:
-            warn(
-                "The microbit library could not be found in the pythonpath. \n"
-                "For more information, please visit \n"
-                "https://inputs.readthedocs.io/en/latest/user/microbit.html", RuntimeWarning)
+            warn("The microbit library could not be found in the pythonpath. \n" "For more information, please visit \n" "https://inputs.readthedocs.io/en/latest/user/microbit.html", RuntimeWarning)
         else:
             self.microbits.append(gpad)
             self.gamepads.append(gpad)
@@ -3183,10 +3153,7 @@ class MicroBitPad(GamePad):
         """Watch us wreck the mike!
         PSYCHE!"""
         # pylint: disable=no-member
-        return [
-            self.microbit.Image(':'.join([rumble if char == '1' else '00500' for char in code]))
-            for code in SPIN_UP_MOTOR
-        ]
+        return [self.microbit.Image(':'.join([rumble if char == '1' else '00500' for char in code])) for code in SPIN_UP_MOTOR]
 
     def _full_speed_rumble(self, images, duration):
         """Simulate the motors running at full."""

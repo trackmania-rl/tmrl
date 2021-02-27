@@ -20,10 +20,8 @@ def num_flat_features(x):
 
 
 def conv2d_out_dims(conv_layer, h_in, w_in):
-    h_out = floor((h_in + 2 * conv_layer.padding[0] - conv_layer.dilation[0] *
-                   (conv_layer.kernel_size[0] - 1) - 1) / conv_layer.stride[0] + 1)
-    w_out = floor((w_in + 2 * conv_layer.padding[1] - conv_layer.dilation[1] *
-                   (conv_layer.kernel_size[1] - 1) - 1) / conv_layer.stride[1] + 1)
+    h_out = floor((h_in + 2 * conv_layer.padding[0] - conv_layer.dilation[0] * (conv_layer.kernel_size[0] - 1) - 1) / conv_layer.stride[0] + 1)
+    w_out = floor((w_in + 2 * conv_layer.padding[1] - conv_layer.dilation[1] * (conv_layer.kernel_size[1] - 1) - 1) / conv_layer.stride[1] + 1)
     return h_out, w_out
 
 
@@ -50,39 +48,16 @@ class DeepmindCNN(Module):
         super(DeepmindCNN, self).__init__()
         self.h_out, self.w_out = h_in, w_in
 
-        self.conv1 = Conv2d(in_channels=channels_in,
-                            out_channels=32,
-                            kernel_size=(8, 8),
-                            stride=4,
-                            padding=0,
-                            dilation=1,
-                            bias=True,
-                            padding_mode='zeros')
+        self.conv1 = Conv2d(in_channels=channels_in, out_channels=32, kernel_size=(8, 8), stride=4, padding=0, dilation=1, bias=True, padding_mode='zeros')
         self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
-        self.conv2 = Conv2d(in_channels=32,
-                            out_channels=64,
-                            kernel_size=(4, 4),
-                            stride=2,
-                            padding=0,
-                            dilation=1,
-                            bias=True,
-                            padding_mode='zeros')
+        self.conv2 = Conv2d(in_channels=32, out_channels=64, kernel_size=(4, 4), stride=2, padding=0, dilation=1, bias=True, padding_mode='zeros')
         self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)
-        self.conv3 = Conv2d(in_channels=64,
-                            out_channels=64,
-                            kernel_size=(3, 3),
-                            stride=1,
-                            padding=0,
-                            dilation=1,
-                            bias=True,
-                            padding_mode='zeros')
+        self.conv3 = Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), stride=1, padding=0, dilation=1, bias=True, padding_mode='zeros')
         self.h_out, self.w_out = conv2d_out_dims(self.conv3, self.h_out, self.w_out)
         self.out_channels = self.conv3.out_channels
         self.flat_features = self.out_channels * self.h_out * self.w_out
 
-        print(
-            f"DEBUG: h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}"
-        )
+        print(f"DEBUG: h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}")
 
     def forward(self, x):
         print(f"DEBUG: forward, shape x :{x.shape}")
@@ -111,9 +86,7 @@ class BigCNN(Module):
         self.out_channels = self.conv4.out_channels
         self.flat_features = self.out_channels * self.h_out * self.w_out
 
-        print(
-            f"DEBUG: h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}"
-        )
+        print(f"DEBUG: h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}")
 
     def forward(self, x):  # TODO: Simon uses leaky relu instead of relu, see what works best
         # print(f"DEBUG: forward, shape x :{x.shape}")
@@ -196,8 +169,7 @@ class TMActionValue(Sequential):
 
 class TMPolicy(Sequential):
     def __init__(self, observation_space, action_space, act_buf_len=0):
-        super().__init__(TM20CNNModule(observation_space, action_space, is_q_network=False, act_buf_len=act_buf_len),
-                         ReLU(), Linear(512, 256), ReLU(), TanhNormalLayer(256, action_space.shape[0]))
+        super().__init__(TM20CNNModule(observation_space, action_space, is_q_network=False, act_buf_len=act_buf_len), ReLU(), Linear(512, 256), ReLU(), TanhNormalLayer(256, action_space.shape[0]))
 
     # noinspection PyMethodOverriding
     def forward(self, obs):
@@ -211,7 +183,6 @@ class Tm_hybrid_1(ActorModule):
     def __init__(self, observation_space, action_space, hidden_units: int = 512, num_critics: int = 2, act_buf_len=0):
         super().__init__()
         assert isinstance(observation_space, gym.spaces.Tuple), f"{observation_space} is not a spaces.Tuple"
-        self.critics = ModuleList(
-            TMActionValue(observation_space, action_space, act_buf_len=act_buf_len) for _ in range(num_critics))
+        self.critics = ModuleList(TMActionValue(observation_space, action_space, act_buf_len=act_buf_len) for _ in range(num_critics))
         self.actor = TMPolicy(observation_space, action_space, act_buf_len=act_buf_len)
         self.critic_output_layers = [c[-1] for c in self.critics]

@@ -157,8 +157,7 @@ class Lidar:
         for axis_x, axis_y in zip(self.list_axis_x, self.list_axis_y):
             index = armin(np.all(img[axis_x, axis_y] < self.black_threshold, axis=1))
             if show:
-                img = cv2.line(img, (self.road_point[1], self.road_point[0]), (axis_y[index], axis_x[index]), color,
-                               thickness)
+                img = cv2.line(img, (self.road_point[1], self.road_point[0]), (axis_y[index], axis_x[index]), color, thickness)
             index = np.float32(index)
             distances.append(index)
         res = np.array(distances, dtype=np.float32)

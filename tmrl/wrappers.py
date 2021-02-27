@@ -117,9 +117,7 @@ class AffineObservationWrapper(gym.ObservationWrapper):
         assert isinstance(env.observation_space, gym.spaces.Box)
         self.shift = shift
         self.scale = scale
-        self.observation_space = gym.spaces.Box(self.observation(env.observation_space.low),
-                                                self.observation(env.observation_space.high),
-                                                dtype=env.observation_space.dtype)
+        self.observation_space = gym.spaces.Box(self.observation(env.observation_space.low), self.observation(env.observation_space.high), dtype=env.observation_space.dtype)
 
     def observation(self, obs):
         return (obs + self.shift) * self.scale
@@ -140,9 +138,7 @@ class NormalizeActionWrapper(gym.Wrapper):
         super().__init__(env)
         self.scale = env.action_space.high - env.action_space.low
         self.shift = env.action_space.low
-        self.action_space = gym.spaces.Box(-np.ones_like(self.shift),
-                                           np.ones_like(self.shift),
-                                           dtype=env.action_space.dtype)
+        self.action_space = gym.spaces.Box(-np.ones_like(self.shift), np.ones_like(self.shift), dtype=env.action_space.dtype)
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)

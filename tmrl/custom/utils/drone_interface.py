@@ -16,14 +16,7 @@ class DroneUDPInterface1:
     The drone observations are [alt, vel, acc, ubatt, time_step_id]
     Cognifly controller is cognifly_vel_controller
     """
-    def __init__(self,
-                 udp_send_ip,
-                 udp_recv_ip,
-                 udp_send_port,
-                 udp_recv_port,
-                 min_altitude=0.0,
-                 max_altitude=100.0,
-                 low_batt=7.5):
+    def __init__(self, udp_send_ip, udp_recv_ip, udp_send_port, udp_recv_port, min_altitude=0.0, max_altitude=100.0, low_batt=7.5):
         """
         Args:
             udp_send_ip: string

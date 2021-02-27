@@ -206,9 +206,7 @@ class InputDeviceTestCase(TestCase):
         mock_get_data.assert_called_once()
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
-    @mock.patch.object(inputs.InputDevice,
-                       '_get_data',
-                       return_value=struct.pack(inputs.EVENT_FORMAT, 1535009424, 612521, 1, 30, 1))
+    @mock.patch.object(inputs.InputDevice, '_get_data', return_value=struct.pack(inputs.EVENT_FORMAT, 1535009424, 612521, 1, 30, 1))
     def test_do_iter(self, mock_get_data, mock_set_name):
         """InputDevice._do_iter returns an event when there is data."""
         manager = mock.MagicMock()

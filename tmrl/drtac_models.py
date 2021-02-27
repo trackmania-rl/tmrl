@@ -95,8 +95,7 @@ class MlpActionValue(Sequential):
     def __init__(self, obs_space, act_space, hidden_units):
         dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
         dim_act = act_space.shape[0]
-        super().__init__(Linear(dim_obs + dim_act, hidden_units), ReLU(), Linear(hidden_units, hidden_units), ReLU(),
-                         Linear(hidden_units, 2))
+        super().__init__(Linear(dim_obs + dim_act, hidden_units), ReLU(), Linear(hidden_units, hidden_units), ReLU(), Linear(hidden_units, 2))
 
     # noinspection PyMethodOverriding
     def forward(self, obs, action):
@@ -124,8 +123,7 @@ class MlpPolicy(Sequential):
     def __init__(self, observation_space, action_space, hidden_units: int = 256, act_buf_len=0):
         dim_obs = sum(prod(s for s in space.shape) for space in observation_space)
         dim_act = action_space.shape[0]
-        super().__init__(Linear(dim_obs, hidden_units), ReLU(), Linear(hidden_units, hidden_units), ReLU(),
-                         TanhNormalLayer(hidden_units, dim_act))
+        super().__init__(Linear(dim_obs, hidden_units), ReLU(), Linear(hidden_units, hidden_units), ReLU(), TanhNormalLayer(hidden_units, dim_act))
 
     # noinspection PyMethodOverriding
     def forward(self, obs):
@@ -136,7 +134,6 @@ class Mlp(ActorModule):
     def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2, act_buf_len=0):
         super().__init__()
         assert isinstance(observation_space, gym.spaces.Tuple)
-        self.critics = ModuleList(
-            MlpStateValue(observation_space, action_space, hidden_units) for _ in range(num_critics))
+        self.critics = ModuleList(MlpStateValue(observation_space, action_space, hidden_units) for _ in range(num_critics))
         self.actor = MlpPolicy(observation_space, action_space, hidden_units)
         self.critic_output_layers = [c[-1] for c in self.critics]

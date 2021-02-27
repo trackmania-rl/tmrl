@@ -53,8 +53,7 @@ def collate(batch, device=None):
     elif isinstance(elem, Mapping):
         return type(elem)((key, collate(tuple(d[key] for d in batch), device)) for key in elem)
     else:
-        return torch.from_numpy(np.array(batch)).to(
-            device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
+        return torch.from_numpy(np.array(batch)).to(device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
 
 
 def partition(x):
@@ -179,13 +178,9 @@ def git_info(path=None):
     rev = get_output('git rev-parse HEAD'.split(), cwd=path)
     count = int(get_output('git rev-list HEAD --count'.split(), default='-1', cwd=path))
     status = get_output('git status --short'.split(), cwd=path)  # shows un-committed modified files
-    commit_date = get_output("git show --quiet --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd".split(),
-                             cwd=path,
-                             env=dict(TZ='UTC'))
-    desc = get_output(['git', 'describe', '--long', '--tags', '--dirty', '--always', '--match', r'v[0-9]*\.[0-9]*'],
-                      cwd=path)
-    message = desc + " " + ' '.join(
-        get_output(['git', 'log', '--oneline', '--format=%B', '-n', '1', "HEAD"], cwd=path).splitlines())
+    commit_date = get_output("git show --quiet --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd".split(), cwd=path, env=dict(TZ='UTC'))
+    desc = get_output(['git', 'describe', '--long', '--tags', '--dirty', '--always', '--match', r'v[0-9]*\.[0-9]*'], cwd=path)
+    message = desc + " " + ' '.join(get_output(['git', 'log', '--oneline', '--format=%B', '-n', '1', "HEAD"], cwd=path).splitlines())
 
     url = get_output('git config --get remote.origin.url'.split(), cwd=path).strip()
     # if on github, change remote to a meaningful https url

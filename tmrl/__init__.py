@@ -78,8 +78,7 @@ def iterate_epochs_tm(run_cls: TrainingOffline,
 
         while run_instance.epoch < run_instance.epochs:
             # time.sleep(1)  # on network file systems writing files is asynchronous and we need to wait for sync
-            yield run_instance.run_epoch(
-                interface=interface)  # yield stats data frame (this makes this function a generator)
+            yield run_instance.run_epoch(interface=interface)  # yield stats data frame (this makes this function a generator)
             # print("")
             if run_instance.epoch % epochs_between_checkpoints == 0:
                 print("INFO: saving checkpoint...")
@@ -96,14 +95,7 @@ def iterate_epochs_tm(run_cls: TrainingOffline,
             os.remove(checkpoint_path)
 
 
-def run_wandb_tm(entity,
-                 project,
-                 run_id,
-                 interface,
-                 run_cls: type = TrainingOffline,
-                 checkpoint_path: str = None,
-                 dump_run_instance_fn=None,
-                 load_run_instance_fn=None):
+def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOffline, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
     """
     trackmania main (remote)
     run and save config and stats to https://wandb.com
@@ -126,11 +118,7 @@ def run_wandb_tm(entity,
         [wandb.log(json.loads(s.to_json())) for s in stats]
 
 
-def run_tm(interface,
-           run_cls: type = TrainingOffline,
-           checkpoint_path: str = None,
-           dump_run_instance_fn=None,
-           load_run_instance_fn=None):
+def run_tm(interface, run_cls: type = TrainingOffline, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
     """
     trackmania main (remote)
     """

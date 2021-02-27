@@ -11,9 +11,7 @@ class Tm20rtgymDcacInterface(DcacInterface):
         Returns:
             tot_del_tensor (batch, 1)
         """
-        print(
-            f"DEV: get_total_delay_tensor_from_augm_obs_tuple_of_tensors: augm_obs_tuple_of_tensors:{augm_obs_tuple_of_tensors}"
-        )
+        print(f"DEV: get_total_delay_tensor_from_augm_obs_tuple_of_tensors: augm_obs_tuple_of_tensors:{augm_obs_tuple_of_tensors}")
         exit()
         # return tot_del_tensor
 

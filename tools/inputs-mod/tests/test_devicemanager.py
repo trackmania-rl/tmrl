@@ -24,8 +24,7 @@ class DeviceManagePostrInitTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_find_devices_win')
     @mock.patch.object(inputs.DeviceManager, '_find_leds')
     @mock.patch.object(inputs.DeviceManager, '_update_all_devices')
-    def test_post_init_linux(self, mock_update_all_devices, mock_find_leds, mock_find_devices_win,
-                             mock_find_devices_mac, mock_find_devices):
+    def test_post_init_linux(self, mock_update_all_devices, mock_find_leds, mock_find_devices_win, mock_find_devices_mac, mock_find_devices):
         """On Linux, find_devices is called and the other methods are not."""
         inputs.NIX = True
         inputs.WIN = False
@@ -42,8 +41,7 @@ class DeviceManagePostrInitTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_find_devices_mac')
     @mock.patch.object(inputs.DeviceManager, '_find_devices_win')
     @mock.patch.object(inputs.DeviceManager, '_update_all_devices')
-    def test_post_init_mac(self, mock_update_all_devices, mock_find_devices_win, mock_find_devices_mac,
-                           mock_find_devices):
+    def test_post_init_mac(self, mock_update_all_devices, mock_find_devices_win, mock_find_devices_mac, mock_find_devices):
         """On Mac, find_devices_mac is called and other methods are not."""
         inputs.NIX = False
         inputs.WIN = False
@@ -58,8 +56,7 @@ class DeviceManagePostrInitTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_find_devices_mac')
     @mock.patch.object(inputs.DeviceManager, '_find_devices_win')
     @mock.patch.object(inputs.DeviceManager, '_update_all_devices')
-    def test_post_init_win(self, mock_update_all_devices, mock_find_devices_win, mock_find_devices_mac,
-                           mock_find_devices):
+    def test_post_init_win(self, mock_update_all_devices, mock_find_devices_win, mock_find_devices_mac, mock_find_devices):
         """On Windows, find_devices_win is called and other methods are not."""
         inputs.WIN = True
         inputs.MAC = False
@@ -310,9 +307,7 @@ class DeviceManagerTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_parse_device_path')
     def test_find_by(self, mock_parse_device_path, mock_glob):
         """It finds the correct paths."""
-        mock_devices = [
-            '/dev/input/by-path/platform-a-shiny-keyboard-event-kbd', '/dev/input/by-path/pci-a-shiny-mouse-event-mouse'
-        ]
+        mock_devices = ['/dev/input/by-path/platform-a-shiny-keyboard-event-kbd', '/dev/input/by-path/pci-a-shiny-mouse-event-mouse']
         mock_glob.return_value = mock_devices
         self.device_manger._find_by('path')
         mock_parse_device_path.assert_any_call(mock_devices[0])
@@ -376,8 +371,7 @@ class DeviceManagerPlatformTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_count_devices')
     @mock.patch('inputs.Mouse')
     @mock.patch('inputs.Keyboard')
-    def test_find_devices_win(self, mock_keyboard, mock_mouse, mock_count_devices, mock_detect_gamepads,
-                              mock_find_xinput):
+    def test_find_devices_win(self, mock_keyboard, mock_mouse, mock_count_devices, mock_detect_gamepads, mock_find_xinput):
         """It appends a keyboard or mouse object if one exists."""
         # pylint: disable=too-many-arguments
         self.device_manager._raw_device_counts = {}
