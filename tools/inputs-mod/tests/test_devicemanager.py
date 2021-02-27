@@ -19,19 +19,13 @@ OTHER_PATH = "/dev/input/by-path/the-machine-that-goes-ping-other"
 
 class DeviceManagePostrInitTestCase(TestCase):
     """Test the device manager class' post-init method."""
-
     @mock.patch.object(inputs.DeviceManager, '_find_devices')
     @mock.patch.object(inputs.DeviceManager, '_find_devices_mac')
     @mock.patch.object(inputs.DeviceManager, '_find_devices_win')
     @mock.patch.object(inputs.DeviceManager, '_find_leds')
     @mock.patch.object(inputs.DeviceManager, '_update_all_devices')
-    def test_post_init_linux(
-            self,
-            mock_update_all_devices,
-            mock_find_leds,
-            mock_find_devices_win,
-            mock_find_devices_mac,
-            mock_find_devices):
+    def test_post_init_linux(self, mock_update_all_devices, mock_find_leds, mock_find_devices_win,
+                             mock_find_devices_mac, mock_find_devices):
         """On Linux, find_devices is called and the other methods are not."""
         inputs.NIX = True
         inputs.WIN = False
@@ -48,10 +42,7 @@ class DeviceManagePostrInitTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_find_devices_mac')
     @mock.patch.object(inputs.DeviceManager, '_find_devices_win')
     @mock.patch.object(inputs.DeviceManager, '_update_all_devices')
-    def test_post_init_mac(self,
-                           mock_update_all_devices,
-                           mock_find_devices_win,
-                           mock_find_devices_mac,
+    def test_post_init_mac(self, mock_update_all_devices, mock_find_devices_win, mock_find_devices_mac,
                            mock_find_devices):
         """On Mac, find_devices_mac is called and other methods are not."""
         inputs.NIX = False
@@ -67,10 +58,7 @@ class DeviceManagePostrInitTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_find_devices_mac')
     @mock.patch.object(inputs.DeviceManager, '_find_devices_win')
     @mock.patch.object(inputs.DeviceManager, '_update_all_devices')
-    def test_post_init_win(self,
-                           mock_update_all_devices,
-                           mock_find_devices_win,
-                           mock_find_devices_mac,
+    def test_post_init_win(self, mock_update_all_devices, mock_find_devices_win, mock_find_devices_mac,
                            mock_find_devices):
         """On Windows, find_devices_win is called and other methods are not."""
         inputs.WIN = True
@@ -126,9 +114,7 @@ class DeviceManagerTestCase(TestCase):
         self.device_manger._update_all_devices()
 
         # Check the result
-        self.assertEqual(
-            self.device_manger.all_devices,
-            [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13])
+        self.assertEqual(self.device_manger.all_devices, [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13])
 
         # Reset the lists
         self.device_manger.keyboards = []
@@ -142,17 +128,11 @@ class DeviceManagerTestCase(TestCase):
 
     @mock.patch('os.path.realpath')
     @mock.patch('inputs.Keyboard')
-    def test_parse_device_path_keyboard(
-            self,
-            mock_keyboard,
-            mock_realpath):
+    def test_parse_device_path_keyboard(self, mock_keyboard, mock_realpath):
         """Parses the path and adds a keyboard object."""
         mock_realpath.side_effect = lambda path: path
         self.device_manger._parse_device_path(KEYBOARD_PATH)
-        mock_keyboard.assert_called_with(
-            mock.ANY,
-            KEYBOARD_PATH,
-            None)
+        mock_keyboard.assert_called_with(mock.ANY, KEYBOARD_PATH, None)
         mock_realpath.assert_called_with(KEYBOARD_PATH)
         self.assertEqual(len(self.device_manger.keyboards), 1)
         self.assertEqual(len(self.device_manger._raw), 1)
@@ -160,18 +140,12 @@ class DeviceManagerTestCase(TestCase):
 
     @mock.patch('os.path.realpath')
     @mock.patch('inputs.Keyboard')
-    def test_parse_device_path_repeated(
-            self,
-            mock_keyboard,
-            mock_realpath):
+    def test_parse_device_path_repeated(self, mock_keyboard, mock_realpath):
         """Must only add a deviceprotected-access once for each path."""
         self.assertEqual(len(self.device_manger.keyboards), 0)
         mock_realpath.side_effect = lambda path: path
         self.device_manger._parse_device_path(KEYBOARD_PATH)
-        mock_keyboard.assert_called_with(
-            mock.ANY,
-            KEYBOARD_PATH,
-            None)
+        mock_keyboard.assert_called_with(mock.ANY, KEYBOARD_PATH, None)
         mock_realpath.assert_called_with(KEYBOARD_PATH)
         self.assertEqual(len(self.device_manger.keyboards), 1)
         self.device_manger._parse_device_path(KEYBOARD_PATH)
@@ -179,17 +153,11 @@ class DeviceManagerTestCase(TestCase):
 
     @mock.patch('os.path.realpath')
     @mock.patch('inputs.Mouse')
-    def test_parse_device_path_mouse(
-            self,
-            mock_mouse,
-            mock_realpath):
+    def test_parse_device_path_mouse(self, mock_mouse, mock_realpath):
         """Parses the path and adds a mouse object."""
         mock_realpath.side_effect = lambda path: path
         self.device_manger._parse_device_path(MOUSE_PATH)
-        mock_mouse.assert_called_with(
-            mock.ANY,
-            MOUSE_PATH,
-            None)
+        mock_mouse.assert_called_with(mock.ANY, MOUSE_PATH, None)
         mock_realpath.assert_called_with(MOUSE_PATH)
         self.assertEqual(len(self.device_manger.mice), 1)
         self.assertEqual(len(self.device_manger._raw), 1)
@@ -197,17 +165,11 @@ class DeviceManagerTestCase(TestCase):
 
     @mock.patch('os.path.realpath')
     @mock.patch('inputs.GamePad')
-    def test_parse_device_path_gamepad(
-            self,
-            mock_gamepad,
-            mock_realpath):
+    def test_parse_device_path_gamepad(self, mock_gamepad, mock_realpath):
         """Parses the path and adds a gamepad object."""
         mock_realpath.side_effect = lambda path: path
         self.device_manger._parse_device_path(GAMEPAD_PATH)
-        mock_gamepad.assert_called_with(
-            mock.ANY,
-            GAMEPAD_PATH,
-            None)
+        mock_gamepad.assert_called_with(mock.ANY, GAMEPAD_PATH, None)
         mock_realpath.assert_called_with(GAMEPAD_PATH)
         self.assertEqual(len(self.device_manger.gamepads), 1)
         self.assertEqual(len(self.device_manger._raw), 1)
@@ -215,17 +177,11 @@ class DeviceManagerTestCase(TestCase):
 
     @mock.patch('os.path.realpath')
     @mock.patch('inputs.OtherDevice')
-    def test_parse_device_path_other(
-            self,
-            mock_other,
-            mock_realpath):
+    def test_parse_device_path_other(self, mock_other, mock_realpath):
         """Parses the path and adds an other object."""
         mock_realpath.side_effect = lambda path: path
         self.device_manger._parse_device_path(OTHER_PATH)
-        mock_other.assert_called_with(
-            mock.ANY,
-            OTHER_PATH,
-            None)
+        mock_other.assert_called_with(mock.ANY, OTHER_PATH, None)
         mock_realpath.assert_called_with(OTHER_PATH)
         self.assertEqual(len(self.device_manger.other_devices), 1)
         self.assertEqual(len(self.device_manger._raw), 1)
@@ -262,37 +218,19 @@ class DeviceManagerTestCase(TestCase):
 
     def test_get_event_string(self):
         """get_event_string returns an event string."""
-        self.assertEqual(
-            self.device_manger.get_event_string('Key', 0x133),
-            "BTN_NORTH")
-        self.assertEqual(
-            self.device_manger.get_event_string('Relative', 0x08),
-            "REL_WHEEL")
-        self.assertEqual(
-            self.device_manger.get_event_string('Absolute', 0x07),
-            "ABS_RUDDER")
-        self.assertEqual(
-            self.device_manger.get_event_string('Switch', 0x05),
-            "SW_DOCK")
-        self.assertEqual(
-            self.device_manger.get_event_string('Misc', 0x04),
-            "MSC_SCAN")
-        self.assertEqual(
-            self.device_manger.get_event_string('LED', 0x01),
-            "LED_CAPSL")
-        self.assertEqual(
-            self.device_manger.get_event_string('Repeat', 0x01),
-            "REP_MAX")
-        self.assertEqual(
-            self.device_manger.get_event_string('Sound', 0x01),
-            "SND_BELL")
+        self.assertEqual(self.device_manger.get_event_string('Key', 0x133), "BTN_NORTH")
+        self.assertEqual(self.device_manger.get_event_string('Relative', 0x08), "REL_WHEEL")
+        self.assertEqual(self.device_manger.get_event_string('Absolute', 0x07), "ABS_RUDDER")
+        self.assertEqual(self.device_manger.get_event_string('Switch', 0x05), "SW_DOCK")
+        self.assertEqual(self.device_manger.get_event_string('Misc', 0x04), "MSC_SCAN")
+        self.assertEqual(self.device_manger.get_event_string('LED', 0x01), "LED_CAPSL")
+        self.assertEqual(self.device_manger.get_event_string('Repeat', 0x01), "REP_MAX")
+        self.assertEqual(self.device_manger.get_event_string('Sound', 0x01), "SND_BELL")
 
     def test_get_event_string_on_win(self):
         """get_event_string returns an event string on Windows."""
         inputs.WIN = True
-        self.assertEqual(
-            self.device_manger.get_event_string('Key', 0x133),
-            "BTN_NORTH")
+        self.assertEqual(self.device_manger.get_event_string('Key', 0x133), "BTN_NORTH")
         inputs.WIN = False
 
     def test_invalid_event_string(self):
@@ -360,14 +298,9 @@ class DeviceManagerTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_get_char_names')
     @mock.patch('inputs.open', mock.mock_open(read_data=MOCK_DEVICE))
     @mock.patch('glob.glob')
-    def test_find_special_repeated(self,
-                                   mock_glob,
-                                   mock_get_char_names,
-                                   mock_parse_device_path):
+    def test_find_special_repeated(self, mock_glob, mock_get_char_names, mock_parse_device_path):
         """Find a special device but then it is already known."""
-        mock_glob.return_value = [
-            '/sys/class/input/event1',
-            '/sys/class/input/event2']
+        mock_glob.return_value = ['/sys/class/input/event1', '/sys/class/input/event2']
         mock_get_char_names.return_value = ['event1', 'event2']
         self.device_manger.codes['specials'][MOCK_DEVICE] = MOCK_DEVICE_PATH
         self.device_manger._find_special()
@@ -375,13 +308,11 @@ class DeviceManagerTestCase(TestCase):
 
     @mock.patch('glob.glob')
     @mock.patch.object(inputs.DeviceManager, '_parse_device_path')
-    def test_find_by(self,
-                     mock_parse_device_path,
-                     mock_glob):
+    def test_find_by(self, mock_parse_device_path, mock_glob):
         """It finds the correct paths."""
         mock_devices = [
-            '/dev/input/by-path/platform-a-shiny-keyboard-event-kbd',
-            '/dev/input/by-path/pci-a-shiny-mouse-event-mouse']
+            '/dev/input/by-path/platform-a-shiny-keyboard-event-kbd', '/dev/input/by-path/pci-a-shiny-mouse-event-mouse'
+        ]
         mock_glob.return_value = mock_devices
         self.device_manger._find_by('path')
         mock_parse_device_path.assert_any_call(mock_devices[0])
@@ -418,8 +349,7 @@ class DeviceManagerPlatformTestCase(TestCase):
         mock_mighty.assert_called_once_with(self.device_manager)
         mock_mouse.assert_called_once_with(self.device_manager)
 
-    @mock.patch('inputs.ctypes.windll',
-                create=True)
+    @mock.patch('inputs.ctypes.windll', create=True)
     def test_find_xinput(self, mock_windll):
         """Finds an xinput library if one is available. """
         self.device_manager._find_xinput()
@@ -428,12 +358,8 @@ class DeviceManagerPlatformTestCase(TestCase):
         self.assertTrue(found_one)
 
     @mock.patch('inputs.XINPUT_DLL_NAMES')
-    @mock.patch('inputs.ctypes.windll',
-                create=True)
-    def test_find_xinput_not_available(
-            self,
-            mock_windll,
-            dll_names):
+    @mock.patch('inputs.ctypes.windll', create=True)
+    def test_find_xinput_not_available(self, mock_windll, dll_names):
         """Fails to find an xinput library. """
         if PYTHON == 3:
             # Disable pylint on Python 2 moaning about assertWarns
@@ -450,11 +376,7 @@ class DeviceManagerPlatformTestCase(TestCase):
     @mock.patch.object(inputs.DeviceManager, '_count_devices')
     @mock.patch('inputs.Mouse')
     @mock.patch('inputs.Keyboard')
-    def test_find_devices_win(self,
-                              mock_keyboard,
-                              mock_mouse,
-                              mock_count_devices,
-                              mock_detect_gamepads,
+    def test_find_devices_win(self, mock_keyboard, mock_mouse, mock_count_devices, mock_detect_gamepads,
                               mock_find_xinput):
         """It appends a keyboard or mouse object if one exists."""
         # pylint: disable=too-many-arguments
@@ -467,27 +389,21 @@ class DeviceManagerPlatformTestCase(TestCase):
 
     @mock.patch('inputs.GamePad')
     @mock.patch('inputs.ctypes.windll', create=True)
-    def test_detect_gamepads(self,
-                             mock_windll,
-                             mock_gamepad):
+    def test_detect_gamepads(self, mock_windll, mock_gamepad):
         """It appends the correct number of gamepads."""
         self.device_manager.xinput = mock.MagicMock()
         xinputgetstate = mock.MagicMock(return_value=0)
-        self.device_manager.xinput.attach_mock(
-            xinputgetstate, 'XInputGetState')
+        self.device_manager.xinput.attach_mock(xinputgetstate, 'XInputGetState')
         self.device_manager._detect_gamepads()
         self.assertEqual(len(self.device_manager.gamepads), 4)
 
     @mock.patch('inputs.GamePad')
     @mock.patch('inputs.ctypes.windll', create=True)
-    def test_detect_error_gamepads(self,
-                                   mock_windll,
-                                   mock_gamepad):
+    def test_detect_error_gamepads(self, mock_windll, mock_gamepad):
         """It raises an exception if a problem getting gamepad state."""
         self.device_manager.xinput = mock.MagicMock()
         xinputgetstate = mock.MagicMock(return_value=1)
-        self.device_manager.xinput.attach_mock(
-            xinputgetstate, 'XInputGetState')
+        self.device_manager.xinput.attach_mock(xinputgetstate, 'XInputGetState')
         with self.assertRaises(RuntimeError):
             self.device_manager._detect_gamepads()
         self.assertEqual(len(self.device_manager.gamepads), 0)
@@ -495,9 +411,5 @@ class DeviceManagerPlatformTestCase(TestCase):
     @mock.patch('inputs.ctypes.windll', create=True)
     def test_count_devices(self, mock_windll):
         """It should count the attached devices."""
-        self.device_manager._raw_device_counts = {
-            'mice': 0,
-            'keyboards': 0,
-            'otherhid': 0,
-            'unknown': 0}
+        self.device_manager._raw_device_counts = {'mice': 0, 'keyboards': 0, 'otherhid': 0, 'unknown': 0}
         self.device_manager._count_devices()

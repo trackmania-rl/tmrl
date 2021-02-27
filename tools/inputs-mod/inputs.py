@@ -83,11 +83,10 @@ if NIX:
 
 OLD = sys.version_info < (3, 4)
 
-PERMISSIONS_ERROR_TEXT = (
-    "The user (that this program is being run as) does "
-    "not have permission to access the input events, "
-    "check groups and permissions, for example, on "
-    "Debian, the user needs to be in the input group.")
+PERMISSIONS_ERROR_TEXT = ("The user (that this program is being run as) does "
+                          "not have permission to access the input events, "
+                          "check groups and permissions, for example, on "
+                          "Debian, the user needs to be in the input group.")
 
 # Standard event format for most devices.
 # long, long, unsigned short, unsigned short, int
@@ -99,14 +98,16 @@ EVENT_SIZE = struct.calcsize(EVENT_FORMAT)
 def chunks(raw):
     """Yield successive EVENT_SIZE sized chunks from raw."""
     for i in range(0, len(raw), EVENT_SIZE):
-        yield struct.unpack(EVENT_FORMAT, raw[i:i+EVENT_SIZE])
+        yield struct.unpack(EVENT_FORMAT, raw[i:i + EVENT_SIZE])
 
 
 if OLD:
+
     def iter_unpack(raw):
         """Yield successive EVENT_SIZE chunks from message."""
         return chunks(raw)
 else:
+
     def iter_unpack(raw):
         """Yield successive EVENT_SIZE chunks from message."""
         return struct.iter_unpack(EVENT_FORMAT, raw)
@@ -121,12 +122,9 @@ def convert_timeval(seconds_since_epoch):
 
 
 SPECIAL_DEVICES = (
-    ("Raspberry Pi Sense HAT Joystick",
-     "/dev/input/by-id/gpio-Raspberry_Pi_Sense_HAT_Joystick-event-kbd"),
-    ("Nintendo Wii Remote",
-     "/dev/input/by-id/bluetooth-Nintendo_Wii_Remote-event-joystick"),
-    ("FT5406 memory based driver",
-     "/dev/input/by-id/gpio-Raspberry_Pi_Touchscreen_Display-event-mouse"),
+    ("Raspberry Pi Sense HAT Joystick", "/dev/input/by-id/gpio-Raspberry_Pi_Sense_HAT_Joystick-event-kbd"),
+    ("Nintendo Wii Remote", "/dev/input/by-id/bluetooth-Nintendo_Wii_Remote-event-joystick"),
+    ("FT5406 memory based driver", "/dev/input/by-id/gpio-Raspberry_Pi_Touchscreen_Display-event-mouse"),
 )
 
 XINPUT_MAPPING = (
@@ -153,13 +151,7 @@ XINPUT_MAPPING = (
     ('right_trigger', 0x05),
 )
 
-XINPUT_DLL_NAMES = (
-    "XInput1_4.dll",
-    "XInput9_1_0.dll",
-    "XInput1_3.dll",
-    "XInput1_2.dll",
-    "XInput1_1.dll"
-)
+XINPUT_DLL_NAMES = ("XInput1_4.dll", "XInput9_1_0.dll", "XInput1_3.dll", "XInput1_2.dll", "XInput1_1.dll")
 
 XINPUT_ERROR_DEVICE_NOT_CONNECTED = 1167
 XINPUT_ERROR_SUCCESS = 0
@@ -194,29 +186,12 @@ DEVICE_PROPERTIES = (
     (0x1f, "INPUT_PROP_MAX"),
     (0x1f + 1, "INPUT_PROP_CNT"))
 
-EVENT_TYPES = (
-    (0x00, "Sync"),
-    (0x01, "Key"),
-    (0x02, "Relative"),
-    (0x03, "Absolute"),
-    (0x04, "Misc"),
-    (0x05, "Switch"),
-    (0x11, "LED"),
-    (0x12, "Sound"),
-    (0x14, "Repeat"),
-    (0x15, "ForceFeedback"),
-    (0x16, "Power"),
-    (0x17, "ForceFeedbackStatus"),
-    (0x1f, "Max"),
-    (0x1f+1, "Current"))
+EVENT_TYPES = ((0x00, "Sync"), (0x01, "Key"), (0x02, "Relative"), (0x03, "Absolute"), (0x04, "Misc"), (0x05, "Switch"),
+               (0x11, "LED"), (0x12, "Sound"), (0x14, "Repeat"), (0x15, "ForceFeedback"), (0x16, "Power"),
+               (0x17, "ForceFeedbackStatus"), (0x1f, "Max"), (0x1f + 1, "Current"))
 
-SYNCHRONIZATION_EVENTS = (
-    (0, "SYN_REPORT"),
-    (1, "SYN_CONFIG"),
-    (2, "SYN_MT_REPORT"),
-    (3, "SYN_DROPPED"),
-    (0xf, "SYN_MAX"),
-    (0xf+1, "SYN_CNT"))
+SYNCHRONIZATION_EVENTS = ((0, "SYN_REPORT"), (1, "SYN_CONFIG"), (2, "SYN_MT_REPORT"), (3, "SYN_DROPPED"),
+                          (0xf, "SYN_MAX"), (0xf + 1, "SYN_CNT"))
 
 KEYS_AND_BUTTONS = (
     (0, "KEY_RESERVED"),
@@ -750,21 +725,11 @@ KEYS_AND_BUTTONS = (
     (0x2e6, "BTN_TRIGGER_HAPPY39"),
     (0x2e7, "BTN_TRIGGER_HAPPY40"),
     (0x2ff, "KEY_MAX"),
-    (0x2ff+1, "KEY_CNT"))
+    (0x2ff + 1, "KEY_CNT"))
 
-RELATIVE_AXES = (
-    (0x00, "REL_X"),
-    (0x01, "REL_Y"),
-    (0x02, "REL_Z"),
-    (0x03, "REL_RX"),
-    (0x04, "REL_RY"),
-    (0x05, "REL_RZ"),
-    (0x06, "REL_HWHEEL"),
-    (0x07, "REL_DIAL"),
-    (0x08, "REL_WHEEL"),
-    (0x09, "REL_MISC"),
-    (0x0f, "REL_MAX"),
-    (0x0f+1, "REL_CNT"))
+RELATIVE_AXES = ((0x00, "REL_X"), (0x01, "REL_Y"), (0x02, "REL_Z"), (0x03, "REL_RX"), (0x04, "REL_RY"),
+                 (0x05, "REL_RZ"), (0x06, "REL_HWHEEL"), (0x07, "REL_DIAL"), (0x08, "REL_WHEEL"), (0x09, "REL_MISC"),
+                 (0x0f, "REL_MAX"), (0x0f + 1, "REL_CNT"))
 
 ABSOLUTE_AXES = (
     (0x00, "ABS_X"),
@@ -809,7 +774,7 @@ ABSOLUTE_AXES = (
     (0x3c, "ABS_MT_TOOL_X"),  # Center X tool position
     (0x3d, "ABS_MT_TOOL_Y"),  # Center Y tool position
     (0x3f, "ABS_MAX"),
-    (0x3f+1, "ABS_CNT"))
+    (0x3f + 1, "ABS_CNT"))
 
 SWITCH_EVENTS = (
     (0x00, "SW_LID"),  # set = lid shut
@@ -828,61 +793,22 @@ SWITCH_EVENTS = (
     (0x0d, "SW_LINEIN_INSERT"),  # set = inserted
     (0x0e, "SW_MUTE_DEVICE"),  # set = device disabled
     (0x0f, "SW_MAX"),
-    (0x0f+1, "SW_CNT"))
+    (0x0f + 1, "SW_CNT"))
 
-MISC_EVENTS = (
-    (0x00, "MSC_SERIAL"),
-    (0x01, "MSC_PULSELED"),
-    (0x02, "MSC_GESTURE"),
-    (0x03, "MSC_RAW"),
-    (0x04, "MSC_SCAN"),
-    (0x05, "MSC_TIMESTAMP"),
-    (0x07, "MSC_MAX"),
-    (0x07+1, "MSC_CNT"))
+MISC_EVENTS = ((0x00, "MSC_SERIAL"), (0x01, "MSC_PULSELED"), (0x02, "MSC_GESTURE"), (0x03, "MSC_RAW"),
+               (0x04, "MSC_SCAN"), (0x05, "MSC_TIMESTAMP"), (0x07, "MSC_MAX"), (0x07 + 1, "MSC_CNT"))
 
-LEDS = (
-    (0x00, "LED_NUML"),
-    (0x01, "LED_CAPSL"),
-    (0x02, "LED_SCROLLL"),
-    (0x03, "LED_COMPOSE"),
-    (0x04, "LED_KANA"),
-    (0x05, "LED_SLEEP"),
-    (0x06, "LED_SUSPEND"),
-    (0x07, "LED_MUTE"),
-    (0x08, "LED_MISC"),
-    (0x09, "LED_MAIL"),
-    (0x0a, "LED_CHARGING"),
-    (0x0f, "LED_MAX"),
-    (0x0f+1, "LED_CNT"))
+LEDS = ((0x00, "LED_NUML"), (0x01, "LED_CAPSL"), (0x02, "LED_SCROLLL"), (0x03, "LED_COMPOSE"), (0x04, "LED_KANA"),
+        (0x05, "LED_SLEEP"), (0x06, "LED_SUSPEND"), (0x07, "LED_MUTE"), (0x08, "LED_MISC"), (0x09, "LED_MAIL"),
+        (0x0a, "LED_CHARGING"), (0x0f, "LED_MAX"), (0x0f + 1, "LED_CNT"))
 
-LED_TYPE_CODES = (
-    ('numlock', 0x00),
-    ('capslock', 0x01),
-    ('scrolllock', 0x02),
-    ('compose', 0x03),
-    ('kana', 0x04),
-    ('sleep', 0x05),
-    ('suspend', 0x06),
-    ('mute', 0x07),
-    ('misc', 0x08),
-    ('mail', 0x09),
-    ('charging', 0x0a),
-    ('max', 0x0f),
-    ('cnt', 0x0f+1)
-)
+LED_TYPE_CODES = (('numlock', 0x00), ('capslock', 0x01), ('scrolllock', 0x02), ('compose', 0x03), ('kana', 0x04),
+                  ('sleep', 0x05), ('suspend', 0x06), ('mute', 0x07), ('misc', 0x08), ('mail', 0x09),
+                  ('charging', 0x0a), ('max', 0x0f), ('cnt', 0x0f + 1))
 
-AUTOREPEAT_VALUES = (
-    (0x00, "REP_DELAY"),
-    (0x01, "REP_PERIOD"),
-    (0x01, "REP_MAX"),
-    (0x01+1, "REP_CNT"))
+AUTOREPEAT_VALUES = ((0x00, "REP_DELAY"), (0x01, "REP_PERIOD"), (0x01, "REP_MAX"), (0x01 + 1, "REP_CNT"))
 
-SOUNDS = (
-    (0x00, "SND_CLICK"),
-    (0x01, "SND_BELL"),
-    (0x02, "SND_TONE"),
-    (0x07, "SND_MAX"),
-    (0x07+1, "SND_CNT"))
+SOUNDS = ((0x00, "SND_CLICK"), (0x01, "SND_BELL"), (0x02, "SND_TONE"), (0x07, "SND_MAX"), (0x07 + 1, "SND_CNT"))
 
 WIN_KEYBOARD_CODES = {
     0x0100: 1,
@@ -892,14 +818,14 @@ WIN_KEYBOARD_CODES = {
 }
 
 WIN_MOUSE_CODES = {
-    0x0201: (0x110, 1, 589825),   # WM_LBUTTONDOWN --> BTN_LEFT
-    0x0202: (0x110, 0, 589825),   # WM_LBUTTONUP   --> BTN_LEFT
-    0x0204: (0x111, 1, 589826),   # WM_RBUTTONDOWN --> BTN_RIGHT
-    0x0205: (0x111, 0, 589826),   # WM_RBUTTONUP   --> BTN_RIGHT
-    0x0207: (0x112, 1, 589827),   # WM_MBUTTONDOWN --> BTN_MIDDLE
-    0x0208: (0x112, 0, 589827),   # WM_MBUTTONU    --> BTN_MIDDLE
-    0x020B: (0x113, 1, 589828),   # WM_XBUTTONDOWN --> BTN_SIDE
-    0x020C: (0x113, 0, 589828),   # WM_XBUTTONUP   --> BTN_SIDE
+    0x0201: (0x110, 1, 589825),  # WM_LBUTTONDOWN --> BTN_LEFT
+    0x0202: (0x110, 0, 589825),  # WM_LBUTTONUP   --> BTN_LEFT
+    0x0204: (0x111, 1, 589826),  # WM_RBUTTONDOWN --> BTN_RIGHT
+    0x0205: (0x111, 0, 589826),  # WM_RBUTTONUP   --> BTN_RIGHT
+    0x0207: (0x112, 1, 589827),  # WM_MBUTTONDOWN --> BTN_MIDDLE
+    0x0208: (0x112, 0, 589827),  # WM_MBUTTONU    --> BTN_MIDDLE
+    0x020B: (0x113, 1, 589828),  # WM_XBUTTONDOWN --> BTN_SIDE
+    0x020C: (0x113, 0, 589828),  # WM_XBUTTONUP   --> BTN_SIDE
     0x020B2: (0x114, 1, 589829),  # WM_XBUTTONDOWN --> BTN_EXTRA
     0x020C2: (0x114, 0, 589829),  # WM_XBUTTONUP   --> BTN_EXTRA
 }
@@ -932,7 +858,7 @@ WINCODES = (
     (0x14, 58),  # CAPS LOCK key
     (0x15, 90),  # IME Kana mode
     (0x15, 91),  # IME Hanguel mode (maintained for compatibility; use
-                 # VK_HANGUL)
+    # VK_HANGUL)
     (0x15, 91),  # IME Hangul mode
     (0x16, 0),  # Undefined
     (0x17, 92),  # IME Junja mode - These all need to be fixed
@@ -1090,15 +1016,15 @@ WINCODES = (
     (0xE0, 0),  # Reserved
     (0xE1, 0),  # OEM Specific
     (0xE2, 43),  # Either the angle bracket key or the backslash key
-                 # on the RT 102-key keyboard (0xE3-E4, 0), # OEM
-                 # specific
+    # on the RT 102-key keyboard (0xE3-E4, 0), # OEM
+    # specific
     (0xE5, 0),  # IME PROCESS key
     (0xE6, 0),  # OEM specific
     (0xE7, 0),  # Used to pass Unicode characters as if they were
-                # keystrokes. The VK_PACKET key is the low word of a
-                # 32-bit Virtual Key value used for non-keyboard input
-                # methods. For more information, see Remark in
-                # KEYBDINPUT, SendInput, WM_KEYDOWN, and WM_KEYUP
+    # keystrokes. The VK_PACKET key is the low word of a
+    # 32-bit Virtual Key value used for non-keyboard input
+    # methods. For more information, see Remark in
+    # KEYBDINPUT, SendInput, WM_KEYDOWN, and WM_KEYUP
     (0xE8, 0),  # Unassigned
     #  (0xE9-F5, 0),  # OEM specific
     (0xF6, 0),  # Attn key
@@ -1109,9 +1035,8 @@ WINCODES = (
     (0xFB, 0x174),  # Zoom key
     (0xFC, 0),  # Reserved
     (0xFD, 0x19b),  # PA1 key
-    (0xFE, 0x163),   # Clear key
-    (0xFF, 185)
-)
+    (0xFE, 0x163),  # Clear key
+    (0xFF, 185))
 
 MAC_EVENT_CODES = (
     # NSLeftMouseDown Quartz.kCGEventLeftMouseDown
@@ -1122,42 +1047,42 @@ MAC_EVENT_CODES = (
     (3, ("Key", 0x111, 1, 589826)),
     # NSRightMouseUp Quartz.kCGEventRightMouseUp
     (4, ("Key", 0x111, 0, 589826)),
-    (5, (None, 0, 0, 0)),    # NSMouseMoved Quartz.kCGEventMouseMoved
+    (5, (None, 0, 0, 0)),  # NSMouseMoved Quartz.kCGEventMouseMoved
     (6, (None, 0, 0, 0)),  # NSLeftMouseDragged Quartz.kCGEventLeftMouseDragged
     # NSRightMouseDragged Quartz.kCGEventRightMouseDragged
     (7, (None, 0, 0, 0)),
-    (8, (None, 0, 0, 0)),    # NSMouseEntered
-    (9, (None, 0, 0, 0)),    # NSMouseExited
-    (10, (None, 0, 0, 0)),   # NSKeyDown
-    (11, (None, 0, 0, 0)),   # NSKeyUp
-    (12, (None, 0, 0, 0)),   # NSFlagsChanged
-    (13, (None, 0, 0, 0)),   # NSAppKitDefined
-    (14, (None, 0, 0, 0)),   # NSSystemDefined
-    (15, (None, 0, 0, 0)),   # NSApplicationDefined
-    (16, (None, 0, 0, 0)),   # NSPeriodic
-    (17, (None, 0, 0, 0)),   # NSCursorUpdate
-    (22, (None, 0, 0, 0)),   # NSScrollWheel Quartz.kCGEventScrollWheel
-    (23, (None, 0, 0, 0)),   # NSTabletPoint Quartz.kCGEventTabletPointer
-    (24, (None, 0, 0, 0)),   # NSTabletProximity Quartz.kCGEventTabletProximity
-    (25, (None, 0, 0, 0)),   # NSOtherMouseDown Quartz.kCGEventOtherMouseDown
-    (25.2, ("Key", 0x112, 1, 589827)),   # BTN_MIDDLE
-    (25.3, ("Key", 0x113, 1, 589828)),   # BTN_SIDE
-    (25.4, ("Key", 0x114, 1, 589829)),   # BTN_EXTRA
-    (26, (None, 0, 0, 0)),   # NSOtherMouseUp Quartz.kCGEventOtherMouseUp
-    (26.2, ("Key", 0x112, 0, 589827)),   # BTN_MIDDLE
-    (26.3, ("Key", 0x113, 0, 589828)),   # BTN_SIDE
-    (26.4, ("Key", 0x114, 0, 589829)),   # BTN_EXTRA
-    (27, (None, 0, 0, 0)),   # NSOtherMouseDragged
-    (29, (None, 0, 0, 0)),   # NSEventTypeGesture
-    (30, (None, 0, 0, 0)),   # NSEventTypeMagnify
-    (31, (None, 0, 0, 0)),   # NSEventTypeSwipe
-    (18, (None, 0, 0, 0)),   # NSEventTypeRotate
-    (19, (None, 0, 0, 0)),   # NSEventTypeBeginGesture
-    (20, (None, 0, 0, 0)),   # NSEventTypeEndGesture
-    (27, (None, 0, 0, 0)),   # Quartz.kCGEventOtherMouseDragged
-    (32, (None, 0, 0, 0)),   # NSEventTypeSmartMagnify
-    (33, (None, 0, 0, 0)),   # NSEventTypeQuickLook
-    (34, (None, 0, 0, 0)),   # NSEventTypePressure
+    (8, (None, 0, 0, 0)),  # NSMouseEntered
+    (9, (None, 0, 0, 0)),  # NSMouseExited
+    (10, (None, 0, 0, 0)),  # NSKeyDown
+    (11, (None, 0, 0, 0)),  # NSKeyUp
+    (12, (None, 0, 0, 0)),  # NSFlagsChanged
+    (13, (None, 0, 0, 0)),  # NSAppKitDefined
+    (14, (None, 0, 0, 0)),  # NSSystemDefined
+    (15, (None, 0, 0, 0)),  # NSApplicationDefined
+    (16, (None, 0, 0, 0)),  # NSPeriodic
+    (17, (None, 0, 0, 0)),  # NSCursorUpdate
+    (22, (None, 0, 0, 0)),  # NSScrollWheel Quartz.kCGEventScrollWheel
+    (23, (None, 0, 0, 0)),  # NSTabletPoint Quartz.kCGEventTabletPointer
+    (24, (None, 0, 0, 0)),  # NSTabletProximity Quartz.kCGEventTabletProximity
+    (25, (None, 0, 0, 0)),  # NSOtherMouseDown Quartz.kCGEventOtherMouseDown
+    (25.2, ("Key", 0x112, 1, 589827)),  # BTN_MIDDLE
+    (25.3, ("Key", 0x113, 1, 589828)),  # BTN_SIDE
+    (25.4, ("Key", 0x114, 1, 589829)),  # BTN_EXTRA
+    (26, (None, 0, 0, 0)),  # NSOtherMouseUp Quartz.kCGEventOtherMouseUp
+    (26.2, ("Key", 0x112, 0, 589827)),  # BTN_MIDDLE
+    (26.3, ("Key", 0x113, 0, 589828)),  # BTN_SIDE
+    (26.4, ("Key", 0x114, 0, 589829)),  # BTN_EXTRA
+    (27, (None, 0, 0, 0)),  # NSOtherMouseDragged
+    (29, (None, 0, 0, 0)),  # NSEventTypeGesture
+    (30, (None, 0, 0, 0)),  # NSEventTypeMagnify
+    (31, (None, 0, 0, 0)),  # NSEventTypeSwipe
+    (18, (None, 0, 0, 0)),  # NSEventTypeRotate
+    (19, (None, 0, 0, 0)),  # NSEventTypeBeginGesture
+    (20, (None, 0, 0, 0)),  # NSEventTypeEndGesture
+    (27, (None, 0, 0, 0)),  # Quartz.kCGEventOtherMouseDragged
+    (32, (None, 0, 0, 0)),  # NSEventTypeSmartMagnify
+    (33, (None, 0, 0, 0)),  # NSEventTypeQuickLook
+    (34, (None, 0, 0, 0)),  # NSEventTypePressure
 )
 
 MAC_KEYS = (
@@ -1278,9 +1203,8 @@ MAC_KEYS = (
     (0x5E, 92),  # kVK_JIS_Underscore
     (0x5F, 95),  # kVK_JIS_KeypadComma
     (0x66, 94),  # kVK_JIS_Eisu
-    (0x68, 90)   # kVK_JIS_Kana
+    (0x68, 90)  # kVK_JIS_Kana
 )
-
 
 # We have yet to support force feedback but probably should
 # eventually:
@@ -1296,35 +1220,19 @@ POWER = ()  # Power switch
 MAX = ()
 CURRENT = ()
 
-
-EVENT_MAP = (
-    ('types', EVENT_TYPES),
-    ('type_codes', ((value, key) for key, value in EVENT_TYPES)),
-    ('wincodes', WINCODES),
-    ('specials', SPECIAL_DEVICES),
-    ('xpad', XINPUT_MAPPING),
-    ('Sync', SYNCHRONIZATION_EVENTS),
-    ('Key', KEYS_AND_BUTTONS),
-    ('Relative', RELATIVE_AXES),
-    ('Absolute', ABSOLUTE_AXES),
-    ('Misc', MISC_EVENTS),
-    ('Switch', SWITCH_EVENTS),
-    ('LED', LEDS),
-    ('LED_type_codes', LED_TYPE_CODES),
-    ('Sound', SOUNDS),
-    ('Repeat', AUTOREPEAT_VALUES),
-    ('ForceFeedback', FORCE_FEEDBACK),
-    ('Power', POWER),
-    ('ForceFeedbackStatus', FORCE_FEEDBACK_STATUS),
-    ('Max', MAX),
-    ('Current', CURRENT))
+EVENT_MAP = (('types', EVENT_TYPES), ('type_codes', ((value, key)
+                                                     for key, value in EVENT_TYPES)), ('wincodes', WINCODES),
+             ('specials', SPECIAL_DEVICES), ('xpad', XINPUT_MAPPING), ('Sync', SYNCHRONIZATION_EVENTS),
+             ('Key', KEYS_AND_BUTTONS), ('Relative', RELATIVE_AXES), ('Absolute', ABSOLUTE_AXES), ('Misc', MISC_EVENTS),
+             ('Switch', SWITCH_EVENTS), ('LED', LEDS), ('LED_type_codes', LED_TYPE_CODES), ('Sound', SOUNDS),
+             ('Repeat', AUTOREPEAT_VALUES), ('ForceFeedback', FORCE_FEEDBACK), ('Power', POWER),
+             ('ForceFeedbackStatus', FORCE_FEEDBACK_STATUS), ('Max', MAX), ('Current', CURRENT))
 
 # Evdev style paths for the Mac
 
 APPKIT_KB_PATH = "/dev/input/by-id/usb-AppKit_Keyboard-event-kbd"
 QUARTZ_MOUSE_PATH = "/dev/input/by-id/usb-Quartz_Mouse-event-mouse"
 APPKIT_MOUSE_PATH = "/dev/input/by-id/usb-AppKit_Mouse-event-mouse"
-
 
 # Now comes all the structs we need to parse the infomation coming
 # from Windows.
@@ -1339,10 +1247,7 @@ class KBDLLHookStruct(ctypes.Structure):
     ms644967%28v=vs.85%29.aspx
     """
     # pylint: disable=too-few-public-methods
-    _fields_ = [("vk_code", DWORD),
-                ("scan_code", DWORD),
-                ("flags", DWORD),
-                ("time", ctypes.c_int)]
+    _fields_ = [("vk_code", DWORD), ("scan_code", DWORD), ("flags", DWORD), ("time", ctypes.c_int)]
 
 
 class MSLLHookStruct(ctypes.Structure):
@@ -1354,13 +1259,8 @@ class MSLLHookStruct(ctypes.Structure):
     ms644970%28v=vs.85%29.aspx
     """
     # pylint: disable=too-few-public-methods
-    _fields_ = [("x_pos", ctypes.c_long),
-                ("y_pos", ctypes.c_long),
-                ('reserved', ctypes.c_short),
-                ('mousedata', ctypes.c_short),
-                ("flags", DWORD),
-                ("time", DWORD),
-                ("extrainfo", ctypes.c_ulong)]
+    _fields_ = [("x_pos", ctypes.c_long), ("y_pos", ctypes.c_long), ('reserved', ctypes.c_short),
+                ('mousedata', ctypes.c_short), ("flags", DWORD), ("time", DWORD), ("extrainfo", ctypes.c_ulong)]
 
 
 class XinputGamepad(ctypes.Structure):
@@ -1411,8 +1311,7 @@ class XinputVibration(ctypes.Structure):
 
     """
     # pylint: disable=too-few-public-methods
-    _fields_ = [("wLeftMotorSpeed", ctypes.c_ushort),
-                ("wRightMotorSpeed", ctypes.c_ushort)]
+    _fields_ = [("wLeftMotorSpeed", ctypes.c_ushort), ("wRightMotorSpeed", ctypes.c_ushort)]
 
 
 if sys.version_info.major == 2:
@@ -1445,10 +1344,9 @@ class UnknownEventCode(IndexError):
 
 class InputEvent(object):  # pylint: disable=useless-object-inheritance
     """A user event."""
+
     # pylint: disable=too-few-public-methods
-    def __init__(self,
-                 device,
-                 event_info):
+    def __init__(self, device, event_info):
         self.device = device
         self.timestamp = event_info["timestamp"]
         self.code = event_info["code"]
@@ -1461,16 +1359,13 @@ class BaseListener(object):  # pylint: disable=useless-object-inheritance
     Listen (hook in Windows terminology) for key events then buffer
     them in a pipe.
     """
-
     def __init__(self, pipe, events=None, codes=None):
         self.pipe = pipe
         self.events = events if events else []
         self.codes = codes if codes else None
         self.app = None
         self.timeval = None
-        self.type_codes = dict((
-            (value, key)
-            for key, value in EVENT_TYPES))
+        self.type_codes = dict(((value, key) for key, value in EVENT_TYPES))
 
         self.install_handle_input()
 
@@ -1495,11 +1390,7 @@ class BaseListener(object):  # pylint: disable=useless-object-inheritance
         """Update the timeval with the current time."""
         self.timeval = self.get_timeval()
 
-    def create_event_object(self,
-                            event_type,
-                            code,
-                            value,
-                            timeval=None):
+    def create_event_object(self, event_type, code, value, timeval=None):
         """Create an evdev style structure."""
         if not timeval:
             self.update_timeval()
@@ -1507,15 +1398,9 @@ class BaseListener(object):  # pylint: disable=useless-object-inheritance
         try:
             event_code = self.type_codes[event_type]
         except KeyError:
-            raise UnknownEventType(
-                "We don't know what kind of event a %s is." % event_type)
+            raise UnknownEventType("We don't know what kind of event a %s is." % event_type)
 
-        event = struct.pack(EVENT_FORMAT,
-                            timeval[0],
-                            timeval[1],
-                            event_code,
-                            code,
-                            value)
+        event = struct.pack(EVENT_FORMAT, timeval[0], timeval[1], event_code, code, value)
         return event
 
     def write_to_pipe(self, event_list):
@@ -1549,19 +1434,11 @@ class BaseListener(object):  # pylint: disable=useless-object-inheritance
         if WIN:
             data = data // 120
 
-        return self.create_event_object(
-            "Relative",
-            code,
-            data,
-            timeval)
+        return self.create_event_object("Relative", code, data, timeval)
 
     def emulate_rel(self, key_code, value, timeval):
         """Emulate the relative changes of the mouse cursor."""
-        return self.create_event_object(
-            "Relative",
-            key_code,
-            value,
-            timeval)
+        return self.create_event_object("Relative", key_code, value, timeval)
 
     def emulate_press(self, key_code, scan_code, value, timeval):
         """Emulate a button press.
@@ -1578,47 +1455,23 @@ class BaseListener(object):  # pylint: disable=useless-object-inheritance
         Therefore, I guess we could support more buttons quite easily,
         if we had any useful hardware.
         """
-        scan_event = self.create_event_object(
-            "Misc",
-            0x04,
-            scan_code,
-            timeval)
-        key_event = self.create_event_object(
-            "Key",
-            key_code,
-            value,
-            timeval)
+        scan_event = self.create_event_object("Misc", 0x04, scan_code, timeval)
+        key_event = self.create_event_object("Key", key_code, value, timeval)
         return scan_event, key_event
 
     def emulate_repeat(self, value, timeval):
         """The repeat press of a key/mouse button, e.g. double click."""
-        repeat_event = self.create_event_object(
-            "Repeat",
-            2,
-            value,
-            timeval)
+        repeat_event = self.create_event_object("Repeat", 2, value, timeval)
         return repeat_event
 
     def sync_marker(self, timeval):
         """Separate groups of events."""
-        return self.create_event_object(
-            "Sync",
-            0,
-            0,
-            timeval)
+        return self.create_event_object("Sync", 0, 0, timeval)
 
     def emulate_abs(self, x_val, y_val, timeval):
         """Emulate the absolute co-ordinates of the mouse cursor."""
-        x_event = self.create_event_object(
-            "Absolute",
-            0x00,
-            x_val,
-            timeval)
-        y_event = self.create_event_object(
-            "Absolute",
-            0x01,
-            y_val,
-            timeval)
+        x_event = self.create_event_object("Absolute", 0x00, x_val, timeval)
+        y_event = self.create_event_object("Absolute", 0x01, y_val, timeval)
         return x_event, y_event
 
 
@@ -1640,22 +1493,15 @@ class WindowsKeyboardListener(BaseListener):
 
     def get_fptr(self):
         """Get the function pointer."""
-        cmpfunc = ctypes.CFUNCTYPE(ctypes.c_int,
-                                   WPARAM,
-                                   LPARAM,
-                                   ctypes.POINTER(KBDLLHookStruct))
+        cmpfunc = ctypes.CFUNCTYPE(ctypes.c_int, WPARAM, LPARAM, ctypes.POINTER(KBDLLHookStruct))
         return cmpfunc(self.handle_input)
 
     def install_handle_input(self):
         """Install the hook."""
         self.pointer = self.get_fptr()
 
-        self.hooked = ctypes.windll.user32.SetWindowsHookExA(
-            13,
-            self.pointer,
-            ctypes.windll.kernel32.GetModuleHandleW(None),
-            0
-        )
+        self.hooked = ctypes.windll.user32.SetWindowsHookExA(13, self.pointer,
+                                                             ctypes.windll.kernel32.GetModuleHandleW(None), 0)
         if not self.hooked:
             return False
         return True
@@ -1676,8 +1522,7 @@ class WindowsKeyboardListener(BaseListener):
 
         events = []
         # Add key event
-        scan_key, key_event = self.emulate_press(
-            vk_code, scan_code, value, self.timeval)
+        scan_key, key_event = self.emulate_press(vk_code, scan_code, value, self.timeval)
         events.append(scan_key)
         events.append(key_event)
 
@@ -1687,8 +1532,7 @@ class WindowsKeyboardListener(BaseListener):
         # We are done
         self.write_to_pipe(events)
 
-        return ctypes.windll.user32.CallNextHookEx(
-            self.hooked, ncode, wparam, lparam)
+        return ctypes.windll.user32.CallNextHookEx(self.hooked, ncode, wparam, lparam)
 
 
 def keyboard_process(pipe):
@@ -1716,22 +1560,15 @@ class WindowsMouseListener(BaseListener):
 
     def get_fptr(self):
         """Get the function pointer."""
-        cmpfunc = ctypes.CFUNCTYPE(ctypes.c_int,
-                                   WPARAM,
-                                   LPARAM,
-                                   ctypes.POINTER(MSLLHookStruct))
+        cmpfunc = ctypes.CFUNCTYPE(ctypes.c_int, WPARAM, LPARAM, ctypes.POINTER(MSLLHookStruct))
         return cmpfunc(self.handle_input)
 
     def install_handle_input(self):
         """Install the hook."""
         self.pointer = self.get_fptr()
 
-        self.hooked = ctypes.windll.user32.SetWindowsHookExA(
-            14,
-            self.pointer,
-            ctypes.windll.kernel32.GetModuleHandleW(None),
-            0
-        )
+        self.hooked = ctypes.windll.user32.SetWindowsHookExA(14, self.pointer,
+                                                             ctypes.windll.kernel32.GetModuleHandleW(None), 0)
         if not self.hooked:
             return False
         return True
@@ -1763,8 +1600,7 @@ class WindowsMouseListener(BaseListener):
 
         # Give back control to Windows to wait for and process the
         # next event
-        return ctypes.windll.user32.CallNextHookEx(
-            self.hooked, ncode, wparam, lparam)
+        return ctypes.windll.user32.CallNextHookEx(self.hooked, ncode, wparam, lparam)
 
     def emulate_mouse(self, key_code, x_val, y_val, data):
         """Emulate the ev codes using the data Windows has given us.
@@ -1821,8 +1657,7 @@ class WindowsMouseListener(BaseListener):
             # Get the mouse codes
             code, value, scan_code = self.mouse_codes[key_code]
             # Add in the press events
-            scan_event, key_event = self.emulate_press(
-                code, scan_code, value, self.timeval)
+            scan_event, key_event = self.emulate_press(code, scan_code, value, self.timeval)
             events.append(scan_event)
             events.append(key_event)
 
@@ -1847,9 +1682,7 @@ def mouse_process(pipe):
 class QuartzMouseBaseListener(BaseListener):
     """Emulate evdev mouse behaviour on mac."""
     def __init__(self, pipe):
-        super(QuartzMouseBaseListener, self).__init__(
-            pipe,
-            codes=dict(MAC_EVENT_CODES))
+        super(QuartzMouseBaseListener, self).__init__(pipe, codes=dict(MAC_EVENT_CODES))
         self.active = True
         self.events = []
 
@@ -1888,8 +1721,7 @@ class QuartzMouseBaseListener(BaseListener):
         # Add buttons to events
         event_type_string, event_code, value, scan = self.codes[event_type]
         if event_type_string == "Key":
-            scan_event, key_event = self.emulate_press(
-                event_code, scan, value, self.timeval)
+            scan_event, key_event = self.emulate_press(event_code, scan, value, self.timeval)
             self.events.append(scan_event)
             self.events.append(key_event)
 
@@ -1905,20 +1737,15 @@ class QuartzMouseBaseListener(BaseListener):
         scroll_x, scroll_y = self._get_scroll(event)
 
         if scroll_x:
-            self.events.append(
-                self.emulate_wheel(scroll_x, 'x', self.timeval))
+            self.events.append(self.emulate_wheel(scroll_x, 'x', self.timeval))
 
         if scroll_y:
-            self.events.append(
-                self.emulate_wheel(scroll_y, 'y', self.timeval))
+            self.events.append(self.emulate_wheel(scroll_y, 'y', self.timeval))
 
     def handle_absolute(self, event):
         """Absolute mouse position on the screen."""
         (x_val, y_val) = self._get_absolute(event)
-        x_event, y_event = self.emulate_abs(
-            int(x_val),
-            int(y_val),
-            self.timeval)
+        x_event, y_event = self.emulate_abs(int(x_val), int(y_val), self.timeval)
         self.events.append(x_event)
         self.events.append(y_event)
 
@@ -1926,15 +1753,9 @@ class QuartzMouseBaseListener(BaseListener):
         """Relative mouse movement."""
         delta_x, delta_y = self._get_relative(event)
         if delta_x:
-            self.events.append(
-                self.emulate_rel(0x00,
-                                 delta_x,
-                                 self.timeval))
+            self.events.append(self.emulate_rel(0x00, delta_x, self.timeval))
         if delta_y:
-            self.events.append(
-                self.emulate_rel(0x01,
-                                 delta_y,
-                                 self.timeval))
+            self.events.append(self.emulate_rel(0x01, delta_y, self.timeval))
 
     # pylint: disable=unused-argument
     def handle_input(self, proxy, event_type, event, refcon):
@@ -1966,6 +1787,7 @@ def quartz_mouse_process(pipe):
     # Quartz only on the mac, so don't warn about Quartz
     # pylint: disable=import-error
     import Quartz
+
     # pylint: disable=no-member
 
     class QuartzMouseListener(QuartzMouseBaseListener):
@@ -1981,63 +1803,44 @@ def quartz_mouse_process(pipe):
             # pylint: disable=invalid-name
 
             NSMachPort = Quartz.CGEventTapCreate(
-                Quartz.kCGSessionEventTap,
-                Quartz.kCGHeadInsertEventTap,
-                Quartz.kCGEventTapOptionDefault,
-                Quartz.CGEventMaskBit(Quartz.kCGEventLeftMouseDown) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventLeftMouseUp) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventRightMouseDown) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventRightMouseUp) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventMouseMoved) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventLeftMouseDragged) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventRightMouseDragged) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventScrollWheel) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventTabletPointer) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventTabletProximity) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventOtherMouseDown) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventOtherMouseUp) |
-                Quartz.CGEventMaskBit(Quartz.kCGEventOtherMouseDragged),
-                self.handle_input,
-                None)
+                Quartz.kCGSessionEventTap, Quartz.kCGHeadInsertEventTap, Quartz.kCGEventTapOptionDefault,
+                Quartz.CGEventMaskBit(Quartz.kCGEventLeftMouseDown) | Quartz.CGEventMaskBit(Quartz.kCGEventLeftMouseUp)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventRightMouseDown)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventRightMouseUp) | Quartz.CGEventMaskBit(Quartz.kCGEventMouseMoved)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventLeftMouseDragged)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventRightMouseDragged)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventScrollWheel)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventTabletPointer)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventTabletProximity)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventOtherMouseDown)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventOtherMouseUp)
+                | Quartz.CGEventMaskBit(Quartz.kCGEventOtherMouseDragged), self.handle_input, None)
 
-            CFRunLoopSourceRef = Quartz.CFMachPortCreateRunLoopSource(
-                None,
-                NSMachPort,
-                0)
+            CFRunLoopSourceRef = Quartz.CFMachPortCreateRunLoopSource(None, NSMachPort, 0)
             CFRunLoopRef = Quartz.CFRunLoopGetCurrent()
-            Quartz.CFRunLoopAddSource(
-                CFRunLoopRef,
-                CFRunLoopSourceRef,
-                Quartz.kCFRunLoopDefaultMode)
-            Quartz.CGEventTapEnable(
-                NSMachPort,
-                True)
+            Quartz.CFRunLoopAddSource(CFRunLoopRef, CFRunLoopSourceRef, Quartz.kCFRunLoopDefaultMode)
+            Quartz.CGEventTapEnable(NSMachPort, True)
 
         def listen(self):
             """Listen for quartz events."""
             while self.active:
-                Quartz.CFRunLoopRunInMode(
-                    Quartz.kCFRunLoopDefaultMode, 5, False)
+                Quartz.CFRunLoopRunInMode(Quartz.kCFRunLoopDefaultMode, 5, False)
 
         def uninstall_handle_input(self):
             self.active = False
 
         def _get_mouse_button_number(self, event):
             """Get the mouse button number from an event."""
-            return Quartz.CGEventGetIntegerValueField(
-                event, Quartz.kCGMouseEventButtonNumber)
+            return Quartz.CGEventGetIntegerValueField(event, Quartz.kCGMouseEventButtonNumber)
 
         def _get_click_state(self, event):
             """The click state from an event."""
-            return Quartz.CGEventGetIntegerValueField(
-                event, Quartz.kCGMouseEventClickState)
+            return Quartz.CGEventGetIntegerValueField(event, Quartz.kCGMouseEventClickState)
 
         def _get_scroll(self, event):
             """The scroll values from an event."""
-            scroll_y = Quartz.CGEventGetIntegerValueField(
-                event, Quartz.kCGScrollWheelEventDeltaAxis1)
-            scroll_x = Quartz.CGEventGetIntegerValueField(
-                event, Quartz.kCGScrollWheelEventDeltaAxis2)
+            scroll_y = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGScrollWheelEventDeltaAxis1)
+            scroll_x = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGScrollWheelEventDeltaAxis2)
             return scroll_x, scroll_y
 
         def _get_absolute(self, event):
@@ -2046,10 +1849,8 @@ def quartz_mouse_process(pipe):
 
         def _get_relative(self, event):
             """Get the relative mouse movement."""
-            delta_x = Quartz.CGEventGetIntegerValueField(
-                event, Quartz.kCGMouseEventDeltaX)
-            delta_y = Quartz.CGEventGetIntegerValueField(
-                event, Quartz.kCGMouseEventDeltaY)
+            delta_x = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGMouseEventDeltaX)
+            delta_y = Quartz.CGEventGetIntegerValueField(event, Quartz.kCGMouseEventDeltaY)
             return delta_x, delta_y
 
     mouse = QuartzMouseListener(pipe)
@@ -2059,8 +1860,7 @@ def quartz_mouse_process(pipe):
 class AppKitMouseBaseListener(BaseListener):
     """Emulate evdev behaviour on the the Mac."""
     def __init__(self, pipe, events=None):
-        super(AppKitMouseBaseListener, self).__init__(
-            pipe, events, codes=dict(MAC_EVENT_CODES))
+        super(AppKitMouseBaseListener, self).__init__(pipe, events, codes=dict(MAC_EVENT_CODES))
 
     @staticmethod
     def _get_mouse_button_number(event):
@@ -2094,8 +1894,7 @@ class AppKitMouseBaseListener(BaseListener):
         # Add buttons to events
         event_type_name, event_code, value, scan = self.codes[event_type]
         if event_type_name == "Key":
-            scan_event, key_event = self.emulate_press(
-                event_code, scan, value, self.timeval)
+            scan_event, key_event = self.emulate_press(event_code, scan, value, self.timeval)
             self.events.append(scan_event)
             self.events.append(key_event)
 
@@ -2112,33 +1911,21 @@ class AppKitMouseBaseListener(BaseListener):
         """Make endev from appkit scroll wheel event."""
         delta_x, delta_y, delta_z = self._get_deltas(event)
         if delta_x:
-            self.events.append(
-                self.emulate_wheel(delta_x, 'x', self.timeval))
+            self.events.append(self.emulate_wheel(delta_x, 'x', self.timeval))
         if delta_y:
-            self.events.append(
-                self.emulate_wheel(delta_y, 'y', self.timeval))
+            self.events.append(self.emulate_wheel(delta_y, 'y', self.timeval))
         if delta_z:
-            self.events.append(
-                self.emulate_wheel(delta_z, 'z', self.timeval))
+            self.events.append(self.emulate_wheel(delta_z, 'z', self.timeval))
 
     def handle_relative(self, event):
         """Get the position of the mouse on the screen."""
         delta_x, delta_y, delta_z = self._get_deltas(event)
         if delta_x:
-            self.events.append(
-                self.emulate_rel(0x00,
-                                 delta_x,
-                                 self.timeval))
+            self.events.append(self.emulate_rel(0x00, delta_x, self.timeval))
         if delta_y:
-            self.events.append(
-                self.emulate_rel(0x01,
-                                 delta_y,
-                                 self.timeval))
+            self.events.append(self.emulate_rel(0x01, delta_y, self.timeval))
         if delta_z:
-            self.events.append(
-                self.emulate_rel(0x02,
-                                 delta_z,
-                                 self.timeval))
+            self.events.append(self.emulate_rel(0x02, delta_z, self.timeval))
 
     def handle_input(self, event):
         """Process the mouse event."""
@@ -2177,13 +1964,9 @@ def appkit_mouse_process(pipe):
     # pylint: disable=no-member, no-name-in-module
     from Foundation import NSObject
     from AppKit import NSApplication, NSApp
-    from Cocoa import (NSEvent, NSLeftMouseDownMask,
-                       NSLeftMouseUpMask, NSRightMouseDownMask,
-                       NSRightMouseUpMask, NSMouseMovedMask,
-                       NSLeftMouseDraggedMask,
-                       NSRightMouseDraggedMask, NSMouseEnteredMask,
-                       NSMouseExitedMask, NSScrollWheelMask,
-                       NSOtherMouseDownMask, NSOtherMouseUpMask)
+    from Cocoa import (NSEvent, NSLeftMouseDownMask, NSLeftMouseUpMask, NSRightMouseDownMask, NSRightMouseUpMask,
+                       NSMouseMovedMask, NSLeftMouseDraggedMask, NSRightMouseDraggedMask, NSMouseEnteredMask,
+                       NSMouseExitedMask, NSScrollWheelMask, NSOtherMouseDownMask, NSOtherMouseUpMask)
     from PyObjCTools import AppHelper
     import objc
 
@@ -2208,14 +1991,10 @@ def appkit_mouse_process(pipe):
         def applicationDidFinishLaunching_(self, notification):
             """Bind the listen method as the handler for mouse events."""
 
-            mask = (NSLeftMouseDownMask | NSLeftMouseUpMask |
-                    NSRightMouseDownMask | NSRightMouseUpMask |
-                    NSMouseMovedMask | NSLeftMouseDraggedMask |
-                    NSRightMouseDraggedMask | NSScrollWheelMask |
-                    NSMouseEnteredMask | NSMouseExitedMask |
-                    NSOtherMouseDownMask | NSOtherMouseUpMask)
-            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(
-                mask, self.handler)
+            mask = (NSLeftMouseDownMask | NSLeftMouseUpMask | NSRightMouseDownMask | NSRightMouseUpMask
+                    | NSMouseMovedMask | NSLeftMouseDraggedMask | NSRightMouseDraggedMask | NSScrollWheelMask
+                    | NSMouseEnteredMask | NSMouseExitedMask | NSOtherMouseDownMask | NSOtherMouseUpMask)
+            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask, self.handler)
 
     class MacMouseListener(AppKitMouseBaseListener):
         """Loosely emulate Evdev mouse behaviour on the Macs.
@@ -2225,8 +2004,7 @@ def appkit_mouse_process(pipe):
             """Install the hook."""
             self.app = NSApplication.sharedApplication()
             # pylint: disable=no-member
-            delegate = MacMouseSetup.alloc().init_with_handler(
-                self.handle_input)
+            delegate = MacMouseSetup.alloc().init_with_handler(self.handle_input)
             NSApp().setDelegate_(delegate)
             AppHelper.runEventLoop()
 
@@ -2241,8 +2019,7 @@ def appkit_mouse_process(pipe):
 class AppKitKeyboardListener(BaseListener):
     """Emulate an evdev keyboard on the Mac."""
     def __init__(self, pipe):
-        super(AppKitKeyboardListener, self).__init__(
-            pipe, codes=dict(MAC_KEYS))
+        super(AppKitKeyboardListener, self).__init__(pipe, codes=dict(MAC_KEYS))
 
     @staticmethod
     def _get_event_key_code(event):
@@ -2289,8 +2066,7 @@ class AppKitKeyboardListener(BaseListener):
             new_code = 0
         event_type = self._get_event_type(event)
         value = self._get_key_value(event, event_type)
-        scan_event, key_event = self.emulate_press(
-            new_code, code, value, self.timeval)
+        scan_event, key_event = self.emulate_press(new_code, code, value, self.timeval)
 
         self.events.append(scan_event)
         self.events.append(key_event)
@@ -2310,14 +2086,12 @@ def mac_keyboard_process(pipe):
     # pylint: disable=no-member, no-name-in-module
     from AppKit import NSApplication, NSApp
     from Foundation import NSObject
-    from Cocoa import (NSEvent, NSKeyDownMask, NSKeyUpMask,
-                       NSFlagsChangedMask)
+    from Cocoa import (NSEvent, NSKeyDownMask, NSKeyUpMask, NSFlagsChangedMask)
     from PyObjCTools import AppHelper
     import objc
 
     class MacKeyboardSetup(NSObject):
         """Setup the handler."""
-
         @objc.python_method
         def init_with_handler(self, handler):
             """
@@ -2340,8 +2114,7 @@ def mac_keyboard_process(pipe):
         def applicationDidFinishLaunching_(self, notification):
             """Bind the handler to listen to keyboard events."""
             mask = NSKeyDownMask | NSKeyUpMask | NSFlagsChangedMask
-            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(
-                mask, self.handler)
+            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask, self.handler)
 
     class MacKeyboardListener(AppKitKeyboardListener):
         """Loosely emulate Evdev keyboard behaviour on the Mac.
@@ -2351,8 +2124,7 @@ def mac_keyboard_process(pipe):
             """Install the hook."""
             self.app = NSApplication.sharedApplication()
             # pylint: disable=no-member
-            delegate = MacKeyboardSetup.alloc().init_with_handler(
-                self.handle_input)
+            delegate = MacKeyboardSetup.alloc().init_with_handler(self.handle_input)
             NSApp().setDelegate_(delegate)
             AppHelper.runEventLoop()
 
@@ -2366,11 +2138,9 @@ def mac_keyboard_process(pipe):
 
 class InputDevice(object):  # pylint: disable=useless-object-inheritance
     """A user input device."""
+
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, manager,
-                 device_path=None,
-                 char_path_override=None,
-                 read_size=1):
+    def __init__(self, manager, device_path=None, char_path_override=None, read_size=1):
         self.read_size = read_size
         self.manager = manager
         self.__pipe = None
@@ -2413,8 +2183,7 @@ class InputDevice(object):  # pylint: disable=useless-object-inheritance
 
     def _set_name(self):
         if NIX:
-            with open("/sys/class/input/%s/device/name" %
-                      self.get_char_name()) as name_file:
+            with open("/sys/class/input/%s/device/name" % self.get_char_name()) as name_file:
                 self.name = name_file.read().strip()
             self.leds = []
 
@@ -2440,10 +2209,7 @@ class InputDevice(object):  # pylint: disable=useless-object-inheritance
             return "Unknown Device"
 
     def __repr__(self):
-        return '%s.%s("%s")' % (
-            self.__module__,
-            self.__class__.__name__,
-            self._device_path)
+        return '%s.%s("%s")' % (self.__module__, self.__class__.__name__, self._device_path)
 
     @property
     def _character_device(self):
@@ -2452,8 +2218,7 @@ class InputDevice(object):  # pylint: disable=useless-object-inheritance
                 self._character_file = io.BytesIO()
                 return self._character_file
             try:
-                self._character_file = io.open(
-                    self._character_device_path, 'rb')
+                self._character_file = io.open(self._character_device_path, 'rb')
             except PermissionError:
                 # Python 3
                 raise PermissionError(PERMISSIONS_ERROR_TEXT)
@@ -2528,8 +2293,7 @@ class InputDevice(object):  # pylint: disable=useless-object-inheritance
                 return None
 
             self.__pipe, child_conn = Pipe(duplex=False)
-            self._listener = Process(target=target_function,
-                                     args=(child_conn,))
+            self._listener = Process(target=target_function, args=(child_conn, ))
             self._listener.start()
         return self.__pipe
 
@@ -2577,7 +2341,6 @@ class Keyboard(InputDevice):
 class Mouse(InputDevice):
     """A mouse or other pointing-like device.
     """
-
     def _set_device_path(self):
         super(Mouse, self)._set_device_path()
         if MAC:
@@ -2608,7 +2371,6 @@ class Mouse(InputDevice):
 
 class MightyMouse(Mouse):
     """A mouse or other pointing device on the Mac."""
-
     def _set_device_path(self):
         super(MightyMouse, self)._set_device_path()
         if MAC:
@@ -2627,10 +2389,9 @@ def delay_and_stop(duration, dll, device_number):
     """Stop vibration aka force feedback aka rumble on
     Windows after duration miliseconds."""
     xinput = getattr(ctypes.windll, dll)
-    time.sleep(duration/1000)
+    time.sleep(duration / 1000)
     xinput_set_state = xinput.XInputSetState
-    xinput_set_state.argtypes = [
-        ctypes.c_uint, ctypes.POINTER(XinputVibration)]
+    xinput_set_state.argtypes = [ctypes.c_uint, ctypes.POINTER(XinputVibration)]
     xinput_set_state.restype = ctypes.c_uint
     vibration = XinputVibration(0, 0)
     xinput_set_state(device_number, ctypes.byref(vibration))
@@ -2643,11 +2404,8 @@ def delay_and_stop(duration, dll, device_number):
 
 class GamePad(InputDevice):
     """A gamepad or other joystick-like device."""
-    def __init__(self, manager, device_path,
-                 char_path_override=None):
-        super(GamePad, self).__init__(manager,
-                                      device_path,
-                                      char_path_override)
+    def __init__(self, manager, device_path, char_path_override=None):
+        super(GamePad, self).__init__(manager, device_path, char_path_override)
         self._write_file = None
         self.__device_number = None
         if WIN:
@@ -2685,12 +2443,12 @@ class GamePad(InputDevice):
                 self.__check_state()
             event = self._do_iter()
             yield event
+
     def __check_state(self):
         """On Windows, check the state and fill the event character device."""
         state = self.__read_device()
         if not state:
-            raise UnpluggedError(
-                "Gamepad %d is not connected" % self.__device_number)
+            raise UnpluggedError("Gamepad %d is not connected" % self.__device_number)
         if state.packet_number != self.__last_state.packet_number:
             # state has changed, handle the change
             self.__handle_changed_state(state)
@@ -2701,25 +2459,15 @@ class GamePad(InputDevice):
         """Get the time and make it into C style timeval."""
         return convert_timeval(time.time())
 
-    def create_event_object(self,
-                            event_type,
-                            code,
-                            value,
-                            timeval=None):
+    def create_event_object(self, event_type, code, value, timeval=None):
         """Create an evdev style object."""
         if not timeval:
             timeval = self.__get_timeval()
         try:
             event_code = self.manager.codes['type_codes'][event_type]
         except KeyError:
-            raise UnknownEventType(
-                "We don't know what kind of event a %s is." % event_type)
-        event = struct.pack(EVENT_FORMAT,
-                            timeval[0],
-                            timeval[1],
-                            event_code,
-                            code,
-                            value)
+            raise UnknownEventType("We don't know what kind of event a %s is." % event_type)
+        event = struct.pack(EVENT_FORMAT, timeval[0], timeval[1], event_code, code, value)
         return event
 
     def __write_to_character_device(self, event_list, timeval=None):
@@ -2796,11 +2544,7 @@ class GamePad(InputDevice):
         events = []
         for axis in axis_changes:
             code, value = self.__map_axis(axis)
-            event = self.create_event_object(
-                "Absolute",
-                code,
-                value,
-                timeval=timeval)
+            event = self.create_event_object("Absolute", code, value, timeval=timeval)
             events.append(event)
         return events
 
@@ -2809,11 +2553,7 @@ class GamePad(InputDevice):
         events = []
         for button in changed_buttons:
             code, value, ev_type = self.__map_button(button)
-            event = self.create_event_object(
-                ev_type,
-                code,
-                value,
-                timeval=timeval)
+            event = self.create_event_object(ev_type, code, value, timeval=timeval)
             events.append(event)
         return events
 
@@ -2861,9 +2601,7 @@ class GamePad(InputDevice):
         changed.reverse()
         buttons_state.reverse()
         button_numbers = count(1)
-        changed_buttons = list(
-            filter(itemgetter(0),
-                   list(zip(changed, button_numbers, buttons_state))))
+        changed_buttons = list(filter(itemgetter(0), list(zip(changed, button_numbers, buttons_state))))
         # returns for example [(1,15,1)] type, code, value?
         return changed_buttons
 
@@ -2888,14 +2626,11 @@ class GamePad(InputDevice):
     def __read_device(self):
         """Read the state of the gamepad."""
         state = XinputState()
-        res = self.manager.xinput.XInputGetState(
-            self.__device_number, ctypes.byref(state))
+        res = self.manager.xinput.XInputGetState(self.__device_number, ctypes.byref(state))
         if res == XINPUT_ERROR_SUCCESS:
             return state
         if res != XINPUT_ERROR_DEVICE_NOT_CONNECTED:
-            raise RuntimeError(
-                "Unknown error %d attempting to get state of device %d" % (
-                    res, self.__device_number))
+            raise RuntimeError("Unknown error %d attempting to get state of device %d" % (res, self.__device_number))
         # else (device is not connected)
         return None
 
@@ -2905,8 +2640,7 @@ class GamePad(InputDevice):
             if not NIX:
                 return None
             try:
-                self._write_file = io.open(
-                    self._character_device_path, 'wb')
+                self._write_file = io.open(self._character_device_path, 'wb')
             except PermissionError:
                 # Python 3
                 raise PermissionError(PERMISSIONS_ERROR_TEXT)
@@ -2922,18 +2656,15 @@ class GamePad(InputDevice):
     def _start_vibration_win(self, left_motor, right_motor):
         """Start the vibration, which will run until stopped."""
         xinput_set_state = self.manager.xinput.XInputSetState
-        xinput_set_state.argtypes = [
-            ctypes.c_uint, ctypes.POINTER(XinputVibration)]
+        xinput_set_state.argtypes = [ctypes.c_uint, ctypes.POINTER(XinputVibration)]
         xinput_set_state.restype = ctypes.c_uint
-        vibration = XinputVibration(
-            int(left_motor * 65535), int(right_motor * 65535))
+        vibration = XinputVibration(int(left_motor * 65535), int(right_motor * 65535))
         xinput_set_state(self.__device_number, ctypes.byref(vibration))
 
     def _stop_vibration_win(self):
         """Stop the vibration."""
         xinput_set_state = self.manager.xinput.XInputSetState
-        xinput_set_state.argtypes = [
-            ctypes.c_uint, ctypes.POINTER(XinputVibration)]
+        xinput_set_state.argtypes = [ctypes.c_uint, ctypes.POINTER(XinputVibration)]
         xinput_set_state.restype = ctypes.c_uint
         stop_vibration = ctypes.byref(XinputVibration(0, 0))
         xinput_set_state(self.__device_number, stop_vibration)
@@ -2941,22 +2672,13 @@ class GamePad(InputDevice):
     def _set_vibration_win(self, left_motor, right_motor, duration):
         """Control the motors on Windows."""
         self._start_vibration_win(left_motor, right_motor)
-        stop_process = Process(target=delay_and_stop,
-                               args=(duration,
-                                     self.manager.xinput_dll,
-                                     self.__device_number))
+        stop_process = Process(target=delay_and_stop, args=(duration, self.manager.xinput_dll, self.__device_number))
         stop_process.start()
 
     def __get_vibration_code(self, left_motor, right_motor, duration):
         """This is some crazy voodoo, if you can simplify it, please do."""
-        inner_event = struct.pack(
-            '2h6x2h2x2H28x',
-            0x50,
-            -1,
-            duration,
-            0,
-            int(left_motor * 65535),
-            int(right_motor * 65535))
+        inner_event = struct.pack('2h6x2h2x2H28x', 0x50, -1, duration, 0, int(left_motor * 65535),
+                                  int(right_motor * 65535))
         buf_conts = ioctl(self._write_device, 1076905344, inner_event)
         return int(codecs.encode(buf_conts[1:3], 'hex'), 16)
 
@@ -3007,10 +2729,7 @@ class LED(object):  # pylint: disable=useless-object-inheritance
         return self.name
 
     def __repr__(self):
-        return '%s.%s("%s")' % (
-            self.__module__,
-            self.__class__.__name__,
-            self.path)
+        return '%s.%s("%s")' % (self.__module__, self.__class__.__name__, self.path)
 
     def status(self):
         """Get the device status, i.e. the brightness level."""
@@ -3043,8 +2762,7 @@ class LED(object):  # pylint: disable=useless-object-inheritance
             if not NIX:
                 return None
             try:
-                self._write_file = io.open(
-                    self._character_device_path, 'wb')
+                self._write_file = io.open(self._character_device_path, 'wb')
             except PermissionError:
                 # Python 3
                 raise PermissionError(PERMISSIONS_ERROR_TEXT)
@@ -3060,12 +2778,7 @@ class LED(object):  # pylint: disable=useless-object-inheritance
     def _make_event(self, event_type, code, value):
         """Make a new event and send it to the character device."""
         secs, msecs = convert_timeval(time.time())
-        data = struct.pack(EVENT_FORMAT,
-                           secs,
-                           msecs,
-                           event_type,
-                           code,
-                           value)
+        data = struct.pack(EVENT_FORMAT, secs, msecs, event_type, code, value)
         self._write_device.write(data)
         self._write_device.flush()
 
@@ -3105,17 +2818,13 @@ class SystemLED(LED):
 
     def _make_event(self, value):  # pylint: disable=arguments-differ
         """Make a new event and send it to the character device."""
-        super(SystemLED, self)._make_event(
-            self._led_type_code,
-            self.code,
-            value)
+        super(SystemLED, self)._make_event(self._led_type_code, self.code, value)
 
     def _match_device(self):
         """If the LED is connected to an input device,
         associate the objects."""
         for device in self.manager.all_devices:
-            if (device.get_char_device_path() ==
-                    self._character_device_path):
+            if (device.get_char_device_path() == self._character_device_path):
                 self.device = device
                 device.leds.append(self)
                 break
@@ -3152,15 +2861,13 @@ class RawInputDeviceList(ctypes.Structure):
     ms645568(v=vs.85).aspx
     """
     # pylint: disable=too-few-public-methods
-    _fields_ = [
-        ("hDevice", HANDLE),
-        ("dwType", DWORD)
-    ]
+    _fields_ = [("hDevice", HANDLE), ("dwType", DWORD)]
 
 
 class DeviceManager(object):  # pylint: disable=useless-object-inheritance
     """Provides access to all connected and detectible user input
     devices."""
+
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self):
@@ -3176,12 +2883,7 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
         self.xinput = None
         self.xinput_dll = None
         if WIN:
-            self._raw_device_counts = {
-                'mice': 0,
-                'keyboards': 0,
-                'otherhid': 0,
-                'unknown': 0
-            }
+            self._raw_device_counts = {'mice': 0, 'keyboards': 0, 'otherhid': 0, 'unknown': 0}
         self._post_init()
 
     def _post_init(self):
@@ -3211,8 +2913,7 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
         try:
             device_type = device_path.rsplit('-', 1)[1]
         except IndexError:
-            warn("The following device path was skipped as it could "
-                 "not be parsed: %s" % device_path, RuntimeWarning)
+            warn("The following device path was skipped as it could " "not be parsed: %s" % device_path, RuntimeWarning)
             return
 
         # 2. Make sure each device is only added once.
@@ -3223,19 +2924,13 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
 
         # 3. All seems good, append the device to the relevant list.
         if device_type == 'kbd':
-            self.keyboards.append(Keyboard(self, device_path,
-                                           char_path_override))
+            self.keyboards.append(Keyboard(self, device_path, char_path_override))
         elif device_type == 'mouse':
-            self.mice.append(Mouse(self, device_path,
-                                   char_path_override))
+            self.mice.append(Mouse(self, device_path, char_path_override))
         elif device_type == 'joystick':
-            self.gamepads.append(GamePad(self,
-                                         device_path,
-                                         char_path_override))
+            self.gamepads.append(GamePad(self, device_path, char_path_override))
         else:
-            self.other_devices.append(OtherDevice(self,
-                                                  device_path,
-                                                  char_path_override))
+            self.other_devices.append(OtherDevice(self, device_path, char_path_override))
 
     def _find_xinput(self):
         """Find most recent xinput library."""
@@ -3250,9 +2945,7 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
                 break
         else:
             # We didn't find an xinput library
-            warn(
-                "No xinput driver dll found, gamepads not supported.",
-                RuntimeWarning)
+            warn("No xinput driver dll found, gamepads not supported.", RuntimeWarning)
 
     def _find_devices_win(self):
         """Find devices on Windows."""
@@ -3260,14 +2953,10 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
         self._detect_gamepads()
         self._count_devices()
         if self._raw_device_counts['keyboards'] > 0:
-            self.keyboards.append(Keyboard(
-                self,
-                "/dev/input/by-id/usb-A_Nice_Keyboard-event-kbd"))
+            self.keyboards.append(Keyboard(self, "/dev/input/by-id/usb-A_Nice_Keyboard-event-kbd"))
 
         if self._raw_device_counts['mice'] > 0:
-            self.mice.append(Mouse(
-                self,
-                "/dev/input/by-id/usb-A_Nice_Mouse_called_Arthur-event-mouse"))
+            self.mice.append(Mouse(self, "/dev/input/by-id/usb-A_Nice_Mouse_called_Arthur-event-mouse"))
 
     def _find_devices_mac(self):
         """Find devices on Mac."""
@@ -3280,20 +2969,15 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
         state = XinputState()
         # Windows allows up to 4 gamepads.
         for device_number in range(4):
-            res = self.xinput.XInputGetState(
-                device_number, ctypes.byref(state))
+            res = self.xinput.XInputGetState(device_number, ctypes.byref(state))
             if res == XINPUT_ERROR_SUCCESS:
                 # We found a gamepad
-                device_path = (
-                    "/dev/input/by_id/" +
-                    "usb-Microsoft_Corporation_Controller_%s-event-joystick"
-                    % device_number)
+                device_path = ("/dev/input/by_id/" +
+                               "usb-Microsoft_Corporation_Controller_%s-event-joystick" % device_number)
                 self.gamepads.append(GamePad(self, device_path))
                 continue
             if res != XINPUT_ERROR_DEVICE_NOT_CONNECTED:
-                raise RuntimeError(
-                    "Unknown error %d attempting to get state of device %d"
-                    % (res, device_number))
+                raise RuntimeError("Unknown error %d attempting to get state of device %d" % (res, device_number))
 
     def _count_devices(self):
         """See what Windows' GetRawInputDeviceList wants to tell us.
@@ -3309,23 +2993,20 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
         number_of_devices = ctypes.c_uint()
 
         if ctypes.windll.user32.GetRawInputDeviceList(
-                ctypes.POINTER(ctypes.c_int)(),
-                ctypes.byref(number_of_devices),
+                ctypes.POINTER(ctypes.c_int)(), ctypes.byref(number_of_devices),
                 ctypes.sizeof(RawInputDeviceList)) == -1:
-            warn("Call to GetRawInputDeviceList was unsuccessful."
-                 "We have no idea if a mouse or keyboard is attached.",
-                 RuntimeWarning)
+            warn(
+                "Call to GetRawInputDeviceList was unsuccessful."
+                "We have no idea if a mouse or keyboard is attached.", RuntimeWarning)
             return
 
         devices_found = (RawInputDeviceList * number_of_devices.value)()
 
-        if ctypes.windll.user32.GetRawInputDeviceList(
-                devices_found,
-                ctypes.byref(number_of_devices),
-                ctypes.sizeof(RawInputDeviceList)) == -1:
-            warn("Call to GetRawInputDeviceList was unsuccessful."
-                 "We have no idea if a mouse or keyboard is attached.",
-                 RuntimeWarning)
+        if ctypes.windll.user32.GetRawInputDeviceList(devices_found, ctypes.byref(number_of_devices),
+                                                      ctypes.sizeof(RawInputDeviceList)) == -1:
+            warn(
+                "Call to GetRawInputDeviceList was unsuccessful."
+                "We have no idea if a mouse or keyboard is attached.", RuntimeWarning)
             return
 
         for device in devices_found:
@@ -3366,8 +3047,7 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
 
     def _get_char_names(self):
         """Get a list of already found devices."""
-        return [device.get_char_name() for
-                device in self.all_devices]
+        return [device.get_char_name() for device in self.all_devices]
 
     def _find_special(self):
         """Look for special devices."""
@@ -3380,9 +3060,7 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
             with open(name_file) as name_file:
                 device_name = name_file.read().strip()
                 if device_name in self.codes['specials']:
-                    self._parse_device_path(
-                        self.codes['specials'][device_name],
-                        os.path.join('/dev/input', char_name))
+                    self._parse_device_path(self.codes['specials'][device_name], os.path.join('/dev/input', char_name))
 
     def __iter__(self):
         return iter(self.all_devices)
@@ -3425,32 +3103,45 @@ class DeviceManager(object):  # pylint: disable=useless-object-inheritance
             warn(
                 "The microbit library could not be found in the pythonpath. \n"
                 "For more information, please visit \n"
-                "https://inputs.readthedocs.io/en/latest/user/microbit.html",
-                RuntimeWarning)
+                "https://inputs.readthedocs.io/en/latest/user/microbit.html", RuntimeWarning)
         else:
             self.microbits.append(gpad)
             self.gamepads.append(gpad)
 
 
 SPIN_UP_MOTOR = (
-    '00000', '00001', '00011', '00111', '01111', '11111', '01111', '00011',
-    '00001', '00000', '00001', '00011', '00111', '01111', '11111', '00000',
-    '11111', '00000', '11111', '00000',
+    '00000',
+    '00001',
+    '00011',
+    '00111',
+    '01111',
+    '11111',
+    '01111',
+    '00011',
+    '00001',
+    '00000',
+    '00001',
+    '00011',
+    '00111',
+    '01111',
+    '11111',
+    '00000',
+    '11111',
+    '00000',
+    '11111',
+    '00000',
 )
 
 
 class MicroBitPad(GamePad):
     """A BBC Micro:bit flashed with bitio."""
-    def __init__(self, manager, device_path=None,
-                 char_path_override=None):
+    def __init__(self, manager, device_path=None, char_path_override=None):
         if not device_path:
             device_path = '/dev/input/by-id/dialup-BBC_MicroBit-event-joystick'
             if not char_path_override:
                 char_path_override = '/dev/input/microbit0'
 
-        super(MicroBitPad, self).__init__(manager,
-                                          device_path,
-                                          char_path_override)
+        super(MicroBitPad, self).__init__(manager, device_path, char_path_override)
 
         # pylint: disable=no-member,import-error
         import microbit
@@ -3492,9 +3183,10 @@ class MicroBitPad(GamePad):
         """Watch us wreck the mike!
         PSYCHE!"""
         # pylint: disable=no-member
-        return [self.microbit.Image(':'.join(
-            [rumble if char == '1' else '00500'
-             for char in code])) for code in SPIN_UP_MOTOR]
+        return [
+            self.microbit.Image(':'.join([rumble if char == '1' else '00500' for char in code]))
+            for code in SPIN_UP_MOTOR
+        ]
 
     def _full_speed_rumble(self, images, duration):
         """Simulate the motors running at full."""
@@ -3526,11 +3218,11 @@ class MicroBitPad(GamePad):
         0 (off) or 1 (full).
         duration is miliseconds, e.g. 1000 for a second."""
         if left_motor and right_motor:
-            return self._spin_up(self.double_rumble, duration/1000)
+            return self._spin_up(self.double_rumble, duration / 1000)
         if left_motor:
-            return self._spin_up(self.left_rumble, duration/1000)
+            return self._spin_up(self.left_rumble, duration / 1000)
         if right_motor:
-            return self._spin_up(self.right_rumble, duration/1000)
+            return self._spin_up(self.right_rumble, duration / 1000)
         return -1
 
 
@@ -3543,7 +3235,6 @@ def microbit_process(pipe):
 class MicroBitListener(BaseListener):
     """Tracks the current state and sends changes to the MicroBitPad
     device class."""
-
     def __init__(self, pipe):
         super(MicroBitListener, self).__init__(pipe)
         self.active = True
@@ -3575,11 +3266,7 @@ class MicroBitListener(BaseListener):
     def handle_new_events(self, events):
         """Add each new events to the event queue."""
         for event in events:
-            self.events.append(
-                self.create_event_object(
-                    event[0],
-                    event[1],
-                    int(event[2])))
+            self.events.append(self.create_event_object(event[0], event[1], int(event[2])))
 
     def handle_abs(self):
         """Gets the state as the raw abolute numbers."""

@@ -13,5 +13,6 @@ def main():
             for event in events:
                 print(event.ev_type, event.code, event.state)
 
+
 if __name__ == "__main__":
     main()

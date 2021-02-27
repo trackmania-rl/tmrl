@@ -15,7 +15,6 @@ RAW = ""
 # Mocking adds an argument, whether we need it or not.
 # pylint: disable=unused-argument
 
-
 PATH = '/sys/class/leds/input99::capslock'
 NAME = 'input99::capslock'
 CHARFILE = 'MY_CHARACTER_FILE'
@@ -138,11 +137,7 @@ SLED_REAL_PATH = '/sys/devices/platform/i8042/serio0/input/input99'
 SLED_WRONG_PATH = '/something/else/entirely'
 SLED_WRONG_NAME = 'fish'
 
-CODES_DICT = {
-    'LED_type_codes': {
-        'capslock': 1
-    }
-}
+CODES_DICT = {'LED_type_codes': {'capslock': 1}}
 
 
 def setup_mock_manager():
@@ -176,9 +171,7 @@ class SystemLEDTestCase(TestCase):
 
     @mock.patch('os.path.realpath', return_value=SLED_REAL_PATH)
     @mock.patch.object(inputs.SystemLED, '_match_device')
-    def test_post_init(self,
-                       mock_match_device,
-                       mock_realpath):
+    def test_post_init(self, mock_match_device, mock_realpath):
         """SystemLED._post_init sets the device path and chardev path."""
         manager = setup_mock_manager()
         led = inputs.SystemLED(manager, SLED_PATH, SLED_NAME)
@@ -201,9 +194,7 @@ class SystemLEDTestCase(TestCase):
 
     @mock.patch('os.path.realpath', return_value=SLED_WRONG_PATH)
     @mock.patch.object(inputs.SystemLED, '_match_device')
-    def test_post_init_non_sled_path(self,
-                                     mock_match_device,
-                                     mock_realpath):
+    def test_post_init_non_sled_path(self, mock_match_device, mock_realpath):
         """SystemLED._post_init copes with invalid path/name arguments."""
         manager = setup_mock_manager()
         led = inputs.SystemLED(manager, SLED_WRONG_PATH, SLED_WRONG_NAME)

@@ -5,7 +5,6 @@ import platform
 
 import inputs
 
-
 try:
     from setuptools import setup
 except ImportError:
@@ -66,6 +65,5 @@ if SETUPTOOLS:
     KWARGS['tests_require'] = TESTS_REQUIRE
     KWARGS['test_suite'] = 'tests'
     KWARGS['install_requires'] = INSTALL_REQUIRES
-
 
 setup(**KWARGS)

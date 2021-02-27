@@ -1,4 +1,3 @@
-
 import gym
 from gym import spaces
 import random
@@ -14,8 +13,7 @@ def check_environment():
 
     sct = mss.mss()
     monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
-    lidar = Lidar(monitor=monitor,
-                  road_point=(440, 479))
+    lidar = Lidar(monitor=monitor, road_point=(440, 479))
     env_config = DEFAULT_CONFIG_DICT
     env_config["interface"] = TM2020InterfaceLidar
     env_config["wait_on_done"] = True

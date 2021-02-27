@@ -16,12 +16,12 @@ class InputEventTestCase(TestCase):
     """Test the InputEvent class."""
     def test_input_event_init(self):
         """Test that the input event sets the required properties."""
-        event = inputs.InputEvent(
-            "Some Device",
-            {'ev_type': 'Key',
-             'state': 0,
-             'timestamp': 1530900876.367757,
-             'code': 'KEY_ENTER'})
+        event = inputs.InputEvent("Some Device", {
+            'ev_type': 'Key',
+            'state': 0,
+            'timestamp': 1530900876.367757,
+            'code': 'KEY_ENTER'
+        })
         self.assertEqual(event.device, 'Some Device')
         self.assertEqual(event.ev_type, 'Key')
         self.assertEqual(event.state, 0)
@@ -100,8 +100,10 @@ class HelpersTestCase(TestCase):
             # pylint: disable=pointless-statement
             inputs.get_gamepad()
 
+
 class ConvertTimevalTestCase(TestCase):
     """Test the easy helper methods."""
+
     # pylint: disable=arguments-differ
     def test_convert_timeval(self):
         """Gives particular seconds and microseconds."""

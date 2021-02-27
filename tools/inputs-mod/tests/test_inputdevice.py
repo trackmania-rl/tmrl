@@ -21,12 +21,9 @@ CHARFILE = 'MY_CHARACTER_FILE'
 
 class InputDeviceTestCase(TestCase):
     """Tests the InputDevice class."""
-
     @mock.patch.object(inputs.InputDevice, '_set_name')
     @mock.patch('os.path.realpath')
-    def test_init(self,
-                  mock_realpath,
-                  mock_set_name):
+    def test_init(self, mock_realpath, mock_set_name):
         """It gets the correct attributes."""
         mock_realpath.side_effect = lambda path: EV_PATH
         manager = mock.MagicMock()
@@ -54,13 +51,10 @@ class InputDeviceTestCase(TestCase):
         del inputs.InputDevice._device_path
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
-    def test_char_path_override(self,
-                                mock_set_name):
+    def test_char_path_override(self, mock_set_name):
         """Overrides char path when given a char path argument."""
         manager = mock.MagicMock()
-        inputdevice = inputs.InputDevice(manager,
-                                         KBD_PATH,
-                                         char_path_override=EV_PATH)
+        inputdevice = inputs.InputDevice(manager, KBD_PATH, char_path_override=EV_PATH)
 
         self.assertEqual(inputdevice._device_path, KBD_PATH)
         self.assertEqual(inputdevice._character_device_path, EV_PATH)
@@ -71,9 +65,7 @@ class InputDeviceTestCase(TestCase):
     def test_str_method(self, mock_set_name):
         """Str method returns the device name, if known."""
         manager = mock.MagicMock()
-        inputdevice = inputs.InputDevice(manager,
-                                         KBD_PATH,
-                                         char_path_override=EV_PATH)
+        inputdevice = inputs.InputDevice(manager, KBD_PATH, char_path_override=EV_PATH)
         self.assertEqual(inputdevice.name, 'Unknown Device')
         self.assertEqual(str(inputdevice), 'Unknown Device')
         inputdevice.name = "Bob"
@@ -86,18 +78,14 @@ class InputDeviceTestCase(TestCase):
     def test_repr_method(self, mock_set_name):
         """repr method returns the device representation."""
         manager = mock.MagicMock()
-        inputdevice = inputs.InputDevice(manager,
-                                         KBD_PATH,
-                                         char_path_override=EV_PATH)
+        inputdevice = inputs.InputDevice(manager, KBD_PATH, char_path_override=EV_PATH)
         self.assertEqual(inputdevice.name, 'Unknown Device')
         self.assertEqual(repr(inputdevice), REPR)
         mock_set_name.assert_called()
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
     @mock.patch('os.path.realpath')
-    def test_get_path_information(self,
-                                  mock_realpath,
-                                  mock_set_name):
+    def test_get_path_information(self, mock_realpath, mock_set_name):
         """It gets the information from the device path."""
         mock_realpath.side_effect = lambda path: EV_PATH
         manager = mock.MagicMock()
@@ -111,9 +99,7 @@ class InputDeviceTestCase(TestCase):
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
     @mock.patch('os.path.realpath')
-    def test_get_char_name(self,
-                           mock_realpath,
-                           mock_set_name):
+    def test_get_char_name(self, mock_realpath, mock_set_name):
         """It gives the short version of the char name."""
         mock_realpath.side_effect = lambda path: EV_PATH
         manager = mock.MagicMock()
@@ -124,35 +110,27 @@ class InputDeviceTestCase(TestCase):
     # Check if this works on non-Linux
     @mock.patch.object(inputs.InputDevice, '_set_name')
     @mock.patch('io.open', return_value=CHARFILE)
-    def test_character_device(self,
-                              mock_io_open,
-                              mock_set_name):
+    def test_character_device(self, mock_io_open, mock_set_name):
         """InputDevice has a character device property."""
         manager = mock.MagicMock()
         inputdevice = inputs.InputDevice(manager, KBD_PATH)
-        self.assertEqual(inputdevice._character_device,
-                         CHARFILE)
+        self.assertEqual(inputdevice._character_device, CHARFILE)
         mock_io_open.assert_called()
         mock_set_name.assert_called()
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
     @mock.patch('io.open', side_effect=PermissionError)
-    def test_character_device_exception(self,
-                                        mock_io_open,
-                                        mock_set_name):
+    def test_character_device_exception(self, mock_io_open, mock_set_name):
         """InputDevice has a character device property."""
         manager = mock.MagicMock()
         inputdevice = inputs.InputDevice(manager, KBD_PATH)
         with self.assertRaises(PermissionError):
-            self.assertEqual(inputdevice._character_device,
-                             CHARFILE)
+            self.assertEqual(inputdevice._character_device, CHARFILE)
         mock_io_open.assert_called()
         mock_set_name.assert_called()
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
-    @mock.patch.object(inputs.InputDevice,
-                       '_do_iter',
-                       return_value='Good Morning')
+    @mock.patch.object(inputs.InputDevice, '_do_iter', return_value='Good Morning')
     def test_iter(self, mock_do_iter, mock_set_name):
         """The __iter__ method yields an event."""
         manager = mock.MagicMock()
@@ -163,8 +141,7 @@ class InputDeviceTestCase(TestCase):
         mock_do_iter.assert_called_once()
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
-    @mock.patch.object(inputs.InputDevice,
-                       '_character_device')
+    @mock.patch.object(inputs.InputDevice, '_character_device')
     def test_get_data(self, mock_character_device, mock_set_name):
         """InputDevice._get_data reads data from the character device."""
         mock_read = mock.MagicMock(return_value='Good Evening')
@@ -218,9 +195,7 @@ class InputDeviceTestCase(TestCase):
         self.assertEqual(size, inputs.EVENT_SIZE)
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
-    @mock.patch.object(inputs.InputDevice,
-                       '_get_data',
-                       return_value=None)
+    @mock.patch.object(inputs.InputDevice, '_get_data', return_value=None)
     def test_do_iter_none(self, mock_get_data, mock_set_name):
         """InputDevice._do_iter returns no events if there is no data."""
         manager = mock.MagicMock()
@@ -233,13 +208,7 @@ class InputDeviceTestCase(TestCase):
     @mock.patch.object(inputs.InputDevice, '_set_name')
     @mock.patch.object(inputs.InputDevice,
                        '_get_data',
-                       return_value=struct.pack(
-                           inputs.EVENT_FORMAT,
-                           1535009424,
-                           612521,
-                           1,
-                           30,
-                           1))
+                       return_value=struct.pack(inputs.EVENT_FORMAT, 1535009424, 612521, 1, 30, 1))
     def test_do_iter(self, mock_get_data, mock_set_name):
         """InputDevice._do_iter returns an event when there is data."""
         manager = mock.MagicMock()
@@ -249,8 +218,7 @@ class InputDeviceTestCase(TestCase):
         mock_get_data.assert_called_once()
         self.assertEqual(len(events), 1)
         event = events[0]
-        self.assertEqual(event.timestamp,
-                         1535009424.612521)
+        self.assertEqual(event.timestamp, 1535009424.612521)
         # State of 1 means the key is down
         self.assertEqual(event.state, 1)
 
@@ -284,8 +252,7 @@ class InputDeviceTestCase(TestCase):
         self.assertEqual(event_4.code, 'KEY_H')
 
     @mock.patch.object(inputs.InputDevice, '_set_name')
-    @mock.patch.object(inputs.InputDevice, '__iter__',
-                       return_value=iter(['Hello', 'Goodbye']))
+    @mock.patch.object(inputs.InputDevice, '__iter__', return_value=iter(['Hello', 'Goodbye']))
     def test_read(self, mock_iter, mock_set_name):
         """Read should just iter the available input events."""
         manager = mock.MagicMock()
