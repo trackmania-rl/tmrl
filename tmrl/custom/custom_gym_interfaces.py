@@ -22,19 +22,17 @@ from tmrl.custom.utils.drone_interface import DroneUDPInterface1
 
 import tmrl.custom.config_constants as cfg
 
-
 # Globals ==============================================================================================================
 
 NB_OBS_FORWARD = 500  # if reward is collected at 100Hz, this allows (and rewards) 5s cuts
 
-
 # Interface for Trackmania 2020 ========================================================================================
+
 
 class TM2020Interface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control Trackmania2020
     """
-
     def __init__(self, img_hist_len=4, gamepad=False):
         """
         Args:
@@ -87,7 +85,7 @@ class TM2020Interface(RealTimeGymInterface):
                     actions.append('b')
                 if control[2] > 0.5:
                     actions.append('r')
-                elif control[2] < - 0.5:
+                elif control[2] < -0.5:
                     actions.append('l')
                 apply_control(actions)
 
@@ -108,9 +106,15 @@ class TM2020Interface(RealTimeGymInterface):
         keyres()
         # time.sleep(0.05)  # must be long enough for image to be refreshed
         data, img = self.grab_data_and_img()
-        speed = np.array([data[0], ], dtype='float32')
-        gear = np.array([data[9], ], dtype='float32')
-        rpm = np.array([data[10], ], dtype='float32')
+        speed = np.array([
+            data[0],
+        ], dtype='float32')
+        gear = np.array([
+            data[9],
+        ], dtype='float32')
+        rpm = np.array([
+            data[10],
+        ], dtype='float32')
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
         imgs = np.array(list(self.img_hist))
@@ -134,9 +138,15 @@ class TM2020Interface(RealTimeGymInterface):
         obs must be a list of numpy arrays
         """
         data, img = self.grab_data_and_img()
-        speed = np.array([data[0], ], dtype='float32')
-        gear = np.array([data[9], ], dtype='float32')
-        rpm = np.array([data[10], ], dtype='float32')
+        speed = np.array([
+            data[0],
+        ], dtype='float32')
+        gear = np.array([
+            data[9],
+        ], dtype='float32')
+        rpm = np.array([
+            data[10],
+        ], dtype='float32')
         rew, done = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
         rew = np.float32(rew)
         self.img_hist.append(img)
@@ -149,9 +159,9 @@ class TM2020Interface(RealTimeGymInterface):
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        gear = spaces.Box(low=0.0, high=6, shape=(1,))
-        rpm = spaces.Box(low=0.0, high=np.inf, shape=(1,))
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
+        gear = spaces.Box(low=0.0, high=6, shape=(1, ))
+        rpm = spaces.Box(low=0.0, high=np.inf, shape=(1, ))
         img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 3, 127, 256))
         return spaces.Tuple((speed, gear, rpm, img))
 
@@ -159,7 +169,7 @@ class TM2020Interface(RealTimeGymInterface):
         """
         must return a Box
         """
-        return spaces.Box(low=-1.0, high=1.0, shape=(3,))
+        return spaces.Box(low=-1.0, high=1.0, shape=(3, ))
 
     def get_default_action(self):
         """
@@ -178,7 +188,9 @@ class TM2020InterfaceLidar(TM2020Interface):
     def grab_lidar_speed_and_data(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
         data = self.client.retrieve_data()
-        speed = np.array([data[0], ], dtype='float32')
+        speed = np.array([
+            data[0],
+        ], dtype='float32')
         lidar = self.lidar.lidar_20(im=img, show=False)
         return lidar, speed, data
 
@@ -227,12 +239,16 @@ class TM2020InterfaceLidar(TM2020Interface):
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        imgs = spaces.Box(low=0.0, high=np.inf, shape=(self.img_hist_len, 19,))  # lidars
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
+        imgs = spaces.Box(low=0.0, high=np.inf, shape=(
+            self.img_hist_len,
+            19,
+        ))  # lidars
         return spaces.Tuple((speed, imgs))
 
 
 # Interface for Trackmania Nations Forever: ============================================================================
+
 
 class TMInterface(RealTimeGymInterface):
     """
@@ -265,13 +281,15 @@ class TMInterface(RealTimeGymInterface):
                 actions.append('b')
             if control[2] > 0.5:
                 actions.append('r')
-            elif control[2] < - 0.5:
+            elif control[2] < -0.5:
                 actions.append('l')
             apply_control(actions)
 
     def grab_img_and_speed(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
-        speed = np.array([get_speed(img, self.digits), ], dtype='float32')
+        speed = np.array([
+            get_speed(img, self.digits),
+        ], dtype='float32')
         img = img[100:-150, :]
         img = cv2.resize(img, (190, 50))
         # img = np.moveaxis(img, -1, 0)
@@ -316,7 +334,7 @@ class TMInterface(RealTimeGymInterface):
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
         imgs = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 50, 190, 3))
         return spaces.Tuple((speed, imgs))
 
@@ -324,7 +342,7 @@ class TMInterface(RealTimeGymInterface):
         """
         must be a Box
         """
-        return spaces.Box(low=-1.0, high=1.0, shape=(3,))  # 1=f; 1=b; -1=l,+1=r
+        return spaces.Box(low=-1.0, high=1.0, shape=(3, ))  # 1=f; 1=b; -1=l,+1=r
 
     def get_default_action(self):
         """
@@ -340,7 +358,9 @@ class TMInterfaceLidar(TMInterface):
 
     def grab_lidar_and_speed(self):
         img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
-        speed = np.array([get_speed(img, self.digits), ], dtype='float32')
+        speed = np.array([
+            get_speed(img, self.digits),
+        ], dtype='float32')
         lidar = self.lidar.lidar_20(im=img, show=False)
         return lidar, speed
 
@@ -376,12 +396,16 @@ class TMInterfaceLidar(TMInterface):
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        imgs = spaces.Box(low=0.0, high=np.inf, shape=(self.img_hist_len, 19,))  # lidars
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
+        imgs = spaces.Box(low=0.0, high=np.inf, shape=(
+            self.img_hist_len,
+            19,
+        ))  # lidars
         return spaces.Tuple((speed, imgs))
 
 
 # Interface for the Cognifly robot: ====================================================================================
+
 
 class CogniflyInterfaceTask1(RealTimeGymInterface):
 
@@ -432,12 +456,26 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.drone_int.update()
         obs = self.drone_int.read_obs()
         # print(f"reset drone obs: {obs}")
-        return [np.array([obs[0], ], dtype=np.float32),
-                np.array([obs[1], ], dtype=np.float32),
-                np.array([obs[2], ], dtype=np.float32),
-                np.array([self.target, ], dtype=np.float32),
-                np.array([0.0, ], dtype=np.float32),
-                np.array([0.0, ], dtype=np.float32), ]
+        return [
+            np.array([
+                obs[0],
+            ], dtype=np.float32),
+            np.array([
+                obs[1],
+            ], dtype=np.float32),
+            np.array([
+                obs[2],
+            ], dtype=np.float32),
+            np.array([
+                self.target,
+            ], dtype=np.float32),
+            np.array([
+                0.0,
+            ], dtype=np.float32),
+            np.array([
+                0.0,
+            ], dtype=np.float32),
+        ]
 
     def wait(self):
         self.send_control(self.get_default_action())
@@ -451,13 +489,27 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         obs = self.drone_int.read_obs()
         # print(f"obs:{obs}")
         t_now = time.time()
-        o = [np.array([obs[0], ], dtype=np.float32),
-             np.array([obs[1], ], dtype=np.float32),
-             np.array([obs[2], ], dtype=np.float32),
-             np.array([self.target, ], dtype=np.float32),
-             np.array([t_now - obs[4], ], dtype=np.float32),
-             np.array([t_now - obs[5], ], dtype=np.float32),]
-        r = - np.float32(abs(self.target - obs[0]))
+        o = [
+            np.array([
+                obs[0],
+            ], dtype=np.float32),
+            np.array([
+                obs[1],
+            ], dtype=np.float32),
+            np.array([
+                obs[2],
+            ], dtype=np.float32),
+            np.array([
+                self.target,
+            ], dtype=np.float32),
+            np.array([
+                t_now - obs[4],
+            ], dtype=np.float32),
+            np.array([
+                t_now - obs[5],
+            ], dtype=np.float32),
+        ]
+        r = -np.float32(abs(self.target - obs[0]))
         d = (r >= -0.5)
         return o, r, d
 
@@ -465,26 +517,28 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         """
         must be a Tuple
         """
-        alt = spaces.Box(low=0.0, high=100.0, shape=(1,))
-        vel = spaces.Box(low=-1000.0, high=1000.0, shape=(1,))
-        acc = spaces.Box(low=-1000.0, high=1000.0, shape=(1,))
-        tar = spaces.Box(low=40.0, high=70.0, shape=(1,))
-        total_delay = spaces.Box(low=0.0, high=np.inf, shape=(1,))
-        total_delay_kappa = spaces.Box(low=0.0, high=np.inf, shape=(1,))
+        alt = spaces.Box(low=0.0, high=100.0, shape=(1, ))
+        vel = spaces.Box(low=-1000.0, high=1000.0, shape=(1, ))
+        acc = spaces.Box(low=-1000.0, high=1000.0, shape=(1, ))
+        tar = spaces.Box(low=40.0, high=70.0, shape=(1, ))
+        total_delay = spaces.Box(low=0.0, high=np.inf, shape=(1, ))
+        total_delay_kappa = spaces.Box(low=0.0, high=np.inf, shape=(1, ))
         return spaces.Tuple((alt, vel, acc, tar, total_delay, total_delay_kappa))
 
     def get_action_space(self):
         """
         must return a Box
         """
-        vel = spaces.Box(low=-1.0, high=1.0, shape=(1,))
+        vel = spaces.Box(low=-1.0, high=1.0, shape=(1, ))
         return vel
 
     def get_default_action(self):
         """
         initial action at episode start
         """
-        return np.array([0.0, ], dtype='float32')
+        return np.array([
+            0.0,
+        ], dtype='float32')
 
 
 if __name__ == "__main__":

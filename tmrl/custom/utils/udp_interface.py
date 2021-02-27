@@ -17,14 +17,16 @@ class UDPInterface(object):
             self._sockO.close()
 
     def init_sender(self, ip, port):
-        self._sockO = socket.socket(socket.AF_INET,     # IP
-                                    socket.SOCK_DGRAM)  # UDP
+        self._sockO = socket.socket(
+            socket.AF_INET,  # IP
+            socket.SOCK_DGRAM)  # UDP
         self._IPO = ip
         self._PORTO = port
 
     def init_receiver(self, ip, port, clean=True):
-        self._sockI = socket.socket(socket.AF_INET,     # IP
-                                    socket.SOCK_DGRAM)  # UDP
+        self._sockI = socket.socket(
+            socket.AF_INET,  # IP
+            socket.SOCK_DGRAM)  # UDP
 
         self._sockI.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # Tells the OS that if someone else is using the PORT, it
@@ -35,8 +37,7 @@ class UDPInterface(object):
 
         self._sockI.bind((ip, port))  # Bind the socket to the ip/port
 
-        self._buffersize = self._sockI.getsockopt(socket.SOL_SOCKET,
-                                                  socket.SO_RCVBUF)
+        self._buffersize = self._sockI.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
 
         while clean:
             print("Cleaning receiving buffer...")
@@ -175,7 +176,6 @@ if __name__ == "__main__":
     parser.add_argument('--justlistenforever', type=bool, default=False, help='Infinite recv client')
     args = parser.parse_args()
     main(args)
-
 
 # if __name__ == '__main__':
 #     import time

@@ -14,8 +14,8 @@ from tmrl.sac_models import ActorModule
 from tmrl.util import collate, partition
 import tmrl.custom.config_constants as cfg
 
-
 # PRINT: ============================================
+
 
 def print_with_timestamp(s):
     x = datetime.datetime.now()
@@ -24,6 +24,7 @@ def print_with_timestamp(s):
 
 
 # NETWORK: ==========================================
+
 
 def ping_pong(sock):
     """
@@ -239,6 +240,7 @@ def poll_and_recv_or_close_socket(conn):
 
 # BUFFER: ===========================================
 
+
 class Buffer:
     def __init__(self, maxlen=2000):
         self.memory = []
@@ -279,6 +281,7 @@ class Buffer:
 
 # REDIS SERVER: =====================================
 
+
 class Server:
     """
     This is the main server
@@ -289,7 +292,11 @@ class Server:
     If trainer_on_localhost is True, the server only listens on trainer_on_localhost. Then the trainer is expected to talk on trainer_on_localhost.
     Otherwise, the server also listens to the local ip and the trainer is expected to talk on the local ip (port forwarding).
     """
-    def __init__(self, samples_per_server_packet=1000, trainer_on_localhost=False, workers_on_localhost=True, workers_on_network=True):
+    def __init__(self,
+                 samples_per_server_packet=1000,
+                 trainer_on_localhost=False,
+                 workers_on_localhost=True,
+                 workers_on_network=True):
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
@@ -307,9 +314,9 @@ class Server:
 
         # workers threads:
         if workers_on_localhost:
-            Thread(target=self.__rollout_workers_thread, args=("127.0.0.1",), kwargs={}, daemon=True).start()
+            Thread(target=self.__rollout_workers_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
         if workers_on_network:
-            Thread(target=self.__rollout_workers_thread, args=(self.local_ip,), kwargs={}, daemon=True).start()
+            Thread(target=self.__rollout_workers_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
 
         # trainer thread:
         if trainer_on_localhost:
@@ -329,7 +336,8 @@ class Server:
                 # print_with_timestamp("DEBUG: accept_or_close_socket failed in trainers thread")
                 continue
             print_with_timestamp(f"INFO TRAINERS THREAD: redis connected by trainer at address {addr}")
-            Thread(target=self.__trainer_thread, args=(conn, ), kwargs={}, daemon=True).start()  # we don't keep track of this for now
+            Thread(target=self.__trainer_thread, args=(conn, ), kwargs={},
+                   daemon=True).start()  # we don't keep track of this for now
             s.close()
 
     def __trainer_thread(self, conn):
@@ -355,7 +363,8 @@ class Server:
                     self.__buffer.clear()
                 else:
                     elapsed = time.time() - ack_time
-                    print_with_timestamp(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                    print_with_timestamp(
+                        f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                     if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_TRAINER:
                         print_with_timestamp("INFO: ACK timed-out, breaking connection")
                         self.__buffer_lock.release()
@@ -390,7 +399,8 @@ class Server:
                 # print_with_timestamp("DEBUG: accept_or_close_socket failed in workers thread")
                 continue
             print_with_timestamp(f"INFO WORKERS THREAD: redis connected by worker at address {addr}")
-            Thread(target=self.__rollout_worker_thread, args=(conn, ), kwargs={}, daemon=True).start()  # we don't keep track of this for now
+            Thread(target=self.__rollout_worker_thread, args=(conn, ), kwargs={},
+                   daemon=True).start()  # we don't keep track of this for now
             s.close()
 
     def __rollout_worker_thread(self, conn):
@@ -417,7 +427,8 @@ class Server:
                     worker_weights_id = self.__weights_id
                 else:
                     elapsed = time.time() - ack_time
-                    print_with_timestamp(f"INFO: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                    print_with_timestamp(
+                        f"INFO: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                     if elapsed >= cfg.ACK_TIMEOUT_REDIS_TO_WORKER:
                         print_with_timestamp("INFO: ACK timed-out, breaking connection")
                         self.__weights_lock.release()
@@ -442,15 +453,14 @@ class Server:
 
 # TRAINER: ==========================================
 
+
 class TrainerInterface:
     """
     This is the trainer's network interface
     This connects to the server
     This receives samples batches and sends new weights
     """
-    def __init__(self,
-                 redis_ip=None,
-                 model_path=cfg.MODEL_PATH_TRAINER):
+    def __init__(self, redis_ip=None, model_path=cfg.MODEL_PATH_TRAINER):
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
         self.__weights = None
@@ -493,7 +503,8 @@ class TrainerInterface:
                         self.__weights = None
                     else:
                         elapsed = time.time() - ack_time
-                        print_with_timestamp(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                        print_with_timestamp(
+                            f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                         if elapsed >= cfg.ACK_TIMEOUT_TRAINER_TO_REDIS:
                             print_with_timestamp("INFO: ACK timed-out, breaking connection")
                             self.__weights_lock.release()
@@ -530,7 +541,8 @@ class TrainerInterface:
             self.__weights = f.read()
         t3 = time.time()
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
-        print_with_timestamp(f"DEBUG: broadcast_model: lock acquire: {t1 - t0}s, save dict: {t2 - t1}s, read dict: {t3 - t2}s")
+        print_with_timestamp(
+            f"DEBUG: broadcast_model: lock acquire: {t1 - t0}s, save dict: {t2 - t1}s, read dict: {t3 - t2}s")
 
     def retrieve_buffer(self):
         """
@@ -545,20 +557,23 @@ class TrainerInterface:
 
 # ROLLOUT WORKER: ===================================
 
+
 class RolloutWorker:
-    def __init__(self,
-                 env_cls,
-                 actor_module_cls,
-                 get_local_buffer_sample: callable,
-                 device="cpu",
-                 redis_ip=None,
-                 samples_per_worker_packet=1000,
-                 model_path=cfg.MODEL_PATH_WORKER,
-                 obs_preprocessor: callable = None,
-                 crc_debug=False,
-                 model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
-                 model_history=cfg.MODEL_HISTORY,  # if 0, doesn't save model history, else, the model is saved every model_history episode
-                 ):
+    def __init__(
+            self,
+            env_cls,
+            actor_module_cls,
+            get_local_buffer_sample: callable,
+            device="cpu",
+            redis_ip=None,
+            samples_per_worker_packet=1000,
+            model_path=cfg.MODEL_PATH_WORKER,
+            obs_preprocessor: callable = None,
+            crc_debug=False,
+            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
+            model_history=cfg.
+        MODEL_HISTORY,  # if 0, doesn't save model history, else, the model is saved every model_history episode
+    ):
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = get_local_buffer_sample
         self.env = env_cls()
@@ -618,7 +633,8 @@ class RolloutWorker:
                         self.__buffer.clear()  # empty sent batch
                     else:
                         elapsed = time.time() - ack_time
-                        print_with_timestamp(f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
+                        print_with_timestamp(
+                            f"WARNING: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                         if elapsed >= cfg.ACK_TIMEOUT_WORKER_TO_REDIS:
                             print_with_timestamp("INFO: ACK timed-out, breaking connection")
                             self.__buffer_lock.release()
@@ -675,7 +691,8 @@ class RolloutWorker:
             if self.crc_debug:
                 info['crc_sample'] = (obs, act, new_obs, rew, done)
             sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
-            self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
+            self.buffer.append_sample(
+                sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return new_obs, rew, done, info
 
     def collect_train_episode(self, max_samples):
@@ -778,4 +795,3 @@ class RolloutWorker:
             print_with_timestamp("INFO: model weights have been updated")
             self.__weights = None
         self.__weights_lock.release()  # END WEIGHTS LOCK...............................................................
-

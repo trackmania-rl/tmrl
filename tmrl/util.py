@@ -33,6 +33,7 @@ def shallow_copy(obj: T) -> T:
 
 # === collate and partition ============================================================================================
 
+
 def collate(batch, device=None):
     """Turns a batch of nested structures with numpy arrays as leaves into into a single element of the same nested structure with batched torch tensors as leaves"""
     elem = batch[0]
@@ -52,7 +53,8 @@ def collate(batch, device=None):
     elif isinstance(elem, Mapping):
         return type(elem)((key, collate(tuple(d[key] for d in batch), device)) for key in elem)
     else:
-        return torch.from_numpy(np.array(batch)).to(device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
+        return torch.from_numpy(np.array(batch)).to(
+            device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
 
 
 def partition(x):
@@ -72,12 +74,12 @@ def partition(x):
 
 # === catched property =================================================================================================
 
+
 # noinspection PyPep8Naming
 class cached_property:
     """Similar to `property` but after calling the getter/init function the result is cached.
     It can be used to create object attributes that aren't stored in the object's __dict__.
     This is useful if we want to exclude certain attributes from being pickled."""
-
     def __init__(self, init=None):
         self.cache = {}
         self.init = init
@@ -160,6 +162,7 @@ def partial_from_args(func: Union[str, callable], kwargs: Dict[str, str]):
 
 # === git ==============================================================================================================
 
+
 def get_output(*args, default='', **kwargs):
     try:
         output = subprocess.check_output(*args, universal_newlines=True, **kwargs)
@@ -176,9 +179,13 @@ def git_info(path=None):
     rev = get_output('git rev-parse HEAD'.split(), cwd=path)
     count = int(get_output('git rev-list HEAD --count'.split(), default='-1', cwd=path))
     status = get_output('git status --short'.split(), cwd=path)  # shows un-committed modified files
-    commit_date = get_output("git show --quiet --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd".split(), cwd=path, env=dict(TZ='UTC'))
-    desc = get_output(['git', 'describe', '--long', '--tags', '--dirty', '--always', '--match', r'v[0-9]*\.[0-9]*'], cwd=path)
-    message = desc + " " + ' '.join(get_output(['git', 'log', '--oneline', '--format=%B', '-n', '1', "HEAD"], cwd=path).splitlines())
+    commit_date = get_output("git show --quiet --date=format-local:%Y-%m-%dT%H:%M:%SZ --format=%cd".split(),
+                             cwd=path,
+                             env=dict(TZ='UTC'))
+    desc = get_output(['git', 'describe', '--long', '--tags', '--dirty', '--always', '--match', r'v[0-9]*\.[0-9]*'],
+                      cwd=path)
+    message = desc + " " + ' '.join(
+        get_output(['git', 'log', '--oneline', '--format=%B', '-n', '1', "HEAD"], cwd=path).splitlines())
 
     url = get_output('git config --get remote.origin.url'.split(), cwd=path).strip()
     # if on github, change remote to a meaningful https url
@@ -191,6 +198,7 @@ def git_info(path=None):
 
 
 # === serialization ====================================================================================================
+
 
 def dump(obj, path):
     # TODO: use atomic write: https://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
@@ -226,6 +234,7 @@ def load_json(path):
 
 
 # === signal handling ==================================================================================================
+
 
 class DelayInterrupt:
     """Catches SIGINT and SIGTERM and re-raises them after the context manager exits. E.g.:

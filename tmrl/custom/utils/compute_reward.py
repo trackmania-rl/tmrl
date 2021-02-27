@@ -9,7 +9,7 @@ class RewardFunction:
                  nb_obs_forward=10,
                  nb_obs_backward=10,
                  nb_zero_rew_before_early_done=10,
-                 min_nb_steps_before_early_done=int(3.5*20)):
+                 min_nb_steps_before_early_done=int(3.5 * 20)):
         if not os.path.exists(reward_data_path):
             self.data = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
         else:
@@ -29,7 +29,7 @@ class RewardFunction:
         min_dist = np.inf
         index = self.cur_idx
         while True:
-            dist = np.linalg.norm(pos-self.data[index])
+            dist = np.linalg.norm(pos - self.data[index])
             if dist <= min_dist:
                 min_dist = dist
                 best_index = index

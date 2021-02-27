@@ -82,11 +82,12 @@ class Agent:
         # next_value = self.outputnorm.unnormalize(next_value)  # PopArt (not present in the original paper)
 
         # predict entropy rewards in a separate dimension from the normal rewards (not present in the original paper)
-        next_action_entropy = - (1. - terminals) * self.discount * next_action_distribution.log_prob(next_actions)
+        next_action_entropy = -(1. - terminals) * self.discount * next_action_distribution.log_prob(next_actions)
         reward_components = torch.cat((
             self.reward_scale * rewards[:, None],
             self.entropy_scale * next_action_entropy[:, None],
-        ), dim=1)  # shape = (batchsize, reward_components)
+        ),
+                                      dim=1)  # shape = (batchsize, reward_components)
 
         value_target = reward_components + (1. - terminals[:, None]) * self.discount * next_value
         normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
@@ -110,7 +111,7 @@ class Agent:
 
         new_value = self.outputnorm.unnormalize(new_value)
         new_value[:, -1] -= self.entropy_scale * new_action_distribution.log_prob(new_actions)
-        loss_actor = - self.outputnorm.normalize_sum(new_value.sum(1)).mean()  # normalize_sum preserves relative scale
+        loss_actor = -self.outputnorm.normalize_sum(new_value.sum(1)).mean()  # normalize_sum preserves relative scale
 
         # update actor
         self.actor_optimizer.zero_grad()
@@ -118,8 +119,10 @@ class Agent:
         self.actor_optimizer.step()
 
         # update target critics and normalizers
-        exponential_moving_average(self.model_target.critics.parameters(), self.model.critics.parameters(), self.target_update)
-        exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(), self.target_update)
+        exponential_moving_average(self.model_target.critics.parameters(), self.model.critics.parameters(),
+                                   self.target_update)
+        exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(),
+                                   self.target_update)
         # self.actor_lr_scheduler.step()
         # self.critic_lr_scheduler.step()
 

@@ -25,6 +25,7 @@ KEY_RESET = 'r'
 PATH_REWARD = cfg.REWARD_PATH
 DATASET_PATH = cfg.DATASET_PATH
 
+
 def record_tmnf_gamepad(path_dataset):
     """
     TODO: update
@@ -54,14 +55,16 @@ def record_tmnf_gamepad(path_dataset):
     while not c:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}). Stopping recording.")
+            print(
+                f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}). Stopping recording."
+            )
             c = True
             break
         while not t2 - t1 >= time_step:
             t2 = time.time()
             # time.sleep(0.001)
             pass
-        t1 = t1+time_step
+        t1 = t1 + time_step
 
         img = np.asarray(sct.grab(monitor))[:, :, :3]
         speed = get_speed(img, digits)
@@ -98,7 +101,7 @@ def record_tmnf_gamepad(path_dataset):
         iteration = iteration + 1
         # time.sleep(1)
 
-    pickle.dump((iters,dirs,speeds), open( path +"data.pkl", "wb" ))
+    pickle.dump((iters, dirs, speeds), open(path + "data.pkl", "wb"))
 
 
 def record_tmnf_keyboard(path_dataset):
@@ -132,7 +135,8 @@ def record_tmnf_keyboard(path_dataset):
 
             iters.append(iteration)
             speeds.append(obs[0])
-            direc = np.array([direction[0], direction[1], direction[2] - direction[3]], dtype=np.float32)  # +1 for right and -1 for left
+            direc = np.array([direction[0], direction[1], direction[2] - direction[3]],
+                             dtype=np.float32)  # +1 for right and -1 for left
             dirs.append(direc)
             dones.append(done)
             rews.append(rew)
@@ -161,7 +165,12 @@ def record_tmnf_lidar_keyboard(path_dataset):
     is_recording = False
     done = False
     while True:
-        obs, rew, done, info = env.step(None) if not done else (env.reset(), 0.0, False, {}, )
+        obs, rew, done, info = env.step(None) if not done else (
+            env.reset(),
+            0.0,
+            False,
+            {},
+        )
         direction[0] = float(keyboard.is_pressed(KEY_FORWARD))
         direction[1] = float(keyboard.is_pressed(KEY_BACKWARD))
         direction[2] = float(keyboard.is_pressed(KEY_RIGHT))
@@ -179,7 +188,8 @@ def record_tmnf_lidar_keyboard(path_dataset):
             iters.append(iteration)
             # print(f"DEBUG:speed:{obs[0]}")
             speeds.append(obs[0])
-            direc = np.array([direction[0], direction[1], direction[2] - direction[3]], dtype=np.float32)  # +1 for right and -1 for left
+            direc = np.array([direction[0], direction[1], direction[2] - direction[3]],
+                             dtype=np.float32)  # +1 for right and -1 for left
             # print(f"DEBUG:direction:{direc}")
             dirs.append(direc)
             # print(f"DEBUG:done:{done}")
@@ -211,7 +221,12 @@ def record_tm20_lidar(path_dataset):
     is_recording = False
     done = False
     while True:
-        obs, rew, done, info = env.step(None) if not done else (env.reset(), 0.0, False, {}, )
+        obs, rew, done, info = env.step(None) if not done else (
+            env.reset(),
+            0.0,
+            False,
+            {},
+        )
         # obs = (obs[0], obs[1], obs[0][-3:])
         if keyboard.is_pressed(KEY_RESET):
             print("reset")
@@ -301,7 +316,9 @@ def record_reward(path_reward=PATH_REWARD):
     while True:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
+            print(
+                f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1."
+            )
             t1 = time.time()
             # break
         while not t2 - t1 >= time_step:
@@ -346,7 +363,9 @@ def record_reward_dist(path_reward=PATH_REWARD):
     while True:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
+            print(
+                f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1."
+            )
             t1 = time.time()
             # break
         while not t2 - t1 >= time_step:

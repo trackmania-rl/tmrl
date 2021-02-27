@@ -46,7 +46,6 @@ class PreviousActionWrapper(gym.Wrapper):
 
 class StatsWrapper(gym.Wrapper):
     """Compute running statistics (return, number of episodes, etc.) over a certain time window."""
-
     def __init__(self, env, window=100):
         super().__init__(env)
         self.reward_hist = deque([0], maxlen=window + 1)
@@ -96,7 +95,7 @@ class DictObservationWrapper(gym.ObservationWrapper):
 class TupleObservationWrapper(gym.ObservationWrapper):
     def __init__(self, env):
         super().__init__(env)
-        self.observation_space = gym.spaces.Tuple((env.observation_space,))
+        self.observation_space = gym.spaces.Tuple((env.observation_space, ))
 
     def observation(self, observation):
         return observation,
@@ -118,7 +117,9 @@ class AffineObservationWrapper(gym.ObservationWrapper):
         assert isinstance(env.observation_space, gym.spaces.Box)
         self.shift = shift
         self.scale = scale
-        self.observation_space = gym.spaces.Box(self.observation(env.observation_space.low), self.observation(env.observation_space.high), dtype=env.observation_space.dtype)
+        self.observation_space = gym.spaces.Box(self.observation(env.observation_space.low),
+                                                self.observation(env.observation_space.high),
+                                                dtype=env.observation_space.dtype)
 
     def observation(self, obs):
         return (obs + self.shift) * self.scale
@@ -139,7 +140,9 @@ class NormalizeActionWrapper(gym.Wrapper):
         super().__init__(env)
         self.scale = env.action_space.high - env.action_space.low
         self.shift = env.action_space.low
-        self.action_space = gym.spaces.Box(-np.ones_like(self.shift), np.ones_like(self.shift), dtype=env.action_space.dtype)
+        self.action_space = gym.spaces.Box(-np.ones_like(self.shift),
+                                           np.ones_like(self.shift),
+                                           dtype=env.action_space.dtype)
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
@@ -153,7 +156,6 @@ class NormalizeActionWrapper(gym.Wrapper):
 class TimeLimitResetWrapper(gym.Wrapper):
     """Adds a `reset` key to `info` that indicates whether an episode was ended just because of a time limit.
     This can be important as running out of time, should usually not be considered a "true" terminal state."""
-
     def __init__(self, env, max_steps=None, key='reset'):
         super().__init__(env)
         self.reset_key = key
@@ -221,7 +223,6 @@ class RandomDelayWrapper(gym.Wrapper):
 
     Note that you can access most recent action known to be applied with past_actions[action_delay + observation_delay]
     """
-
     def __init__(self, env, obs_delay_range=range(0, 8), act_delay_range=range(0, 2), instant_rewards: bool = True):
         super().__init__(env)
         self.act_delay_range = act_delay_range
@@ -249,7 +250,7 @@ class RandomDelayWrapper(gym.Wrapper):
         first_observation = super().reset(**kwargs)
 
         # fill up buffers
-        self.t = - (self.obs_delay_range.stop + self.act_delay_range.stop)
+        self.t = -(self.obs_delay_range.stop + self.act_delay_range.stop)
         while self.t < 0:
             self.send_action(self.action_space.sample())
             self.send_observation((first_observation, 0., False, {}, 0))
@@ -308,6 +309,7 @@ class RandomDelayWrapper(gym.Wrapper):
 
 
 # === Utilities ========================================================================================================
+
 
 def get_wrapper_by_class(env, cls):
     if isinstance(env, cls):

@@ -10,9 +10,7 @@ import struct
 
 
 class TM2020OpenPlanetClient:
-    def __init__(self,
-                 host='127.0.0.1',
-                 port=9000):
+    def __init__(self, host='127.0.0.1', port=9000):
         self._host = host
         self._port = port
 
@@ -115,7 +113,7 @@ def armin(tab):
     if len(nz) != 0:
         return nz[0].item()
     else:
-        return len(tab)-1
+        return len(tab) - 1
 
 
 class Lidar:
@@ -159,10 +157,7 @@ class Lidar:
         for axis_x, axis_y in zip(self.list_axis_x, self.list_axis_y):
             index = armin(np.all(img[axis_x, axis_y] < self.black_threshold, axis=1))
             if show:
-                img = cv2.line(img,
-                               (self.road_point[1],self.road_point[0]),
-                               (axis_y[index], axis_x[index]),
-                               color,
+                img = cv2.line(img, (self.road_point[1], self.road_point[0]), (axis_y[index], axis_x[index]), color,
                                thickness)
             index = np.float32(index)
             distances.append(index)

@@ -19,8 +19,13 @@ class RandomDelayWrapper(gym.Wrapper):
         instant_rewards: bool (default True): whether to send instantaneous step rewards (True) or delayed rewards (False)
         initial_action: action (default None): action with which the action buffer is filled at reset() (if None, sampled in the action space)
     """
-
-    def __init__(self, env, obs_delay_range=range(0, 8), act_delay_range=range(0, 2), instant_rewards: bool = False, initial_action=None, skip_initial_actions=False):
+    def __init__(self,
+                 env,
+                 obs_delay_range=range(0, 8),
+                 act_delay_range=range(0, 2),
+                 instant_rewards: bool = False,
+                 initial_action=None,
+                 skip_initial_actions=False):
         super().__init__(env)
         self.wrapped_env = env
         assert not instant_rewards, 'instant_rewards is depreciated. it was an ill-defined concept'
@@ -54,7 +59,7 @@ class RandomDelayWrapper(gym.Wrapper):
         first_observation = super().reset(**kwargs)
 
         # fill up buffers
-        self.t = - (self.obs_delay_range.stop + self.act_delay_range.stop)  # this is <= -2
+        self.t = -(self.obs_delay_range.stop + self.act_delay_range.stop)  # this is <= -2
         while self.t < 0:
             act = self.action_space.sample() if self.initial_action is None else self.initial_action
             self.send_action(act)
@@ -159,7 +164,8 @@ class RandomDelayWrapper(gym.Wrapper):
         # at the brain
         observation_delay = next(i for i, t in enumerate(self.arrival_times_observations) if t <= self.t)
         m, r, d, info, action_delay = self.past_observations[observation_delay]
-        return (m, tuple(itertools.islice(self.past_actions, 0, self.past_actions.maxlen - 1)), observation_delay, action_delay), r, d, info
+        return (m, tuple(itertools.islice(self.past_actions, 0,
+                                          self.past_actions.maxlen - 1)), observation_delay, action_delay), r, d, info
 
 
 class UnseenRandomDelayWrapper(RandomDelayWrapper):
@@ -167,7 +173,6 @@ class UnseenRandomDelayWrapper(RandomDelayWrapper):
     Wrapper that translates the RandomDelayWrapper back to the usual RL setting
     Use this wrapper to see what happens to vanilla RL algorithms facing random delays
     """
-
     def __init__(self, env, **kwargs):
         super().__init__(env, **kwargs)
         self.observation_space = env.observation_space

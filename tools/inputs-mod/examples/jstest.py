@@ -2,9 +2,7 @@
 
 from __future__ import print_function
 
-
 import inputs
-
 
 EVENT_ABB = (
     # D-PAD, aka HAT
@@ -35,9 +33,7 @@ EVENT_ABB = (
     ('Key-BTN_BASE3', 'SL'),
     ('Key-BTN_BASE4', 'ST'),
     ('Key-BTN_TOP2', 'TL'),
-    ('Key-BTN_PINKIE', 'TR')
-)
-
+    ('Key-BTN_PINKIE', 'TR'))
 
 # This is to reduce noise from the PlayStation controllers
 # For the Xbox controller, you can set this to 0

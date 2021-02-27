@@ -11,7 +11,7 @@ ACT_COMPUTE_MAX = 0.05
 
 
 def benchmark():
-    action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,))
+    action_space = spaces.Box(low=-1.0, high=1.0, shape=(3, ))
 
     env_config = DEFAULT_CONFIG_DICT
     env_config["interface"] = TM2020InterfaceLidar
@@ -22,7 +22,7 @@ def benchmark():
 
     t_d = time.time()
     obs = env.reset()
-    for idx in range(NB_STEPS-1):
+    for idx in range(NB_STEPS - 1):
         act = action_space.sample()
         time.sleep(random.uniform(ACT_COMPUTE_MIN, ACT_COMPUTE_MAX))
         # o, r, d, i = env.step(act)

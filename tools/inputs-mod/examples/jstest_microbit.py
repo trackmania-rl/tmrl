@@ -17,7 +17,6 @@ EVENT_ABB = (
     ("Key-BTN_SELECT", 'T0'),
     ('Key-BTN_NORTH', 'T1'),
     ('Key-BTN_WEST', 'T2'),
-
 )
 
 

@@ -15,7 +15,6 @@ from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs
 from tmrl.custom.custom_checkpoints import load_run_instance_images_dataset, dump_run_instance_images_dataset
 import numpy as np
 
-
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
 if cfg.PRAGMA_DCAC:
@@ -26,9 +25,13 @@ else:
     POLICY = MlpPolicy if cfg.PRAGMA_LIDAR else TMPolicy
 
 if cfg.PRAGMA_LIDAR:
-    INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
+    INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN,
+                  gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar,
+                                                                                     img_hist_len=cfg.IMG_HIST_LEN)
 else:
-    INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=cfg.IMG_HIST_LEN)
+    INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN,
+                  gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterface,
+                                                                                     img_hist_len=cfg.IMG_HIST_LEN)
 CONFIG_DICT = {
     "interface": INT,
     "time_step_duration": 0.05,
@@ -62,63 +65,66 @@ MEMORY = partial(MEM,
                  act_buf_len=cfg.ACT_BUF_LEN,
                  obs_preprocessor=OBS_PREPROCESSOR,
                  sample_preprocessor=None if cfg.PRAGMA_DCAC else SAMPLE_PREPROCESSOR,
-                 crc_debug=cfg.CRC_DEBUG
-                 )
+                 crc_debug=cfg.CRC_DEBUG)
 
 # ALGORITHM: ===================================================
 
 if cfg.PRAGMA_DCAC:  # DCAC
-    AGENT = partial(DCAC_Agent,
-                    Interface=Tm20rtgymDcacInterface,
-                    OutputNorm=partial(beta=0., zero_debias=False),
-                    device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
-                    Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
-                    lr=0.0003,  # default 0.0003
-                    discount=0.995,  # default and best tmnf so far: 0.99
-                    target_update=0.005,
-                    reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
-                    entropy_scale=1.0)  # default: 1.0),  # default: 1.0
+    AGENT = partial(
+        DCAC_Agent,
+        Interface=Tm20rtgymDcacInterface,
+        OutputNorm=partial(beta=0., zero_debias=False),
+        device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
+        Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
+        lr=0.0003,  # default 0.0003
+        discount=0.995,  # default and best tmnf so far: 0.99
+        target_update=0.005,
+        reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
+        entropy_scale=1.0)  # default: 1.0),  # default: 1.0
 else:  # SAC
-    AGENT = partial(SAC_Agent,
-                    OutputNorm=partial(beta=0., zero_debias=False),
-                    device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
-                    Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
-                    lr=0.0003,  # default 0.0003
-                    discount=0.995,  # default and best tmnf so far: 0.99
-                    target_update=0.005,
-                    reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
-                    entropy_scale=1.0)  # default: 1.0),  # default: 1.0
+    AGENT = partial(
+        SAC_Agent,
+        OutputNorm=partial(beta=0., zero_debias=False),
+        device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
+        Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
+        lr=0.0003,  # default 0.0003
+        discount=0.995,  # default and best tmnf so far: 0.99
+        target_update=0.005,
+        reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
+        entropy_scale=1.0)  # default: 1.0),  # default: 1.0
 
 # TRAINER: =====================================================
 
 if cfg.PRAGMA_LIDAR:  # lidar
-    TRAINER = partial(TrainingOffline,
-                      Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
-                      Memory=MEMORY,
-                      memory_size=1000000,
-                      batchsize=128,
-                      epochs=400,  # 400
-                      rounds=10,  # 10
-                      steps=1000,  # 1000
-                      update_model_interval=1000,
-                      update_buffer_interval=1000,
-                      max_training_steps_per_env_step=1.0,
-                      profiling=cfg.PROFILE_TRAINER,
-                      Agent=AGENT)
+    TRAINER = partial(
+        TrainingOffline,
+        Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
+        Memory=MEMORY,
+        memory_size=1000000,
+        batchsize=128,
+        epochs=400,  # 400
+        rounds=10,  # 10
+        steps=1000,  # 1000
+        update_model_interval=1000,
+        update_buffer_interval=1000,
+        max_training_steps_per_env_step=1.0,
+        profiling=cfg.PROFILE_TRAINER,
+        Agent=AGENT)
 else:  # images
-    TRAINER = partial(TrainingOffline,
-                      Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
-                      Memory=MEMORY,
-                      memory_size=1000000,
-                      batchsize=128,  # 128
-                      epochs=100000,  # 10
-                      rounds=10,  # 50
-                      steps=50,  # 2000
-                      update_model_interval=50,
-                      update_buffer_interval=1,
-                      max_training_steps_per_env_step=1.0,
-                      profiling=cfg.PROFILE_TRAINER,
-                      Agent=AGENT)
+    TRAINER = partial(
+        TrainingOffline,
+        Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
+        Memory=MEMORY,
+        memory_size=1000000,
+        batchsize=128,  # 128
+        epochs=100000,  # 10
+        rounds=10,  # 50
+        steps=50,  # 2000
+        update_model_interval=50,
+        update_buffer_interval=1,
+        max_training_steps_per_env_step=1.0,
+        profiling=cfg.PROFILE_TRAINER,
+        Agent=AGENT)
 
 # CHECKPOINTS: ===================================================
 

@@ -44,14 +44,14 @@ def copy_shared(model_a):
 
 class PopArt(Module):
     """PopArt http://papers.nips.cc/paper/6076-learning-values-across-many-orders-of-magnitude"""
-
     def __init__(self, output_layer, beta: float = 0.0003, zero_debias: bool = True, start_pop: int = 8):
         # zero_debias=True and start_pop=8 seem to improve things a little but (False, 0) works as well
         super().__init__()
         self.start_pop = start_pop
         self.beta = beta
         self.zero_debias = zero_debias
-        self.output_layers = output_layer if isinstance(output_layer, (tuple, list, torch.nn.ModuleList)) else (output_layer,)
+        self.output_layers = output_layer if isinstance(output_layer,
+                                                        (tuple, list, torch.nn.ModuleList)) else (output_layer, )
         shape = self.output_layers[0].bias.shape
         device = self.output_layers[0].bias.device
         assert all(shape == x.bias.shape for x in self.output_layers)
@@ -100,7 +100,6 @@ class TanhNormal(Distribution):
     """Distribution of X ~ tanh(Z) where Z ~ N(mean, std)
     Adapted from https://github.com/vitchyr/rlkit
     """
-
     def __init__(self, normal_mean, normal_std, epsilon=1e-6):
         self.normal_mean = normal_mean
         self.normal_std = normal_std
@@ -193,10 +192,8 @@ class AffineReLU(BasicReLU):
 
 class NormalizedReLU(torch.nn.Sequential):
     def __init__(self, in_features, out_features, prenorm_bias=True):
-        super().__init__(
-            torch.nn.Linear(in_features, out_features, bias=prenorm_bias),
-            torch.nn.LayerNorm(out_features),
-            torch.nn.ReLU())
+        super().__init__(torch.nn.Linear(in_features, out_features, bias=prenorm_bias),
+                         torch.nn.LayerNorm(out_features), torch.nn.ReLU())
 
 
 class KaimingReLU(torch.nn.Linear):
@@ -219,31 +216,35 @@ AffineSimon = partial(AffineReLU, init_weight_bound=0.01, init_bias=1.)
 
 
 def dqn_conv(n):
-    return torch.nn.Sequential(
-        torch.nn.Conv2d(n, 32, kernel_size=8, stride=4),
-        torch.nn.ReLU(),
-        torch.nn.Conv2d(32, 64, kernel_size=4, stride=2),
-        torch.nn.ReLU(),
-        torch.nn.Conv2d(64, 64, kernel_size=3, stride=1),
-        torch.nn.ReLU()
-    )
+    return torch.nn.Sequential(torch.nn.Conv2d(n, 32, kernel_size=8, stride=4), torch.nn.ReLU(),
+                               torch.nn.Conv2d(32, 64, kernel_size=4, stride=2), torch.nn.ReLU(),
+                               torch.nn.Conv2d(64, 64, kernel_size=3, stride=1), torch.nn.ReLU())
 
 
 def big_conv(n):
     # if input shape = 64 x 256 then output shape = 2 x 26
     return torch.nn.Sequential(
-        torch.nn.Conv2d(n, 64, 8, stride=2), torch.nn.LeakyReLU(),
-        torch.nn.Conv2d(64, 64, 4, stride=2), torch.nn.LeakyReLU(),
-        torch.nn.Conv2d(64, 128, 4, stride=2), torch.nn.LeakyReLU(),
-        torch.nn.Conv2d(128, 128, 4, stride=1), torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(n, 64, 8, stride=2),
+        torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(64, 64, 4, stride=2),
+        torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(64, 128, 4, stride=2),
+        torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(128, 128, 4, stride=1),
+        torch.nn.LeakyReLU(),
     )
 
 
 def hd_conv(n):
     return torch.nn.Sequential(
-        torch.nn.Conv2d(n, 32, 8, stride=2), torch.nn.LeakyReLU(),
-        torch.nn.Conv2d(32, 64, 4, stride=2), torch.nn.LeakyReLU(),
-        torch.nn.Conv2d(64, 64, 4, stride=2), torch.nn.LeakyReLU(),
-        torch.nn.Conv2d(64, 128, 4, stride=2), torch.nn.LeakyReLU(),
-        torch.nn.Conv2d(128, 128, 4, stride=2), torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(n, 32, 8, stride=2),
+        torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(32, 64, 4, stride=2),
+        torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(64, 64, 4, stride=2),
+        torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(64, 128, 4, stride=2),
+        torch.nn.LeakyReLU(),
+        torch.nn.Conv2d(128, 128, 4, stride=2),
+        torch.nn.LeakyReLU(),
     )

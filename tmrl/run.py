@@ -10,9 +10,12 @@ import time
 
 def main(args):
     if args.server:
-        Server(samples_per_server_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES, trainer_on_localhost=False)
+        Server(samples_per_server_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
+               trainer_on_localhost=False)
     elif args.worker or args.test or args.benchmark:
-        rw = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg_obj.CONFIG_DICT}),
+        rw = RolloutWorker(env_cls=partial(UntouchedGymEnv,
+                                           id="rtgym:real-time-gym-v0",
+                                           gym_kwargs={"config": cfg_obj.CONFIG_DICT}),
                            actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
                            get_local_buffer_sample=cfg_obj.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
@@ -69,7 +72,10 @@ if __name__ == "__main__":
     parser.add_argument('--worker', action='store_true')  # not used
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--benchmark', action='store_true')
-    parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='if you do not want to log results on Weights and Biases, use this option')
+    parser.add_argument('--no-wandb',
+                        dest='no_wandb',
+                        action='store_true',
+                        help='if you do not want to log results on Weights and Biases, use this option')
     args = parser.parse_args()
     print(args)
 

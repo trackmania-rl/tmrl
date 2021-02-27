@@ -74,7 +74,8 @@ class TrainingOffline:
         state = None
 
         for rnd in range(self.rounds):
-            print(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
+            print(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') +
+                  f" round {rnd}/{self.rounds} ".ljust(50, '='))
             print(f"DEBUG: SAC (Training): current memory size:{len(self.memory)}")
 
             stats_training = []
@@ -89,13 +90,13 @@ class TrainingOffline:
                 pro.start()
 
             t2 = time.time()
-            
+
             t_sample_prev = t2
 
             for batch in self.memory:  # this samples a fixed number of batches
-                
+
                 t_sample = time.time()
-                
+
                 if self.total_updates % self.update_buffer_interval == 0:
                     # retrieve local buffer in replay memory
                     self.update_buffer(interface)
@@ -126,18 +127,18 @@ class TrainingOffline:
                 t_sample_prev = time.time()
 
             t3 = time.time()
-            
+
             round_time = t3 - t0
             idle_time = t1 - t0
             update_buf_time = t2 - t1
             train_time = t3 - t2
-            print(f"DEBUG: round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}")
-            stats += pandas_dict(
-                memory_len=len(self.memory),
-                round_time=round_time,
-                idle_time=idle_time,
-                **DataFrame(stats_training).mean(skipna=True)
-            ),
+            print(
+                f"DEBUG: round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}"
+            )
+            stats += pandas_dict(memory_len=len(self.memory),
+                                 round_time=round_time,
+                                 idle_time=idle_time,
+                                 **DataFrame(stats_training).mean(skipna=True)),
 
             print(stats[-1].add_prefix("  ").to_string(), '\n')
 
