@@ -37,19 +37,15 @@ if platform.system() == "Windows":
     install_req.append('pypiwin32')
     install_req.append('vgamepad')
 
-setup(
-    name='tmrl',
-    version="0.1",
-    description='',
-    author='Yann Bouteiller, Edouard Geze, Simon Ramstedt',
-    author_email='N/A',
-    url='N/A',
-    download_url='',
-    license='',
-    install_requires=install_req,
-    extras_require={
-
-    },
-    scripts=[],
-    packages=find_packages()
-)
+setup(name='tmrl',
+      version="0.1",
+      description='',
+      author='Yann Bouteiller, Edouard Geze, Simon Ramstedt',
+      author_email='N/A',
+      url='N/A',
+      download_url='',
+      license='',
+      install_requires=install_req,
+      extras_require={},
+      scripts=[],
+      packages=find_packages())

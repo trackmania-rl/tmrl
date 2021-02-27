@@ -78,7 +78,8 @@ def iterate_epochs_tm(run_cls: TrainingOffline,
 
         while run_instance.epoch < run_instance.epochs:
             # time.sleep(1)  # on network file systems writing files is asynchronous and we need to wait for sync
-            yield run_instance.run_epoch(interface=interface)  # yield stats data frame (this makes this function a generator)
+            yield run_instance.run_epoch(
+                interface=interface)  # yield stats data frame (this makes this function a generator)
             # print("")
             if run_instance.epoch % epochs_between_checkpoints == 0:
                 print("INFO: saving checkpoint...")

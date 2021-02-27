@@ -9,10 +9,13 @@ from tmrl.util import collate
 from torch.utils.data import Dataset, Sampler, DataLoader
 
 
-def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d):
-    assert str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}"
+def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o,
+                      rebuilt_r, rebuilt_d):
+    assert str(original_po) == str(
+        rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}"
     assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}"
-    assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
+    assert str(original_o) == str(
+        rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
     assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}"
     assert str(original_d) == str(rebuilt_d), f"dones don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}"
     original_crc = zlib.crc32(str.encode(str((original_a, original_o, original_r, original_d))))
@@ -22,7 +25,8 @@ def check_samples_crc(original_po, original_a, original_o, original_r, original_
 
 
 def check_samples_crc_traj(original_o, original_r, original_d, rebuilt_o, rebuilt_r, rebuilt_d):
-    assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
+    assert str(original_o) == str(
+        rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
     assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}"
     assert str(original_d) == str(rebuilt_d), f"dones don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}"
     original_crc = zlib.crc32(str.encode(str((original_o, original_r, original_d))))
@@ -109,7 +113,10 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 
         # init dataloader
         self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batchsize=batchsize)
-        self._dataloader = DataLoader(dataset=self, batch_sampler=self._batch_sampler, num_workers=num_workers, pin_memory=pin_memory)
+        self._dataloader = DataLoader(dataset=self,
+                                      batch_sampler=self._batch_sampler,
+                                      num_workers=num_workers,
+                                      pin_memory=pin_memory)
 
     def __iter__(self):
         if not self.use_dataloader:
@@ -214,7 +221,8 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
 
     def __getitem__(self, item):
         augm_obs_traj, rew_traj, done_traj, info_traj = self.get_trajectory(item)
-        assert len(augm_obs_traj) == len(rew_traj) == len(done_traj) == self.traj_len, f"all trajectories must be of length self.traj_len:{self.traj_len}."
+        assert len(augm_obs_traj) == len(rew_traj) == len(
+            done_traj) == self.traj_len, f"all trajectories must be of length self.traj_len:{self.traj_len}."
         if self.crc_debug:
             for i in range(len(augm_obs_traj)):
                 _, _, o, r, d = info_traj[i]['crc_sample']

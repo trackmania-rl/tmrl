@@ -113,11 +113,21 @@ class Agent(tmrl.sac.Agent):
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         self.memory = self.Memory(self.memory_size, self.batchsize, device)
-        self.traj_new_actions = [None, ] * self.max_possible_delay
-        self.traj_new_actions_detach = [None, ] * self.max_possible_delay
-        self.traj_new_actions_log_prob = [None, ] * self.max_possible_delay
-        self.traj_new_actions_log_prob_detach = [None, ] * self.max_possible_delay
-        self.traj_new_augm_obs = [None, ] * (self.max_possible_delay + 1)  # + 1 because the trajectory is obs0 -> rew1(obs0,act0) -> obs1 -> ...
+        self.traj_new_actions = [
+            None,
+        ] * self.max_possible_delay
+        self.traj_new_actions_detach = [
+            None,
+        ] * self.max_possible_delay
+        self.traj_new_actions_log_prob = [
+            None,
+        ] * self.max_possible_delay
+        self.traj_new_actions_log_prob_detach = [
+            None,
+        ] * self.max_possible_delay
+        self.traj_new_augm_obs = [
+            None,
+        ] * (self.max_possible_delay + 1)  # + 1 because the trajectory is obs0 -> rew1(obs0,act0) -> obs1 -> ...
 
         self.is_training = False
 
@@ -148,7 +158,9 @@ class Agent(tmrl.sac.Agent):
         zeros_tens = torch.zeros(batch_size, device=self.device, dtype=int_tens_type, requires_grad=False)
 
         nstep_len = ones_tens * self.max_possible_delay
-        for i in reversed(range(self.max_possible_delay)):  # caution: we don't care about the delay of the first observation in the trajectory, but we care about the last one
+        for i in reversed(
+                range(self.max_possible_delay)
+        ):  # caution: we don't care about the delay of the first observation in the trajectory, but we care about the last one
             if self.constant:
                 tot_del = ones_tens * (self.constant - 1)  # -1 because of the convention we use for action delays
             else:
@@ -156,7 +168,8 @@ class Agent(tmrl.sac.Agent):
                 # obs_del = augm_obs_traj[i + 1][2]
                 # act_del = augm_obs_traj[i + 1][3]
                 # tot_del = obs_del + act_del
-                tot_del = self.interface.get_total_delay_tensor_from_augm_obs_tuple_of_tensors(augm_obs_traj[i + 1]) - 1  # -1 because act delay...
+                tot_del = self.interface.get_total_delay_tensor_from_augm_obs_tuple_of_tensors(
+                    augm_obs_traj[i + 1]) - 1  # -1 because act delay...
             # print_debug(f"i + 1:{i + 1}")
             # print_debug(f"done_traj:{done_traj}")
             done = done_traj[i + 1]
@@ -165,13 +178,15 @@ class Agent(tmrl.sac.Agent):
             # print_debug(f"act_del: {act_del}")
             # print_debug(f"tot_del: {tot_del}")
             # print_debug(f"nstep_len before: {nstep_len}")
-            nstep_len = torch.where((((tot_del <= i) & (tot_del < nstep_len)) | (done > 0.0)), ones_tens * i, nstep_len)  # FIXME: done ?
+            nstep_len = torch.where((((tot_del <= i) & (tot_del < nstep_len)) | (done > 0.0)), ones_tens * i,
+                                    nstep_len)  # FIXME: done ?
             # print_debug(f"nstep_len after: {nstep_len}")
         # print_debug(f"nstep_len: {nstep_len}")
         nstep_max_len = torch.max(nstep_len)
         assert nstep_max_len < self.max_possible_delay, "Delays longer than the maximum possible delay are not supported (please clip them)"
         # print_debug(f"nstep_max_len: {nstep_max_len}")
-        nstep_one_hot = torch.zeros(len(nstep_len), nstep_max_len + 1, device=self.device, requires_grad=False).scatter_(1, nstep_len.unsqueeze(1), 1.)
+        nstep_one_hot = torch.zeros(len(nstep_len), nstep_max_len + 1, device=self.device,
+                                    requires_grad=False).scatter_(1, nstep_len.unsqueeze(1), 1.)
         # print_debug(f"nstep_one_hot: {nstep_one_hot}")
         #
         # print_debug(f"nstep_max_len: {nstep_max_len}")
@@ -181,7 +196,8 @@ class Agent(tmrl.sac.Agent):
 
         # print_debug(f"nstep_len: {nstep_len}")
         # print_debug(f"done_traj: {done_traj}")
-        terminals = torch.tensor([done_traj[i][ibatch] for ibatch, i in enumerate((nstep_len + 1).tolist())], device=self.device)
+        terminals = torch.tensor([done_traj[i][ibatch] for ibatch, i in enumerate((nstep_len + 1).tolist())],
+                                 device=self.device)
         # print_debug(f"terminals: {terminals}")
 
         # CAUTION: act_buf_len is not the max possible delay !
@@ -192,10 +208,15 @@ class Agent(tmrl.sac.Agent):
             # print_debug(f"augm_obs at index {i}: {augm_obs}")
             if i > 0:  # we don't need to modify the first obs of the trajectory
                 # FIXME: check that this won't mess with autograd
-                act_slice = tuple(self.traj_new_actions[self.max_possible_delay - i:self.max_possible_delay])  # FIXME: check order
+                act_slice = tuple(self.traj_new_actions[self.max_possible_delay -
+                                                        i:self.max_possible_delay])  # FIXME: check order
                 # augm_obs = augm_obs[:1] + ((act_slice + augm_obs[1][i:]), ) + augm_obs[2:]
-                act_buf = self.interface.get_act_buf_tuple_of_tensors_from_augm_obs_tuple_of_tensors(augm_obs)  # most recent action at idx 0, oldest at idx -1
-                act_buf = (*act_slice, *act_buf[i:],)  # resampled actions with the most recently resampled at idx 0 in the buffer
+                act_buf = self.interface.get_act_buf_tuple_of_tensors_from_augm_obs_tuple_of_tensors(
+                    augm_obs)  # most recent action at idx 0, oldest at idx -1
+                act_buf = (
+                    *act_slice,
+                    *act_buf[i:],
+                )  # resampled actions with the most recently resampled at idx 0 in the buffer
                 augm_obs = self.interface.replace_act_buf_in_augm_obs_tuple_of_tensors(augm_obs, act_buf)
                 # print_debug(f"augm_obs at index {i} after replacing actions: {augm_obs}")
             if i < self.max_possible_delay:  # we don't need to compute the action for the last observation of the trajectory
@@ -203,10 +224,12 @@ class Agent(tmrl.sac.Agent):
                 new_action_distribution = self.model.actor(augm_obs)
                 # this is stored in right -> left order for replacing correctly in augm_obs:  # FIXME: check order
                 self.traj_new_actions[self.max_possible_delay - i - 1] = new_action_distribution.rsample()
-                self.traj_new_actions_detach[self.max_possible_delay - i - 1] = self.traj_new_actions[self.max_possible_delay - i - 1].detach()
+                self.traj_new_actions_detach[self.max_possible_delay - i -
+                                             1] = self.traj_new_actions[self.max_possible_delay - i - 1].detach()
                 # print_debug(f"self.traj_new_actions[self.max_possible_delay - i - 1]: {self.traj_new_actions[self.max_possible_delay - i - 1]}")
                 # this is stored in left -> right order for to be consistent with the reward trajectory:
-                self.traj_new_actions_log_prob[i] = new_action_distribution.log_prob(self.traj_new_actions[self.max_possible_delay - i - 1])
+                self.traj_new_actions_log_prob[i] = new_action_distribution.log_prob(
+                    self.traj_new_actions[self.max_possible_delay - i - 1])
                 self.traj_new_actions_log_prob_detach[i] = self.traj_new_actions_log_prob[i].detach()
                 # print_debug(f"self.traj_new_actions_log_prob[i]: {self.traj_new_actions_log_prob[i]}")
             # this is stored in left -> right order:
@@ -249,7 +272,11 @@ class Agent(tmrl.sac.Agent):
 
             # print_debug(f"nstep_max_len: {nstep_max_len}")
 
-            target_mod_vals = [reduce(torch.min, torch.stack([c(self.traj_new_augm_obs[i + 1]) for c in self.model_target.critics])).squeeze() * (1. - terminals) for i in range(nstep_max_len + 1)]
+            target_mod_vals = [
+                reduce(torch.min, torch.stack([c(self.traj_new_augm_obs[i + 1])
+                                               for c in self.model_target.critics])).squeeze() * (1. - terminals)
+                for i in range(nstep_max_len + 1)
+            ]
 
             # Now let us use this to compute the state-value targets of the batch of initial augmented states:
 
@@ -269,7 +296,9 @@ class Agent(tmrl.sac.Agent):
                 # TODO:
                 # value_target = self.reward_scale * rew_traj[i] - self.entropy_scale * self.traj_new_actions_log_prob_detach[i] + backup_started * self.discount * (value_target + start_backup_mask * target_mod_val)
 
-                value_target = self.reward_scale * rew_traj[i] - self.entropy_scale * self.traj_new_actions_log_prob_detach[i] + backup_started * self.discount * (value_target + start_backup_mask * target_mod_vals[i])
+                value_target = self.reward_scale * rew_traj[
+                    i] - self.entropy_scale * self.traj_new_actions_log_prob_detach[
+                        i] + backup_started * self.discount * (value_target + start_backup_mask * target_mod_vals[i])
 
                 # print_debug(f"rew_traj[i]: {rew_traj[i]}")
                 # print_debug(f"self.traj_new_actions_log_prob_detach[i]: {self.traj_new_actions_log_prob_detach[i]}")
@@ -278,7 +307,8 @@ class Agent(tmrl.sac.Agent):
 
         # end of torch.no_grad()
 
-        assert values[0].shape == value_target.shape, f"values[0].shape : {values[0].shape} != value_target.shape : {value_target.shape}"
+        assert values[
+            0].shape == value_target.shape, f"values[0].shape : {values[0].shape} != value_target.shape : {value_target.shape}"
         assert not value_target.requires_grad
 
         # Now the critic loss is:
@@ -298,7 +328,11 @@ class Agent(tmrl.sac.Agent):
         # model_mod_val = model_mod_val * (1. - terminals)
         # print_debug(f"model_mod_val after removing terminal states: {model_mod_val}")
 
-        model_mod_vals = [reduce(torch.min, torch.stack([c(self.traj_new_augm_obs[i + 1]) for c in self.model_nograd.critics])).squeeze() * (1. - terminals) for i in range(nstep_max_len + 1)]
+        model_mod_vals = [
+            reduce(torch.min, torch.stack([c(self.traj_new_augm_obs[i + 1])
+                                           for c in self.model_nograd.critics])).squeeze() * (1. - terminals)
+            for i in range(nstep_max_len + 1)
+        ]
 
         # target_mod_vals = [reduce(torch.min, torch.stack([c(self.traj_new_augm_obs[i + 1]) for c in self.model_target.critics])).squeeze() * (1. - terminals) for i in range(nstep_max_len + 1)]
 
@@ -315,10 +349,11 @@ class Agent(tmrl.sac.Agent):
             # print_debug(f"start_backup_mask: {start_backup_mask}")
             # print_debug(f"backup_started: {backup_started}")
             # loss_actor = - self.entropy_scale * self.traj_new_actions_log_prob[i] + backup_started * self.discount * (loss_actor + start_backup_mask * model_mod_val)
-            loss_actor = - self.entropy_scale * self.traj_new_actions_log_prob[i] + backup_started * self.discount * (loss_actor + start_backup_mask * model_mod_vals[i])
+            loss_actor = -self.entropy_scale * self.traj_new_actions_log_prob[i] + backup_started * self.discount * (
+                loss_actor + start_backup_mask * model_mod_vals[i])
             # print_debug(f"self.traj_new_actions_log_prob[i]: {self.traj_new_actions_log_prob[i]}")
             # print_debug(f"new negative loss_actor: {loss_actor}")
-        loss_actor = - loss_actor.mean(0)
+        loss_actor = -loss_actor.mean(0)
         # print_debug(f"final loss_actor: {loss_actor}")
 
         # update model
@@ -344,5 +379,3 @@ class Agent(tmrl.sac.Agent):
             memory_size=len(self.memory),
             # entropy_scale=self.entropy_scale
         )
-
-
