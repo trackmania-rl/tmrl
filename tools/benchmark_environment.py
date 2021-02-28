@@ -18,6 +18,13 @@ def benchmark():
     env_config["benchmark"] = True
     env_config["running_average_factor"] = 0.05
     env_config["wait_on_done"] = True
+    env_config["interface_kwargs"] = {"img_hist_len": 1,
+                                      "gamepad": False,
+                                      "min_nb_steps_before_early_done": int(20 * 60),
+                                      "road_point": (440, 479),
+                                      "record": False}
+    # "interface_args": (),  # arguments of your interface
+    # "interface_kwargs": {},  # key word arguments of your interface
     env = gym.make("rtgym:real-time-gym-v0", config=env_config)
 
     t_d = time.time()
@@ -27,6 +34,8 @@ def benchmark():
         time.sleep(random.uniform(ACT_COMPUTE_MIN, ACT_COMPUTE_MAX))
         # o, r, d, i = env.step(act)
         o, r, d, i = env.step(None)
+        if d:
+            env.reset()
         print(f"rew:{r}")
     t_f = time.time()
 

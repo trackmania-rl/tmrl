@@ -33,7 +33,7 @@ class TM2020Interface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control Trackmania2020
     """
-    def __init__(self, img_hist_len=4, gamepad=False):
+    def __init__(self, img_hist_len: int=4, gamepad: bool=False, min_nb_steps_before_early_done: int=int(3.5 * 20)):
         """
         Args:
         """
@@ -48,6 +48,7 @@ class TM2020Interface(RealTimeGymInterface):
         self.client = None
         self.gamepad = gamepad
         self.j = None
+        self.min_nb_steps_before_early_done = min_nb_steps_before_early_done
 
         self.initialized = False
 
@@ -61,7 +62,11 @@ class TM2020Interface(RealTimeGymInterface):
         self.digits = load_digits()
         self.img_hist = deque(maxlen=self.img_hist_len)
         self.img = None
-        self.reward_function = RewardFunction(reward_data_path=cfg.REWARD_PATH, nb_obs_forward=NB_OBS_FORWARD)
+        self.reward_function = RewardFunction(reward_data_path=cfg.REWARD_PATH,
+                                              nb_obs_forward=NB_OBS_FORWARD,
+                                              nb_obs_backward=10,
+                                              nb_zero_rew_before_early_done=10,
+                                              min_nb_steps_before_early_done=self.min_nb_steps_before_early_done)
         self.client = TM2020OpenPlanetClient()
         self.initialized = True
 
@@ -104,7 +109,7 @@ class TM2020Interface(RealTimeGymInterface):
             self.initialize()
         self.send_control(self.get_default_action())
         keyres()
-        # time.sleep(0.05)  # must be long enough for image to be refreshed
+        time.sleep(1.5)  # must be long enough for image to be refreshed
         data, img = self.grab_data_and_img()
         speed = np.array([
             data[0],
@@ -179,8 +184,8 @@ class TM2020Interface(RealTimeGymInterface):
 
 
 class TM2020InterfaceLidar(TM2020Interface):
-    def __init__(self, img_hist_len=1, gamepad=False, road_point=(440, 479), record=False):
-        super().__init__(img_hist_len, gamepad)
+    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_early_done=int(20 * 3.5), road_point=(440, 479), record=False):
+        super().__init__(img_hist_len, gamepad, min_nb_steps_before_early_done)
         self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
         self.lidar = Lidar(monitor=self.monitor, road_point=road_point)
         self.record = record
@@ -202,7 +207,7 @@ class TM2020InterfaceLidar(TM2020Interface):
             self.initialize()
         self.send_control(self.get_default_action())
         keyres()
-        # time.sleep(0.05)  # must be long enough for image to be refreshed
+        time.sleep(1.5)  # must be long enough for image to be refreshed
         img, speed, data = self.grab_lidar_speed_and_data()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)

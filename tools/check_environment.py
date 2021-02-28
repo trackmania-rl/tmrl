@@ -23,11 +23,12 @@ def check_environment():
     o = env.reset()
     while True:
         o, r, d, i = env.step(None)
+        if d:
+            o = env.reset()
         print(r)
         img = np.asarray(sct.grab(monitor))[:, :, :3]
         lidar.lidar_20(img, True)
-        if d:
-            o = env.reset()
+
 
 
 if __name__ == "__main__":
