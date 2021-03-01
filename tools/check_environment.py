@@ -30,6 +30,5 @@ def check_environment():
         lidar.lidar_20(img, True)
 
 
-
 if __name__ == "__main__":
     check_environment()

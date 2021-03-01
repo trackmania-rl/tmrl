@@ -33,7 +33,7 @@ class TM2020Interface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control Trackmania2020
     """
-    def __init__(self, img_hist_len: int=4, gamepad: bool=False, min_nb_steps_before_early_done: int=int(3.5 * 20)):
+    def __init__(self, img_hist_len: int = 4, gamepad: bool = False, min_nb_steps_before_early_done: int = int(3.5 * 20)):
         """
         Args:
         """

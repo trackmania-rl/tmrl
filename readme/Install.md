@@ -50,6 +50,8 @@ When you are on the game, go to the settings and set:
 If you want to run the self-driving-car on Trackmania 2020, you will need to install 
 [Openplanet for trackmania](https://openplanet.nl/).
 
+Make sure that you have the Visual C++ x64 runtime installed or OpenPlanet will not work. You can download it [here](https://aka.ms/vs/16/release/vc_redist.x64.exe).
+
 After that, copy the folder `Scripts` and paste it in `C:\Users\username\OpenplanetNext\`
 
 Launch Trackmania 2020 game press `f3` to open Openplanet and click `Scripts > Reload scripts`
