@@ -92,3 +92,6 @@ else:
 
     def keyres():
         pass
+
+    def keysavereplay():
+        pass
