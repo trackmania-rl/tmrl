@@ -17,6 +17,8 @@ if platform.system() == "Windows":
     BACKSPACE = 0x0E
     ENTER = 0x1C
     DEL = 0xD3
+    R = 0x13
+    UP = 0xc8
 
     # C struct redefinitions
 
@@ -72,6 +74,14 @@ if platform.system() == "Windows":
             ReleaseKey(D)
 
     def keyres():
+        PressKey(ENTER)
+        ReleaseKey(ENTER)
+
+    def keysavereplay():
+        PressKey(R)
+        ReleaseKey(R)
+        PressKey(UP)
+        ReleaseKey(UP)
         PressKey(ENTER)
         ReleaseKey(ENTER)
 

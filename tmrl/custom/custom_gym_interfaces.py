@@ -13,7 +13,7 @@ if platform.system() == "Windows":
 
 from rtgym import RealTimeGymInterface
 
-from tmrl.custom.utils.key_event import apply_control, keyres
+from tmrl.custom.utils.key_event import apply_control, keyres, keysavereplay
 from tmrl.custom.utils.control_gamepad import control_gamepad
 from tmrl.custom.utils.tools import load_digits, get_speed, Lidar, TM2020OpenPlanetClient
 from tmrl.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
@@ -33,7 +33,7 @@ class TM2020Interface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control Trackmania2020
     """
-    def __init__(self, img_hist_len: int = 4, gamepad: bool = False, min_nb_steps_before_early_done: int = int(3.5 * 20)):
+    def __init__(self, img_hist_len: int = 4, gamepad: bool = False, min_nb_steps_before_early_done: int = int(3.5 * 20), save_replay: bool = False):
         """
         Args:
         """
@@ -49,6 +49,7 @@ class TM2020Interface(RealTimeGymInterface):
         self.gamepad = gamepad
         self.j = None
         self.min_nb_steps_before_early_done = min_nb_steps_before_early_done
+        self.save_replay = save_replay
 
         self.initialized = False
 
@@ -133,6 +134,8 @@ class TM2020Interface(RealTimeGymInterface):
         The agent stays 'paused', waiting in position
         """
         self.send_control(self.get_default_action())
+        if self.save_replay:
+            keysavereplay()
         keyres()
         time.sleep(0.5)
         mouse_close_finish_pop_up_tm20(small_window=True)
@@ -184,8 +187,8 @@ class TM2020Interface(RealTimeGymInterface):
 
 
 class TM2020InterfaceLidar(TM2020Interface):
-    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_early_done=int(20 * 3.5), road_point=(440, 479), record=False):
-        super().__init__(img_hist_len, gamepad, min_nb_steps_before_early_done)
+    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_early_done=int(20 * 3.5), road_point=(440, 479), record=False, save_replay: bool = False):
+        super().__init__(img_hist_len, gamepad, min_nb_steps_before_early_done, save_replay)
         self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
         self.lidar = Lidar(monitor=self.monitor, road_point=road_point)
         self.record = record
@@ -222,6 +225,8 @@ class TM2020InterfaceLidar(TM2020Interface):
         The agent stays 'paused', waiting in position
         """
         self.send_control(self.get_default_action())
+        if self.save_replay:
+            keysavereplay()
         keyres()
         time.sleep(0.5)
         mouse_close_finish_pop_up_tm20(small_window=False)
