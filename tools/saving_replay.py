@@ -23,6 +23,8 @@ def run_car():
     obs = env.reset()
     while True:
         o, r, d, i = env.step(None)
+        if d:
+            o = env.reset()
 
 
 if __name__ == "__main__":
