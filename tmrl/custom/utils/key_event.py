@@ -1,9 +1,12 @@
 # http://www.flint.jp/misc/?q=dik&lang=en  key indicator
 
 import platform
+import time
+
+from tmrl.custom.utils.mouse_event import mouse_change_name_replay_tm20, mouse_save_replay_tm20, mouse_close_replay_window_tm20
 
 if platform.system() == "Windows":
-
+    import keyboard
     import ctypes
 
     SendInput = ctypes.windll.user32.SendInput
@@ -18,7 +21,6 @@ if platform.system() == "Windows":
     ENTER = 0x1C
     DEL = 0xD3
     R = 0x13
-    UP = 0xc8
 
     # C struct redefinitions
 
@@ -79,11 +81,17 @@ if platform.system() == "Windows":
 
     def keysavereplay():  # TODO: debug
         PressKey(R)
+        time.sleep(0.1)
         ReleaseKey(R)
-        PressKey(UP)
-        ReleaseKey(UP)
-        PressKey(ENTER)
-        ReleaseKey(ENTER)
+        time.sleep(1.0)
+        mouse_change_name_replay_tm20()
+        time.sleep(1.0)
+        keyboard.write(str(time.time_ns()))
+        time.sleep(1.0)
+        mouse_save_replay_tm20()
+        time.sleep(1.0)
+        mouse_close_replay_window_tm20()
+        time.sleep(1.0)
 
 else:
 

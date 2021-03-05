@@ -557,6 +557,7 @@ class RolloutWorker:
             device="cpu",
             redis_ip=None,
             samples_per_worker_packet=1000,
+            max_samples_per_episode=np.inf,
             model_path=cfg.MODEL_PATH_WORKER,
             obs_preprocessor: callable = None,
             crc_debug=False,
@@ -580,6 +581,7 @@ class RolloutWorker:
         self.__weights = None
         self.__weights_lock = Lock()
         self.samples_per_worker_batch = samples_per_worker_packet
+        self.max_samples_per_episode = max_samples_per_episode
         self.crc_debug = crc_debug
         self.model_history = model_history
         self._cur_hist_cpt = 0
@@ -699,6 +701,24 @@ class RolloutWorker:
         self.buffer.stat_train_return = ret
         self.buffer.stat_train_steps = steps
 
+    def run_test_episodes(self, max_samples):
+        """
+        collects a maximum of n test transitions (from reset to done)
+        stores test return in the local buffer of the worker
+        """
+        while True:
+            ret = 0.0
+            steps = 0
+            obs = self.reset(train=False, collect_samples=False)
+            for _ in range(max_samples):
+                obs, rew, done, info = self.step(obs=obs, train=False, collect_samples=False)
+                ret += rew
+                steps += 1
+                if done:
+                    break
+            self.buffer.stat_test_return = ret
+            self.buffer.stat_test_steps = steps
+
     def run_test_episode(self, max_samples):
         """
         collects a maximum of n test transitions (from reset to done)
@@ -721,9 +741,9 @@ class RolloutWorker:
         while True:
             if episode % test_episode_interval == 0 and not self.crc_debug:
                 print_with_timestamp("INFO: running test episode")
-                self.run_test_episode(self.samples_per_worker_batch)
+                self.run_test_episode(self.max_samples_per_episode)
             print_with_timestamp("INFO: collecting train episode")
-            self.collect_train_episode(self.samples_per_worker_batch)
+            self.collect_train_episode(self.max_samples_per_episode)
             print_with_timestamp("INFO: copying buffer for sending")
             self.send_and_clear_buffer()
             print_with_timestamp("INFO: checking for new weights")

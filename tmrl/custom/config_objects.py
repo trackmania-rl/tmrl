@@ -14,6 +14,7 @@ from tmrl.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_cognifly
 from tmrl.custom.custom_checkpoints import load_run_instance_images_dataset, dump_run_instance_images_dataset
 import numpy as np
+import rtgym
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
@@ -28,19 +29,19 @@ if cfg.PRAGMA_LIDAR:
     INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
 else:
     INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=cfg.IMG_HIST_LEN)
-CONFIG_DICT = {
-    "interface": INT,
-    "time_step_duration": 0.05,
-    "start_obs_capture": 0.04,  # /!\ lidar capture takes 0.03s
-    "time_step_timeout_factor": 1.0,
-    "ep_max_length": np.inf,
-    "real_time": True,
-    "async_threading": True,
-    "act_in_obs": True,  # ACT_IN_OBS
-    "act_buf_len": cfg.ACT_BUF_LEN,
-    "benchmark": cfg.BENCHMARK,
-    "wait_on_done": True,
-}
+
+CONFIG_DICT = rtgym.DEFAULT_CONFIG_DICT
+CONFIG_DICT["interface"] = INT
+CONFIG_DICT["time_step_duration"] = 0.05
+CONFIG_DICT["start_obs_capture"] = 0.04  # /!\ lidar capture takes 0.03s
+CONFIG_DICT["time_step_timeout_factor"] = 1.0
+CONFIG_DICT["ep_max_length"] = np.inf
+CONFIG_DICT["real_time"] = True
+CONFIG_DICT["async_threading"] = True
+CONFIG_DICT["act_in_obs"] = True  # ACT_IN_OBS
+CONFIG_DICT["act_buf_len"] = cfg.ACT_BUF_LEN
+CONFIG_DICT["benchmark"] = cfg.BENCHMARK
+CONFIG_DICT["wait_on_done"] = True
 
 # to compress a sample before sending it over the local network/Internet:
 SAMPLE_COMPRESSOR = get_local_buffer_sample if cfg.PRAGMA_LIDAR else get_local_buffer_sample_tm20_imgs
