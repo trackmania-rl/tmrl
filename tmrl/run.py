@@ -18,6 +18,7 @@ def main(args):
                            device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
                            redis_ip=cfg.REDIS_IP_FOR_WORKER,
                            samples_per_worker_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
+                           max_samples_per_episode=cfg.RW_MAX_SAMPLES_PER_EPISODE,
                            model_path=cfg.MODEL_PATH_WORKER,
                            obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
                            crc_debug=cfg.CRC_DEBUG)
