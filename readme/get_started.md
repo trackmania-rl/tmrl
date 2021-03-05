@@ -23,7 +23,6 @@ Please follow/adapt these steps so that your TrackMania game works with TMRL:
 - Close the `Settings` menu.
 - In the lobby, select `Training` and select track number 1.
 - Enter the cockpit view by hitting the `3` key.
-- Hide the user interface by hitting the `*` key. 
 - Hide the ghost by pressing the `g` key.
 
 The trackmania window should now look like this:
