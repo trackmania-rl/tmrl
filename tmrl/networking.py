@@ -242,7 +242,7 @@ def poll_and_recv_or_close_socket(conn):
 
 
 class Buffer:
-    def __init__(self, maxlen=2000):
+    def __init__(self, maxlen=cfg.BUFFERS_MAXLEN):
         self.memory = []
         self.stat_train_return = 0.0
         self.stat_test_return = 0.0
@@ -292,7 +292,7 @@ class Server:
     If trainer_on_localhost is True, the server only listens on trainer_on_localhost. Then the trainer is expected to talk on trainer_on_localhost.
     Otherwise, the server also listens to the local ip and the trainer is expected to talk on the local ip (port forwarding).
     """
-    def __init__(self, samples_per_server_packet=1000, trainer_on_localhost=False, workers_on_localhost=True, workers_on_network=True):
+    def __init__(self, samples_per_server_packet=1000):
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
@@ -304,21 +304,9 @@ class Server:
 
         print_with_timestamp(f"INFO REDIS: local IP: {self.local_ip}")
         print_with_timestamp(f"INFO REDIS: public IP: {self.public_ip}")
-        print_with_timestamp(f"INFO REDIS: trainer expected on: {'localhost' if trainer_on_localhost else 'network'}")
-        print_with_timestamp(f"INFO REDIS: workers expected on localhost: {workers_on_localhost}")
-        print_with_timestamp(f"INFO REDIS: workers expected on network: {workers_on_network}")
 
-        # workers threads:
-        if workers_on_localhost:
-            Thread(target=self.__rollout_workers_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
-        if workers_on_network:
-            Thread(target=self.__rollout_workers_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
-
-        # trainer thread:
-        if trainer_on_localhost:
-            Thread(target=self.__trainers_thread, args=("127.0.0.1", ), kwargs={}, daemon=True).start()
-        else:
-            Thread(target=self.__trainers_thread, args=(self.local_ip, ), kwargs={}, daemon=True).start()
+        Thread(target=self.__rollout_workers_thread, args=('',), kwargs={}, daemon=True).start()
+        Thread(target=self.__trainers_thread, args=('',), kwargs={}, daemon=True).start()
 
     def __trainers_thread(self, ip):
         """
@@ -556,8 +544,8 @@ class RolloutWorker:
             get_local_buffer_sample: callable,
             device="cpu",
             redis_ip=None,
-            samples_per_worker_packet=1000,
-            max_samples_per_episode=np.inf,
+            samples_per_worker_packet=1000,  # The RolloutWorker waits for this number of samples before sending
+            max_samples_per_episode=1000000,  # If the episode is longer than this, it is reset by the RolloutWorker
             model_path=cfg.MODEL_PATH_WORKER,
             obs_preprocessor: callable = None,
             crc_debug=False,

@@ -5,7 +5,7 @@ from pathlib import Path
 
 PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SAC_4_LIDAR_Yann_new_code_test_001"
+RUN_NAME = "SAC_4_LIDAR_Yann_new_code_test_002"
 
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
@@ -74,6 +74,8 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 # NETWORKING: ==================================================
 
 PRINT_BYTESIZES = True
+
+BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
