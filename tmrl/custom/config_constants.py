@@ -75,8 +75,8 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 PRINT_BYTESIZES = True
 
-BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
-RW_MAX_SAMPLES_PER_EPISODE = 1000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
+BUFFERS_MAXLEN = 10000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
+RW_MAX_SAMPLES_PER_EPISODE = 10000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
