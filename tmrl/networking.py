@@ -461,10 +461,10 @@ class TrainerInterface:
         """
         Trainer interface thread
         """
-        ack_time = time.time()
-        recv_time = time.time()
-        wait_ack = False
         while True:  # main client loop
+            ack_time = time.time()
+            recv_time = time.time()
+            wait_ack = False
             s = get_connected_socket(cfg.SOCKET_TIMEOUT_CONNECT_TRAINER, self.redis_ip, cfg.PORT_TRAINER)
             if s is None:
                 print_with_timestamp("DEBUG: get_connected_socket failed in TrainerInterface thread")
@@ -595,10 +595,10 @@ class RolloutWorker:
         """
         Redis thread
         """
-        ack_time = time.time()
-        recv_time = time.time()
-        wait_ack = False
         while True:  # main client loop
+            ack_time = time.time()
+            recv_time = time.time()
+            wait_ack = False
             s = get_connected_socket(cfg.SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.redis_ip, cfg.PORT_ROLLOUT)
             if s is None:
                 print_with_timestamp("DEBUG: get_connected_socket failed in worker")
