@@ -8,7 +8,7 @@ from tmrl.memory_dataloading import MemoryDataloading, TrajMemoryDataloading
 def get_local_buffer_sample(prev_act, obs, rew, done, info):
     """
     Input:
-        prev_act: action computed from a previous observation and applied to yield obs in the transition
+        prev_act: action computed from a previous observation and applied to yield obs in the transition (but not influencing the unaugmented observation in real-time envs)
         obs, rew, done, info: outcome of the transition
     this function creates the object that will actually be stored in local buffers for networking
     this is to compress the sample before sending it over the Internet/local network
@@ -121,6 +121,11 @@ class MemoryTMNFLidar(MemoryTMNF):
         """
         idx_last = item + self.min_samples - 1
         idx_now = item + self.min_samples
+
+        # # TODO if a reset transition has influenced the observation, special care must be taken here
+        # last_dones = self.data[4][idx_now]
+        # last_done_idx = len(li) - next(i for i, v in enumerate(reversed(li), 1) if v == 'a')
+
         acts = self.load_acts(item)
         last_act_buf = acts[:-1]
         new_act_buf = acts[1:]

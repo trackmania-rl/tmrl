@@ -449,6 +449,7 @@ class TrainerInterface:
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
         self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
+        self.recv_tiemout = cfg.RECV_TIMEOUT_TRAINER_FROM_SERVER
 
         print_with_timestamp(f"local IP: {self.local_ip}")
         print_with_timestamp(f"public IP: {self.public_ip}")
@@ -461,6 +462,7 @@ class TrainerInterface:
         Trainer interface thread
         """
         ack_time = time.time()
+        recv_time = time.time()
         wait_ack = False
         while True:  # main client loop
             s = get_connected_socket(cfg.SOCKET_TIMEOUT_CONNECT_TRAINER, self.redis_ip, cfg.PORT_TRAINER)
@@ -497,12 +499,16 @@ class TrainerInterface:
                     break
                 elif obj is not None and obj != 'ACK':  # received buffer
                     print_with_timestamp(f"DEBUG INFO: trainer interface received obj")
+                    recv_time = time.time()
                     self.__buffer_lock.acquire()  # BUFFER LOCK.........................................................
                     self.__buffer += obj
                     self.__buffer_lock.release()  # END BUFFER LOCK.....................................................
                 elif obj == 'ACK':
                     wait_ack = False
                     print_with_timestamp(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
+                elif time.time() - recv_time > self.recv_tiemout:
+                    print_with_timestamp(f"DEBUG: Timeout in TrainerInterface, not received anything for too long")
+                    break
                 time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
@@ -577,6 +583,7 @@ class RolloutWorker:
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
         self.redis_ip = redis_ip if redis_ip is not None else '127.0.0.1'
+        self.recv_timeout = cfg.RECV_TIMEOUT_WORKER_FROM_SERVER
 
         print_with_timestamp(f"local IP: {self.local_ip}")
         print_with_timestamp(f"public IP: {self.public_ip}")
@@ -589,6 +596,7 @@ class RolloutWorker:
         Redis thread
         """
         ack_time = time.time()
+        recv_time = time.time()
         wait_ack = False
         while True:  # main client loop
             s = get_connected_socket(cfg.SOCKET_TIMEOUT_CONNECT_ROLLOUT, self.redis_ip, cfg.PORT_ROLLOUT)
@@ -626,12 +634,16 @@ class RolloutWorker:
                     break
                 elif obj is not None and obj != 'ACK':
                     print_with_timestamp(f"DEBUG INFO: rollout worker received obj")
+                    recv_time = time.time()
                     self.__weights_lock.acquire()  # WEIGHTS LOCK.......................................................
                     self.__weights = obj
                     self.__weights_lock.release()  # END WEIGHTS LOCK...................................................
                 elif obj == 'ACK':
                     wait_ack = False
                     print_with_timestamp(f"INFO: transfer acknowledgment received after {time.time() - ack_time}s")
+                elif time.time() - recv_time > self.recv_timeout:
+                    print_with_timestamp(f"DEBUG: Timeout in RolloutWorker, not received anything for too long")
+                    break
                 time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 

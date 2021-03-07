@@ -3,7 +3,7 @@ from pathlib import Path
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 0  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
 RUN_NAME = "SAC_4_LIDAR_Yann_old_map_new_code_01"
 
@@ -94,6 +94,8 @@ ACK_TIMEOUT_WORKER_TO_REDIS = 300.0
 ACK_TIMEOUT_TRAINER_TO_REDIS = 300.0
 ACK_TIMEOUT_REDIS_TO_WORKER = 300.0
 ACK_TIMEOUT_REDIS_TO_TRAINER = 300.0
+RECV_TIMEOUT_TRAINER_FROM_SERVER = 300.0
+RECV_TIMEOUT_WORKER_FROM_SERVER = 300.0
 WAIT_BEFORE_RECONNECTION = 10.0
 LOOP_SLEEP_TIME = 1.0
 
