@@ -305,8 +305,8 @@ class Server:
         print_with_timestamp(f"INFO REDIS: local IP: {self.local_ip}")
         print_with_timestamp(f"INFO REDIS: public IP: {self.public_ip}")
 
-        Thread(target=self.__rollout_workers_thread, args=('',), kwargs={}, daemon=True).start()
-        Thread(target=self.__trainers_thread, args=('',), kwargs={}, daemon=True).start()
+        Thread(target=self.__rollout_workers_thread, args=('', ), kwargs={}, daemon=True).start()
+        Thread(target=self.__trainers_thread, args=('', ), kwargs={}, daemon=True).start()
 
     def __trainers_thread(self, ip):
         """

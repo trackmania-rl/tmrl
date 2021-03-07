@@ -25,7 +25,8 @@ class Agent:
     OutputNorm: type = PopArt
     # batchsize: int = 256  # training batch size
     # memory_size: int = 1000000  # replay memory size
-    lr: float = 0.0003  # learning rate
+    lr_actor: float = 0.0003  # learning rate
+    lr_critic: float = 0.0003  # learning rate
     discount: float = 0.99  # reward discount factor
     target_update: float = 0.005  # parameter for exponential moving average
     reward_scale: float = 5.
@@ -33,9 +34,6 @@ class Agent:
     device: str = None
 
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
-
-    # total_updates = 0
-    # environment_steps = 0
 
     def __post_init__(self, Env):
         with Env() as env:
@@ -46,12 +44,9 @@ class Agent:
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
 
-        self.actor_optimizer = torch.optim.Adam(self.model.actor.parameters(), lr=self.lr)
-        self.critic_optimizer = torch.optim.Adam(self.model.critics.parameters(), lr=self.lr)
+        self.actor_optimizer = torch.optim.Adam(self.model.actor.parameters(), lr=self.lr_actor)
+        self.critic_optimizer = torch.optim.Adam(self.model.critics.parameters(), lr=self.lr_critic)
         # self.memory = self.Memory(self.memory_size, self.batchsize, device)
-
-        # self.actor_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.actor_optimizer,self.lr/10,self.lr*10, step_size_up=2000)
-        # self.critic_lr_scheduler = torch.optim.lr_scheduler.CyclicLR(self.critic_optimizer,self.lr / 10,self.lr * 10, step_size_up=2000)
 
         self.outputnorm = self.OutputNorm(self.model.critic_output_layers)
         self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
@@ -65,8 +60,8 @@ class Agent:
 
     def train(self, batch):
 
-        obs, actions, rewards, next_obs, terminals = batch
-        # obs, actions, rewards, next_obs, terminals = self.memory.sample()  # sample a transition from the replay buffer
+        obs, actions, rewards, next_obs, dones = batch
+        # obs, actions, rewards, next_obs, dones = self.memory.sample()  # sample a transition from the replay buffer
         # print("DEBUG: sampling new action")
         new_action_distribution = self.model.actor(obs)  # outputs distribution object
         new_actions = new_action_distribution.rsample()  # samples using the reparametrization trick
@@ -82,13 +77,13 @@ class Agent:
         # next_value = self.outputnorm.unnormalize(next_value)  # PopArt (not present in the original paper)
 
         # predict entropy rewards in a separate dimension from the normal rewards (not present in the original paper)
-        next_action_entropy = -(1. - terminals) * self.discount * next_action_distribution.log_prob(next_actions)
+        next_action_entropy = -(1. - dones) * self.discount * next_action_distribution.log_prob(next_actions)
         reward_components = torch.cat((
             self.reward_scale * rewards[:, None],
             self.entropy_scale * next_action_entropy[:, None],
         ), dim=1)  # shape = (batchsize, reward_components)
 
-        value_target = reward_components + (1. - terminals[:, None]) * self.discount * next_value
+        value_target = reward_components + (1. - dones[:, None]) * self.discount * next_value
         normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
 
         # print("DEBUG: sampling old values")
@@ -120,8 +115,6 @@ class Agent:
         # update target critics and normalizers
         exponential_moving_average(self.model_target.critics.parameters(), self.model.critics.parameters(), self.target_update)
         exponential_moving_average(self.outputnorm_target.parameters(), self.outputnorm.parameters(), self.target_update)
-        # self.actor_lr_scheduler.step()
-        # self.critic_lr_scheduler.step()
 
         return dict(
             loss_actor=loss_actor.detach(),
