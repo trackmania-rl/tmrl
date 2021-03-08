@@ -3,9 +3,9 @@ from pathlib import Path
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 2  # 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 3  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SAC_4_LIDAR_Yann_old_map_new_code_04"
+RUN_NAME = "SAC_4_LIDAR_Yann_old_map_new_code_test_3080_01"
 
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
@@ -38,7 +38,7 @@ IMG_HIST_LEN = 4
 
 # FILE SYSTEM: =================================================
 
-PATH_FILE = Path(__file__)  # TODO: check that this works with PyPI
+PATH_FILE = Path(__file__)  # TODO: this won't work with PyPI or normal install
 print(f"DEBUG: PATH_FILE:{PATH_FILE}")
 PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
 print(f"DEBUG: PATH_DATA:{PATH_DATA}")
@@ -61,6 +61,10 @@ if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
         MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/" + (RUN_NAME + "_t.pth")
         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME
         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
+elif PRAGMA_EDOUARD_YANN_CC == 3:  # Override some of these for MIST Benchbot
+    MODEL_PATH_TRAINER = r"/home/ybouteiller/base_tmrl/data/" + (RUN_NAME + "_t.pth")
+    CHECKPOINT_PATH = r"/home/ybouteiller/base_tmrl/data/" + RUN_NAME
+    REWARD_PATH = r"/home/ybouteiller/base_tmrl/data/reward.pkl"
 
 # WANDB: =======================================================
 
