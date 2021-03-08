@@ -55,6 +55,25 @@ def get_local_buffer_sample_cognifly(prev_act, obs, rew, done, info):
     return prev_act_mod, obs_mod, rew_mod, done_mod, info_mod
 
 
+# FUNCTIONS ====================================================
+
+
+def last_true_in_list(li):
+    for i in reversed(range(len(li))):
+        if li[i]:
+            return i
+    return None
+
+
+def replace_hist_before_done(hist, done_idx_in_hist):
+    last_idx = len(hist) - 1
+    assert done_idx_in_hist <= last_idx, f"DEBUG: done_idx_in_hist:{done_idx_in_hist}, last_idx:{last_idx}"
+    if 0 <= done_idx_in_hist < last_idx:
+        for i in reversed(range(len(hist))):
+            if i <= done_idx_in_hist:
+                hist[i] = hist[i + 1]
+
+
 # MEMORY DATALOADING ===========================================
 
 
@@ -122,28 +141,34 @@ class MemoryTMNFLidar(MemoryTMNF):
         idx_last = item + self.min_samples - 1
         idx_now = item + self.min_samples
 
-        # # TODO if a reset transition has influenced the observation, special care must be taken here
-        # last_dones = self.data[4][idx_now]
-        # last_done_idx = len(li) - next(i for i, v in enumerate(reversed(li), 1) if v == 'a')
-
         acts = self.load_acts(item)
         last_act_buf = acts[:-1]
         new_act_buf = acts[1:]
+
         imgs = self.load_imgs(item)
-        last_obs = (self.data[2][idx_last], imgs[:-1], *last_act_buf)
-        rew = np.float32(self.data[5][idx_now])
+        imgs_last_obs = imgs[:-1]
+        imgs_new_obs = imgs[1:]
+
+        # if a reset transition has influenced the observation, special care must be taken
+        last_dones = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
+        last_done_idx = last_true_in_list(last_dones)  # last occurrence of True
+        assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
+        if last_done_idx is not None:
+            replace_hist_before_done(hist=new_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset - 1)
+            replace_hist_before_done(hist=last_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset)
+            replace_hist_before_done(hist=imgs_new_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset - 1)
+            replace_hist_before_done(hist=imgs_last_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset)
+
+        last_obs = (self.data[2][idx_last], imgs_last_obs, *last_act_buf)
         new_act = self.data[1][idx_now]
-        new_obs = (self.data[2][idx_now], imgs[1:], *new_act_buf)
+        rew = np.float32(self.data[5][idx_now])
+        new_obs = (self.data[2][idx_now], imgs_new_obs, *new_act_buf)
         done = self.data[4][idx_now]
         info = self.data[6][idx_now]
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):
         res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
-        # res = []
-        # for i in range(item, item+self.imgs_obs+1):
-        #     img = self.data[3][i]
-        #     res.append(img)
         return np.stack(res)
 
     def load_acts(self, item):
@@ -337,7 +362,7 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
         return self
 
 
-class MemoryTM2020(MemoryDataloading):
+class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
     def __init__(self,
                  memory_size,
                  batchsize,

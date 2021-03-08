@@ -749,8 +749,8 @@ class RolloutWorker:
             print_with_timestamp("INFO: checking for new weights")
             self.update_actor_weights()
             episode += 1
-            if self.crc_debug:
-                break
+            # if self.crc_debug:
+            #     break
 
     def profile_step(self, nb_steps=100):
         import torch.autograd.profiler as profiler
