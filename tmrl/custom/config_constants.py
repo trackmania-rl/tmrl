@@ -4,8 +4,11 @@ from pathlib import Path
 # HIGH-LEVEL PRAGMAS: ==========================================
 
 PRAGMA_EDOUARD_YANN_CC = 3  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
-PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SAC_4_LIDAR_Yann_new_map_new_code_05_test"  # Yann en cours: "SAC_4_LIDAR_Yann_old_map_new_code_04"
+PRAGMA_SERVER_ON_EDOUARD_YANN = 1  # 1 is server on Edouard's PC, 0 if server on Yann's PC
+RUN_NAME = "SAC_4_LIDAR_Edouard_new_map_new_code_01_3080"  # Yann en cours: "SAC_4_LIDAR_Yann_old_map_new_code_04"
+
+BUFFERS_MAXLEN = 10000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
+RW_MAX_SAMPLES_PER_EPISODE = 10000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
 
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
@@ -78,9 +81,6 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 # NETWORKING: ==================================================
 
 PRINT_BYTESIZES = True
-
-BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
-RW_MAX_SAMPLES_PER_EPISODE = 1000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
 
 PORT_TRAINER = 55555  # Port to listen on (non-privileged ports are > 1023)
 PORT_ROLLOUT = 55556  # Port to listen on (non-privileged ports are > 1023)
