@@ -100,7 +100,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
         memory_size=1000000,
-        batchsize=256,
+        batchsize=1024,  # 256
         epochs=400,  # 400
         rounds=10,  # 10
         steps=1000,  # 1000
