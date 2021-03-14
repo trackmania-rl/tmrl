@@ -242,7 +242,10 @@ class TM2020InterfaceLidar(TM2020Interface):
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
-        done = done or bool(data[8])
+        end_of_track = bool(data[8])
+        if end_of_track:
+            rew += cfg.REWARD_END_OF_TRACK
+        done = done or end_of_track
         return obs, rew, done  # if not self.record else data, rew, done
 
     def get_observation_space(self):
