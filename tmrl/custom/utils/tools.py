@@ -7,6 +7,7 @@ import time
 from threading import Thread, Lock
 import socket
 import struct
+from tmrl.custom.config_constants import LIDAR_BLACK_THRESHOLD
 
 
 class TM2020OpenPlanetClient:
@@ -121,7 +122,7 @@ class Lidar:
         self.road_point = road_point
         self.monitor = monitor
         self.list_axis_x, self.list_axis_y = self._get_axis_lidar()
-        self.black_threshold = [55, 55, 55]
+        self.black_threshold = LIDAR_BLACK_THRESHOLD
 
     def _get_axis_lidar(self):
         list_ax_x = []
