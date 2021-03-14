@@ -245,6 +245,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         end_of_track = bool(data[8])
         if end_of_track:
             rew += cfg.REWARD_END_OF_TRACK
+        rew += cfg.CONSTANT_PENALTY
         done = done or end_of_track
         return obs, rew, done  # if not self.record else data, rew, done
 
