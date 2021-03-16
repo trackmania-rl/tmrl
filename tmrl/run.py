@@ -27,7 +27,7 @@ def main(args):
         elif args.benchmark:
             rw.run_env_benchmark(nb_steps=1000, train=True)
         else:
-            rw.run_test_episodes(10000)
+            rw.run_episodes(10000)
 
     elif args.trainer:
         main_train(args)

@@ -83,7 +83,7 @@ class DcacInterface:
 
 
 @dataclass(eq=0)
-class Agent(tmrl.sac.Agent):
+class Agent(tmrl.sac.SacAgent):
     Interface: type = DcacInterface
     Model: type = Mlp
     loss_alpha: float = 0.2

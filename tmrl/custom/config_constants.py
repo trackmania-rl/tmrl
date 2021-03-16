@@ -3,7 +3,7 @@ from pathlib import Path
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 2  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 0  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
 RUN_NAME = "SAC_4_LIDAR_Yann_old_map_new_code_04"  # Yann en cours: "SAC_4_LIDAR_Yann_old_map_new_code_04"  # "SAC_4_LIDAR_Edouard_tiny_road_3_3080"
 
@@ -30,8 +30,11 @@ REDIS_IP_FOR_TRAINER = PUBLIC_IP_REDIS
 # ENVIRONMENT: =======================================================
 
 LIDAR_BLACK_THRESHOLD = [55, 55, 55]  # [70, 70, 70] for tiny road, [55, 55, 55] FOR BASIC ROAD
-REWARD_END_OF_TRACK = 0
-CONSTANT_PENALTY = 0
+REWARD_END_OF_TRACK = 0  # bonus reward at the end of the track
+CONSTANT_PENALTY = 0  # should be <= 0 : added to the reward at each time step
+SLEEP_TIME_AT_RESET = 1.5  # 1.5 to start in a Markov state with the lidar, 0.0 for saving replays
+ACT_BUF_LEN = 2
+IMG_HIST_LEN = 4
 
 # CRC DEBUGGING AND BENCHMARKING: ==============================
 
@@ -39,11 +42,6 @@ CRC_DEBUG = False  # Only for checking the consistency of the custom networking 
 CRC_DEBUG_SAMPLES = 1000  # Number of samples collected in CRC_DEBUG mode
 PROFILE_TRAINER = False  # Will profile each epoch in the Trainer when True
 BENCHMARK = False  # The environment will be benchmarked when this is True
-
-# BUFFERS: =====================================================
-
-ACT_BUF_LEN = 2
-IMG_HIST_LEN = 4
 
 # FILE SYSTEM: =================================================
 

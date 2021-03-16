@@ -21,7 +21,7 @@ def run_car():
                        obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
                        crc_debug=cfg.CRC_DEBUG)
 
-    rw.run_test_episodes(10000)
+    rw.run_episodes(10000)
 
 
 if __name__ == "__main__":

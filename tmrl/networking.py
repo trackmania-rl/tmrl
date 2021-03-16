@@ -701,7 +701,7 @@ class RolloutWorker:
         self.buffer.stat_train_return = ret
         self.buffer.stat_train_steps = steps
 
-    def run_test_episodes(self, max_samples):
+    def run_episodes(self, max_samples, train=False):
         """
         collects a maximum of n test transitions (from reset to done)
         stores test return in the local buffer of the worker
@@ -709,9 +709,9 @@ class RolloutWorker:
         while True:
             ret = 0.0
             steps = 0
-            obs = self.reset(train=False, collect_samples=False)
+            obs = self.reset(train=train, collect_samples=False)
             for _ in range(max_samples):
-                obs, rew, done, info = self.step(obs=obs, train=False, collect_samples=False)
+                obs, rew, done, info = self.step(obs=obs, train=train, collect_samples=False)
                 ret += rew
                 steps += 1
                 if done:

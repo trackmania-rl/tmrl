@@ -17,7 +17,7 @@ import torch
 @dataclass(eq=0)
 class TrainingOffline:
     Env: type = Env
-    Agent: type = tmrl.sac.Agent
+    Agent: type = tmrl.sac.SacAgent
     Memory: type = MemoryDataloading
     use_dataloader: bool = False  # Whether to use pytorch dataloader for multiprocess dataloading
     nb_workers: int = 0  # Number of parallel workers in pytorch dataloader
@@ -41,7 +41,7 @@ class TrainingOffline:
     def __post_init__(self):
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.epoch = 0
-        # print(self.Agent)
+        # print(self.SacAgent)
         # print(self.Env)
         self.memory = self.Memory(memory_size=self.memory_size, batchsize=self.batchsize, nb_steps=self.steps, use_dataloader=False, device=device)
         self.agent = self.Agent(Env=self.Env, device=device)

@@ -1,7 +1,7 @@
 from tmrl import TrainingOffline
 import tmrl.custom.config_constants as cfg
 from tmrl.envs import UntouchedGymEnv
-from tmrl.sac import Agent as SAC_Agent
+from tmrl.sac import SacAgent as SAC_Agent
 from tmrl.drtac import Agent as DCAC_Agent
 from tmrl.custom.custom_dcac_interfaces import Tm20rtgymDcacInterface
 from tmrl.util import partial

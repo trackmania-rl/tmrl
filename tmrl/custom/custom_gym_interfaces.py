@@ -110,7 +110,7 @@ class TM2020Interface(RealTimeGymInterface):
             self.initialize()
         self.send_control(self.get_default_action())
         keyres()
-        time.sleep(1.5)  # must be long enough for image to be refreshed
+        time.sleep(cfg.SLEEP_TIME_AT_RESET)  # must be long enough for image to be refreshed
         data, img = self.grab_data_and_img()
         speed = np.array([
             data[0],
@@ -210,7 +210,7 @@ class TM2020InterfaceLidar(TM2020Interface):
             self.initialize()
         self.send_control(self.get_default_action())
         keyres()
-        time.sleep(1.5)  # must be long enough for image to be refreshed
+        time.sleep(cfg.SLEEP_TIME_AT_RESET)  # must be long enough for image to be refreshed
         img, speed, data = self.grab_lidar_speed_and_data()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
