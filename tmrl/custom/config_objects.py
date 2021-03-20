@@ -1,18 +1,20 @@
 from tmrl import TrainingOffline
 import tmrl.custom.config_constants as cfg
 from tmrl.envs import UntouchedGymEnv
-from tmrl.sac import SacAgent as SAC_Agent
+# from tmrl.sac import SacAgent as SAC_Agent
+from tmrl.spinup_sac import SpinupSacAgent as SAC_Agent
 from tmrl.drtac import Agent as DCAC_Agent
 from tmrl.custom.custom_dcac_interfaces import Tm20rtgymDcacInterface
 from tmrl.util import partial
-from tmrl.sac_models import Mlp, MlpPolicy
+# from tmrl.sac_models import Mlp, MlpPolicy
+from tmrl.spinup_sac_core import MLPActorCritic, SquashedGaussianMLPActor
 from tmrl.drtac_models import Mlp as SV_Mlp
 from tmrl.drtac_models import MlpPolicy as SV_MlpPolicy
-from tmrl.custom.custom_models import Tm_hybrid_1, TMPolicy
+# from tmrl.custom.custom_models import Tm_hybrid_1, TMPolicy
 from tmrl.custom.custom_gym_interfaces import TM2020InterfaceLidar, TMInterfaceLidar, TM2020Interface, TMInterface, CogniflyInterfaceTask1
 from tmrl.custom.custom_memories import get_local_buffer_sample, MemoryTMNFLidar, MemoryTMNF, MemoryTM2020RAM, get_local_buffer_sample_tm20_imgs, get_local_buffer_sample_cognifly, MemoryCognifly, TrajMemoryTMNFLidar
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_cognifly
-from tmrl.custom.custom_checkpoints import load_run_instance_images_dataset, dump_run_instance_images_dataset
+# from tmrl.custom.custom_checkpoints import load_run_instance_images_dataset, dump_run_instance_images_dataset
 import numpy as np
 import rtgym
 
@@ -22,8 +24,11 @@ if cfg.PRAGMA_DCAC:
     TRAIN_MODEL = SV_Mlp
     POLICY = SV_MlpPolicy
 else:
-    TRAIN_MODEL = Mlp if cfg.PRAGMA_LIDAR else Tm_hybrid_1
-    POLICY = MlpPolicy if cfg.PRAGMA_LIDAR else TMPolicy
+    # TRAIN_MODEL = Mlp if cfg.PRAGMA_LIDAR else Tm_hybrid_1
+    # POLICY = MlpPolicy if cfg.PRAGMA_LIDAR else TMPolicy
+    assert cfg.PRAGMA_LIDAR
+    TRAIN_MODEL = MLPActorCritic
+    POLICY = SquashedGaussianMLPActor
 
 if cfg.PRAGMA_LIDAR:
     INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
@@ -80,17 +85,27 @@ if cfg.PRAGMA_DCAC:  # DCAC
         reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
         entropy_scale=1.0)  # default: 1.0),  # default: 1.0
 else:  # SAC
+    # AGENT = partial(
+    #     SAC_Agent,
+    #     OutputNorm=partial(beta=0., zero_debias=False),
+    #     device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
+    #     Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
+    #     lr_actor=0.0003,
+    #     lr_critic=0.0001,  # default 0.0003
+    #     discount=0.995,  # default and best tmnf so far: 0.99
+    #     target_update=0.001,  # default 0.005
+    #     reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
+    #     entropy_scale=1.0)  # default: 1.0),  # default: 1.0
+
     AGENT = partial(
         SAC_Agent,
-        OutputNorm=partial(beta=0., zero_debias=False),
         device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
         Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
         lr_actor=0.0003,
         lr_critic=0.0001,  # default 0.0003
-        discount=0.995,  # default and best tmnf so far: 0.99
-        target_update=0.001,  # default 0.005
-        reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
-        entropy_scale=1.0)  # default: 1.0),  # default: 1.0
+        gamma=0.995,  # default and best tmnf so far: 0.99
+        polyak=0.999,  # default 0.995
+        alpha=1.0 / 2.0)  # inverse of reward scale
 
 # TRAINER: =====================================================
 

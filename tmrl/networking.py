@@ -647,7 +647,7 @@ class RolloutWorker:
                 time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
-    def act(self, obs, train=False):
+    def act(self, obs, deterministic=False):
         """
         converts inputs to torch tensors and converts outputs to numpy arrays
         """
@@ -655,12 +655,12 @@ class RolloutWorker:
             obs = self.obs_preprocessor(obs)
         obs = collate([obs], device=self.device)
         with torch.no_grad():
-            action_distribution = self.actor(obs)
-            action = action_distribution.sample() if train else action_distribution.sample_deterministic()
-        action, = partition(action)
+            action = self.actor.act(obs, deterministic=deterministic)
+            # action = action_distribution.sample() if train else action_distribution.sample_deterministic()
+        # action, = partition(action)
         return action
 
-    def reset(self, train, collect_samples):
+    def reset(self, collect_samples):
         obs = None
         act = self.env.default_action.astype(np.float32)
         new_obs = self.env.reset()
@@ -674,8 +674,8 @@ class RolloutWorker:
             self.buffer.append_sample(sample)
         return new_obs
 
-    def step(self, obs, train, collect_samples):
-        act = self.act(obs, train=train)
+    def step(self, obs, deterministic, collect_samples):
+        act = self.act(obs, deterministic=deterministic)
         new_obs, rew, done, info = self.env.step(act)
         if collect_samples:
             if self.crc_debug:
@@ -691,9 +691,9 @@ class RolloutWorker:
         """
         ret = 0.0
         steps = 0
-        obs = self.reset(train=True, collect_samples=True)
+        obs = self.reset(collect_samples=True)
         for _ in range(max_samples):
-            obs, rew, done, info = self.step(obs=obs, train=True, collect_samples=True)
+            obs, rew, done, info = self.step(obs=obs, deterministic=False, collect_samples=True)
             ret += rew
             steps += 1
             if done:
@@ -709,9 +709,9 @@ class RolloutWorker:
         while True:
             ret = 0.0
             steps = 0
-            obs = self.reset(train=train, collect_samples=False)
+            obs = self.reset(collect_samples=False)
             for _ in range(max_samples):
-                obs, rew, done, info = self.step(obs=obs, train=train, collect_samples=False)
+                obs, rew, done, info = self.step(obs=obs, deterministic=not train, collect_samples=False)
                 ret += rew
                 steps += 1
                 if done:
@@ -726,9 +726,9 @@ class RolloutWorker:
         """
         ret = 0.0
         steps = 0
-        obs = self.reset(train=False, collect_samples=False)
+        obs = self.reset(collect_samples=False)
         for _ in range(max_samples):
-            obs, rew, done, info = self.step(obs=obs, train=False, collect_samples=False)
+            obs, rew, done, info = self.step(obs=obs, deterministic=True, collect_samples=False)
             ret += rew
             steps += 1
             if done:
@@ -754,7 +754,7 @@ class RolloutWorker:
 
     def profile_step(self, nb_steps=100):
         import torch.autograd.profiler as profiler
-        obs = self.reset(train=True, collect_samples=True)
+        obs = self.reset(collect_samples=True)
         use_cuda = True if self.device == 'cuda' else False
         print_with_timestamp(f"DEBUG: use_cuda:{use_cuda}")
         with profiler.profile(record_shapes=True, use_cuda=use_cuda) as prof:
@@ -765,15 +765,15 @@ class RolloutWorker:
                     action = action_distribution.sample()
         print_with_timestamp(prof.key_averages().table(row_limit=20, sort_by="cpu_time_total"))
 
-    def run_env_benchmark(self, nb_steps, train=True):
+    def run_env_benchmark(self, nb_steps, deterministic=False):
         """
         This method is only compatible with rtgym environments
         """
-        obs = self.reset(train=False, collect_samples=False)
+        obs = self.reset(collect_samples=False)
         for _ in range(nb_steps):
-            obs, rew, done, info = self.step(obs=obs, train=train, collect_samples=False)
+            obs, rew, done, info = self.step(obs=obs, deterministic=deterministic, collect_samples=False)
             if done:
-                obs = self.reset(train=False, collect_samples=False)
+                obs = self.reset(collect_samples=False)
         print_with_timestamp(f"Benchmark results:\n{self.env.benchmarks()}")
 
     def send_and_clear_buffer(self):

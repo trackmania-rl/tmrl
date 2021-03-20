@@ -25,7 +25,7 @@ def main(args):
         if args.worker:
             rw.run()
         elif args.benchmark:
-            rw.run_env_benchmark(nb_steps=1000, train=True)
+            rw.run_env_benchmark(nb_steps=1000, deterministic=False)
         else:
             rw.run_episodes(10000)
 
