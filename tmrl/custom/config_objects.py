@@ -102,9 +102,9 @@ else:  # SAC
         device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
         Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
         lr_actor=0.0003,
-        lr_critic=0.0001,  # default 0.0003
+        lr_critic=0.00002,  # 0.0001 # default 0.0003
         gamma=0.995,  # default and best tmnf so far: 0.99
-        polyak=0.999,  # default 0.995
+        polyak=0.995,  # 0.999 # default 0.995
         alpha=1.0 / 3.0)  # best: 1 / 2.0  # inverse of reward scale
 
 # TRAINER: =====================================================
