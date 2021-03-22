@@ -105,7 +105,7 @@ else:  # SAC
         lr_critic=0.0001,  # default 0.0003
         gamma=0.995,  # default and best tmnf so far: 0.99
         polyak=0.999,  # default 0.995
-        alpha=1.0 / 2.0)  # inverse of reward scale
+        alpha=1.0 / 3.0)  # best: 1 / 2.0  # inverse of reward scale
 
 # TRAINER: =====================================================
 
@@ -121,7 +121,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         steps=1000,  # 1000
         update_model_interval=1000,
         update_buffer_interval=1000,
-        max_training_steps_per_env_step=1.0,
+        max_training_steps_per_env_step=4.0,  # 1.0
         profiling=cfg.PROFILE_TRAINER,
         Agent=AGENT)
 else:  # images
