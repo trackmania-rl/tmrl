@@ -116,7 +116,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         Memory=MEMORY,
         memory_size=1000000,
         batchsize=256,  # RTX3080: up to 1024
-        epochs=400,  # 400
+        epochs=10000,  # 400
         rounds=10,  # 10
         steps=1000,  # 1000
         update_model_interval=1000,
