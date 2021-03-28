@@ -678,9 +678,12 @@ class RolloutWorker:
         act = self.act(obs, deterministic=deterministic)
         new_obs, rew, done, info = self.env.step(act)
         if collect_samples:
+            stored_done = done
+            if "__no_done" in info:
+                stored_done = False
             if self.crc_debug:
-                info['crc_sample'] = (obs, act, new_obs, rew, done)
-            sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
+                info['crc_sample'] = (obs, act, new_obs, rew, stored_done)
+            sample = self.get_local_buffer_sample(act, new_obs, rew, stored_done, info)
             self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return new_obs, rew, done, info
 

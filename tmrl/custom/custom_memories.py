@@ -153,6 +153,13 @@ class MemoryTMNFLidar(MemoryTMNF):
         last_dones = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
         last_done_idx = last_true_in_list(last_dones)  # last occurrence of True
         assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
+        last_infos = self.data[6][idx_now - self.min_samples:idx_now]
+        last_ignored_dones = ["__no_done" in i for i in last_infos]
+        last_ignored_done_idx = last_true_in_list(last_ignored_dones)  # last occurrence of True
+        assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
+        if last_ignored_done_idx is not None:
+            last_done_idx = last_ignored_done_idx  # FIXME: might not work in extreme cases where a done is ignored right after another done
+
         if last_done_idx is not None:
             replace_hist_before_done(hist=new_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset - 1)
             replace_hist_before_done(hist=last_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset)

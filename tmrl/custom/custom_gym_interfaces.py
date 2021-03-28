@@ -140,7 +140,7 @@ class TM2020Interface(RealTimeGymInterface):
         time.sleep(0.5)
         mouse_close_finish_pop_up_tm20(small_window=True)
 
-    def get_obs_rew_done(self):
+    def get_obs_rew_done_info(self):
         """
         returns the observation, the reward, and a done signal for end of episode
         obs must be a list of numpy arrays
@@ -160,8 +160,12 @@ class TM2020Interface(RealTimeGymInterface):
         self.img_hist.append(img)
         imgs = np.array(list(self.img_hist))
         obs = [speed, gear, rpm, imgs]
-        done = done or bool(data[8])
-        return obs, rew, done
+        end_of_track = bool(data[8])
+        info = {}
+        if end_of_track:
+            done = True
+            info["__no_done"] = True
+        return obs, rew, done, info
 
     def get_observation_space(self):
         """
@@ -231,7 +235,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         time.sleep(0.5)
         mouse_close_finish_pop_up_tm20(small_window=False)
 
-    def get_obs_rew_done(self):
+    def get_obs_rew_done_info(self):
         """
         returns the observation, the reward, and a done signal for end of episode
         obs must be a list of numpy arrays
@@ -243,11 +247,13 @@ class TM2020InterfaceLidar(TM2020Interface):
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         end_of_track = bool(data[8])
+        info = {}
         if end_of_track:
             rew += cfg.REWARD_END_OF_TRACK
+            done = True
+            info["__no_done"] = True
         rew += cfg.CONSTANT_PENALTY
-        done = done or end_of_track
-        return obs, rew, done  # if not self.record else data, rew, done
+        return obs, rew, done, info
 
     def get_observation_space(self):
         """
@@ -330,7 +336,7 @@ class TMInterface(RealTimeGymInterface):
         """
         self.send_control(self.get_default_action())
 
-    def get_obs_rew_done(self):
+    def get_obs_rew_done_info(self):
         """
         returns the observation, the reward, and a done signal for end of episode
         obs must be a list of numpy arrays
@@ -342,7 +348,7 @@ class TMInterface(RealTimeGymInterface):
         obs = [speed, imgs]
         done = False  # TODO: True if race complete
         # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
-        return obs, rew, done
+        return obs, rew, done, {}
 
     def get_observation_space(self):
         """
@@ -392,7 +398,7 @@ class TMInterfaceLidar(TMInterface):
         obs = [speed, imgs]
         return obs
 
-    def get_obs_rew_done(self):
+    def get_obs_rew_done_info(self):
         """
         returns the observation, the reward, and a done signal for end of episode
         obs must be a list of numpy arrays
@@ -404,7 +410,7 @@ class TMInterfaceLidar(TMInterface):
         obs = [speed, imgs]
         done = False  # TODO: True if race complete
         # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
-        return obs, rew, done
+        return obs, rew, done, {}
 
     def get_observation_space(self):
         """
@@ -494,7 +500,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
     def wait(self):
         self.send_control(self.get_default_action())
 
-    def get_obs_rew_done(self):
+    def get_obs_rew_done_info(self):
         """
         returns the observation, the reward, and a done signal for end of episode
         obs must be a list of numpy arrays
@@ -525,7 +531,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         ]
         r = -np.float32(abs(self.target - obs[0]))
         d = (r >= -0.5)
-        return o, r, d
+        return o, r, d, {}
 
     def get_observation_space(self):
         """
