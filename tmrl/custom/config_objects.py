@@ -105,7 +105,7 @@ else:  # SAC
         lr_critic=0.00005,  # 0.0001 # default 0.0003
         gamma=0.995,  # default and best tmnf so far: 0.99
         polyak=0.995,  # 0.999 # default 0.995
-        alpha=1.0 / 3.0)  # best: 1 / 2.0  # inverse of reward scale
+        alpha=1.0 / 1.8)  # best: 1 / 2.0  # inverse of reward scale
 
 # TRAINER: =====================================================
 
