@@ -5,7 +5,7 @@ from pathlib import Path
 
 PRAGMA_EDOUARD_YANN_CC = 3  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_SERVER_ON_EDOUARD_YANN = 1  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SAC_SPINUP_4_LIDAR_Edouard_decisiom_map_02"  # Yann en cours: "SAC_4_LIDAR_Yann_old_map_new_code_04"  # "SAC_4_LIDAR_Edouard_tiny_road_3_3080"
+RUN_NAME = "SAC_SPINUP_4_LIDAR_Edouard_tiny_map_02"  # Yann en cours: "SAC_4_LIDAR_Yann_old_map_new_code_04"  # "SAC_4_LIDAR_Edouard_tiny_road_3_3080"
 
 BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
 RW_MAX_SAMPLES_PER_EPISODE = 1000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
@@ -29,7 +29,7 @@ REDIS_IP_FOR_TRAINER = PUBLIC_IP_REDIS
 
 # ENVIRONMENT: =======================================================
 
-LIDAR_BLACK_THRESHOLD = [55, 55, 55]  # [70, 70, 70] for tiny road, [55, 55, 55] FOR BASIC ROAD
+LIDAR_BLACK_THRESHOLD = [88, 88, 88]  # [88, 88, 88] for tiny road, [55, 55, 55] FOR BASIC ROAD
 REWARD_END_OF_TRACK = 0  # bonus reward at the end of the track
 CONSTANT_PENALTY = 0  # should be <= 0 : added to the reward at each time step
 SLEEP_TIME_AT_RESET = 1.5  # 1.5 to start in a Markov state with the lidar, 0.0 for saving replays
