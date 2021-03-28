@@ -13,7 +13,8 @@ if platform.system() == "Windows":
 
 from rtgym import RealTimeGymInterface
 
-from tmrl.custom.utils.key_event import apply_control, keyres, keysavereplay
+from tmrl.custom.utils.key_event import apply_control, keyres
+from tmrl.custom.utils.mouse_event import wait_for_popup_save_replay_and_improve_tm20
 from tmrl.custom.utils.control_gamepad import control_gamepad
 from tmrl.custom.utils.tools import load_digits, get_speed, Lidar, TM2020OpenPlanetClient
 from tmrl.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
@@ -134,8 +135,6 @@ class TM2020Interface(RealTimeGymInterface):
         The agent stays 'paused', waiting in position
         """
         self.send_control(self.get_default_action())
-        if self.save_replay:
-            keysavereplay()
         keyres()
         time.sleep(0.5)
         mouse_close_finish_pop_up_tm20(small_window=True)
@@ -165,6 +164,8 @@ class TM2020Interface(RealTimeGymInterface):
         if end_of_track:
             done = True
             info["__no_done"] = True
+            if self.save_replay:
+                wait_for_popup_save_replay_and_improve_tm20(True)
         return obs, rew, done, info
 
     def get_observation_space(self):
@@ -229,8 +230,6 @@ class TM2020InterfaceLidar(TM2020Interface):
         The agent stays 'paused', waiting in position
         """
         self.send_control(self.get_default_action())
-        if self.save_replay:
-            keysavereplay()
         keyres()
         time.sleep(0.5)
         mouse_close_finish_pop_up_tm20(small_window=False)
@@ -252,6 +251,8 @@ class TM2020InterfaceLidar(TM2020Interface):
             rew += cfg.REWARD_END_OF_TRACK
             done = True
             info["__no_done"] = True
+            if self.save_replay:
+                wait_for_popup_save_replay_and_improve_tm20()
         rew += cfg.CONSTANT_PENALTY
         return obs, rew, done, info
 
