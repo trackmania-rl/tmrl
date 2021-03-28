@@ -54,7 +54,6 @@ class MemoryBatchSampler(Sampler):
 class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but partial doesn't work with Dataset
     """
     To sample from a MemoryDataloading, use either the iterator OR the get_dataloader() method
-    CAUTION: the
     e.g. either:
         for batch in myMemoryDataloading:  # this uses single worker dataloading (directly collates on device, unlike pytorch)
             operations on batch ...
