@@ -90,6 +90,7 @@ class TrainingOffline:
 
             for batch in self.memory:  # this samples a fixed number of batches
 
+                torch.cuda.synchronize()  # FIXME: remove, this is for debugging
                 t_sample = time.time()
 
                 if self.total_updates % self.update_buffer_interval == 0:
@@ -102,6 +103,7 @@ class TrainingOffline:
                     print("starting training")
                 stats_training_dict = self.agent.train(batch)
 
+                torch.cuda.synchronize()  # FIXME: remove, this is for debugging
                 t_train = time.time()
 
                 stats_training_dict["return_test"] = self.memory.stat_test_return
@@ -117,8 +119,7 @@ class TrainingOffline:
                     interface.broadcast_model(self.agent.model_nograd.actor)
                 self.check_ratio(interface)
 
-                # torch.cuda.synchronize()  # FIXME: remove, this is for debugging
-
+                torch.cuda.synchronize()  # FIXME: remove, this is for debugging
                 t_sample_prev = time.time()
 
             t3 = time.time()
