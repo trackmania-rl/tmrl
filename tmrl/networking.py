@@ -695,12 +695,14 @@ class RolloutWorker:
         ret = 0.0
         steps = 0
         obs = self.reset(collect_samples=True)
-        for _ in range(max_samples):
+        for i in range(max_samples):
             obs, rew, done, info = self.step(obs=obs, deterministic=False, collect_samples=True)
             ret += rew
             steps += 1
             if done:
                 break
+            if i == max_samples - 1:
+                info["__no_done"] = True
         self.buffer.stat_train_return = ret
         self.buffer.stat_train_steps = steps
 
