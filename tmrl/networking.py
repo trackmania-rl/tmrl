@@ -674,11 +674,13 @@ class RolloutWorker:
             self.buffer.append_sample(sample)
         return new_obs
 
-    def step(self, obs, deterministic, collect_samples):
+    def step(self, obs, deterministic, collect_samples, last_step=False):
         act = self.act(obs, deterministic=deterministic)
         new_obs, rew, done, info = self.env.step(act)
         if collect_samples:
             stored_done = done
+            if last_step and not done:  # ignore done when stopped by step limit
+                info["__no_done"] = True
             if "__no_done" in info:
                 stored_done = False
             if self.crc_debug:
@@ -696,13 +698,11 @@ class RolloutWorker:
         steps = 0
         obs = self.reset(collect_samples=True)
         for i in range(max_samples):
-            obs, rew, done, info = self.step(obs=obs, deterministic=False, collect_samples=True)
+            obs, rew, done, info = self.step(obs=obs, deterministic=False, collect_samples=True, last_step=i == max_samples - 1)
             ret += rew
             steps += 1
             if done:
                 break
-            if i == max_samples - 1:
-                info["__no_done"] = True
         self.buffer.stat_train_return = ret
         self.buffer.stat_train_steps = steps
 
