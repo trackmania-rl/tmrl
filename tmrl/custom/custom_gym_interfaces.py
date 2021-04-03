@@ -25,7 +25,7 @@ import tmrl.custom.config_constants as cfg
 
 # Globals ==============================================================================================================
 
-NB_OBS_FORWARD = 500  # if reward is collected at 100Hz, this allows (and rewards) 5s cuts
+NB_OBS_FORWARD = 500  # this allows (and rewards) 50m cuts
 
 # Interface for Trackmania 2020 ========================================================================================
 

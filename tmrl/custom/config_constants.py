@@ -5,7 +5,7 @@ from pathlib import Path
 
 PRAGMA_EDOUARD_YANN_CC = 3  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SAC_SPINUP_4_LIDAR_Yann_old_map_07"  # en cours: "SAC_SPINUP_4_LIDAR_Edouard_tiny_map_02"
+RUN_NAME = "SAC_SPINUP_4_LIDAR_Yann_old_map_08_TEST_1"  # en cours: "SAC_SPINUP_4_LIDAR_Edouard_tiny_map_02"
 
 BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
 RW_MAX_SAMPLES_PER_EPISODE = 1000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
@@ -50,7 +50,7 @@ print(f"DEBUG: PATH_FILE:{PATH_FILE}")
 PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
 print(f"DEBUG: PATH_DATA:{PATH_DATA}")
 
-MODEL_HISTORY = 1  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
+MODEL_HISTORY = 10  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
 
 MODEL_PATH_WORKER = str(PATH_DATA / "weights" / (RUN_NAME + ".pth"))
 MODEL_PATH_SAVE_HISTORY = str(PATH_DATA / "weights" / (RUN_NAME + "_"))
