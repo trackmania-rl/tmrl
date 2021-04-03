@@ -103,8 +103,11 @@ else:  # SAC
         Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
         lr_actor=0.0003,
         lr_critic=0.00005,  # 0.0001 # default 0.0003
+        lr_entropy=0.0003,
         gamma=0.995,  # default and best tmnf so far: 0.99
         polyak=0.995,  # 0.999 # default 0.995
+        learn_entropy_coef=True,  # False for SAC v2 with no temperature autotuning
+        target_entropy=-1.0,  # None for automatic
         alpha=1.0 / 3.0)  # best: 1 / 2.5  # inverse of reward scale
 
 # TRAINER: =====================================================
