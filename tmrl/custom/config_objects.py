@@ -114,7 +114,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         TrainingOffline,
         Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
-        memory_size=1000000,
+        memory_size=4000000,
         batchsize=256,  # RTX3080: up to 1024
         epochs=10000,  # 400
         rounds=10,  # 10

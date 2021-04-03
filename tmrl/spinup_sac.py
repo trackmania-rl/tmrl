@@ -14,7 +14,7 @@ import numpy as np
 import torch
 from torch.optim import Adam
 # import gym
-import time
+# import time
 import tmrl.spinup_sac_core as core
 
 
@@ -146,9 +146,6 @@ class SpinupSacAgent:  # Adapted from Spinup
         # Unfreeze Q-networks so you can optimize it at next DDPG step.
         for p in self.q_params:
             p.requires_grad = True
-
-        # Record things
-        # logger.store(LossPi=loss_pi.item(), **pi_info)
 
         # Finally, update target networks by polyak averaging.
         with torch.no_grad():
