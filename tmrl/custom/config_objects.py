@@ -107,7 +107,7 @@ else:  # SAC
         gamma=0.995,  # default and best tmnf so far: 0.99
         polyak=0.995,  # 0.999 # default 0.995
         learn_entropy_coef=True,  # False for SAC v2 with no temperature autotuning
-        target_entropy=-10.0,  # None for automatic
+        target_entropy=-5.0,  # None for automatic
         alpha=1.0 / 3.0)  # best: 1 / 2.5  # inverse of reward scale
 
 # TRAINER: =====================================================
