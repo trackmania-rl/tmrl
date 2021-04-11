@@ -34,6 +34,7 @@ class TrainingOffline:
     seed: int = 0  # seed is currently not used
     tag: str = ''  # for logging, e.g. allows to compare groups of runs
     profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the enc of each epoch
+    agent_scheduler: callable = None  # if not None, must be of the form f(Agent, epoch), called at the beginning of each epoch
 
     device: str = None
     total_updates = 0
@@ -68,6 +69,9 @@ class TrainingOffline:
     def run_epoch(self, interface: TrainerInterface):
         stats = []
         state = None
+
+        if self.agent_scheduler is not None:
+            self.agent_scheduler(self.agent, self.epoch)
 
         for rnd in range(self.rounds):
             print(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
