@@ -116,8 +116,8 @@ else:  # SAC
 
 def sac_v2_entropy_scheduler(agent, epoch):
     start_ent = -0.0
-    end_ent = -1.0
-    end_epoch = 100
+    end_ent = -7.0
+    end_epoch = 200
     if epoch <= end_epoch:
         agent.entopy_target = start_ent + (end_ent - start_ent) * epoch / end_epoch
 
