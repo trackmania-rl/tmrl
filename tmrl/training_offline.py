@@ -35,6 +35,7 @@ class TrainingOffline:
     tag: str = ''  # for logging, e.g. allows to compare groups of runs
     profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the enc of each epoch
     agent_scheduler: callable = None  # if not None, must be of the form f(Agent, epoch), called at the beginning of each epoch
+    start_training: int = 0  # minimum number of samples in the buffer before starting training
 
     device: str = None
     total_updates = 0
@@ -55,13 +56,13 @@ class TrainingOffline:
         self.total_samples += len(buffer)
 
     def check_ratio(self, interface):
-        ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 else -1.0
+        ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 and self.total_samples >= self.start_training else -1.0
         if ratio > self.max_training_steps_per_env_step or ratio == -1.0:
             print("INFO: Waiting for new samples")
             while ratio > self.max_training_steps_per_env_step or ratio == -1.0:
                 # wait for new samples
                 self.update_buffer(interface)
-                ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 else -1.0
+                ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 and self.total_samples >= self.start_training else -1.0
                 if ratio > self.max_training_steps_per_env_step or ratio == -1.0:
                     time.sleep(self.sleep_between_buffer_retrieval_attempts)
             print("INFO: Resuming training")

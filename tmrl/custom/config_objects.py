@@ -137,7 +137,8 @@ if cfg.PRAGMA_LIDAR:  # lidar
         max_training_steps_per_env_step=4.0,  # 1.0
         profiling=cfg.PROFILE_TRAINER,
         Agent=AGENT,
-        agent_scheduler=None)  # sac_v2_entropy_scheduler
+        agent_scheduler=None,  # sac_v2_entropy_scheduler
+        start_training=100000)  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
 else:  # images
     TRAINER = partial(
         TrainingOffline,
