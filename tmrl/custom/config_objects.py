@@ -106,7 +106,7 @@ else:  # SAC
         lr_entropy=0.0003,
         gamma=0.995,  # default and best tmnf so far: 0.99
         polyak=0.995,  # 0.999 # default 0.995
-        learn_entropy_coef=True,  # False for SAC v2 with no temperature autotuning
+        learn_entropy_coef=False,  # False for SAC v2 with no temperature autotuning
         target_entropy=-7.0,  # None for automatic
         alpha=1.0 / 2.5)  # best: 1 / 2.5  # inverse of reward scale
 
@@ -137,7 +137,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         max_training_steps_per_env_step=4.0,  # 1.0
         profiling=cfg.PROFILE_TRAINER,
         Agent=AGENT,
-        agent_scheduler=sac_v2_entropy_scheduler)
+        agent_scheduler=None)  # sac_v2_entropy_scheduler
 else:  # images
     TRAINER = partial(
         TrainingOffline,
