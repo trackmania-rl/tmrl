@@ -108,7 +108,7 @@ else:  # SAC
         polyak=0.995,  # 0.999 # default 0.995
         learn_entropy_coef=False,  # False for SAC v2 with no temperature autotuning
         target_entropy=-7.0,  # None for automatic
-        alpha=1.0 / 2.5)  # best: 1 / 2.5  # inverse of reward scale
+        alpha=1.0 / 2.7)  # best: 1 / 2.5  # inverse of reward scale
 
 
 # TRAINER: =====================================================
@@ -127,7 +127,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         TrainingOffline,
         Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
-        memory_size=4000000,
+        memory_size=1000000,
         batchsize=256,  # RTX3080: up to 1024
         epochs=10000,  # 400
         rounds=10,  # 10
@@ -138,7 +138,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         profiling=cfg.PROFILE_TRAINER,
         Agent=AGENT,
         agent_scheduler=None,  # sac_v2_entropy_scheduler
-        start_training=100000)  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
+        start_training=1000)  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
 else:  # images
     TRAINER = partial(
         TrainingOffline,
