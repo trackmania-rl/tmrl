@@ -334,7 +334,7 @@ class RNNQFunction(nn.Module):
 
 
 class RNNActorCritic(nn.Module):
-    def __init__(self, observation_space, action_space, rnn_size=256, rnn_len=1, mlp_sizes=(256, 256), activation=nn.ReLU, act_buf_len=0):
+    def __init__(self, observation_space, action_space, rnn_size=100, rnn_len=2, mlp_sizes=(100, 100), activation=nn.ReLU, act_buf_len=0):
         super().__init__()
 
         act_limit = action_space.high[0]
