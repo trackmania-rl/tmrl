@@ -219,6 +219,7 @@ class SquashedGaussianRNNActor(nn.Module):
         dim_act = act_space.shape[0]
         act_limit = act_space.high[0]
         self.rnn = rnn(dim_obs, rnn_size, rnn_len)
+        self.rnn.flatten_parameters()
         self.mlp = mlp([rnn_size] + list(mlp_sizes), activation, activation)
         self.mu_layer = nn.Linear(mlp_sizes[-1], dim_act)
         self.log_std_layer = nn.Linear(mlp_sizes[-1], dim_act)
@@ -297,6 +298,7 @@ class RNNQFunction(nn.Module):
         dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
         dim_act = act_space.shape[0]
         self.rnn = rnn(dim_obs, rnn_size, rnn_len)
+        self.rnn.flatten_parameters()
         self.mlp = mlp([rnn_size + dim_act] + list(mlp_sizes) + [1], activation)
         self.h = None
         self.rnn_size = rnn_size

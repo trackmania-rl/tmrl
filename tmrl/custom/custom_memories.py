@@ -261,7 +261,7 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu",
-                 seq_len=100,
+                 seq_len=50,
                  collate_fn=None):
         self.seq_len = seq_len
         super().__init__(memory_size=memory_size,
