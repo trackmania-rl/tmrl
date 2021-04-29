@@ -92,7 +92,9 @@ class MemoryTMNF(MemoryDataloading):
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
-                 device="cpu"):
+                 device="cpu",
+                 sequences=False,
+                 collate_fn=None):
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
@@ -109,7 +111,9 @@ class MemoryTMNF(MemoryDataloading):
                          obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
-                         device=device)
+                         device=device,
+                         sequences=sequences,
+                         collate_fn=collate_fn)
 
     def append_buffer(self, buffer):  # TODO
         return self
@@ -226,6 +230,69 @@ class MemoryTMNFLidar(MemoryTMNF):
             self.data[6] = self.data[6][to_trim:]
 
         return self
+
+
+def collate_seq(batch, device):
+    import time
+    print(f"DEBUG:collate, batch:{batch}, device:{device}")
+    print(f"DEBUG:collate, len(batch):{len(batch)}")
+    print(f"DEBUG:collate, batch[0]:{batch[0]}")
+    print("sleeping...")
+    time.sleep(5.0)
+    exit()
+
+
+class SeqMemoryTMNFLidar(MemoryTMNFLidar):
+    """
+    For RNNs, has the sequence length as 1st extra dimension
+    """
+    def __init__(self,
+                 memory_size,
+                 batchsize,
+                 path_loc="",
+                 imgs_obs=4,
+                 act_buf_len=1,
+                 nb_steps=1,
+                 use_dataloader=False,
+                 num_workers=0,
+                 pin_memory=False,
+                 remove_size=100,
+                 obs_preprocessor: callable = None,
+                 sample_preprocessor: callable = None,
+                 crc_debug=False,
+                 device="cpu",
+                 seq_len=100,
+                 collate_fn=None):
+        self.seq_len = seq_len
+        super().__init__(memory_size=memory_size,
+                         batchsize=batchsize,
+                         path_loc=path_loc,
+                         imgs_obs=imgs_obs,
+                         act_buf_len=act_buf_len,
+                         nb_steps=nb_steps,
+                         use_dataloader=use_dataloader,
+                         num_workers=num_workers,
+                         pin_memory=pin_memory,
+                         remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device,
+                         sequences=True,
+                         collate_fn=collate_fn)
+
+    def __len__(self):
+        sup_len = super().__len__()
+        if sup_len < self.seq_len:
+            return 0
+        else:
+            return sup_len - self.seq_len
+
+    def get_transition(self, item):
+        """
+        shape of outputs: (seq_len, ...)
+        """
+        return (super(SeqMemoryTMNFLidar, self).get_transition(i) for i in range(item, item+self.seq_len))
 
 
 class TrajMemoryTMNF(TrajMemoryDataloading):

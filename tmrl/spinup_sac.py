@@ -2,20 +2,15 @@
 
 from copy import deepcopy
 from dataclasses import dataclass, InitVar
-# from functools import lru_cache, reduce
-# from torch.nn.functional import mse_loss
 
 from tmrl.nn import no_grad, copy_shared
 from tmrl.util import cached_property
-# import tmrl.sac_models
 
 import itertools
 import numpy as np
 import torch
 from torch.optim import Adam
-# import gym
-# import time
-import tmrl.spinup_sac_core as core
+import tmrl.sac_models as core
 
 
 @dataclass(eq=0)

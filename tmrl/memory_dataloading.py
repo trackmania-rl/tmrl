@@ -73,7 +73,9 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
-                 device="cpu"):
+                 device="cpu",
+                 sequences=True,
+                 collate_fn=None):
         self.nb_steps = nb_steps
         self.use_dataloader = use_dataloader
         self.device = device
@@ -83,6 +85,8 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         self.obs_preprocessor = obs_preprocessor
         self.sample_preprocessor = sample_preprocessor
         self.crc_debug = crc_debug
+        self.sequences = sequences
+        self.collate_fn = collate_fn if collate_fn is not None else collate
 
         # These stats are here because they reach the trainer along with the buffer:
         self.stat_test_return = 0.0
@@ -132,7 +136,9 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     @abstractmethod
     def get_transition(self, item):
         """
-        Returns: tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
+        Returns:
+            if not sequence: tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
+            else: sequence (tuple) of tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
         info is required in each sample for CRC debugging. The 'crc' key is what is important when using this feature.
         Do NOT apply observation preprocessing here, as it will be applied automatically after this
         """
@@ -146,7 +152,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
             self.stat_test_steps = buffer.stat_test_steps
             self.append_buffer(buffer)
 
-    def __getitem__(self, item):
+    def getitem_no_sequences(self, item):
         prev_obs, new_act, rew, new_obs, done, info = self.get_transition(item)
         if self.crc_debug:
             po, a, o, r, d = info['crc_sample']
@@ -159,17 +165,43 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         done = np.float32(done)  # we don't want bool tensors
         return prev_obs, new_act, rew, new_obs, done
 
+    def getitem_sequences(self, item):
+        """
+        Here, a dimension exists for sequences
+        """
+        seq = tuple(self.get_transition(item))
+        if self.crc_debug:
+            for (prev_obs, new_act, rew, new_obs, done, info) in seq:
+                po, a, o, r, d = info['crc_sample']
+                check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done)
+        if self.obs_preprocessor is not None:
+            seq = ((self.obs_preprocessor(po), a, r, self.obs_preprocessor(o), d, i) for (po, a, r, o, d, i) in seq)
+        if self.sample_preprocessor is not None:
+            seq = ((self.sample_preprocessor(po, a, r, o, d, i)) for (po, a, r, o, d, i) in seq)
+        seq = ((po, a, r, o, np.float32(d)) for (po, a, r, o, d, _) in seq)  # we don't want bool tensors and we drop info dict here
+        return list(seq)
+
+    def __getitem__(self, item):
+        return self.getitem_no_sequences(item) if not self.sequences else self.getitem_sequences(item)
+
     def sample_indices(self):
         return (randint(0, len(self) - 1) for _ in range(self.batchsize))
 
     def sample(self, indices=None):
         indices = self.sample_indices() if indices is None else indices
         batch = [self[idx] for idx in indices]
-        batch = collate(batch, self.device)
+        batch = self.collate_fn(batch, self.device)  # collate batch dimension
+        if self.sequences:
+            batch = self.collate_fn(batch, self.device)  # collate sequence dimension
+            po, a, r, o, d = batch
+            batch = po, a[-1], r[-1], o, d[-1]  # drop useless sequences (keep only for observations so they can be processed by RNNs)
         return batch
 
 
 class TrajMemoryDataloading(MemoryDataloading, ABC):
+    """
+    This is specifically for the DC/AC algorithm
+    """
     def __init__(self,
                  memory_size,
                  batchsize,
@@ -196,7 +228,7 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
-        self.traj_len = traj_len  # this must be used in __len__() and in get_trajectory()
+        self.traj_len = traj_len  # this should be used in __len__() and in get_trajectory()
 
     def get_transition(self, item):
         assert False, f"Invalid method for this class, implement get_trajectory instead."
