@@ -100,6 +100,9 @@ class MemoryTMNF(MemoryDataloading):
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
+        self.data_size = 0
+        self.data_ptr = -1  # pointer to the idx of the last data that was put in the array
+        self.np_data = None
         super().__init__(memory_size=memory_size,
                          batchsize=batchsize,
                          path_loc=path_loc,
@@ -119,9 +122,7 @@ class MemoryTMNF(MemoryDataloading):
         return self
 
     def __len__(self):
-        if len(self.data) == 0:
-            return 0
-        res = len(self.data[0]) - self.min_samples - 1
+        res = self.data_size - self.min_samples - 1
         if res < 0:
             return 0
         else:
@@ -154,10 +155,10 @@ class MemoryTMNFLidar(MemoryTMNF):
         imgs_new_obs = imgs[1:]
 
         # if a reset transition has influenced the observation, special care must be taken
-        last_dones = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
+        last_dones = self.np_data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
         last_done_idx = last_true_in_list(last_dones)  # last occurrence of True
         assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
-        last_infos = self.data[6][idx_now - self.min_samples:idx_now]
+        last_infos = self.np_data[6][idx_now - self.min_samples:idx_now]
         last_ignored_dones = ["__no_done" in i for i in last_infos]
         last_ignored_done_idx = last_true_in_list(last_ignored_dones)  # last occurrence of True
         assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
@@ -170,20 +171,20 @@ class MemoryTMNFLidar(MemoryTMNF):
             replace_hist_before_done(hist=imgs_new_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset - 1)
             replace_hist_before_done(hist=imgs_last_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset)
 
-        last_obs = (self.data[2][idx_last], imgs_last_obs, *last_act_buf)
-        new_act = self.data[1][idx_now]
-        rew = np.float32(self.data[5][idx_now])
-        new_obs = (self.data[2][idx_now], imgs_new_obs, *new_act_buf)
-        done = self.data[4][idx_now]
-        info = self.data[6][idx_now]
+        last_obs = (self.np_data[2][idx_last], imgs_last_obs, *last_act_buf)
+        new_act = self.np_data[1][idx_now]
+        rew = np.float32(self.np_data[5][idx_now])
+        new_obs = (self.np_data[2][idx_now], imgs_new_obs, *new_act_buf)
+        done = self.np_data[4][idx_now]
+        info = self.np_data[6][idx_now]
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):
-        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
+        res = self.np_data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
         return np.stack(res)
 
     def load_acts(self, item):
-        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        res = self.np_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
         return res
 
     def append_buffer(self, buffer):
@@ -203,6 +204,7 @@ class MemoryTMNFLidar(MemoryTMNF):
         d6 = [b[4] for b in buffer.memory]  # infos
 
         if self.__len__() > 0:
+            assert self.data_ptr != -1
             self.data[0] += d0
             self.data[1] += d1
             self.data[2] += d2
@@ -211,6 +213,8 @@ class MemoryTMNFLidar(MemoryTMNF):
             self.data[5] += d5
             self.data[6] += d6
         else:
+            if self.data is None:
+                self.data = []
             self.data.append(d0)
             self.data.append(d1)
             self.data.append(d2)
@@ -228,6 +232,8 @@ class MemoryTMNFLidar(MemoryTMNF):
             self.data[4] = self.data[4][to_trim:]
             self.data[5] = self.data[5][to_trim:]
             self.data[6] = self.data[6][to_trim:]
+
+        self.np_data = [np.array(d) for d in self.data]  # TODO: optimize
 
         return self
 

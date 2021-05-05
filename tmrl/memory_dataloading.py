@@ -99,16 +99,11 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         print(f"DEBUG: MemoryDataloading self.path:{self.path}")
         if os.path.isfile(self.path / 'data.pkl'):
             with open(self.path / 'data.pkl', 'rb') as f:
-                self.data = list(pickle.load(f))
-                print(f"DEBUG: len data:{len(self.data)}")
-                print(f"DEBUG: len data[0]:{len(self.data[0])}")
+                self.data = pickle.load(f)
+                print(f"DEBUG: data found, loaded in self.data")
         else:
-            print("INFO: no data found, initializing empty replay memory")
-            self.data = []
-
-        if len(self) > self.memory_size:
-            # TODO: crop to memory_size
-            print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
+            print("INFO: no data found, initializing self.data to None")
+            self.data = None
 
         # init dataloader
         self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batchsize=batchsize)

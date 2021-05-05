@@ -3,7 +3,7 @@ from pathlib import Path
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 3  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 0  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
 RUN_NAME = "SACv1_SPINUP_1_LIDAR_RNN_old_map_test_2"
 
@@ -40,8 +40,9 @@ IMG_HIST_LEN = 1  # 4 without RNN, 1 with RNN
 
 CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise. Caution: difficult to handle if reset transitions are collected.
 CRC_DEBUG_SAMPLES = 100  # Number of samples collected in CRC_DEBUG mode
-PROFILE_TRAINER = False  # Will profile each epoch in the Trainer when True
+PROFILE_TRAINER = True  # Will profile each epoch in the Trainer when True
 BENCHMARK = False  # The environment will be benchmarked when this is True
+SYNCHRONIZE_CUDA = True  # Set to True for profiling, False otherwise
 
 # FILE SYSTEM: =================================================
 
