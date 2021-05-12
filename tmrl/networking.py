@@ -651,8 +651,6 @@ class RolloutWorker:
         """
         converts inputs to torch tensors and converts outputs to numpy arrays
         """
-        if self.obs_preprocessor is not None:
-            obs = self.obs_preprocessor(obs)
         obs = collate([obs], device=self.device)
         with torch.no_grad():
             action = self.actor.act(obs, deterministic=deterministic)
@@ -664,6 +662,8 @@ class RolloutWorker:
         obs = None
         act = self.env.default_action.astype(np.float32)
         new_obs = self.env.reset()
+        if self.obs_preprocessor is not None:
+            new_obs = self.obs_preprocessor(new_obs)
         rew = 0.0
         done = False
         info = {}
@@ -677,6 +677,8 @@ class RolloutWorker:
     def step(self, obs, deterministic, collect_samples, last_step=False):
         act = self.act(obs, deterministic=deterministic)
         new_obs, rew, done, info = self.env.step(act)
+        if self.obs_preprocessor is not None:
+            new_obs = self.obs_preprocessor(new_obs)
         if collect_samples:
             stored_done = done
             if last_step and not done:  # ignore done when stopped by step limit

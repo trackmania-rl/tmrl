@@ -1,11 +1,14 @@
+from copy import deepcopy
+
 import numpy as np
 import cv2
 from tmrl.memory_dataloading import MemoryDataloading, TrajMemoryDataloading
+import torch
 
 # LOCAL BUFFER COMPRESSION ==============================
 
 
-def get_local_buffer_sample(prev_act, obs, rew, done, info):
+def get_local_buffer_sample_lidar(prev_act, obs, rew, done, info):
     """
     Input:
         prev_act: action computed from a previous observation and applied to yield obs in the transition (but not influencing the unaugmented observation in real-time envs)
@@ -16,7 +19,7 @@ def get_local_buffer_sample(prev_act, obs, rew, done, info):
     the user must define both this function and the append() method of the dataloading memory
     CAUTION: prev_act is the action that comes BEFORE obs (i.e. prev_obs, prev_act(prev_obs), obs(prev_act))
     """
-    obs_mod = (obs[0], obs[1][-1])  # speed and most recent image only
+    obs_mod = (obs[0], obs[1][-19:])  # speed and most recent lidar only
     rew_mod = np.float32(rew)
     done_mod = done
     return prev_act, obs_mod, rew_mod, done_mod, info
@@ -58,11 +61,12 @@ def get_local_buffer_sample_cognifly(prev_act, obs, rew, done, info):
 # FUNCTIONS ====================================================
 
 
-def last_true_in_list(li):
-    for i in reversed(range(len(li))):
-        if li[i]:
-            return i
-    return None
+def last_true_in_tensor(t):
+    nz = torch.nonzero(t)
+    if len(nz) != 0:
+        return nz[0][-1].item()
+    else:
+        return None
 
 
 def replace_hist_before_done(hist, done_idx_in_hist):
@@ -89,7 +93,6 @@ class MemoryTMNF(MemoryDataloading):
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu",
@@ -100,9 +103,7 @@ class MemoryTMNF(MemoryDataloading):
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
-        self.data_size = 0
-        self.data_ptr = -1  # pointer to the idx of the last data that was put in the array
-        self.np_data = None
+        self.torch_data = None
         super().__init__(memory_size=memory_size,
                          batchsize=batchsize,
                          path_loc=path_loc,
@@ -111,7 +112,6 @@ class MemoryTMNF(MemoryDataloading):
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device,
@@ -122,7 +122,9 @@ class MemoryTMNF(MemoryDataloading):
         return self
 
     def __len__(self):
-        res = self.data_size - self.min_samples - 1
+        if self.data is None:
+            return 0
+        res = len(self.data[0]) - self.min_samples - 1
         if res < 0:
             return 0
         else:
@@ -155,36 +157,41 @@ class MemoryTMNFLidar(MemoryTMNF):
         imgs_new_obs = imgs[1:]
 
         # if a reset transition has influenced the observation, special care must be taken
-        last_dones = self.np_data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
-        last_done_idx = last_true_in_list(last_dones)  # last occurrence of True
+        last_dones = self.torch_data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
+        last_done_idx = last_true_in_tensor(last_dones)  # last occurrence of True
         assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
-        last_infos = self.np_data[6][idx_now - self.min_samples:idx_now]
-        last_ignored_dones = ["__no_done" in i for i in last_infos]
-        last_ignored_done_idx = last_true_in_list(last_ignored_dones)  # last occurrence of True
+        last_infos = self.data[6][idx_now - self.min_samples:idx_now]
+        last_ignored_dones = torch.tensor(["__no_done" in i for i in last_infos], requires_grad=False)
+        last_ignored_done_idx = last_true_in_tensor(last_ignored_dones)  # last occurrence of True
         assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
         if last_ignored_done_idx is not None:
             last_done_idx = last_ignored_done_idx  # FIXME: might not work in extreme cases where a done is ignored right after another done
 
         if last_done_idx is not None:
+            new_act_buf = deepcopy(new_act_buf)
+            last_act_buf = deepcopy(last_act_buf)
+            imgs_new_obs = deepcopy(imgs_new_obs)
+            imgs_last_obs = deepcopy(imgs_last_obs)
             replace_hist_before_done(hist=new_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset - 1)
             replace_hist_before_done(hist=last_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset)
             replace_hist_before_done(hist=imgs_new_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset - 1)
             replace_hist_before_done(hist=imgs_last_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset)
 
-        last_obs = (self.np_data[2][idx_last], imgs_last_obs, *last_act_buf)
-        new_act = self.np_data[1][idx_now]
-        rew = np.float32(self.np_data[5][idx_now])
-        new_obs = (self.np_data[2][idx_now], imgs_new_obs, *new_act_buf)
-        done = self.np_data[4][idx_now]
-        info = self.np_data[6][idx_now]
+        last_obs = (self.torch_data[2][idx_last], imgs_last_obs.view(-1), *last_act_buf)
+        new_act = self.torch_data[1][idx_now]
+        rew = self.torch_data[5][idx_now]
+        new_obs = (self.torch_data[2][idx_now], imgs_new_obs.view(-1), *new_act_buf)
+        done = self.torch_data[4][idx_now]
+        info = self.data[6][idx_now]
+
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):
-        res = self.np_data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
-        return np.stack(res)
+        res = self.torch_data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
+        return res
 
     def load_acts(self, item):
-        res = self.np_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        res = self.torch_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
         return res
 
     def append_buffer(self, buffer):
@@ -204,7 +211,6 @@ class MemoryTMNFLidar(MemoryTMNF):
         d6 = [b[4] for b in buffer.memory]  # infos
 
         if self.__len__() > 0:
-            assert self.data_ptr != -1
             self.data[0] += d0
             self.data[1] += d1
             self.data[2] += d2
@@ -233,19 +239,15 @@ class MemoryTMNFLidar(MemoryTMNF):
             self.data[5] = self.data[5][to_trim:]
             self.data[6] = self.data[6][to_trim:]
 
-        self.np_data = [np.array(d) for d in self.data]  # TODO: optimize
+        self.torch_data = []  # TODO: optimize
+        self.torch_data.append(torch.tensor(self.data[0], dtype=torch.float32))  # indexes
+        self.torch_data.append(torch.tensor(self.data[1], dtype=torch.float32))  # actions
+        self.torch_data.append(torch.tensor(self.data[2], dtype=torch.float32))  # speeds
+        self.torch_data.append(torch.tensor(self.data[3], dtype=torch.float32))  # lidars
+        self.torch_data.append(torch.tensor(self.data[4], dtype=torch.float32))  # dones
+        self.torch_data.append(torch.tensor(self.data[5], dtype=torch.float32))  # rewards
 
         return self
-
-
-def collate_seq(batch, device):
-    import time
-    print(f"DEBUG:collate, batch:{batch}, device:{device}")
-    print(f"DEBUG:collate, len(batch):{len(batch)}")
-    print(f"DEBUG:collate, batch[0]:{batch[0]}")
-    print("sleeping...")
-    time.sleep(5.0)
-    exit()
 
 
 class SeqMemoryTMNFLidar(MemoryTMNFLidar):
@@ -263,7 +265,6 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu",
@@ -280,7 +281,6 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device,
@@ -298,7 +298,8 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
         """
         shape of outputs: (seq_len, ...)
         """
-        return (super(SeqMemoryTMNFLidar, self).get_transition(i) for i in range(item, item+self.seq_len))
+        res = (super(SeqMemoryTMNFLidar, self).get_transition(i) for i in range(item, item+self.seq_len))
+        return res
 
 
 class TrajMemoryTMNF(TrajMemoryDataloading):
@@ -314,7 +315,6 @@ class TrajMemoryTMNF(TrajMemoryDataloading):
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
-                 obs_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
         self.imgs_obs = imgs_obs
@@ -332,7 +332,6 @@ class TrajMemoryTMNF(TrajMemoryDataloading):
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
-                         obs_preprocessor=obs_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
 
@@ -454,7 +453,6 @@ class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
@@ -471,7 +469,6 @@ class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
@@ -635,7 +632,6 @@ class MemoryCognifly(MemoryDataloading):
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
@@ -655,7 +651,6 @@ class MemoryCognifly(MemoryDataloading):
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)

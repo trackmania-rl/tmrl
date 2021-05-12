@@ -7,17 +7,30 @@ import zlib
 import numpy as np
 from tmrl.util import collate
 from torch.utils.data import Dataset, Sampler, DataLoader
+import torch
 
 
-def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d):
-    assert original_po is None or str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}"
-    assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}"
-    assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
-    assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}"
-    assert str(original_d) == str(rebuilt_d), f"dones don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}"
-    original_crc = zlib.crc32(str.encode(str((original_a, original_o, original_r, original_d))))
-    crc = zlib.crc32(str.encode(str((rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d))))
-    assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}.\nEither the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\noriginal sample:\n{(original_a, original_o, original_r, original_d)}\n!= rebuilt sample:\n{(rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)}"
+def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, device):
+    try:
+        original_po_t = tuple(torch.tensor(x) for x in original_po) if original_po is not None else None
+        original_a_t = torch.tensor(original_a)
+        original_o_t = tuple(torch.tensor(x) for x in original_o)
+        original_r_t = torch.tensor(np.float32(original_r))
+        original_d_t = torch.tensor(np.float32(original_d))
+        assert original_po_t is None or str(original_po_t) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po_t}\n!= rebuilt:\n{rebuilt_po}"
+        assert str(original_a_t) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a_t}\n!= rebuilt:\n{rebuilt_a}"
+        assert str(original_o_t) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o_t}\n!= rebuilt:\n{rebuilt_o}"
+        assert str(original_r_t) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r_t}\n!= rebuilt:\n{rebuilt_r}"
+        assert str(original_d_t) == str(rebuilt_d), f"dones don't match:\noriginal:\n{original_d_t}\n!= rebuilt:\n{rebuilt_d}"
+    except Exception as e:
+        print(f"Caught exception: {e}")
+        print(f"previous observations:\noriginal:\n{original_po}\n?= rebuilt:\n{rebuilt_po}")
+        print(f"actions:\noriginal:\n{original_a}\n?= rebuilt:\n{rebuilt_a}")
+        print(f"observations:\noriginal:\n{original_o}\n?= rebuilt:\n{rebuilt_o}")
+        print(f"rewards:\noriginal:\n{original_r}\n?= rebuilt:\n{rebuilt_r}")
+        print(f"dones:\noriginal:\n{original_d}\n?= rebuilt:\n{rebuilt_d}")
+        print(f"Device: {device}")
+        exit()
     print("DEBUG: CRC check passed.")
 
 
@@ -70,7 +83,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu",
@@ -82,7 +94,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         self.batchsize = batchsize
         self.memory_size = memory_size
         self.remove_size = remove_size
-        self.obs_preprocessor = obs_preprocessor
         self.sample_preprocessor = sample_preprocessor
         self.crc_debug = crc_debug
         self.sequences = sequences
@@ -151,13 +162,13 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         prev_obs, new_act, rew, new_obs, done, info = self.get_transition(item)
         if self.crc_debug:
             po, a, o, r, d = info['crc_sample']
-            check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done)
-        if self.obs_preprocessor is not None:
-            prev_obs = self.obs_preprocessor(prev_obs)
-            new_obs = self.obs_preprocessor(new_obs)
+            check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done, self.device)
+        # if self.obs_preprocessor is not None:
+        #     prev_obs = self.obs_preprocessor(prev_obs)
+        #     new_obs = self.obs_preprocessor(new_obs)
         if self.sample_preprocessor is not None:
             prev_obs, new_act, rew, new_obs, done = self.sample_preprocessor(prev_obs, new_act, rew, new_obs, done)
-        done = np.float32(done)  # we don't want bool tensors
+        # done = np.float32(done)  # we don't want bool tensors
         return prev_obs, new_act, rew, new_obs, done
 
     def getitem_sequences(self, item):
@@ -168,12 +179,12 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         if self.crc_debug:
             for (prev_obs, new_act, rew, new_obs, done, info) in seq:
                 po, a, o, r, d = info['crc_sample']
-                check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done)
-        if self.obs_preprocessor is not None:
-            seq = ((self.obs_preprocessor(po), a, r, self.obs_preprocessor(o), d, i) for (po, a, r, o, d, i) in seq)
+                check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done, self.device)
+        # if self.obs_preprocessor is not None:
+        #     seq = ((self.obs_preprocessor(po), a, r, self.obs_preprocessor(o), d, i) for (po, a, r, o, d, i) in seq)
         if self.sample_preprocessor is not None:
             seq = ((self.sample_preprocessor(po, a, r, o, d, i)) for (po, a, r, o, d, i) in seq)
-        seq = ((po, a, r, o, np.float32(d)) for (po, a, r, o, d, _) in seq)  # we don't want bool tensors and we drop info dict here
+        seq = ((po, a, r, o, d) for (po, a, r, o, d, _) in seq)  # we drop info dict here
         return list(seq)
 
     def __getitem__(self, item):
@@ -183,6 +194,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         return (randint(0, len(self) - 1) for _ in range(self.batchsize))
 
     def sample(self, indices=None):
+        # print("DEBUG: called sample()")
         indices = self.sample_indices() if indices is None else indices
         batch = [self[idx] for idx in indices]
         batch = self.collate_fn(batch, self.device)  # collate batch dimension

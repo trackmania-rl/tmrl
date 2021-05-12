@@ -345,11 +345,5 @@ class RNNActorCritic(nn.Module):
         self.q2 = RNNQFunction(observation_space, action_space, rnn_size, rnn_len, mlp_sizes, activation)
 
 
-# === Testing ==========================================================================================================
-class TestMlp(ActorModule):
-    def act(self, state, obs, r, done, info, train=False):
-        return obs.copy(), state, {}
-
-
 if __name__ == "__main__":
     pass
