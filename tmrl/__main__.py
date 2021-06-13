@@ -5,8 +5,10 @@ Usage: `python -m tmrl run tmrl:RtacTraining Env.id=Pendulum-v0`
 or `python -m tmrl run-fs tmrl-checkpoint-0 tmrl:RtacTraining Env.id=Pendulum-v0`
 """
 
+# standard library imports
 import sys
 
+# local imports
 from tmrl import *
 from tmrl.util import partial_from_args
 

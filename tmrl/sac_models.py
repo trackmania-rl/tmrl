@@ -1,22 +1,25 @@
-from dataclasses import InitVar, dataclass
-import torch
-import numpy as np
-from tmrl.util import collate, partition
-from tmrl.nn import TanhNormalLayer, SacLinear
-from torch.nn import Linear, Sequential, ReLU, ModuleList, Module
-import gym
-
-from functools import reduce  # Required in Python 3
+# standard library imports
 import operator
+from dataclasses import InitVar, dataclass
+from functools import reduce  # Required in Python 3
 
-# Adapted from the SAC implementation of OpenAI Spinup
-
+# third-party imports
+import gym
 import numpy as np
-# import scipy.signal
-
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
+from torch.nn import Linear, Module, ModuleList, ReLU, Sequential
+
+# local imports
+from tmrl.nn import SacLinear, TanhNormalLayer
+from tmrl.util import collate, partition
+
+# Adapted from the SAC implementation of OpenAI Spinup
+
+# import scipy.signal
+
 
 
 def prod(iterable):

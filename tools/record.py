@@ -1,16 +1,22 @@
-from tmrl.custom.utils.tools import load_digits, get_speed, TM2020OpenPlanetClient
-from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
-from tmrl.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
-import tmrl.custom.config_constants as cfg
-import numpy as np
-import mss
+# standard library imports
+import os
 import pickle
 import time
+
+# third-party imports
 import cv2
-from inputs import get_gamepad
 import gym
 import keyboard
-import os
+import mss
+import numpy as np
+from inputs import get_gamepad
+from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
+
+# local imports
+import tmrl.custom.config_constants as cfg
+from tmrl.custom.custom_gym_interfaces import (TM2020Interface, TM2020InterfaceLidar,
+                                               TMInterface, TMInterfaceLidar)
+from tmrl.custom.utils.tools import TM2020OpenPlanetClient, get_speed, load_digits
 
 # TODO: add info dicts everywhere for CRC debugging
 

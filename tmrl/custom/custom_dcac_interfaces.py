@@ -1,7 +1,9 @@
+# third-party imports
 import torch
-from tmrl.drtac import DcacInterface
 
+# local imports
 import tmrl.custom.config_constants as cfg
+from tmrl.drtac import DcacInterface
 
 
 class Tm20rtgymDcacInterface(DcacInterface):

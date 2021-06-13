@@ -1,5 +1,6 @@
 """Simple example to test the buttons and d-pad on the microbit."""
 
+# third-party imports
 import inputs
 from jstest import JSTest
 

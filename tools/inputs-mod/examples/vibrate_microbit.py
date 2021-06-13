@@ -1,7 +1,7 @@
 """Simple example showing how to get the gamepad to vibrate."""
 
+# third-party imports
 import inputs
-
 from vibrate_example import main
 
 

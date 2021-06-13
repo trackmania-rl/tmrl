@@ -1,15 +1,19 @@
 # Adapted from the SAC implementation of OpenAI Spinup
 
-import numpy as np
-# import scipy.signal
+# standard library imports
+import operator
+from functools import reduce  # Required in Python 3
 
+# third-party imports
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
-from functools import reduce  # Required in Python 3
-import operator
+# import scipy.signal
+
+
 
 
 def combined_shape(length, shape=None):

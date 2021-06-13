@@ -1,13 +1,18 @@
-from abc import ABC, abstractmethod
-from random import randint, random
-import pickle
-from pathlib import Path
+# standard library imports
 import os
+import pickle
 import zlib
+from abc import ABC, abstractmethod
+from pathlib import Path
+from random import randint, random
+
+# third-party imports
 import numpy as np
-from tmrl.util import collate
-from torch.utils.data import Dataset, Sampler, DataLoader
 import torch
+from torch.utils.data import DataLoader, Dataset, Sampler
+
+# local imports
+from tmrl.util import collate
 
 
 def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, device):
@@ -267,6 +272,7 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
 
 
 def load_and_print_pickle_file(path=r"C:\Users\Yann\Desktop\git\tmrl\data\data.pkl"):  # r"D:\data2020"
+    # standard library imports
     import pickle
     with open(path, 'rb') as f:
         data = pickle.load(f)

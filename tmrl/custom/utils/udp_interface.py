@@ -1,6 +1,7 @@
 '''
 Based on https://github.com/ricardodeazambuja/BrianConnectUDP/blob/master/brian_multiprocess_udp.py
 '''
+# standard library imports
 import socket
 import struct
 
@@ -124,6 +125,7 @@ class UDPInterface(object):
 
 
 def main(args):
+    # standard library imports
     import time
 
     ip_send = args.ipsend
@@ -166,6 +168,7 @@ def main(args):
 
 
 if __name__ == "__main__":
+    # standard library imports
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--ipsend', type=str, default=None, help='IP address of the drone if any.')

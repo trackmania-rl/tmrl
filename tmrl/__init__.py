@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+# standard library imports
 import atexit
 import gc
 import json
@@ -6,17 +6,22 @@ import os
 import shutil
 import tempfile
 import time
+from dataclasses import dataclass
 from os.path import exists
 from random import randrange
 from tempfile import mkdtemp
+
+# third-party imports
 import pandas as pd
 import yaml
 
-# from tmrl.envs import AvenueEnv
-from tmrl.util import partial, save_json, partial_to_dict, partial_from_dict, load_json, dump, load, git_info
-from tmrl.training_offline import TrainingOffline
+# local imports
 import tmrl.sac
 from tmrl.networking import TrainerInterface
+from tmrl.training_offline import TrainingOffline
+# from tmrl.envs import AvenueEnv
+from tmrl.util import (dump, git_info, load, load_json, partial, partial_from_dict,
+                       partial_to_dict, save_json)
 
 
 def log_environment_variables():
@@ -104,6 +109,7 @@ def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOff
     load_run_instance_fn = load_run_instance_fn or load_run_instance
     wandb_dir = mkdtemp()  # prevent wandb from polluting the home directory
     atexit.register(shutil.rmtree, wandb_dir, ignore_errors=True)  # clean up after wandb atexit handler finishes
+    # third-party imports
     import wandb
     print(f"DEBUG: run_cls: {run_cls}")
     config = partial_to_dict(run_cls)

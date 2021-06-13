@@ -1,12 +1,16 @@
 # from dataclasses import InitVar, dataclass
-import torch
-from torch.nn import functional as F
-from tmrl.nn import TanhNormalLayer
-from torch.nn import Linear, Sequential, ReLU, ModuleList, Module, Conv2d, MaxPool2d
-import gym
-from tmrl.sac_models import ActorModule
-from tmrl.sac_models import prod, SacLinear, MlpActionValue
+# standard library imports
 from math import floor
+
+# third-party imports
+import gym
+import torch
+from torch.nn import Conv2d, Linear, MaxPool2d, Module, ModuleList, ReLU, Sequential
+from torch.nn import functional as F
+
+# local imports
+from tmrl.nn import TanhNormalLayer
+from tmrl.sac_models import ActorModule, MlpActionValue, SacLinear, prod
 
 # === Trackmania =======================================================================================================
 

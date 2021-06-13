@@ -1,16 +1,19 @@
 # Adapted from the SAC v1 implementation of OpenAI Spinup and the SAC v2 implementation of Stable Baselines 3
 
-from copy import deepcopy
-from dataclasses import dataclass, InitVar
-
-from tmrl.nn import no_grad, copy_shared
-from tmrl.util import cached_property
-
+# standard library imports
 import itertools
+from copy import deepcopy
+from dataclasses import InitVar, dataclass
+
+# third-party imports
 import numpy as np
 import torch
 from torch.optim import Adam
+
+# local imports
 import tmrl.sac_models as core
+from tmrl.nn import copy_shared, no_grad
+from tmrl.util import cached_property
 
 
 @dataclass(eq=0)

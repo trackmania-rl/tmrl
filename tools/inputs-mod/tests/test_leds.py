@@ -1,13 +1,16 @@
 """Tests for LED classes."""
 # pylint: disable=protected-access,no-self-use
-from unittest import TestCase
+# standard library imports
 import errno
 import os
+from unittest import TestCase
 
-from tests.constants import mock, PurePath, PYTHON
-
+# third-party imports
 import inputs
+from tests.constants import PYTHON, PurePath, mock
+
 if PYTHON == 2:
+    # third-party imports
     from inputs import PermissionError  # pylint: disable=redefined-builtin
 
 RAW = ""

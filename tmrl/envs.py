@@ -1,13 +1,20 @@
+# standard library imports
 import atexit
 import os
-from dataclasses import dataclass, InitVar
+import pickle
+from dataclasses import InitVar, dataclass
+
+# third-party imports
 import gym
+import numpy as np
 from gym.wrappers import TimeLimit
 
-from tmrl.wrappers import Float64ToFloat32, TimeLimitResetWrapper, NormalizeActionWrapper, RealTimeWrapper, TupleObservationWrapper, AffineObservationWrapper, AffineRewardWrapper, PreviousActionWrapper, FrameSkip, get_wrapper_by_class
+# local imports
+from tmrl.wrappers import (AffineObservationWrapper, AffineRewardWrapper,
+                           Float64ToFloat32, FrameSkip, NormalizeActionWrapper,
+                           PreviousActionWrapper, RealTimeWrapper, TimeLimitResetWrapper,
+                           TupleObservationWrapper, get_wrapper_by_class)
 from tmrl.wrappers_rd import RandomDelayWrapper
-import numpy as np
-import pickle
 
 
 def mujoco_py_issue_424_workaround():
@@ -15,10 +22,11 @@ def mujoco_py_issue_424_workaround():
     It causes trouble with docker and during runtime.
     https://github.com/openai/mujoco-py/issues/424
     """
+    # standard library imports
     import os
+    import pkgutil
     from os.path import dirname, join
     from shutil import rmtree
-    import pkgutil
     path = join(dirname(pkgutil.get_loader("mujoco_py").path), "generated")
     [os.remove(join(path, name)) for name in os.listdir(path) if name.endswith("lock")]
 
@@ -99,6 +107,7 @@ class UntouchedGymEnv(gym.Wrapper):
 
 class AvenueEnv(Env):
     def __init__(self, seed_val=0, id: str = "RaceSolo-v0", real_time: bool = False, width: int = 256, height: int = 64):
+        # third-party imports
         import avenue
         env = avenue.make(id, width=width, height=height)
         assert isinstance(env.action_space, gym.spaces.Box)

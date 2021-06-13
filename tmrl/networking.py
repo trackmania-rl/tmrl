@@ -1,18 +1,22 @@
-from copy import deepcopy
-import select
-import pickle
-import torch
-import time
-from threading import Thread, Lock
-import numpy as np
-from requests import get
-import socket
+# standard library imports
 import datetime
 import os
+import pickle
+import select
+import socket
+import time
+from copy import deepcopy
+from threading import Lock, Thread
 
+# third-party imports
+import numpy as np
+import torch
+from requests import get
+
+# local imports
+import tmrl.custom.config_constants as cfg
 from tmrl.sac_models import ActorModule
 from tmrl.util import collate, partition
-import tmrl.custom.config_constants as cfg
 
 # PRINT: ============================================
 
@@ -760,6 +764,7 @@ class RolloutWorker:
             #     break
 
     def profile_step(self, nb_steps=100):
+        # third-party imports
         import torch.autograd.profiler as profiler
         obs = self.reset(collect_samples=True)
         use_cuda = True if self.device == 'cuda' else False

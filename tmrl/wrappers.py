@@ -1,10 +1,12 @@
+# standard library imports
 from collections import deque
 from random import randint, randrange, sample
-from typing import Sequence, Mapping
+from typing import Mapping, Sequence
 
+# third-party imports
 import gym
 import numpy as np
-from gym.spaces import Tuple, Discrete
+from gym.spaces import Discrete, Tuple
 from gym.wrappers import TimeLimit
 
 
@@ -155,6 +157,7 @@ class TimeLimitResetWrapper(gym.Wrapper):
     def __init__(self, env, max_steps=None, key='reset'):
         super().__init__(env)
         self.reset_key = key
+        # third-party imports
         from gym.wrappers import TimeLimit
         self.enforce = bool(max_steps)
         if max_steps is None:

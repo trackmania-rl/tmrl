@@ -1,8 +1,11 @@
-from tmrl.util import dump, load
-import tarfile
+# standard library imports
 import os
+import tarfile
 from pathlib import Path
+
+# local imports
 from tmrl.custom import config_constants as cfg
+from tmrl.util import dump, load
 
 
 def load_run_instance_images_dataset(checkpoint_path):

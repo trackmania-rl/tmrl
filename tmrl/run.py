@@ -1,11 +1,14 @@
+# standard library imports
+import time
 from argparse import ArgumentParser, ArgumentTypeError
-from tmrl import run_wandb_tm, run_tm
-from tmrl.util import partial
-from tmrl.envs import UntouchedGymEnv
-from tmrl.networking import Server, RolloutWorker, TrainerInterface
+
+# local imports
 import tmrl.custom.config_constants as cfg
 import tmrl.custom.config_objects as cfg_obj
-import time
+from tmrl import run_tm, run_wandb_tm
+from tmrl.envs import UntouchedGymEnv
+from tmrl.networking import RolloutWorker, Server, TrainerInterface
+from tmrl.util import partial
 
 
 def main(args):

@@ -1,12 +1,17 @@
-import numpy as np
-import cv2
-import os
+# standard library imports
 import math
-from pathlib import Path
-import time
-from threading import Thread, Lock
+import os
 import socket
 import struct
+import time
+from pathlib import Path
+from threading import Lock, Thread
+
+# third-party imports
+import cv2
+import numpy as np
+
+# local imports
 from tmrl.custom.config_constants import LIDAR_BLACK_THRESHOLD
 
 

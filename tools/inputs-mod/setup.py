@@ -1,14 +1,19 @@
 """Setup file for Inputs module."""
 
 from __future__ import with_statement
+
+# standard library imports
 import platform
 
+# third-party imports
 import inputs
 
 try:
+    # third-party imports
     from setuptools import setup
 except ImportError:
     SETUPTOOLS = False
+    # standard library imports
     from distutils.core import setup
 else:
     SETUPTOOLS = True
@@ -17,6 +22,7 @@ else:
 TESTS_REQUIRE = []
 try:
     # pylint: disable=unused-import
+    # standard library imports
     import unittest.mock
 except ImportError:
     TESTS_REQUIRE.append('mock')

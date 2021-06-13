@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+# third-party imports
 import inputs
 
 EVENT_ABB = (

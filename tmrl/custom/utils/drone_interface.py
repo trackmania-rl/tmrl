@@ -1,9 +1,13 @@
-import numpy as np
+# standard library imports
 import time
-from threading import Lock
-from tmrl.custom.utils.udp_interface import UDPInterface
-from threading import Thread
 from copy import deepcopy
+from threading import Lock, Thread
+
+# third-party imports
+import numpy as np
+
+# local imports
+from tmrl.custom.utils.udp_interface import UDPInterface
 
 
 class DroneUDPInterface1:

@@ -1,27 +1,31 @@
 # rtgym interfaces for Trackmania
 
-import gym.spaces as spaces
-import numpy as np
+# standard library imports
+import platform
 import time
-import cv2
-import mss
 from collections import deque
 
-import platform
+# third-party imports
+import cv2
+import gym.spaces as spaces
+import mss
+import numpy as np
+
 if platform.system() == "Windows":
     import vgamepad as vg
 
+# third-party imports
 from rtgym import RealTimeGymInterface
 
-from tmrl.custom.utils.key_event import apply_control, keyres
-from tmrl.custom.utils.mouse_event import wait_for_popup_save_replay_and_improve_tm20
-from tmrl.custom.utils.control_gamepad import control_gamepad
-from tmrl.custom.utils.tools import load_digits, get_speed, Lidar, TM2020OpenPlanetClient
-from tmrl.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20
-from tmrl.custom.utils.compute_reward import RewardFunction
-from tmrl.custom.utils.drone_interface import DroneUDPInterface1
-
+# local imports
 import tmrl.custom.config_constants as cfg
+from tmrl.custom.utils.compute_reward import RewardFunction
+from tmrl.custom.utils.control_gamepad import control_gamepad
+from tmrl.custom.utils.drone_interface import DroneUDPInterface1
+from tmrl.custom.utils.key_event import apply_control, keyres
+from tmrl.custom.utils.mouse_event import (mouse_close_finish_pop_up_tm20,
+                                           wait_for_popup_save_replay_and_improve_tm20)
+from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, get_speed, load_digits
 
 # Globals ==============================================================================================================
 

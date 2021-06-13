@@ -39,23 +39,23 @@ Mac OS X.
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from __future__ import print_function
-from __future__ import division
+from __future__ import division, print_function
 
-import os
-import sys
-import io
-import glob
-import struct
-import platform
-import math
-import time
+# standard library imports
 import codecs
-from warnings import warn
-from itertools import count
-from operator import itemgetter
-from multiprocessing import Process, Pipe
 import ctypes
+import glob
+import io
+import math
+import os
+import platform
+import struct
+import sys
+import time
+from itertools import count
+from multiprocessing import Pipe, Process
+from operator import itemgetter
+from warnings import warn
 
 __version__ = "0.5"
 
@@ -65,6 +65,7 @@ NIX = True if platform.system() == 'Linux' else False
 
 if WIN:
     # pylint: disable=wrong-import-position
+    # standard library imports
     import ctypes.wintypes
     DWORD = ctypes.wintypes.DWORD
     HANDLE = ctypes.wintypes.HANDLE
@@ -79,6 +80,7 @@ else:
     MSG = ctypes.Structure
 
 if NIX:
+    # standard library imports
     from fcntl import ioctl
 
 OLD = sys.version_info < (3, 4)
@@ -1774,6 +1776,7 @@ def quartz_mouse_process(pipe):
     """Single subprocess for reading mouse events on Mac using newer Quartz."""
     # Quartz only on the mac, so don't warn about Quartz
     # pylint: disable=import-error
+    # third-party imports
     import Quartz
 
     # pylint: disable=no-member
@@ -1950,12 +1953,16 @@ def appkit_mouse_process(pipe):
     # otherwise the child process cannot use them.
 
     # pylint: disable=no-member, no-name-in-module
-    from Foundation import NSObject
-    from AppKit import NSApplication, NSApp
-    from Cocoa import (NSEvent, NSLeftMouseDownMask, NSLeftMouseUpMask, NSRightMouseDownMask, NSRightMouseUpMask, NSMouseMovedMask, NSLeftMouseDraggedMask, NSRightMouseDraggedMask, NSMouseEnteredMask,
-                       NSMouseExitedMask, NSScrollWheelMask, NSOtherMouseDownMask, NSOtherMouseUpMask)
-    from PyObjCTools import AppHelper
+    # third-party imports
     import objc
+    from AppKit import NSApp, NSApplication
+    from Cocoa import (NSEvent, NSLeftMouseDownMask, NSLeftMouseDraggedMask,
+                       NSLeftMouseUpMask, NSMouseEnteredMask, NSMouseExitedMask,
+                       NSMouseMovedMask, NSOtherMouseDownMask, NSOtherMouseUpMask,
+                       NSRightMouseDownMask, NSRightMouseDraggedMask, NSRightMouseUpMask,
+                       NSScrollWheelMask)
+    from Foundation import NSObject
+    from PyObjCTools import AppHelper
 
     class MacMouseSetup(NSObject):
         """Setup the handler."""
@@ -2071,11 +2078,12 @@ def mac_keyboard_process(pipe):
     # otherwise the child process cannot use them.
 
     # pylint: disable=no-member, no-name-in-module
-    from AppKit import NSApplication, NSApp
-    from Foundation import NSObject
-    from Cocoa import (NSEvent, NSKeyDownMask, NSKeyUpMask, NSFlagsChangedMask)
-    from PyObjCTools import AppHelper
+    # third-party imports
     import objc
+    from AppKit import NSApp, NSApplication
+    from Cocoa import NSEvent, NSFlagsChangedMask, NSKeyDownMask, NSKeyUpMask
+    from Foundation import NSObject
+    from PyObjCTools import AppHelper
 
     class MacKeyboardSetup(NSObject):
         """Setup the handler."""
@@ -3114,6 +3122,7 @@ class MicroBitPad(GamePad):
         super(MicroBitPad, self).__init__(manager, device_path, char_path_override)
 
         # pylint: disable=no-member,import-error
+        # third-party imports
         import microbit
         self.microbit = microbit
         self.default_image = microbit.Image("00500:00500:00500:00500:00500")
@@ -3218,6 +3227,7 @@ class MicroBitListener(BaseListener):
         self.dpad = True
         self.sensitivity = 300
         # pylint: disable=import-error
+        # third-party imports
         import microbit
         self.microbit = microbit
 
