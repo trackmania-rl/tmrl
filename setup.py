@@ -28,6 +28,9 @@ install_req = [
     'pyvjoy',
     'pyautogui',
     'pyinstrument',
+    'yapf',
+    'isort',
+    'autoflake',
 ]
 
 # if platform.system() == "Linux":
