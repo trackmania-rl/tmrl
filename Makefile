@@ -8,5 +8,4 @@ run_yapf:
 run_autoflake:
 	autoflake -i -r --remove-all-unused-imports --ignore-init-module-imports src/.
 
-clean_repo:
-	run_yapf run_isort run_autoflake
+clean_repo: run_yapf  run_isort  run_autoflake

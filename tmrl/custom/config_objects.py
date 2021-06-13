@@ -1,5 +1,6 @@
 # third-party imports
 # from tmrl.custom.custom_checkpoints import load_run_instance_images_dataset, dump_run_instance_images_dataset
+# third-party imports
 import numpy as np
 import rtgym
 
@@ -77,12 +78,7 @@ else:
     assert not cfg.PRAGMA_DCAC, "DCAC not implemented here"
     MEM = MemoryTM2020RAM if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
 
-MEMORY = partial(MEM,
-                 path_loc=cfg.DATASET_PATH,
-                 imgs_obs=cfg.IMG_HIST_LEN,
-                 act_buf_len=cfg.ACT_BUF_LEN,
-                 sample_preprocessor=None if cfg.PRAGMA_DCAC else SAMPLE_PREPROCESSOR,
-                 crc_debug=cfg.CRC_DEBUG)
+MEMORY = partial(MEM, path_loc=cfg.DATASET_PATH, imgs_obs=cfg.IMG_HIST_LEN, act_buf_len=cfg.ACT_BUF_LEN, sample_preprocessor=None if cfg.PRAGMA_DCAC else SAMPLE_PREPROCESSOR, crc_debug=cfg.CRC_DEBUG)
 
 # ALGORITHM: ===================================================
 
@@ -124,7 +120,6 @@ else:  # SAC
         learn_entropy_coef=False,  # False for SAC v2 with no temperature autotuning
         target_entropy=-7.0,  # None for automatic
         alpha=1.0 / 2.7)  # best: 1 / 2.5  # inverse of reward scale
-
 
 # TRAINER: =====================================================
 

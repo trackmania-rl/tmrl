@@ -36,7 +36,6 @@ if platform.system() == "Windows":
             click(500, 280)
         mouseUp()
 
-
     def wait_for_popup_save_replay_and_improve_tm20(small_window=False):
         time.sleep(5.0)
         if small_window:
