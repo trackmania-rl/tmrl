@@ -24,6 +24,9 @@ from tmrl.util import (dump, git_info, load, load_json, partial, partial_from_di
                        partial_to_dict, save_json)
 
 
+__version__ = "0.9"
+
+
 def log_environment_variables():
     """
     add certain relevant environment variables to our config
