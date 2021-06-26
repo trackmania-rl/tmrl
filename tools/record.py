@@ -13,7 +13,7 @@ from inputs import get_gamepad
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 
 # local imports
-import tmrl.custom.config_constants as cfg
+import tmrl.config.config_constants as cfg
 from tmrl.custom.custom_gym_interfaces import (TM2020Interface, TM2020InterfaceLidar,
                                                TMInterface, TMInterfaceLidar)
 from tmrl.custom.utils.tools import TM2020OpenPlanetClient, get_speed, load_digits

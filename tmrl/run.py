@@ -3,8 +3,8 @@ import time
 from argparse import ArgumentParser, ArgumentTypeError
 
 # local imports
-import tmrl.custom.config_constants as cfg
-import tmrl.custom.config_objects as cfg_obj
+import tmrl.config.config_constants as cfg
+import tmrl.config.config_objects as cfg_obj
 from tmrl import run_tm, run_wandb_tm
 from tmrl.envs import UntouchedGymEnv
 from tmrl.networking import RolloutWorker, Server, TrainerInterface

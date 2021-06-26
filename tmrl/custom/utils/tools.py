@@ -12,7 +12,7 @@ import cv2
 import numpy as np
 
 # local imports
-from tmrl.custom.config_constants import LIDAR_BLACK_THRESHOLD
+from tmrl.config.config_constants import LIDAR_BLACK_THRESHOLD
 
 
 class TM2020OpenPlanetClient:

@@ -18,7 +18,7 @@ if platform.system() == "Windows":
 from rtgym import RealTimeGymInterface
 
 # local imports
-import tmrl.custom.config_constants as cfg
+import tmrl.config.config_constants as cfg
 from tmrl.custom.utils.compute_reward import RewardFunction
 from tmrl.custom.utils.control_gamepad import control_gamepad
 from tmrl.custom.utils.drone_interface import DroneUDPInterface1

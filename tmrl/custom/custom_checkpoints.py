@@ -4,7 +4,7 @@ import tarfile
 from pathlib import Path
 
 # local imports
-from tmrl.custom import config_constants as cfg
+from tmrl.config import config_constants as cfg
 from tmrl.util import dump, load
 
 

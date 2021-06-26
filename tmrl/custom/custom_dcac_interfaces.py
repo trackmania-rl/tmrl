@@ -1,8 +1,7 @@
 # third-party imports
-import torch
 
 # local imports
-import tmrl.custom.config_constants as cfg
+import tmrl.config.config_constants as cfg
 from tmrl.drtac import DcacInterface
 
 

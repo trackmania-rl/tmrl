@@ -7,12 +7,12 @@ import torch
 from pandas import DataFrame
 
 # local imports
-import tmrl.custom.config_constants as cfg
+import tmrl.config.config_constants as cfg
 import tmrl.sac
 from tmrl.envs import Env
 from tmrl.memory_dataloading import MemoryDataloading
 from tmrl.networking import TrainerInterface
-from tmrl.util import cached_property, pandas_dict
+from tmrl.util import pandas_dict
 
 # import pybullet_envs
 

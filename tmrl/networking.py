@@ -14,9 +14,10 @@ import torch
 from requests import get
 
 # local imports
-import tmrl.custom.config_constants as cfg
+import tmrl.config.config_constants as cfg
 from tmrl.sac_models import ActorModule
-from tmrl.util import collate, partition
+from tmrl.util import collate
+
 
 # PRINT: ============================================
 
