@@ -25,7 +25,7 @@ from tmrl.drtac_models import Mlp as SV_Mlp
 from tmrl.drtac_models import MlpPolicy as SV_MlpPolicy
 from tmrl.envs import UntouchedGymEnv
 # from tmrl.sac_models import Mlp, MlpPolicy
-from tmrl.sac_models import (RNNActorCritic, SquashedGaussianRNNActor)
+from tmrl.sac_models import (RNNActorCritic, SquashedGaussianRNNActor, MLPActorCritic, SquashedGaussianMLPActor)
 # from tmrl.sac import SacAgent as SAC_Agent
 from tmrl.spinup_sac import SpinupSacAgent as SAC_Agent
 from tmrl.util import partial
@@ -36,13 +36,13 @@ if cfg.PRAGMA_DCAC:
     TRAIN_MODEL = SV_Mlp
     POLICY = SV_MlpPolicy
 else:
-    # TRAIN_MODEL = Mlp if cfg.PRAGMA_LIDAR else Tm_hybrid_1
-    # POLICY = MlpPolicy if cfg.PRAGMA_LIDAR else TMPolicy
     assert cfg.PRAGMA_LIDAR
-    # TRAIN_MODEL = MLPActorCritic
-    # POLICY = SquashedGaussianMLPActor
-    TRAIN_MODEL = RNNActorCritic
-    POLICY = SquashedGaussianRNNActor
+    if cfg.PRAGMA_RNN:
+        TRAIN_MODEL = RNNActorCritic
+        POLICY = SquashedGaussianRNNActor
+    else:
+        TRAIN_MODEL = MLPActorCritic
+        POLICY = SquashedGaussianMLPActor
 
 if cfg.PRAGMA_LIDAR:
     INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
@@ -149,7 +149,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
         memory_size=1000000,
-        batchsize=64,  # RTX3080: 256 up to 1024
+        batchsize=256,  # RTX3080: 256 up to 1024
         epochs=10000,  # 400
         rounds=10,  # 10
         steps=1000,  # 1000

@@ -346,7 +346,7 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
-        print(f"DEBUG: get trantition {item}")
+        # print(f"DEBUG: get trantition {item}")
 
         idx_last = item + self.sup_buf_len - 1  # beginning of seq
         idx_now = item + self.sup_buf_len  # beginning of seq

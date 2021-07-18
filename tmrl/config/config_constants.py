@@ -6,14 +6,14 @@ from pathlib import Path
 
 PRAGMA_EDOUARD_YANN_CC = 0  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SACv1_SPINUP_1_LIDAR_RNN_old_map_test_5"
+RUN_NAME = "SACv1_SPINUP_4_LIDAR_trained_old_map"
 
 BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
 RW_MAX_SAMPLES_PER_EPISODE = 1000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
 
 PRAGMA_TM2020_TMNF = True  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = True  # True if Lidar, False if images
-PRAGMA_RNN = True  # True to use an RNN, False to use an MLP
+PRAGMA_RNN = False  # True to use an RNN, False to use an MLP
 
 PRAGMA_CUDA_TRAINING = True  # True if CUDA, False if CPU (trainer)
 PRAGMA_CUDA_INFERENCE = False  # True if CUDA, False if CPU (rollout worker)
@@ -37,7 +37,7 @@ REWARD_END_OF_TRACK = 0  # bonus reward at the end of the track
 CONSTANT_PENALTY = 0  # should be <= 0 : added to the reward at each time step
 SLEEP_TIME_AT_RESET = 1.5  # 1.5 to start in a Markov state with the lidar, 0.0 for saving replays
 ACT_BUF_LEN = 2
-IMG_HIST_LEN = 1  # 4 without RNN, 1 with RNN
+IMG_HIST_LEN = 4  # 4 without RNN, 1 with RNN
 
 # DEBUGGING AND BENCHMARKING: ===================================
 
