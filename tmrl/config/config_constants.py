@@ -6,7 +6,7 @@ from pathlib import Path
 
 PRAGMA_EDOUARD_YANN_CC = 0  # 2 if MISTlab RTX3080, 1 if ComputeCanada, 0 else
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SACv1_SPINUP_4_LIDAR_trained_old_map"
+RUN_NAME = "SACv1_SPINUP_4_LIDAR_pretrained_1"
 
 BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
 RW_MAX_SAMPLES_PER_EPISODE = 1000  # If this number of timesteps is reached, the RolloutWorker will reset the episode

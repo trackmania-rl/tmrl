@@ -1,4 +1,5 @@
 # TMRL
+
 TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for distributed Real-Time Reinforcement Learning, demonstated on the TrackMania 2020 and TrackMania Nation Forever video games.
 
 
@@ -16,7 +17,7 @@ TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for di
   - [Available action spaces](#available-action-spaces)
   - [Available observation spaces](#available-observation-spaces)
   - [Results](#results)
-- [Advanced stuff](#advanced-stuff)
+- [Advanced](#advanced)
     - [Real-time Gym framework](#real-time-gym-framework)
       - [rtgym repo](https://github.com/yannbouteiller/rtgym)
     - [Distant training architecture](#distant-training-architecture)
@@ -43,7 +44,7 @@ TMRL is able to control the video game in several ways, using either a virtual k
 The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots, or the raw unprocessed snapshots in order to perceive its environment.
 
 * **Models:**
-To process LIDAR measurements, TMRL uses a Multi-Layer Perceptron (MLP).
+To process LIDAR measurements, TMRL uses a Multi-Layer Perceptron (MLP) or a Recurent neural network (RNN).
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
 
 ### Developer features:
@@ -53,7 +54,7 @@ It enables collecting samples locally on one or several computers, and training 
 Find out more [here](#distant-training-architecture).
 
 * **Real-time training:**
-Our policies are trained in real-time, with no insider access to the game: we do not pause the simulation in order to collect samples nor in order to compute actions.
+Our policies are trained in real-time, with no insider access to the game: we do not pause the simulation to collect samples nor in order to compute actions.
 As such, our approach can easily be extended to other video games, and to real-world robotic applications.
 Find out more [here](#real-time-gym-framework).
 
@@ -80,7 +81,7 @@ are provided at [this link](readme/get_started.md).
 
 ## TMRL presentation
 
-In TMRL, an AI that knows absolutely nothing about driving is set at the starting point of a track.
+In TMRL, an AI, that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
 Its goal is to learn how to complete the track by exploring its own capacities and environment.
 
 The car feeds observations such as images to an artificial neural network, which must output the best possible controls from these observations.
@@ -97,14 +98,14 @@ The policy trained by SAC interacts with this MDP as follows:
 ![reward](readme/img/mrp.png)
 
 In this illustration, the policy is represented as the stickman, and time is represented as time-steps of fixed duration.
-At each time-step, the policy applies an action (the values of gas, break and steering) computed from an observation.
-The action is applied to the environment, which yields a new observation at the end of the time-step.
+At each time-step, the policy applies an action (float values for gas, break and steering) computed from an observation.
+The action is applied to the environment, which yields a new observation at the end of the transition.
 
 For the purpose of training this policy, the environment also provides another signal, called the "reward".
 Indeed, RL is derived from behaviorism, which relies on the fundamental idea that intelligence is the result of an history of positive and negative stimuli.
 The reward received by the AI at each time-step is a measure of how well it performs.
 
-In order to learn how to drive, the AI tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that the reward is maximized.
+In order to learn how to drive, the AI tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that its long-term reward is maximized.
 
 More specifically, SAC does this using two separate Artificial Neural Networks (NNs):
 
@@ -123,7 +124,7 @@ Fundamental advantages of SAC over other existing methods are the following:
 - It is able to output analog controls. We use this property in particular for steering.
 - It maximizes the entropy of the learnt policy.
   This means that the policy will be as random as possible while maximizing the reward.
-  This property helps exploring the environment and is known to produce policies that are robust to external perturbations, which is important for self-driving.
+  This property helps exploring the environment and is known to produce policies that are robust to external perturbations, which is of central importance e.g. in real-world self-driving scenarios.
 
 ### A clever reward
 
@@ -181,7 +182,7 @@ In TrackMania 2020, the [OpenPlanet](https://openplanet.nl) API is used to retri
 We encourage you to watch our series of (TODO: incomming) YouTube videos to visualize some AIs learnt in TMRL.
 
 We train policies in Real-Time with several observation spaces.
-We show that our AIs are able to take advantage of the more complex ones in order to learn complex dynamics, leading to clever policies:
+We show that our AIs are able to take advantage of the more complex types of observations in order to learn complex dynamics, leading to more clever policies:
 
 In the following experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using an history of 4 LIDAR measurements.
 The positions of both cars are captured at constant time intervals in this animation:
@@ -192,7 +193,7 @@ The blue car learnt to drive at a constant speed, as it is the best it can do fr
 Conversely, the red car is able to infer higher-order dynamics from the history of 4 LIDARs, and successfully learnt to break, take the apex of the curve, and accelerate again after this sharp turn, which is slightly better in this situation.
 
 
-## Advanced stuff
+## Advanced
 
 ### Real-time Gym framework:
 This project uses [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (```rtgym```), a simple python framework that enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
@@ -238,4 +239,4 @@ These mechanics can be visualized as follows:
 
 ## License
 
-MIT, Edouard Geze and Yann Bouteiller 2021.
+MIT, Bouteiller and Geze 2021.
