@@ -24,7 +24,8 @@ def main(args):
                            max_samples_per_episode=cfg.RW_MAX_SAMPLES_PER_EPISODE,
                            model_path=cfg.MODEL_PATH_WORKER,
                            obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
-                           crc_debug=cfg.CRC_DEBUG)
+                           crc_debug=cfg.CRC_DEBUG,
+                           standalone=args.test)
         if args.worker:
             rw.run()
         elif args.benchmark:

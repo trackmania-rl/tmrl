@@ -562,6 +562,7 @@ class RolloutWorker:
             crc_debug=False,
             model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
             model_history=cfg.MODEL_HISTORY,  # if 0, doesn't save model history, else, the model is saved every model_history episode
+            standalone=False,  # if True, the worker will not try to connect to a server but only
     ):
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = get_local_buffer_sample
@@ -572,6 +573,7 @@ class RolloutWorker:
         self.model_path_history = model_path_history
         self.actor = actor_module_cls(obs_space, act_space).to(device)
         self.device = device
+        self.standalone = standalone
         if os.path.isfile(self.model_path):
             self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
         self.buffer = Buffer()
@@ -594,7 +596,8 @@ class RolloutWorker:
         print_with_timestamp(f"public IP: {self.public_ip}")
         print_with_timestamp(f"redis IP: {self.redis_ip}")
 
-        Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
+        if not self.standalone:
+            Thread(target=self.__run_thread, args=(), kwargs={}, daemon=True).start()
 
     def __run_thread(self):
         """
