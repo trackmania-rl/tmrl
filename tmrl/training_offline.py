@@ -47,7 +47,7 @@ class TrainingOffline:
         self.epoch = 0
         # print(self.SacAgent)
         # print(self.Env)
-        self.memory = self.Memory(memory_size=self.memory_size, batchsize=self.batchsize, nb_steps=self.steps, use_dataloader=False, device=device)
+        self.memory = self.Memory(memory_size=self.memory_size, batchsize=self.batchsize, nb_steps=self.steps, device=device)
         self.agent = self.Agent(Env=self.Env, device=device)
         self.total_samples = len(self.memory)
         print(f"INFO: Initial total_samples:{self.total_samples}")
@@ -148,7 +148,7 @@ class TrainingOffline:
 
             if self.profiling:
                 pro.stop()
-                print(pro.output_text(unicode=True, color=False))
+                print(pro.output_text(unicode=True, color=False, show_all=True))
 
         self.epoch += 1
         return stats

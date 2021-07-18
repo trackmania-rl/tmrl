@@ -206,7 +206,7 @@ def rnn(input_size, rnn_size, rnn_len):
                  hidden_size=hidden_size,
                  num_layers=num_rnn_layers,
                  bias=True,
-                 batch_first=False,
+                 batch_first=True,
                  dropout=0,
                  bidirectional=False)
     return gru
@@ -219,7 +219,6 @@ class SquashedGaussianRNNActor(nn.Module):
         dim_act = act_space.shape[0]
         act_limit = act_space.high[0]
         self.rnn = rnn(dim_obs, rnn_size, rnn_len)
-        self.rnn.flatten_parameters()
         self.mlp = mlp([rnn_size] + list(mlp_sizes), activation, activation)
         self.mu_layer = nn.Linear(mlp_sizes[-1], dim_act)
         self.log_std_layer = nn.Linear(mlp_sizes[-1], dim_act)
@@ -235,8 +234,10 @@ class SquashedGaussianRNNActor(nn.Module):
         Returns:
             pi_action, log_pi, h
         """
+        self.rnn.flatten_parameters()
+
         # sequence_len = obs_seq[0].shape[0]
-        batch_size = obs_seq[0].shape[1]
+        batch_size = obs_seq[0].shape[0]
 
         if not save_hidden or self.h is None:
             device = obs_seq[0].device
@@ -244,9 +245,9 @@ class SquashedGaussianRNNActor(nn.Module):
         else:
             h = self.h
 
-        imgs_cat = torch.cat(obs_seq, -1)
-        net_out, h = self.rnn(imgs_cat, h)
-        net_out = net_out[-1]
+        obs_seq_cat = torch.cat(obs_seq, -1)
+        net_out, h = self.rnn(obs_seq_cat, h)
+        net_out = net_out[:, -1]
         net_out = self.mlp(net_out)
         mu = self.mu_layer(net_out)
         log_std = self.log_std_layer(net_out)
@@ -298,7 +299,6 @@ class RNNQFunction(nn.Module):
         dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
         dim_act = act_space.shape[0]
         self.rnn = rnn(dim_obs, rnn_size, rnn_len)
-        self.rnn.flatten_parameters()
         self.mlp = mlp([rnn_size + dim_act] + list(mlp_sizes) + [1], activation)
         self.h = None
         self.rnn_size = rnn_size
@@ -311,9 +311,10 @@ class RNNQFunction(nn.Module):
         Returns:
             pi_action, log_pi, h
         """
+        self.rnn.flatten_parameters()
 
         # sequence_len = obs_seq[0].shape[0]
-        batch_size = obs_seq[0].shape[1]
+        batch_size = obs_seq[0].shape[0]
 
         if not save_hidden or self.h is None:
             device = obs_seq[0].device
@@ -321,10 +322,22 @@ class RNNQFunction(nn.Module):
         else:
             h = self.h
 
-        imgs_cat = torch.cat(obs_seq, -1)
-        net_out, h = self.rnn(imgs_cat, h)
-        net_out = net_out[-1]
+        # print(f"DEBUG:len(obs_seq):{len(obs_seq)}")
+        # print(f"DEBUG:obs_seq[0].shape:{obs_seq[0].shape}")
+        # print(f"DEBUG:obs_seq[1].shape:{obs_seq[1].shape}")
+        # print(f"DEBUG:obs_seq[2].shape:{obs_seq[2].shape}")
+        # print(f"DEBUG:obs_seq[3].shape:{obs_seq[3].shape}")
+
+        obs_seq_cat = torch.cat(obs_seq, -1)
+
+        # print(f"DEBUG:obs_seq_cat.shape:{obs_seq_cat.shape}")
+
+        net_out, h = self.rnn(obs_seq_cat, h)
+        # print(f"DEBUG:1 net_out.shape:{net_out.shape}")
+        net_out = net_out[:, -1]
+        # print(f"DEBUG:2 net_out.shape:{net_out.shape}")
         net_out = torch.cat((net_out, act), -1)
+        # print(f"DEBUG:3 net_out.shape:{net_out.shape}")
         q = self.mlp(net_out)
 
         if save_hidden:

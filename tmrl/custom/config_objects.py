@@ -58,10 +58,16 @@ OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if cfg.PRAGMA_LIDAR else
 SAMPLE_PREPROCESSOR = None
 
 if cfg.PRAGMA_LIDAR:
-    # MEM = TrajMemoryTMNFLidar if cfg.PRAGMA_DCAC else MemoryTMNFLidar
-    MEM = TrajMemoryTMNFLidar if cfg.PRAGMA_DCAC else SeqMemoryTMNFLidar
+    if cfg.PRAGMA_RNN:
+        if cfg.PRAGMA_DCAC:
+            assert False, "DCAC not implemented here"
+        else:
+            MEM = SeqMemoryTMNFLidar
+    else:
+        MEM = TrajMemoryTMNFLidar if cfg.PRAGMA_DCAC else MemoryTMNFLidar
 else:
     assert not cfg.PRAGMA_DCAC, "DCAC not implemented here"
+    assert not cfg.PRAGMA_RNN, "RNNs not supported here"
     MEM = MemoryTM2020RAM if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
 
 MEMORY = partial(MEM,
@@ -69,7 +75,9 @@ MEMORY = partial(MEM,
                  imgs_obs=cfg.IMG_HIST_LEN,
                  act_buf_len=cfg.ACT_BUF_LEN,
                  sample_preprocessor=None if cfg.PRAGMA_DCAC else SAMPLE_PREPROCESSOR,
-                 crc_debug=cfg.CRC_DEBUG)
+                 crc_debug=cfg.CRC_DEBUG,
+                 use_dataloader=True,
+                 pin_memory=True)
 
 # ALGORITHM: ===================================================
 
@@ -130,10 +138,10 @@ if cfg.PRAGMA_LIDAR:  # lidar
         Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
         memory_size=1000000,
-        batchsize=128,  # RTX3080: 256 up to 1024
+        batchsize=64,  # RTX3080: 256 up to 1024
         epochs=10000,  # 400
-        rounds=1,  # 10
-        steps=100,  # 1000
+        rounds=10,  # 10
+        steps=1000,  # 1000
         update_model_interval=1000,
         update_buffer_interval=1000,
         max_training_steps_per_env_step=4.0,  # 1.0

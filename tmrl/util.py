@@ -16,6 +16,7 @@ from weakref import WeakKeyDictionary
 
 import numpy as np
 import pandas as pd
+
 import torch
 
 T = TypeVar('T')  # helps with type inference in some editors
@@ -31,7 +32,22 @@ def shallow_copy(obj: T) -> T:
     return x
 
 
-# === collate and partition ============================================================================================
+# === collate, partition, etc ============================================================================================
+
+
+def data_to_cuda(data):
+    r"""Converts each tensor to cuda"""
+    elem_type = type(data)
+    if isinstance(data, torch.Tensor):
+        return data.to('cuda') if not data.is_cuda else data
+    elif isinstance(data, Mapping):
+        return {key: data_to_cuda(data[key]) for key in data}
+    elif isinstance(data, tuple) and hasattr(data, '_fields'):  # namedtuple
+        return elem_type(*(data_to_cuda(d) for d in data))
+    elif isinstance(data, Sequence):
+        return [data_to_cuda(d) for d in data]
+    else:
+        return data
 
 
 def collate(batch, device=None):

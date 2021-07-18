@@ -5,7 +5,7 @@ from pathlib import Path
 import os
 import zlib
 import numpy as np
-from tmrl.util import collate
+from tmrl.util import collate, data_to_cuda
 from torch.utils.data import Dataset, Sampler, DataLoader
 import torch
 
@@ -58,9 +58,7 @@ class MemoryBatchSampler(Sampler):
         return self._nb_steps
 
     def __iter__(self):
-        i = 0
-        while i < self._nb_steps:
-            i += 1
+        for _ in range(self._nb_steps):
             yield (int(len(self._dataset) * random()) - 1 for _ in range(self._batchsize))  # faster than randint
 
 
@@ -73,6 +71,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     OR:
         for batch in myMemoryDataloading.get_dataloader():  # this uses pytorch dataloading (does NOT collate on device)
             operations on batch ...
+    When sequences is True, the Memory expects tensors with the sequence length as first dimension
     """
     def __init__(self,
                  memory_size,
@@ -88,6 +87,10 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
                  device="cpu",
                  sequences=True,
                  collate_fn=None):
+
+        print(f"DEBUG: MemoryDataloading use_dataloader:{use_dataloader}")
+        print(f"DEBUG: MemoryDataloading pin_memory:{pin_memory}")
+
         self.nb_steps = nb_steps
         self.use_dataloader = use_dataloader
         self.device = device
@@ -118,7 +121,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 
         # init dataloader
         self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batchsize=batchsize)
-        self._dataloader = DataLoader(dataset=self, batch_sampler=self._batch_sampler, num_workers=num_workers, pin_memory=pin_memory)
+        self._dataloader = DataLoader(dataset=self, batch_sampler=self._batch_sampler, num_workers=num_workers, pin_memory=pin_memory, collate_fn=collate)
 
     def __iter__(self):
         if not self.use_dataloader:
@@ -126,7 +129,9 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
                 yield self.sample()
         else:
             for batch in self._dataloader:
-                yield batch  # TODO: move this to self.device !!!
+                if self.device == 'cuda':
+                    batch = data_to_cuda(batch)  # FIXME: probably doesn't work with multiprocessing
+                yield batch
 
     @abstractmethod
     def append_buffer(self, buffer):
@@ -145,8 +150,9 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         Returns:
             if not sequence: tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
             else: sequence (tuple) of tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
-        info is required in each sample for CRC debugging. The 'crc' key is what is important when using this feature.
+        info is required in each sample for CRC debugging. The 'crc' key is what is important when using this feature
         Do NOT apply observation preprocessing here, as it will be applied automatically after this
+        If the sequence option is set, this expects the first dimension of all tensors contained in both observations to have the first dimension as the sequence length.
         """
         raise NotImplementedError
 
@@ -173,21 +179,26 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 
     def getitem_sequences(self, item):
         """
-        Here, a dimension exists for sequences
+        Here, a dimension exists for sequences on obs
         """
-        seq = tuple(self.get_transition(item))
+        prev_obs, new_act, rew, new_obs, done, info = self.get_transition(item)
+
         if self.crc_debug:
-            for (prev_obs, new_act, rew, new_obs, done, info) in seq:
-                po, a, o, r, d = info['crc_sample']
-                check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done, self.device)
+            po, a, o, r, d = info['crc_sample']
+            last_prev_obs = tuple(x[-1] for x in prev_obs)
+            last_new_obs = tuple(x[-1] for x in new_obs)
+            check_samples_crc(po, a, o, r, d, last_prev_obs, new_act, last_new_obs, rew, done, self.device)
         # if self.obs_preprocessor is not None:
-        #     seq = ((self.obs_preprocessor(po), a, r, self.obs_preprocessor(o), d, i) for (po, a, r, o, d, i) in seq)
+        #     prev_obs = self.obs_preprocessor(prev_obs)
+        #     new_obs = self.obs_preprocessor(new_obs)
         if self.sample_preprocessor is not None:
-            seq = ((self.sample_preprocessor(po, a, r, o, d, i)) for (po, a, r, o, d, i) in seq)
-        seq = ((po, a, r, o, d) for (po, a, r, o, d, _) in seq)  # we drop info dict here
-        return list(seq)
+            prev_obs, new_act, rew, new_obs, done = self.sample_preprocessor(prev_obs, new_act, rew, new_obs, done)
+        # done = np.float32(done)  # we don't want bool tensors
+        return prev_obs, new_act, rew, new_obs, done
 
     def __getitem__(self, item):
+        if item < 0:
+            item = self.__len__() + item
         return self.getitem_no_sequences(item) if not self.sequences else self.getitem_sequences(item)
 
     def sample_indices(self):
@@ -198,10 +209,10 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         indices = self.sample_indices() if indices is None else indices
         batch = [self[idx] for idx in indices]
         batch = self.collate_fn(batch, self.device)  # collate batch dimension
-        if self.sequences:
-            batch = self.collate_fn(batch, self.device)  # collate sequence dimension
-            po, a, r, o, d = batch
-            batch = po, a[-1], r[-1], o, d[-1]  # drop useless sequences (keep only for observations so they can be processed by RNNs)
+        # if self.sequences:
+        #     batch = self.collate_fn(batch, self.device)  # collate sequence dimension
+        #     po, a, r, o, d = batch
+        #     batch = po, a[-1], r[-1], o, d[-1]  # drop useless sequences (keep only for observations so they can be processed by RNNs)
         return batch
 
 

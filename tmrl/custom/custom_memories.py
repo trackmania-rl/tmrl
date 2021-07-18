@@ -61,10 +61,10 @@ def get_local_buffer_sample_cognifly(prev_act, obs, rew, done, info):
 # FUNCTIONS ====================================================
 
 
-def last_true_in_tensor(t):
+def last_true_in_tensor_1d(t):
     nz = torch.nonzero(t)
     if len(nz) != 0:
-        return nz[0][-1].item()
+        return nz[-1].item()  # FIXME: should be [-1] first ?
     else:
         return None
 
@@ -76,6 +76,31 @@ def replace_hist_before_done(hist, done_idx_in_hist):
         for i in reversed(range(len(hist))):
             if i <= done_idx_in_hist:
                 hist[i] = hist[i + 1]
+
+
+def generate_seq_res_old_res_new(data, last_done_idx, seq_len, nb_elts):
+    if last_done_idx is not None and last_done_idx < len(data) - 1:
+        val_after_done = data[last_done_idx + 1]
+        # modify things without affecting the original data
+        if last_done_idx != len(data) - 2:  # no change on old if done before transition
+            data_old = deepcopy(data[:-1])
+            data_old[:last_done_idx + 1] = val_after_done
+        else:
+            data_old = data[:-1]
+        data_new = deepcopy(data[1:])
+        data_new[:last_done_idx + 1] = val_after_done
+        _data_old = data_old
+        _data_new = data_new
+    else:
+        _data_old = data[:-1]
+        _data_new = data[1:]
+    # print(f"DEBUG:res_old.shape:{_data_old.shape}, data.shape:{data.shape}, last_done_idx:{last_done_idx}, seq_len:{seq_len}")
+    res_old = _data_old.unfold(0, seq_len, 1)
+    res_new = _data_new.unfold(0, seq_len, 1)
+    len_shape = len(res_old.shape) - 1
+    res_old = res_old.movedim(len_shape, 1)
+    res_new = res_new.movedim(len_shape, 1)
+    return res_old, res_new
 
 
 # MEMORY DATALOADING ===========================================
@@ -98,11 +123,15 @@ class MemoryTMNF(MemoryDataloading):
                  device="cpu",
                  sequences=False,
                  collate_fn=None):
+
+        print(f"DEBUG: MemoryTMNF use_dataloader:{use_dataloader}")
+        print(f"DEBUG: MemoryTMNF pin_memory:{pin_memory}")
+
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
-        self.min_samples = max(self.imgs_obs, self.act_buf_len)
-        self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
-        self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
+        self.sup_buf_len = max(self.imgs_obs, self.act_buf_len)
+        self.start_imgs_offset = max(0, self.sup_buf_len - self.imgs_obs)
+        self.start_acts_offset = max(0, self.sup_buf_len - self.act_buf_len)
         self.torch_data = None
         super().__init__(memory_size=memory_size,
                          batchsize=batchsize,
@@ -124,7 +153,7 @@ class MemoryTMNF(MemoryDataloading):
     def __len__(self):
         if self.data is None:
             return 0
-        res = len(self.data[0]) - self.min_samples - 1
+        res = len(self.data[0]) - self.sup_buf_len - 1
         if res < 0:
             return 0
         else:
@@ -145,8 +174,8 @@ class MemoryTMNFLidar(MemoryTMNF):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
-        idx_last = item + self.min_samples - 1
-        idx_now = item + self.min_samples
+        idx_last = item + self.sup_buf_len - 1
+        idx_now = item + self.sup_buf_len
 
         acts = self.load_acts(item)
         last_act_buf = acts[:-1]
@@ -157,12 +186,12 @@ class MemoryTMNFLidar(MemoryTMNF):
         imgs_new_obs = imgs[1:]
 
         # if a reset transition has influenced the observation, special care must be taken
-        last_dones = self.torch_data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
-        last_done_idx = last_true_in_tensor(last_dones)  # last occurrence of True
+        last_dones = self.torch_data[4][idx_now - self.sup_buf_len:idx_now]  # self.sup_buf_len values
+        last_done_idx = last_true_in_tensor_1d(last_dones)  # last occurrence of True
         assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
-        last_infos = self.data[6][idx_now - self.min_samples:idx_now]
+        last_infos = self.data[6][idx_now - self.sup_buf_len:idx_now]
         last_ignored_dones = torch.tensor(["__no_done" in i for i in last_infos], requires_grad=False)
-        last_ignored_done_idx = last_true_in_tensor(last_ignored_dones)  # last occurrence of True
+        last_ignored_done_idx = last_true_in_tensor_1d(last_ignored_dones)  # last occurrence of True
         assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
         if last_ignored_done_idx is not None:
             last_done_idx = last_ignored_done_idx  # FIXME: might not work in extreme cases where a done is ignored right after another done
@@ -268,8 +297,12 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu",
-                 seq_len=50,
+                 seq_len=20,
                  collate_fn=None):
+
+        print(f"DEBUG: SeqMemoryTMNFLidar use_dataloader:{use_dataloader}")
+        print(f"DEBUG: SeqMemoryTMNFLidar pin_memory:{pin_memory}")
+
         self.seq_len = seq_len
         super().__init__(memory_size=memory_size,
                          batchsize=batchsize,
@@ -295,11 +328,81 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
             return sup_len - self.seq_len
 
     def get_transition(self, item):
+        # """
+        # the first dim in the returned leaf tensors is the sequence length
+        # """
+        # res = (super(SeqMemoryTMNFLidar, self).get_transition(i) for i in range(item, item+self.seq_len))
+        # return res
+
         """
-        shape of outputs: (seq_len, ...)
+        CAUTION: item is the first index of the 4 images in the images history of the OLD observation
+        CAUTION: in the buffer, a sample is (act, obs(act)) and NOT (obs, act(obs))
+            i.e. in a sample, the observation is what step returned after being fed act
+            therefore, in the RTRL setting, act is appended to obs
+        So we load 5 images from here...
+        Don't forget the info dict for CRC debugging
         """
-        res = (super(SeqMemoryTMNFLidar, self).get_transition(i) for i in range(item, item+self.seq_len))
-        return res
+        print(f"DEBUG: get trantition {item}")
+
+        idx_last = item + self.sup_buf_len - 1  # beginning of seq
+        idx_now = item + self.sup_buf_len  # beginning of seq
+
+        # if a reset transition has influenced the observation, special care must be taken
+        last_dones_1d = self.torch_data[4][idx_now - self.sup_buf_len:idx_now + self.seq_len - 1]
+        last_done_idx_1d = last_true_in_tensor_1d(last_dones_1d)  # last occurrence of True
+        assert last_done_idx_1d is None or last_dones_1d[last_done_idx_1d], f"DEBUG: last_done_idx:{last_done_idx_1d}"
+        last_infos_1d = self.data[6][idx_now - self.sup_buf_len:idx_now + self.seq_len - 1]
+        last_ignored_dones_1d = torch.tensor(["__no_done" in i for i in last_infos_1d], requires_grad=False)
+        last_ignored_done_idx_1d = last_true_in_tensor_1d(last_ignored_dones_1d)  # last occurrence of True
+        assert last_ignored_done_idx_1d is None or last_ignored_dones_1d[last_ignored_done_idx_1d] and not last_dones_1d[last_ignored_done_idx_1d], f"DEBUG: last_ignored_done_idx_1d:{last_ignored_done_idx_1d}, last_ignored_dones_1d:{last_ignored_dones_1d}, last_dones_1d:{last_dones_1d}"
+        if last_ignored_done_idx_1d is not None:
+            last_done_idx_1d = last_ignored_done_idx_1d  # FIXME: might not work in extreme cases where a done is ignored right after another done
+        # if last_done_idx_1d is not None:
+        #     last_done_idx_1d += idx_now - self.sup_buf_len  # this becomes the index of the last relevant done in self.data
+
+        last_act_buf_seq, new_act_buf_seq = self.load_acts_seq(item, last_done_idx_1d)
+        last_img_buf_seq, new_img_buf_seq = self.load_imgs_seq(item, last_done_idx_1d)
+
+        # print(f"DEBUG: last_act_buf_seq:{last_act_buf_seq}")
+        # print(f"DEBUG: last_img_buf_seq:{last_img_buf_seq}")
+
+        # concatenate imgs:
+        if last_img_buf_seq.shape[0] > 1:
+            last_img_buf_seq = torch.cat(tuple(last_img_buf_seq[:]), 1)
+            new_img_buf_seq = torch.cat(tuple(new_img_buf_seq[:]), 1)
+        else:
+            last_img_buf_seq = last_img_buf_seq.squeeze()
+            new_img_buf_seq = new_img_buf_seq.squeeze()
+
+        last_obs = (self.torch_data[2][idx_last:idx_last + self.seq_len], last_img_buf_seq, *last_act_buf_seq)
+        new_act = self.torch_data[1][idx_now + self.seq_len - 1]
+        rew = self.torch_data[5][idx_now + self.seq_len - 1]  # last of the sequence
+        new_obs = (self.torch_data[2][idx_now:idx_now + self.seq_len], new_img_buf_seq, *new_act_buf_seq)
+        done = self.torch_data[4][idx_now + self.seq_len - 1]  # last of the sequence
+        info = self.data[6][idx_now + self.seq_len - 1]  # last of the sequence
+
+        # print(f"DEBUG: len(last_obs):{len(last_obs)}")
+        # print(f"DEBUG: last_obs[0].shape:{last_obs[0].shape}")
+        # print(f"DEBUG: last_obs[1].shape:{last_obs[1].shape}")
+        # print(f"DEBUG: last_obs[2].shape:{last_obs[2].shape}")
+        # print(f"DEBUG: last_obs[2].shape:{last_obs[3].shape}")
+
+        return last_obs, new_act, rew, new_obs, done, info
+
+    def load_imgs_seq(self, item, last_done_idx):
+        # res = torch.stack([self.torch_data[3][(item + self.start_imgs_offset + i):(item + self.start_imgs_offset + self.imgs_obs + 1 + i)] for i in range(self.seq_len)])
+        data = self.torch_data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + self.seq_len)]
+        res_old, res_new = generate_seq_res_old_res_new(data, last_done_idx, self.seq_len, self.imgs_obs)
+        # res = self.torch_data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + self.seq_len)].unfold(0, self.seq_len, 1).unfold(0, self.imgs_obs, 1)
+        return res_old, res_new
+
+    def load_acts_seq(self, item, last_done_idx):
+        # res = torch.stack([self.torch_data[1][(item + self.start_acts_offset + i):(item + self.start_acts_offset + self.act_buf_len + 1 + i)] for i in range(self.seq_len)])
+        data = self.torch_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.seq_len)]
+        # print(f"DEBUG: data.shape{data.shape}, self.torch_data[1].shape:{self.torch_data[1].shape}, item:{item}, range:{item + self.start_acts_offset}:{item + self.start_acts_offset + self.act_buf_len + self.seq_len}")
+        res_old, res_new = generate_seq_res_old_res_new(data, last_done_idx, self.seq_len, self.imgs_obs)
+        # res = self.torch_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.seq_len)].unfold(0, self.seq_len, 1).unfold(0, self.act_buf_len, 1)
+        return res_old, res_new
 
 
 class TrajMemoryTMNF(TrajMemoryDataloading):
