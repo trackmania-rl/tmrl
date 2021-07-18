@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+# third-party imports
 from inputs import get_gamepad
 
 

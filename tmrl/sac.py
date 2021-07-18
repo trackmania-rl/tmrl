@@ -1,14 +1,18 @@
-from copy import deepcopy, copy
-from dataclasses import dataclass, InitVar
+# standard library imports
+import time
+from copy import copy, deepcopy
+from dataclasses import InitVar, dataclass
 from functools import lru_cache, reduce
+
+# third-party imports
 import numpy as np
 import torch
 from torch.nn.functional import mse_loss
-import time
 
-from tmrl.nn import PopArt, no_grad, copy_shared, exponential_moving_average, hd_conv
-from tmrl.util import cached_property, partial, collate
+# local imports
 import tmrl.sac_models
+from tmrl.nn import PopArt, copy_shared, exponential_moving_average, hd_conv, no_grad
+from tmrl.util import cached_property, collate, partial
 
 
 @dataclass(eq=0)

@@ -1,11 +1,17 @@
-import gym
-from gym import spaces
+# standard library imports
 import random
 import time
-import numpy as np
+
+# third-party imports
+import gym
 import mss
+import numpy as np
+from gym import spaces
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
-from tmrl.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
+
+# local imports
+from tmrl.custom.custom_gym_interfaces import (TM2020Interface, TM2020InterfaceLidar,
+                                               TMInterface, TMInterfaceLidar)
 from tmrl.custom.utils.tools import Lidar
 
 

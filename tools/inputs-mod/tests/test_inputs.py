@@ -1,9 +1,10 @@
 """Tests for inputs module."""
 # pylint: disable=protected-access,no-self-use
+# standard library imports
 from unittest import TestCase
 
+# third-party imports
 import inputs
-
 from tests.constants import mock
 
 RAW = ""

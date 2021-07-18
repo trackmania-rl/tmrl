@@ -1,10 +1,12 @@
 """Tests for listener subprocesses."""
 # pylint: disable=protected-access,no-self-use
+# standard library imports
 from unittest import TestCase
 
+# third-party imports
 import inputs
+from tests.constants import PYTHON, mock
 
-from tests.constants import mock, PYTHON
 if PYTHON == 3:
     mock._magics.add('__round__')
 

@@ -1,11 +1,11 @@
-from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
-from tmrl.custom.custom_gym_interfaces import TM2020InterfaceLidar
+# third-party imports
 
-from tmrl.util import partial
+# local imports
+import tmrl.config.config_constants as cfg
+import tmrl.config.config_objects as cfg_obj
 from tmrl.envs import UntouchedGymEnv
 from tmrl.networking import RolloutWorker
-import tmrl.custom.config_constants as cfg
-import tmrl.custom.config_objects as cfg_obj
+from tmrl.util import partial
 
 
 def run_car():

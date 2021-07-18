@@ -1,17 +1,18 @@
-from dataclasses import dataclass
-from pandas import DataFrame
+# standard library imports
 import time
-import tmrl.sac
-from tmrl.util import pandas_dict, cached_property
-from tmrl.networking import TrainerInterface
+from dataclasses import dataclass
 
-from tmrl.envs import Env
-
-from tmrl.memory_dataloading import MemoryDataloading
-
+# third-party imports
 import torch
+from pandas import DataFrame
 
-import tmrl.custom.config_constants as cfg
+# local imports
+import tmrl.config.config_constants as cfg
+import tmrl.sac
+from tmrl.envs import Env
+from tmrl.memory_dataloading import MemoryDataloading
+from tmrl.networking import TrainerInterface
+from tmrl.util import pandas_dict
 
 # import pybullet_envs
 
@@ -87,6 +88,7 @@ class TrainingOffline:
             t1 = time.time()
 
             if self.profiling:
+                # third-party imports
                 from pyinstrument import Profiler
                 pro = Profiler()
                 pro.start()

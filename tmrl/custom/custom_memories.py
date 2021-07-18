@@ -1,9 +1,13 @@
+# standard library imports
 from copy import deepcopy
 
-import numpy as np
+# third-party imports
 import cv2
-from tmrl.memory_dataloading import MemoryDataloading, TrajMemoryDataloading
+import numpy as np
 import torch
+
+# local imports
+from tmrl.memory_dataloading import MemoryDataloading, TrajMemoryDataloading
 
 # LOCAL BUFFER COMPRESSION ==============================
 

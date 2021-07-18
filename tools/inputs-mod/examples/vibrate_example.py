@@ -1,8 +1,11 @@
 """Simple example showing how to get the gamepad to vibrate."""
 
 from __future__ import print_function
+
+# standard library imports
 import time
 
+# third-party imports
 import inputs
 
 

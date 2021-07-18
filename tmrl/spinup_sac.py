@@ -1,16 +1,19 @@
 # Adapted from the SAC v1 implementation of OpenAI Spinup and the SAC v2 implementation of Stable Baselines 3
 
-from copy import deepcopy
-from dataclasses import dataclass, InitVar
-
-from tmrl.nn import no_grad, copy_shared
-from tmrl.util import cached_property
-
+# standard library imports
 import itertools
+from copy import deepcopy
+from dataclasses import InitVar, dataclass
+
+# third-party imports
 import numpy as np
 import torch
 from torch.optim import Adam
+
+# local imports
 import tmrl.sac_models as core
+from tmrl.nn import copy_shared, no_grad
+from tmrl.util import cached_property
 
 
 @dataclass(eq=0)
@@ -109,8 +112,8 @@ class SpinupSacAgent:  # Adapted from Spinup
             backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
 
         # MSE loss against Bellman backup
-        loss_q1 = ((q1 - backup) ** 2).mean()
-        loss_q2 = ((q2 - backup) ** 2).mean()
+        loss_q1 = ((q1 - backup)**2).mean()
+        loss_q2 = ((q2 - backup)**2).mean()
         loss_q = loss_q1 + loss_q2
 
         self.q_optimizer.zero_grad()
@@ -149,12 +152,12 @@ class SpinupSacAgent:  # Adapted from Spinup
                 # params, as opposed to "mul" and "add", which would make new tensors.
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
-        
+
         ret_dict = dict(
             loss_actor=loss_pi.detach(),
             loss_critic=loss_q.detach(),
         )
-        
+
         if self.learn_entropy_coef:
             ret_dict["loss_entropy_coef"] = loss_alpha.detach()
             ret_dict["entropy_coef"] = alpha_t.item()

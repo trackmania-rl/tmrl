@@ -1,22 +1,24 @@
-from dataclasses import InitVar, dataclass
-import torch
-import numpy as np
-from tmrl.util import collate, partition
-from tmrl.nn import TanhNormalLayer, SacLinear
-from torch.nn import Linear, Sequential, ReLU, ModuleList, Module
-import gym
-
-from functools import reduce  # Required in Python 3
+# standard library imports
 import operator
+from dataclasses import InitVar, dataclass
+from functools import reduce  # Required in Python 3
 
-# Adapted from the SAC implementation of OpenAI Spinup
-
+# third-party imports
+import gym
 import numpy as np
-# import scipy.signal
-
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
+from torch.nn import Linear, Module, ModuleList, ReLU, Sequential
+
+# local imports
+from tmrl.nn import SacLinear, TanhNormalLayer
+from tmrl.util import collate, partition
+
+# Adapted from the SAC implementation of OpenAI Spinup
+
+# import scipy.signal
 
 
 def prod(iterable):
@@ -93,9 +95,9 @@ def combined_shape(length, shape=None):
 
 def mlp(sizes, activation, output_activation=nn.Identity):
     layers = []
-    for j in range(len(sizes)-1):
-        act = activation if j < len(sizes)-2 else output_activation
-        layers += [nn.Linear(sizes[j], sizes[j+1]), act()]
+    for j in range(len(sizes) - 1):
+        act = activation if j < len(sizes) - 2 else output_activation
+        layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
     return nn.Sequential(*layers)
 
 
@@ -140,7 +142,7 @@ class SquashedGaussianMLPActor(nn.Module):
             # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
             # Try deriving it yourself as a (very difficult) exercise. :)
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-            logp_pi -= (2*(np.log(2) - pi_action - F.softplus(-2*pi_action))).sum(axis=1)
+            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
         else:
             logp_pi = None
 
@@ -158,7 +160,6 @@ class SquashedGaussianMLPActor(nn.Module):
 
 
 class MLPQFunction(nn.Module):
-
     def __init__(self, obs_space, act_space, hidden_sizes=(256, 256), activation=nn.ReLU):
         super().__init__()
         obs_dim = sum(prod(s for s in space.shape) for space in obs_space)
@@ -168,11 +169,10 @@ class MLPQFunction(nn.Module):
     def forward(self, obs, act):
         x = torch.cat((*obs, act), -1)
         q = self.q(x)
-        return torch.squeeze(q, -1) # Critical to ensure q has right shape.
+        return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
 
 
 class MLPActorCritic(nn.Module):
-
     def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU, act_buf_len=0):
         super().__init__()
 
@@ -269,7 +269,7 @@ class SquashedGaussianRNNActor(nn.Module):
             # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
             # Try deriving it yourself as a (very difficult) exercise. :)
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-            logp_pi -= (2*(np.log(2) - pi_action - F.softplus(-2*pi_action))).sum(axis=1)
+            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
         else:
             logp_pi = None
 

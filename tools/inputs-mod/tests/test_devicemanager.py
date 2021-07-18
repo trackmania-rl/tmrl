@@ -1,10 +1,11 @@
 """Tests for DeviceManager."""
 # pylint: disable=protected-access,no-self-use
+# standard library imports
 from unittest import TestCase
 
+# third-party imports
 import inputs
-
-from tests.constants import mock, PurePath, PYTHON
+from tests.constants import PYTHON, PurePath, mock
 
 RAW = ""
 

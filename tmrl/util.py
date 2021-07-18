@@ -1,3 +1,4 @@
+# standard library imports
 import functools
 import inspect
 import io
@@ -8,12 +9,13 @@ import signal
 import subprocess
 import weakref
 from contextlib import contextmanager
-from dataclasses import is_dataclass, dataclass, make_dataclass, fields, Field
+from dataclasses import Field, dataclass, fields, is_dataclass, make_dataclass
 from importlib import import_module
 from itertools import chain
-from typing import TypeVar, Union, Type, Callable, Any, Dict, Sequence, Mapping, Tuple
+from typing import Any, Callable, Dict, Mapping, Sequence, Tuple, Type, TypeVar, Union
 from weakref import WeakKeyDictionary
 
+# third-party imports
 import numpy as np
 import pandas as pd
 
@@ -189,6 +191,7 @@ def get_output(*args, default='', **kwargs):
 def git_info(path=None):
     """returns a dict with information about the git repo at path (path can be a sub-directory of the git repo)
     """
+    # third-party imports
     import __main__
     path = path or os.path.dirname(__main__.__file__)
     rev = get_output('git rev-parse HEAD'.split(), cwd=path)

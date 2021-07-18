@@ -1,16 +1,17 @@
 """Tests for InputDevice class."""
 # pylint: disable=protected-access,no-self-use
+# standard library imports
+import struct
+import sys
 from unittest import TestCase
 
-import sys
-import struct
-
-from tests.constants import mock
-
+# third-party imports
 import inputs
+from tests.constants import mock
 
 if sys.version_info.major == 2:
     # pylint: disable=redefined-builtin
+    # third-party imports
     from inputs import PermissionError
 
 KBD_PATH = '/dev/input/by-path/platform-i8042-serio-0-event-kbd'

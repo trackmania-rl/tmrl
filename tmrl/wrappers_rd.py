@@ -1,9 +1,11 @@
+# standard library imports
+import itertools
 from collections import deque
 from random import sample
-import itertools
 
+# third-party imports
 import gym
-from gym.spaces import Tuple, Discrete
+from gym.spaces import Discrete, Tuple
 
 
 class RandomDelayWrapper(gym.Wrapper):

@@ -1,7 +1,7 @@
-import numpy as np
-import mss
-
+# third-party imports
 import cv2
+import mss
+import numpy as np
 
 
 def check_env():

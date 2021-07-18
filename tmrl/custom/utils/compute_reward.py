@@ -1,6 +1,9 @@
-import numpy as np
-import pickle
+# standard library imports
 import os
+import pickle
+
+# third-party imports
+import numpy as np
 
 
 class RewardFunction:

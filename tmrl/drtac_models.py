@@ -1,14 +1,16 @@
+# standard library imports
+import operator
+from functools import reduce  # Required in Python 3
+
+# third-party imports
 import gym
 import torch
+from torch.nn import Linear, Module, ModuleList, ReLU, Sequential
 
-from torch.nn import Linear, Sequential, ReLU, ModuleList, Module
-from tmrl.sac_models import ActorModule
-from tmrl.nn import TanhNormalLayer
-
+# local imports
 from tmrl.envs import RandomDelayEnv
-
-from functools import reduce  # Required in Python 3
-import operator
+from tmrl.nn import TanhNormalLayer
+from tmrl.sac_models import ActorModule
 
 
 def prod(iterable):

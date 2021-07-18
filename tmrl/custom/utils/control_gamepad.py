@@ -1,7 +1,9 @@
+# standard library imports
 import platform
 
 if platform.system() == "Windows":
 
+    # third-party imports
     import vgamepad as vg
 
     def control_gamepad(gamepad, control):

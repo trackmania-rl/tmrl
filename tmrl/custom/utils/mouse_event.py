@@ -1,8 +1,10 @@
+# standard library imports
 import platform
 import time
 
 if platform.system() == "Windows":
 
+    # third-party imports
     from pyautogui import click, mouseUp
 
     def mouse_close_finish_pop_up_tm20(small_window=False):
@@ -33,7 +35,6 @@ if platform.system() == "Windows":
         else:
             click(500, 280)
         mouseUp()
-
 
     def wait_for_popup_save_replay_and_improve_tm20(small_window=False):
         time.sleep(5.0)
@@ -69,6 +70,7 @@ else:
 
 
 if __name__ == "__main__":
+    # standard library imports
     import time
 
     wait_for_popup_save_replay_and_improve_tm20()

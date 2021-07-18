@@ -1,3 +1,4 @@
+# third-party imports
 import numpy as np
 
 MAX_VJOY = 32768

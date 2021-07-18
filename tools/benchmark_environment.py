@@ -1,9 +1,15 @@
-import gym
-from gym import spaces
+# standard library imports
 import random
 import time
+
+# third-party imports
+import gym
+from gym import spaces
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
-from tmrl.custom.custom_gym_interfaces import TMInterface, TM2020Interface, TMInterfaceLidar, TM2020InterfaceLidar
+
+# local imports
+from tmrl.custom.custom_gym_interfaces import (TM2020Interface, TM2020InterfaceLidar,
+                                               TMInterface, TMInterfaceLidar)
 
 NB_STEPS = 1000
 ACT_COMPUTE_MIN = 0.0
