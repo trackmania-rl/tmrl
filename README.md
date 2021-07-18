@@ -31,7 +31,7 @@ These policies are trained with Deep Reinforcement Learning (RL) algorithms, in 
 
 The framework is demonstrated on TrackMania 2020 and TrackMania Nations Forever.
 
-### User features (under development):
+### User features:
 * **Training algorithm:**
 TMRL trains TrackMania policies with [Soft Actor-Critic](https://arxiv.org/abs/1801.01290) (SAC), a state-of-the-art Deep Reinforcement Learning algorithm.
 SAC stores collected samples in a large dataset, called the replay memory.
@@ -44,7 +44,7 @@ TMRL is able to control the video game in several ways, using either a virtual k
 The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots, or the raw unprocessed snapshots in order to perceive its environment.
 
 * **Models:**
-To process LIDAR measurements, TMRL uses a Multi-Layer Perceptron (MLP) or a Recurent neural network (RNN).
+To process LIDAR measurements, TMRL uses a Multi-Layer Perceptron (MLP) or a Recurent Neural Network (RNN).
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
 
 ### Developer features:
