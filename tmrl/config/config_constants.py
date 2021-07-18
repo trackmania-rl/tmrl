@@ -4,7 +4,7 @@ from pathlib import Path
 
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 0  # 3 if MISTlab RTX3080, 2 if ComputeCanada, 1 if Edouard, 0 if Yann  # TODO: remove for release
+PRAGMA_EDOUARD_YANN_CC = 0  # 2 if MISTlab RTX3080, 1 if ComputeCanada, 0 else
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
 RUN_NAME = "SACv1_SPINUP_4_LIDAR_trained_old_map"
 
@@ -63,7 +63,7 @@ CHECKPOINT_PATH = str(PATH_DATA / "checkpoint" / RUN_NAME)
 DATASET_PATH = str(PATH_DATA / "dataset")
 REWARD_PATH = str(PATH_DATA / "reward" / "reward.pkl")
 
-if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
+if PRAGMA_EDOUARD_YANN_CC == 1:  # Override some of these for Compute Canada
     if PRAGMA_SERVER_ON_EDOUARD_YANN == 1:  # Edouard
         MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + (RUN_NAME + "_t.pth")
         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + RUN_NAME
@@ -72,7 +72,7 @@ if PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for Compute Canada
         MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/" + (RUN_NAME + "_t.pth")
         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME
         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
-elif PRAGMA_EDOUARD_YANN_CC == 3:  # Override some of these for MIST Benchbot
+elif PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for MIST Benchbot
     MODEL_PATH_TRAINER = r"/home/ybouteiller/base_tmrl/data/" + (RUN_NAME + "_t.pth")
     CHECKPOINT_PATH = r"/home/ybouteiller/base_tmrl/data/" + RUN_NAME
     REWARD_PATH = r"/home/ybouteiller/base_tmrl/data/reward.pkl"
