@@ -7,7 +7,7 @@ bool send_data_float(Net::Socket@ sock, float val)
 {
 	if (!sock.Write(val)) {
 		// If this fails, the socket might not be open. Something is wrong!
-		print("INFO: Disconnected, couldn't send data.");
+		print("INFO: Disconnected, could not send data.");
 		return false;
 	}
 	return true;
@@ -19,7 +19,7 @@ void Main()
 	{
 		auto sock_serv = Net::Socket();
 		if (!sock_serv.Listen("127.0.0.1", 9000)) {
-			print("Couldn't initiate server socket.");
+			print("Could not initiate server socket.");
 			return;
 		}
 		print(Time::Now + "Waiting for incomming connection...");
@@ -59,7 +59,9 @@ void Main()
 			send_data_float(sock, api.InputGasPedal);
 			if(api.InputIsBraking) send_data_float(sock, 1.0f);
 			else send_data_float(sock, 0.0f);
-			if(race_state == ESGamePlaygroundUIConfig__EUISequence::Finish) send_data_float(sock, 1.0f);
+			// old code: if(race_state == ESGamePlaygroundUIConfig__EUISequence::Finish) send_data_float(sock, 1.0f);
+			// can use CGamePlaygroundUIConfig::EUISequence::Finish or CGameTerminal::ESGamePlaygroundUIConfig__EUISequence::Finish
+			if(race_state == CGameTerminal::ESGamePlaygroundUIConfig__EUISequence::Finish) send_data_float(sock, 1.0f);
 			else send_data_float(sock, 0.0f);
 			send_data_float(sock, api.EngineCurGear);
 			send_data_float(sock, api.EngineRpm);
