@@ -196,7 +196,8 @@ class MemoryTMNFLidar(MemoryTMNF):
         last_infos = self.data[6][idx_now - self.sup_buf_len:idx_now]
         last_ignored_dones = torch.tensor(["__no_done" in i for i in last_infos], requires_grad=False)
         last_ignored_done_idx = last_true_in_tensor_1d(last_ignored_dones)  # last occurrence of True
-        assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
+        assert last_ignored_done_idx is None or last_ignored_dones[
+            last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
         if last_ignored_done_idx is not None:
             last_done_idx = last_ignored_done_idx  # FIXME: might not work in extreme cases where a done is ignored right after another done
 
@@ -337,7 +338,6 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
         # """
         # res = (super(SeqMemoryTMNFLidar, self).get_transition(i) for i in range(item, item+self.seq_len))
         # return res
-
         """
         CAUTION: item is the first index of the 4 images in the images history of the OLD observation
         CAUTION: in the buffer, a sample is (act, obs(act)) and NOT (obs, act(obs))
@@ -358,7 +358,8 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
         last_infos_1d = self.data[6][idx_now - self.sup_buf_len:idx_now + self.seq_len - 1]
         last_ignored_dones_1d = torch.tensor(["__no_done" in i for i in last_infos_1d], requires_grad=False)
         last_ignored_done_idx_1d = last_true_in_tensor_1d(last_ignored_dones_1d)  # last occurrence of True
-        assert last_ignored_done_idx_1d is None or last_ignored_dones_1d[last_ignored_done_idx_1d] and not last_dones_1d[last_ignored_done_idx_1d], f"DEBUG: last_ignored_done_idx_1d:{last_ignored_done_idx_1d}, last_ignored_dones_1d:{last_ignored_dones_1d}, last_dones_1d:{last_dones_1d}"
+        assert last_ignored_done_idx_1d is None or last_ignored_dones_1d[last_ignored_done_idx_1d] and not last_dones_1d[
+            last_ignored_done_idx_1d], f"DEBUG: last_ignored_done_idx_1d:{last_ignored_done_idx_1d}, last_ignored_dones_1d:{last_ignored_dones_1d}, last_dones_1d:{last_dones_1d}"
         if last_ignored_done_idx_1d is not None:
             last_done_idx_1d = last_ignored_done_idx_1d  # FIXME: might not work in extreme cases where a done is ignored right after another done
         # if last_done_idx_1d is not None:

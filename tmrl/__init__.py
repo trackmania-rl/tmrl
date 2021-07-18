@@ -23,7 +23,6 @@ from tmrl.training_offline import TrainingOffline
 from tmrl.util import (dump, git_info, load, load_json, partial, partial_from_dict,
                        partial_to_dict, save_json)
 
-
 __version__ = "0.9"
 
 
