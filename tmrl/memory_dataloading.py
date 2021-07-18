@@ -8,11 +8,11 @@ from random import randint, random
 
 # third-party imports
 import numpy as np
-from tmrl.util import collate, data_to_cuda
-from torch.utils.data import Dataset, Sampler, DataLoader
 import torch
+from torch.utils.data import DataLoader, Dataset, Sampler
 
 # local imports
+from tmrl.util import collate, data_to_cuda
 
 
 def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, device):

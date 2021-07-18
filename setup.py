@@ -1,7 +1,7 @@
 # standard library imports
+import os
 import platform
 import sys
-import os
 
 # third-party imports
 from setuptools import find_packages, setup
@@ -43,7 +43,6 @@ if platform.system() == "Windows":
     install_req.append('pypiwin32')
     install_req.append('vgamepad')
 
-
 # The directory containing this file
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -51,20 +50,20 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(HERE, "README.md")) as fid:
     README = fid.read()
 
-
-setup(name='tmrl',
-      version="0.9",
-      description='self-driving car for trackmania',
-      long_description=README,
-      long_description_content_type="text/markdown",
-      keywords='reinforcement learning, self driving cars',
-      url="https://github.com/trackmania-rl/tmrl",
-      author='Yann Bouteiller, Edouard Geze, Simon Ramstedt',
-      author_email='edouard.geze@hotmail.fr',
-      license="MIT",
-      install_requires=install_req,
-      include_package_data=True,
-      # exclude_package_data={"": ["README.txt"]},
-      extras_require={},
-      scripts=[],
-      packages=find_packages(exclude=("tests",)))
+setup(
+    name='tmrl',
+    version="0.9",
+    description='self-driving car for trackmania',
+    long_description=README,
+    long_description_content_type="text/markdown",
+    keywords='reinforcement learning, self driving cars',
+    url="https://github.com/trackmania-rl/tmrl",
+    author='Yann Bouteiller, Edouard Geze, Simon Ramstedt',
+    author_email='edouard.geze@hotmail.fr',
+    license="MIT",
+    install_requires=install_req,
+    include_package_data=True,
+    # exclude_package_data={"": ["README.txt"]},
+    extras_require={},
+    scripts=[],
+    packages=find_packages(exclude=("tests", )))

@@ -202,13 +202,7 @@ def rnn(input_size, rnn_size, rnn_len):
     assert num_rnn_layers >= 1
     hidden_size = rnn_size
 
-    gru = nn.GRU(input_size=input_size,
-                 hidden_size=hidden_size,
-                 num_layers=num_rnn_layers,
-                 bias=True,
-                 batch_first=True,
-                 dropout=0,
-                 bidirectional=False)
+    gru = nn.GRU(input_size=input_size, hidden_size=hidden_size, num_layers=num_rnn_layers, bias=True, batch_first=True, dropout=0, bidirectional=False)
     return gru
 
 
