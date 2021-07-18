@@ -51,7 +51,7 @@ You should now see the car drive autonomously.
 
 Please follow/adapt these steps so that your TrackMania game works with TMRL:
 
-before starting a training session, make sure that the pretrained AI works
+before starting a training session, make sure the pretrained AI works
 
 - select a track you want to train on, the track has to contain only road with no jump
 - Open 3 terminals and put it where it does not overlap with the trackmania window.

@@ -24,15 +24,15 @@ TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for di
 
 ## Introduction
 
-TMRL uses actual video games, with no insider access, in order to train competitive self-driving Artificial Intelligences (AIs), also called "policies".
+TMRL uses actual video games, with no insider access, to train competitive self-driving Artificial Intelligences (AIs), also called "policies".
 
-These policies are trained with state-of-the-art Deep Reinforcement Learning (RL) algorithms, in Real-Time.
+These policies are trained with Deep Reinforcement Learning (RL) algorithms, in Real-Time.
 
 The framework is demonstrated on TrackMania 2020 and TrackMania Nations Forever.
 
-### User features:
-* **State-of-the-art algorithm:**
-TMRL trains TrackMania policies with [Soft Actor-Critic](https://arxiv.org/abs/1801.01290) (SAC), an algorithm considered the state-of-the-art in Deep Reinforcement Learning.
+### User features (under development):
+* **Training algorithm:**
+TMRL trains TrackMania policies with [Soft Actor-Critic](https://arxiv.org/abs/1801.01290) (SAC), a state-of-the-art Deep Reinforcement Learning algorithm.
 SAC stores collected samples in a large dataset, called the replay memory.
 In parallel, this dataset is used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, steering angle...).
 

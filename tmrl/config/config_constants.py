@@ -25,7 +25,7 @@ CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
 PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 LOCALHOST_WORKER = True  # set to True for RolloutWorkers on the same machine as the Server
-LOCALHOST_TRAINER = False  # set to True for Trainers on the same machine as the Server
+LOCALHOST_TRAINER = True  # set to True for Trainers on the same machine as the Server
 PUBLIC_IP_REDIS = "173.179.182.4" if PRAGMA_SERVER_ON_EDOUARD_YANN else "45.74.221.204"  # IP Edouard
 
 REDIS_IP_FOR_WORKER = PUBLIC_IP_REDIS if not LOCALHOST_WORKER else "127.0.0.1"
