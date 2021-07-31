@@ -13,6 +13,7 @@ Please follow/adapt these steps so that your TrackMania game works with TMRL:
 
 - Open the `trml\resources` folder
 - Copy the `SACv1_SPINUP_4_LIDAR_pretrained_1.pth` file into `tmrl\tmrl\data\weights`
+- Copy the `reward.pkl` file into `tmrl\tmrl\data\reward`
 - Copy the `tmrl-test.Map.Gbx` file into `...\Documents\Trackmania\Maps\My Maps` (or equivalent on your system).
 - Launch TrackMania 2020
 - In case the OpenPlanet menu is showing in the top part of the screen, hide it using the F3 key
