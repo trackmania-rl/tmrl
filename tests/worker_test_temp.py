@@ -11,6 +11,7 @@ import tmrl.config.config_objects as cfg_obj
 from tmrl.envs import UntouchedGymEnv
 from tmrl.networking import RolloutWorker
 from tmrl.util import partial
+import subprocess
 
 script_file = Path(__file__).absolute().parent
 
@@ -42,6 +43,11 @@ class TM2020OpenPlanetServer:
 
 
 fakeServer = TM2020OpenPlanetServer()
+
+
+
+subprocess.call(r"C:\Users\edoua\Desktop\tmrl\tmrl\run.py --server", shell=True)
+subprocess.call(r"C:\Users\edoua\Desktop\tmrl\tmrl\run.py --trainer", shell=True)
 
 worker = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg_obj.CONFIG_DICT}),
                        actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
