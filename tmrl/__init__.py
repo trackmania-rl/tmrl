@@ -16,6 +16,7 @@ import pandas as pd
 import yaml
 
 # local imports
+import logging
 import tmrl.sac
 from tmrl.networking import TrainerInterface
 from tmrl.training_offline import TrainingOffline
@@ -71,27 +72,27 @@ def iterate_epochs_tm(run_cls: TrainingOffline,
 
     try:
         if not exists(checkpoint_path):
-            print("=== specification ".ljust(70, "="))
-            # print(f"DEBUG:{partial_to_dict(run_cls)}")
-            # print(yaml.dump(partial_to_dict(run_cls), indent=3, default_flow_style=False, sort_keys=False), end="")
+            logging.info(f"=== specification ".ljust(70, "="))
+            # logging.debug(f"{partial_to_dict(run_cls)}")
+            # logging.info(yaml.dump(partial_to_dict(run_cls), indent=3, default_flow_style=False, sort_keys=False), end="")
             run_instance = run_cls()
             dump_run_instance_fn(run_instance, checkpoint_path)
-            print("")
+            logging.info(f"")
         else:
-            print("INFO: Loading checkpoint...")
+            logging.info(f" Loading checkpoint...")
             t1 = time.time()
             run_instance = load_run_instance_fn(checkpoint_path)
-            print(f"INFO: Loaded checkpoint in {time.time() - t1} seconds.")
+            logging.info(f" Loaded checkpoint in {time.time() - t1} seconds.")
 
         while run_instance.epoch < run_instance.epochs:
             # time.sleep(1)  # on network file systems writing files is asynchronous and we need to wait for sync
             yield run_instance.run_epoch(interface=interface)  # yield stats data frame (this makes this function a generator)
-            # print("")
+            # logging.info(f"")
             if run_instance.epoch % epochs_between_checkpoints == 0:
-                print("INFO: saving checkpoint...")
+                logging.info(f" saving checkpoint...")
                 t1 = time.time()
                 dump_run_instance_fn(run_instance, checkpoint_path)
-                print(f"INFO: saved checkpoint in {time.time() - t1} seconds.")
+                logging.info(f" saved checkpoint in {time.time() - t1} seconds.")
                 # # we delete and reload the run_instance from disk to ensure the exact same code runs regardless of interruptions
                 # del run_instance
                 # gc.collect()  # garbage collection
@@ -113,14 +114,14 @@ def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOff
     atexit.register(shutil.rmtree, wandb_dir, ignore_errors=True)  # clean up after wandb atexit handler finishes
     # third-party imports
     import wandb
-    print(f"DEBUG: run_cls: {run_cls}")
+    logging.debug(f" run_cls: {run_cls}")
     config = partial_to_dict(run_cls)
     config['seed'] = config['seed'] or randrange(1, 1000000)  # if seed == 0 replace with random
     config['environ'] = log_environment_variables()
     #config['git'] = git_info()  # TODO: check this for bugs
     resume = checkpoint_path and exists(checkpoint_path)
     wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
-    # print(config)
+    # logging.info(config)
     # exit()
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn):
         [wandb.log(json.loads(s.to_json())) for s in stats]

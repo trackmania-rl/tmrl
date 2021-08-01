@@ -8,7 +8,7 @@ import torch
 
 # local imports
 from tmrl.memory_dataloading import MemoryDataloading, TrajMemoryDataloading
-
+import logging
 # LOCAL BUFFER COMPRESSION ==============================
 
 
@@ -98,7 +98,7 @@ def generate_seq_res_old_res_new(data, last_done_idx, seq_len, nb_elts):
     else:
         _data_old = data[:-1]
         _data_new = data[1:]
-    # print(f"DEBUG:res_old.shape:{_data_old.shape}, data.shape:{data.shape}, last_done_idx:{last_done_idx}, seq_len:{seq_len}")
+    # logging.debug(f"res_old.shape:{_data_old.shape}, data.shape:{data.shape}, last_done_idx:{last_done_idx}, seq_len:{seq_len}")
     res_old = _data_old.unfold(0, seq_len, 1)
     res_new = _data_new.unfold(0, seq_len, 1)
     len_shape = len(res_old.shape) - 1
@@ -128,8 +128,8 @@ class MemoryTMNF(MemoryDataloading):
                  sequences=False,
                  collate_fn=None):
 
-        print(f"DEBUG: MemoryTMNF use_dataloader:{use_dataloader}")
-        print(f"DEBUG: MemoryTMNF pin_memory:{pin_memory}")
+        logging.debug(f" MemoryTMNF use_dataloader:{use_dataloader}")
+        logging.debug(f" MemoryTMNF pin_memory:{pin_memory}")
 
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
@@ -305,8 +305,8 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
                  seq_len=20,
                  collate_fn=None):
 
-        print(f"DEBUG: SeqMemoryTMNFLidar use_dataloader:{use_dataloader}")
-        print(f"DEBUG: SeqMemoryTMNFLidar pin_memory:{pin_memory}")
+        logging.debug(f" SeqMemoryTMNFLidar use_dataloader:{use_dataloader}")
+        logging.debug(f" SeqMemoryTMNFLidar pin_memory:{pin_memory}")
 
         self.seq_len = seq_len
         super().__init__(memory_size=memory_size,
@@ -346,7 +346,7 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
-        # print(f"DEBUG: get trantition {item}")
+        # logging.debug(f" get trantition {item}")
 
         idx_last = item + self.sup_buf_len - 1  # beginning of seq
         idx_now = item + self.sup_buf_len  # beginning of seq
@@ -368,8 +368,8 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
         last_act_buf_seq, new_act_buf_seq = self.load_acts_seq(item, last_done_idx_1d)
         last_img_buf_seq, new_img_buf_seq = self.load_imgs_seq(item, last_done_idx_1d)
 
-        # print(f"DEBUG: last_act_buf_seq:{last_act_buf_seq}")
-        # print(f"DEBUG: last_img_buf_seq:{last_img_buf_seq}")
+        # logging.debug(f" last_act_buf_seq:{last_act_buf_seq}")
+        # logging.debug(f" last_img_buf_seq:{last_img_buf_seq}")
 
         # concatenate imgs:
         if last_img_buf_seq.shape[0] > 1:
@@ -386,11 +386,11 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
         done = self.torch_data[4][idx_now + self.seq_len - 1]  # last of the sequence
         info = self.data[6][idx_now + self.seq_len - 1]  # last of the sequence
 
-        # print(f"DEBUG: len(last_obs):{len(last_obs)}")
-        # print(f"DEBUG: last_obs[0].shape:{last_obs[0].shape}")
-        # print(f"DEBUG: last_obs[1].shape:{last_obs[1].shape}")
-        # print(f"DEBUG: last_obs[2].shape:{last_obs[2].shape}")
-        # print(f"DEBUG: last_obs[2].shape:{last_obs[3].shape}")
+        # logging.debug(f" len(last_obs):{len(last_obs)}")
+        # logging.debug(f" last_obs[0].shape:{last_obs[0].shape}")
+        # logging.debug(f" last_obs[1].shape:{last_obs[1].shape}")
+        # logging.debug(f" last_obs[2].shape:{last_obs[2].shape}")
+        # logging.debug(f" last_obs[2].shape:{last_obs[3].shape}")
 
         return last_obs, new_act, rew, new_obs, done, info
 
@@ -404,7 +404,7 @@ class SeqMemoryTMNFLidar(MemoryTMNFLidar):
     def load_acts_seq(self, item, last_done_idx):
         # res = torch.stack([self.torch_data[1][(item + self.start_acts_offset + i):(item + self.start_acts_offset + self.act_buf_len + 1 + i)] for i in range(self.seq_len)])
         data = self.torch_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.seq_len)]
-        # print(f"DEBUG: data.shape{data.shape}, self.torch_data[1].shape:{self.torch_data[1].shape}, item:{item}, range:{item + self.start_acts_offset}:{item + self.start_acts_offset + self.act_buf_len + self.seq_len}")
+        # logging.debug(f" data.shape{data.shape}, self.torch_data[1].shape:{self.torch_data[1].shape}, item:{item}, range:{item + self.start_acts_offset}:{item + self.start_acts_offset + self.act_buf_len + self.seq_len}")
         res_old, res_new = generate_seq_res_old_res_new(data, last_done_idx, self.seq_len, self.imgs_obs)
         # res = self.torch_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.seq_len)].unfold(0, self.seq_len, 1).unfold(0, self.act_buf_len, 1)
         return res_old, res_new
@@ -748,7 +748,7 @@ class MemoryCognifly(MemoryDataloading):
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
-        print(
+        logging.info(
             f"DEBUG: self.imgs_obs:{self.imgs_obs}, self.act_buf_len:{self.act_buf_len}, self.min_sample:{self.min_samples}, self.start_imgs_offset:{self.start_imgs_offset}, self.start_acts_offset:{self.start_acts_offset}"
         )
         super().__init__(memory_size=memory_size,

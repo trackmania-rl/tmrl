@@ -1,6 +1,6 @@
 # third-party imports
 import numpy as np
-
+import logging
 # OBSERVATION PREPROCESSING ==================================
 
 
@@ -10,7 +10,7 @@ def obs_preprocessor_tm_act_in_obs(obs):
     Therefore the output of the memory must be the same as gym
     """
     obs = (obs[0], obs[1], obs[2], obs[3], *obs[4:])  # >= 1 action
-    # print(f"DEBUG: (not same as old): preprocessed obs:{obs}")
+    # logging.debug(f" (not same as old): preprocessed obs:{obs}")
     return obs
 
 
@@ -20,7 +20,7 @@ def obs_preprocessor_tm_lidar_act_in_obs(obs):
     Therefore the output of the memory must be the same as gym
     """
     obs = (obs[0], np.ndarray.flatten(obs[1]), *obs[2:])  # >= 1  action
-    # print(f"DEBUG: (not same as old): preprocessed obs:{obs}")
+    # logging.debug(f" (not same as old): preprocessed obs:{obs}")
     return obs
 
 

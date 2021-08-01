@@ -2,6 +2,7 @@
 
 # standard library imports
 import platform
+import logging
 import time
 from collections import deque
 
@@ -62,7 +63,7 @@ class TM2020Interface(RealTimeGymInterface):
         if self.gamepad:
             assert platform.system() == "Windows", "Sorry, Only Windows is supported for gamepad control"
             self.j = vg.VX360Gamepad()
-            print("DEBUG: virtual joystick in use")
+            logging.debug(" virtual joystick in use")
         self.sct = mss.mss()
         self.last_time = time.time()
         self.digits = load_digits()
@@ -352,7 +353,7 @@ class TMInterface(RealTimeGymInterface):
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         done = False  # TODO: True if race complete
-        # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
+        # logging.debug(f" len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
         return obs, rew, done, {}
 
     def get_observation_space(self):
@@ -414,7 +415,7 @@ class TMInterfaceLidar(TMInterface):
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         done = False  # TODO: True if race complete
-        # print(f"DEBUG: len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
+        # logging.debug(f" len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
         return obs, rew, done, {}
 
     def get_observation_space(self):
@@ -480,7 +481,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         self.target = np.random.uniform(self.min_target_alt, self.max_target_alt)
         self.drone_int.update()
         obs = self.drone_int.read_obs()
-        # print(f"reset drone obs: {obs}")
+        # logging.info(f"reset drone obs: {obs}")
         return [
             np.array([
                 obs[0],
@@ -512,7 +513,7 @@ class CogniflyInterfaceTask1(RealTimeGymInterface):
         """
         self.drone_int.update()
         obs = self.drone_int.read_obs()
-        # print(f"obs:{obs}")
+        # logging.info(f"obs:{obs}")
         t_now = time.time()
         o = [
             np.array([

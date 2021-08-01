@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, Dataset, Sampler
 
 # local imports
 from tmrl.util import collate, data_to_cuda
-
+import logging
 
 def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, device):
     try:
@@ -28,15 +28,15 @@ def check_samples_crc(original_po, original_a, original_o, original_r, original_
         assert str(original_r_t) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r_t}\n!= rebuilt:\n{rebuilt_r}"
         assert str(original_d_t) == str(rebuilt_d), f"dones don't match:\noriginal:\n{original_d_t}\n!= rebuilt:\n{rebuilt_d}"
     except Exception as e:
-        print(f"Caught exception: {e}")
-        print(f"previous observations:\noriginal:\n{original_po}\n?= rebuilt:\n{rebuilt_po}")
-        print(f"actions:\noriginal:\n{original_a}\n?= rebuilt:\n{rebuilt_a}")
-        print(f"observations:\noriginal:\n{original_o}\n?= rebuilt:\n{rebuilt_o}")
-        print(f"rewards:\noriginal:\n{original_r}\n?= rebuilt:\n{rebuilt_r}")
-        print(f"dones:\noriginal:\n{original_d}\n?= rebuilt:\n{rebuilt_d}")
-        print(f"Device: {device}")
+        logging.info(f"Caught exception: {e}")
+        logging.info(f"previous observations:\noriginal:\n{original_po}\n?= rebuilt:\n{rebuilt_po}")
+        logging.info(f"actions:\noriginal:\n{original_a}\n?= rebuilt:\n{rebuilt_a}")
+        logging.info(f"observations:\noriginal:\n{original_o}\n?= rebuilt:\n{rebuilt_o}")
+        logging.info(f"rewards:\noriginal:\n{original_r}\n?= rebuilt:\n{rebuilt_r}")
+        logging.info(f"dones:\noriginal:\n{original_d}\n?= rebuilt:\n{rebuilt_d}")
+        logging.info(f"Device: {device}")
         exit()
-    print("DEBUG: CRC check passed.")
+    logging.debug(" CRC check passed.")
 
 
 def check_samples_crc_traj(original_o, original_r, original_d, rebuilt_o, rebuilt_r, rebuilt_d):
@@ -46,7 +46,7 @@ def check_samples_crc_traj(original_o, original_r, original_d, rebuilt_o, rebuil
     original_crc = zlib.crc32(str.encode(str((original_o, original_r, original_d))))
     crc = zlib.crc32(str.encode(str((rebuilt_o, rebuilt_r, rebuilt_d))))
     assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}.\nEither the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\noriginal sample:\n{(original_o, original_r, original_d)}\n!= rebuilt sample:\n{(rebuilt_o, rebuilt_r, rebuilt_d)}"
-    print("DEBUG: CRC check passed.")
+    logging.debug(" CRC check passed.")
 
 
 class MemoryBatchSampler(Sampler):
@@ -93,8 +93,8 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
                  sequences=True,
                  collate_fn=None):
 
-        print(f"DEBUG: MemoryDataloading use_dataloader:{use_dataloader}")
-        print(f"DEBUG: MemoryDataloading pin_memory:{pin_memory}")
+        logging.debug(f" MemoryDataloading use_dataloader:{use_dataloader}")
+        logging.debug(f" MemoryDataloading pin_memory:{pin_memory}")
 
         self.nb_steps = nb_steps
         self.use_dataloader = use_dataloader
@@ -115,13 +115,13 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 
         # init memory
         self.path = Path(path_loc)
-        print(f"DEBUG: MemoryDataloading self.path:{self.path}")
+        logging.debug(f" MemoryDataloading self.path:{self.path}")
         if os.path.isfile(self.path / 'data.pkl'):
             with open(self.path / 'data.pkl', 'rb') as f:
                 self.data = pickle.load(f)
-                print(f"DEBUG: data found, loaded in self.data")
+                logging.debug(f" data found, loaded in self.data")
         else:
-            print("INFO: no data found, initializing self.data to None")
+            logging.info(f" no data found, initializing self.data to None")
             self.data = None
 
         # init dataloader
@@ -210,7 +210,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         return (randint(0, len(self) - 1) for _ in range(self.batchsize))
 
     def sample(self, indices=None):
-        # print("DEBUG: called sample()")
+        # logging.debug(" called sample()")
         indices = self.sample_indices() if indices is None else indices
         batch = [self[idx] for idx in indices]
         batch = self.collate_fn(batch, self.device)  # collate batch dimension
@@ -287,12 +287,12 @@ def load_and_print_pickle_file(path=r"C:\Users\Yann\Desktop\git\tmrl\data\data.p
     import pickle
     with open(path, 'rb') as f:
         data = pickle.load(f)
-    print(f"nb samples: {len(data[0])}")
+    logging.info(f"nb samples: {len(data[0])}")
     for i, d in enumerate(data):
-        print(f"[{i}][0]: {d[0]}")
-    print("full data:")
+        logging.info(f"[{i}][0]: {d[0]}")
+    logging.info(f"full data:")
     for i, d in enumerate(data):
-        print(f"[{i}]: {d}")
+        logging.info(f"[{i}]: {d}")
 
 
 if __name__ == "__main__":

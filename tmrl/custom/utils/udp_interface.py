@@ -4,7 +4,7 @@ Based on https://github.com/ricardodeazambuja/BrianConnectUDP/blob/master/brian_
 # standard library imports
 import socket
 import struct
-
+import logging
 
 class UDPInterface(object):
     def __init__(self):
@@ -41,13 +41,13 @@ class UDPInterface(object):
         self._buffersize = self._sockI.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)
 
         while clean:
-            print("Cleaning receiving buffer...")
+            logging.info(f"Cleaning receiving buffer...")
             try:
                 # buffer size is 1 byte, NON blocking.
                 self._sockI.recv(1, socket.MSG_DONTWAIT)
             except IOError:  # The try and except are necessary because the recv raises a error when no data is received
                 clean = False
-        print("Cleaning receiving buffer...Done!")
+        logging.info(f"Cleaning receiving buffer...Done!")
 
         # Tells the system that the socket recv() method WILL block until a packet is received
         # self._sockI.setblocking(1)
@@ -83,10 +83,10 @@ class UDPInterface(object):
         ld = len(data)
         res = []
         while i < ld:
-            # print(f"DEBUG: s,i={s},{i}")
+            # logging.debug(f" s,i={s},{i}")
             msglen = struct.unpack('>I', data[s:i])[0]
             res.append(struct.unpack('>' + ''.join(['d'] * msglen), data[i:i + 8 * msglen]))
-            # print(f"DEBUG: msglen={msglen}, res={res}")
+            # logging.debug(f" msglen={msglen}, res={res}")
             s = i + 8 * msglen
             i = s + 4
         nb = self.recv_msg_nonblocking()
@@ -112,10 +112,10 @@ class UDPInterface(object):
                     ld = len(data)
                     res = []
                     while i < ld:
-                        # print(f"DEBUG: s,i={s},{i}")
+                        # logging.debug(f" s,i={s},{i}")
                         msglen = struct.unpack('>I', data[s:i])[0]
                         res.append(struct.unpack('>' + ''.join(['d'] * msglen), data[i:i + 8 * msglen]))
-                        # print(f"DEBUG: msglen={msglen}, res={res}")
+                        # logging.debug(f" msglen={msglen}, res={res}")
                         s = i + 8 * msglen
                         i = s + 4
                     return res
@@ -142,29 +142,29 @@ def main(args):
         while True:
             res = conn.recv_msg()
             tick_2 = time.time()
-            print("---")
-            print(f"received (blocking): {res}")
-            print(f"elapsed time since last received: {tick_2 - tick_1} s")
+            logging.info(f"---")
+            logging.info(f"received (blocking): {res}")
+            logging.info(f"elapsed time since last received: {tick_2 - tick_1} s")
             tick_1 = tick_2
     else:
         # [roll, pitch, yaw, throttle, arm/disarm]
         msg_sent = [1500, 1500, 1500, throttle, 1.0]
-        print(f"sending: {msg_sent}")
+        logging.info(f"sending: {msg_sent}")
         conn.send_msg(msg_sent)
-        print(f"sending: {msg_sent}")
+        logging.info(f"sending: {msg_sent}")
         conn.send_msg(msg_sent)
         tick_1 = time.time()
         res = conn.recv_msg()
         tick_2 = time.time()
-        print(f"received (blocking): {res}")
-        print(f"elapsed time between sent and received: {tick_2 - tick_1} s")
-        print(f"sending: {msg_sent}")
+        logging.info(f"received (blocking): {res}")
+        logging.info(f"elapsed time between sent and received: {tick_2 - tick_1} s")
+        logging.info(f"sending: {msg_sent}")
         conn.send_msg(msg_sent)
-        print("sleeping...")
+        logging.info(f"sleeping...")
         time.sleep(0.1)
         res = conn.recv_msg_nonblocking()
-        print(f"received (nonblocking): {res}")
-        print(f"last message: {res[-1]}")
+        logging.info(f"received (nonblocking): {res}")
+        logging.info(f"last message: {res[-1]}")
 
 
 if __name__ == "__main__":
@@ -190,11 +190,11 @@ if __name__ == "__main__":
 #     conn.send_msg([1, 2, 3])
 #     conn.send_msg([4, 5, 6])
 #     time.sleep(0.1)
-#     print(conn.recv_msg())
+#     logging.info(conn.recv_msg())
 #
 #     conn.send_msg([1, 2, 3])
 #     conn.send_msg([4, 5, 6])
 #     time.sleep(0.1)
 #     res = conn.recv_msg_nonblocking()
-#     print(res)
-#     print(f"last message: {res[-1]}")
+#     logging.info(res)
+#     logging.info(f"last message: {res[-1]}")

@@ -8,7 +8,7 @@ import numpy as np
 
 # local imports
 from tmrl.custom.utils.udp_interface import UDPInterface
-
+import logging
 
 class DroneUDPInterface1:
     """
@@ -37,32 +37,32 @@ class DroneUDPInterface1:
         self.udp_send_port = udp_send_port
         self.udp_recv_port = udp_recv_port
         self.udp_int = UDPInterface()
-        # print(f"DEBUG: initializing sender with udp_send_ip:{udp_send_ip}, udp_send_port:{udp_send_port}")
+        # logging.debug(f" initializing sender with udp_send_ip:{udp_send_ip}, udp_send_port:{udp_send_port}")
         self.udp_int.init_sender(udp_send_ip, udp_send_port)
-        # print(f"DEBUG: initializing receiver with udp_recv_ip:{udp_recv_ip}, udp_recv_port:{udp_recv_port}")
+        # logging.debug(f" initializing receiver with udp_recv_ip:{udp_recv_ip}, udp_recv_port:{udp_recv_port}")
         self.udp_int.init_receiver(udp_recv_ip, udp_recv_port)
         self._obs = None
         self._lock = Lock()
         self._listener_thread = Thread(target=self.__listener_thread)
         self._listener_thread.setDaemon(True)  # will be terminated at exit
         self._listener_thread.start()
-        # print("DEBUG: initializing obs...")
+        # logging.debug(" initializing obs...")
         while True:
             time.sleep(0.1)  # only for initialization
             self._lock.acquire()
             self.obs = deepcopy(self._obs)
             self._lock.release()
             if self.obs is not None:
-                # print("DEBUG: found obs")
+                # logging.debug(" found obs")
                 break
-        # print("DEBUG: obs initialized")
+        # logging.debug(" obs initialized")
 
     def __listener_thread(self):
-        # print(f"DEBUG: listener thread started")
+        # logging.debug(f" listener thread started")
         while True:
-            # print("DEBUG: thread waiting recv")
+            # logging.debug(" thread waiting recv")
             mes = self.udp_int.recv_msg()
-            # print("DEBUG: recv")
+            # logging.debug(" recv")
             self._lock.acquire()
             for m in mes:
                 if self._obs is None or self._obs[4] <= m[4]:
@@ -76,9 +76,9 @@ class DroneUDPInterface1:
         Args:
             control: float: throttle
         """
-        # print(f"DEBUG: apply_train_control:{control}")
+        # logging.debug(f" apply_train_control:{control}")
         ctrl = [control, 1.0, time_step_id]
-        # print(f"DEBUG: ctrl:{ctrl}")
+        # logging.debug(f" ctrl:{ctrl}")
         self.udp_int.send_msg(ctrl)
 
     def take_off(self, takeoff_vel=10.0, target_alt=40.0, sleep_time=0.1):
@@ -104,7 +104,7 @@ class DroneUDPInterface1:
             arm: bool: whether to arm or disarm
             wait_time: float: time slept after sending the command
         """
-        print(f"DEBUG: arm:{arm}")
+        logging.debug(f" arm:{arm}")
         if arm:
             ctrl = np.array([0.0, 1.0, -1.0])
         else:
@@ -172,7 +172,7 @@ class DroneUDPInterface1:
         """
         # check for battery level:
         if self.read_battery() <= self.low_batt:
-            print(f"DEBUG: low battery: landing and disarming...")
+            logging.debug(f" low battery: landing and disarming...")
             self.land()
             self.arm_disarm(arm=False)
             self.wait_for_new_battery()
@@ -180,7 +180,7 @@ class DroneUDPInterface1:
         else:
             cur_drone_alt = self.read_altitude()
             if cur_drone_alt < self.min_altitude or cur_drone_alt > self.max_altitude:
-                print(f"DEBUG: outside of arena: disarming")
+                logging.debug(f" outside of arena: disarming")
                 self.arm_disarm(arm=False)
                 assert False, f"A security constraint has been violated: cur_drone_alt:{cur_drone_alt}"
         return False

@@ -11,7 +11,7 @@ from torch.nn import Linear, Module, ModuleList, ReLU, Sequential
 from tmrl.envs import RandomDelayEnv
 from tmrl.nn import TanhNormalLayer
 from tmrl.sac_models import ActorModule
-
+import logging
 
 def prod(iterable):
     return reduce(operator.mul, iterable, 1)
@@ -49,7 +49,7 @@ def prod(iterable):
 #
 #         self.obs_dim = observation_space[0].shape[0]
 #         self.buf_size = len(observation_space[1])
-#         print(f"DEBUG: MLP self.buf_size: {self.buf_size}")
+#         logging.debug(f" MLP self.buf_size: {self.buf_size}")
 #         self.act_dim = observation_space[1][0].shape[0]
 #         assert self.act_dim == action_space.shape[0], f"action spaces mismatch: {self.act_dim} and {action_space.shape[0]}"
 #

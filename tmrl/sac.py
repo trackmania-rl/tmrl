@@ -13,7 +13,7 @@ from torch.nn.functional import mse_loss
 import tmrl.sac_models
 from tmrl.nn import PopArt, copy_shared, exponential_moving_average, hd_conv, no_grad
 from tmrl.util import cached_property, collate, partial
-
+import logging
 
 @dataclass(eq=0)
 class SacAgent:  # SAC agent with PopArt
@@ -36,7 +36,7 @@ class SacAgent:  # SAC agent with PopArt
             observation_space, action_space = env.observation_space, env.action_space
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         model = self.Model(observation_space, action_space)
-        print(f"DEBUG: device SAC: {device}")
+        logging.debug(f" device SAC: {device}")
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
 

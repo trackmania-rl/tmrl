@@ -11,7 +11,7 @@ from torch.nn import functional as F
 # local imports
 from tmrl.nn import TanhNormalLayer
 from tmrl.sac_models import ActorModule, MlpActionValue, SacLinear, prod
-
+import logging
 # === Trackmania =======================================================================================================
 
 
@@ -61,10 +61,10 @@ class DeepmindCNN(Module):
         self.out_channels = self.conv3.out_channels
         self.flat_features = self.out_channels * self.h_out * self.w_out
 
-        print(f"DEBUG: h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}")
+        logging.debug(f" h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}")
 
     def forward(self, x):
-        print(f"DEBUG: forward, shape x :{x.shape}")
+        logging.debug(f" forward, shape x :{x.shape}")
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
@@ -90,10 +90,10 @@ class BigCNN(Module):
         self.out_channels = self.conv4.out_channels
         self.flat_features = self.out_channels * self.h_out * self.w_out
 
-        print(f"DEBUG: h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}")
+        logging.debug(f" h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}")
 
     def forward(self, x):  # TODO: Simon uses leaky relu instead of relu, see what works best
-        # print(f"DEBUG: forward, shape x :{x.shape}")
+        # logging.debug(f" forward, shape x :{x.shape}")
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
@@ -117,7 +117,7 @@ class TM20CNNModule(Module):
         self.act_buf_len = act_buf_len
         self.act_dim = action_space.shape[0]
 
-        print(f"DEBUG self.img_dims: {self.img_dims}")
+        logging.debug(f" self.img_dims: {self.img_dims}")
         h_in = self.img_dims[2]
         w_in = self.img_dims[3]
         channels_in = self.img_dims[0] * self.img_dims[1]  # successive images as channels
@@ -141,7 +141,7 @@ class TM20CNNModule(Module):
         im2 = ims[:, 1]
         im3 = ims[:, 2]
         im4 = ims[:, 3]
-        # print(f"DEBUG: forward: im1.shape:{im1.shape}")
+        # logging.debug(f" forward: im1.shape:{im1.shape}")
         if self.act_buf_len:
             all_acts = torch.cat((x[4:]), dim=1).float()  # if q network, the last action will be act
         else:
@@ -167,7 +167,7 @@ class TMActionValue(Sequential):
     def forward(self, obs, action):
         x = (*obs, action)
         res = super().forward(x)
-        # print(f"DEBUG: av res:{res}")
+        # logging.debug(f" av res:{res}")
         return res
 
 
@@ -179,7 +179,7 @@ class TMPolicy(Sequential):
     def forward(self, obs):
         # res = super().forward(torch.cat(obs, 1))
         res = super().forward(obs)
-        # print(f"DEBUG: po res:{res}")
+        # logging.debug(f" po res:{res}")
         return res
 
 

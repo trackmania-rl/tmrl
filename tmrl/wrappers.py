@@ -8,7 +8,7 @@ import gym
 import numpy as np
 from gym.spaces import Discrete, Tuple
 from gym.wrappers import TimeLimit
-
+import logging
 
 class RealTimeWrapper(gym.Wrapper):
     def __init__(self, env):
@@ -163,7 +163,7 @@ class TimeLimitResetWrapper(gym.Wrapper):
         if max_steps is None:
             tl = get_wrapper_by_class(env, TimeLimit)
             max_steps = 1 << 31 if tl is None else tl._max_episode_steps
-        # print("TimeLimitResetWrapper.max_steps =", max_steps)
+        # logging.info(f"TimeLimitResetWrapper.max_steps =", max_steps)
 
         self.max_steps = max_steps
         self.t = 0

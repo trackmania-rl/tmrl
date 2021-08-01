@@ -18,6 +18,7 @@ from weakref import WeakKeyDictionary
 # third-party imports
 import numpy as np
 import pandas as pd
+import logging
 import torch
 
 T = TypeVar('T')  # helps with type inference in some editors
@@ -157,7 +158,7 @@ def get_class_or_function(func):
 
 
 def partial_from_args(func: Union[str, callable], kwargs: Dict[str, str]):
-    # print(func, kwargs)  # useful to visualize the parsing process
+    # logging.info(func, kwargs)  # useful to visualize the parsing process
     func = get_class_or_function(func) if isinstance(func, str) else func
     keys = {k.split('.')[0] for k in kwargs}
     keywords = {}
@@ -262,7 +263,7 @@ class DelayInterrupt:
         [signal.signal(s, self.on_signal) for s in self.signals]
 
     def on_signal(self, *args):
-        print("tmrl.util:DelayInterrupt -- Signal received!", *args)
+        logging.info(f"tmrl.util:DelayInterrupt -- Signal received!", *args)
         self.signal_received = True
 
     def __exit__(self, *args):

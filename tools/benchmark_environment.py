@@ -10,6 +10,7 @@ from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 # local imports
 from tmrl.custom.custom_gym_interfaces import (TM2020Interface, TM2020InterfaceLidar,
                                                TMInterface, TMInterfaceLidar)
+import logging
 
 NB_STEPS = 1000
 ACT_COMPUTE_MIN = 0.0
@@ -36,13 +37,13 @@ def benchmark():
         o, r, d, i = env.step(None)
         if d:
             env.reset()
-        print(f"rew:{r}")
+        logging.info(f"rew:{r}")
     t_f = time.time()
 
     elapsed_time = t_f - t_d
-    print(f"benchmark results: {env.benchmarks()}")
-    print(f"elapsed time: {elapsed_time}")
-    print(f"time-step duration: {elapsed_time / NB_STEPS}")
+    logging.info(f"benchmark results: {env.benchmarks()}")
+    logging.info(f"elapsed time: {elapsed_time}")
+    logging.info(f"time-step duration: {elapsed_time / NB_STEPS}")
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@ from torch.nn import Linear, Module, ModuleList, ReLU, Sequential
 # local imports
 from tmrl.nn import SacLinear, TanhNormalLayer
 from tmrl.util import collate, partition
-
+import logging
 # Adapted from the SAC implementation of OpenAI Spinup
 
 # import scipy.signal
@@ -58,7 +58,7 @@ class MlpActionValue(Sequential):
 
     # noinspection PyMethodOverriding
     def forward(self, obs, action):
-        # print(f"DEBUG: obs:{obs}")
+        # logging.debug(f" obs:{obs}")
         x = torch.cat((*obs, action), -1)
         return super().forward(x)
 
@@ -71,7 +71,7 @@ class MlpPolicy(Sequential):
 
     # noinspection PyMethodOverriding
     def forward(self, obs):
-        # print(f"DEBUG: obs:{obs}")
+        # logging.debug(f" obs:{obs}")
         return super().forward(torch.cat(obs, -1))  # XXX
 
 
@@ -316,22 +316,22 @@ class RNNQFunction(nn.Module):
         else:
             h = self.h
 
-        # print(f"DEBUG:len(obs_seq):{len(obs_seq)}")
-        # print(f"DEBUG:obs_seq[0].shape:{obs_seq[0].shape}")
-        # print(f"DEBUG:obs_seq[1].shape:{obs_seq[1].shape}")
-        # print(f"DEBUG:obs_seq[2].shape:{obs_seq[2].shape}")
-        # print(f"DEBUG:obs_seq[3].shape:{obs_seq[3].shape}")
+        # logging.debug(f"len(obs_seq):{len(obs_seq)}")
+        # logging.debug(f"obs_seq[0].shape:{obs_seq[0].shape}")
+        # logging.debug(f"obs_seq[1].shape:{obs_seq[1].shape}")
+        # logging.debug(f"obs_seq[2].shape:{obs_seq[2].shape}")
+        # logging.debug(f"obs_seq[3].shape:{obs_seq[3].shape}")
 
         obs_seq_cat = torch.cat(obs_seq, -1)
 
-        # print(f"DEBUG:obs_seq_cat.shape:{obs_seq_cat.shape}")
+        # logging.debug(f"obs_seq_cat.shape:{obs_seq_cat.shape}")
 
         net_out, h = self.rnn(obs_seq_cat, h)
-        # print(f"DEBUG:1 net_out.shape:{net_out.shape}")
+        # logging.debug(f"1 net_out.shape:{net_out.shape}")
         net_out = net_out[:, -1]
-        # print(f"DEBUG:2 net_out.shape:{net_out.shape}")
+        # logging.debug(f"2 net_out.shape:{net_out.shape}")
         net_out = torch.cat((net_out, act), -1)
-        # print(f"DEBUG:3 net_out.shape:{net_out.shape}")
+        # logging.debug(f"3 net_out.shape:{net_out.shape}")
         q = self.mlp(net_out)
 
         if save_hidden:

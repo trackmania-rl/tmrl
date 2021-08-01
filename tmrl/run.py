@@ -9,6 +9,7 @@ from tmrl import run_tm, run_wandb_tm
 from tmrl.envs import UntouchedGymEnv
 from tmrl.networking import RolloutWorker, Server, TrainerInterface
 from tmrl.util import partial
+import logging
 
 
 def main(args):
@@ -45,10 +46,10 @@ def main_train(args):
 
     train_cls = cfg_obj.TRAINER
 
-    print("--- NOW RUNNING: SAC/DCAC trackmania ---")
+    logging.info(f"--- NOW RUNNING: SAC/DCAC trackmania ---")
     interface = TrainerInterface(redis_ip=cfg.REDIS_IP_FOR_TRAINER, model_path=cfg.MODEL_PATH_TRAINER)
     if not args.no_wandb:
-        # print("start profiling")
+        # logging.info(f"start profiling")
         # profiler.start()
         run_wandb_tm(entity=cfg.WANDB_ENTITY,
                      project=cfg.WANDB_PROJECT,
@@ -59,12 +60,13 @@ def main_train(args):
                      dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
                      load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
         # profiler.stop()
-        # print(profiler.output_text(unicode=True, color=False))
+        # logging.info(profiler.output_text(unicode=True, color=False))
     else:
         run_tm(interface=interface, run_cls=train_cls, checkpoint_path=cfg.CHECKPOINT_PATH, dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN, load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     parser = ArgumentParser()
     parser.add_argument('--server', action='store_true')
     parser.add_argument('--trainer', action='store_true')
@@ -73,6 +75,6 @@ if __name__ == "__main__":
     parser.add_argument('--benchmark', action='store_true')
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='if you do not want to log results on Weights and Biases, use this option')
     args = parser.parse_args()
-    print(args)
+    logging.info(args)
 
     main(args)

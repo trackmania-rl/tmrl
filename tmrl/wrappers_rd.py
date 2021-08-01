@@ -6,7 +6,7 @@ from random import sample
 # third-party imports
 import gym
 from gym.spaces import Discrete, Tuple
-
+import logging
 
 class RandomDelayWrapper(gym.Wrapper):
     """
@@ -65,13 +65,13 @@ class RandomDelayWrapper(gym.Wrapper):
 
         assert self.t == 0
         received_observation, *_ = self.receive_observation()
-        # print("DEBUG: end of reset ---")
-        # print(f"DEBUG: self.past_actions:{self.past_actions}")
-        # print(f"DEBUG: self.past_observations:{self.past_observations}")
-        # print(f"DEBUG: self.arrival_times_actions:{self.arrival_times_actions}")
-        # print(f"DEBUG: self.arrival_times_observations:{self.arrival_times_observations}")
-        # print(f"DEBUG: self.t:{self.t}")
-        # print("DEBUG: ---")
+        # logging.debug(" end of reset ---")
+        # logging.debug(f" self.past_actions:{self.past_actions}")
+        # logging.debug(f" self.past_observations:{self.past_observations}")
+        # logging.debug(f" self.arrival_times_actions:{self.arrival_times_actions}")
+        # logging.debug(f" self.arrival_times_observations:{self.arrival_times_observations}")
+        # logging.debug(f" self.t:{self.t}")
+        # logging.debug(" ---")
         return received_observation
 
     def step(self, action):
@@ -102,13 +102,13 @@ class RandomDelayWrapper(gym.Wrapper):
         r = cum_rew_actor_delayed - self.cum_rew_brain
         self.cum_rew_brain = cum_rew_actor_delayed
 
-        # print("DEBUG: end of step ---")
-        # print(f"DEBUG: self.past_actions:{self.past_actions}")
-        # print(f"DEBUG: self.past_observations:{self.past_observations}")
-        # print(f"DEBUG: self.arrival_times_actions:{self.arrival_times_actions}")
-        # print(f"DEBUG: self.arrival_times_observations:{self.arrival_times_observations}")
-        # print(f"DEBUG: self.t:{self.t}")
-        # print("DEBUG: ---")
+        # logging.debug(" end of step ---")
+        # logging.debug(f" self.past_actions:{self.past_actions}")
+        # logging.debug(f" self.past_observations:{self.past_observations}")
+        # logging.debug(f" self.arrival_times_actions:{self.arrival_times_actions}")
+        # logging.debug(f" self.arrival_times_observations:{self.arrival_times_observations}")
+        # logging.debug(f" self.t:{self.t}")
+        # logging.debug(" ---")
         self.t += 1
         return m, r, d, info
 

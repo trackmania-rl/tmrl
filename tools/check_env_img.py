@@ -2,7 +2,7 @@
 import cv2
 import mss
 import numpy as np
-
+import logging
 
 def check_env():
     sct = mss.mss()
@@ -16,12 +16,12 @@ def check_env():
     # o = env.reset()
     while True:
         # o, r, d, i = env.step(None)
-        # print(r)
+        # logging.info(r)
         img = np.asarray(sct.grab(monitor))[:, :, :3]
         cv2.imshow("PipeLine", img)
         cv2.waitKey(1)
         img = np.moveaxis(img, -1, 0)
-        #print(img.shape)
+        #logging.info(img.shape)
 
 
 if __name__ == "__main__":

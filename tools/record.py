@@ -17,7 +17,7 @@ import tmrl.config.config_constants as cfg
 from tmrl.custom.custom_gym_interfaces import (TM2020Interface, TM2020InterfaceLidar,
                                                TMInterface, TMInterfaceLidar)
 from tmrl.custom.utils.tools import TM2020OpenPlanetClient, get_speed, load_digits
-
+import logging
 # TODO: add info dicts everywhere for CRC debugging
 
 KEY_START_RECORD = 'e'
@@ -55,13 +55,13 @@ def record_tmnf_gamepad(path_dataset):
             for event in events:
                 if str(event.code) == "ABS_HAT0X":
                     c = False
-                    print('start recording')
+                    logging.info('start recording')
 
     t1 = time.time()
     while not c:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}). Stopping recording.")
+            logging.warning(f" more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}). Stopping recording.")
             c = True
             break
         while not t2 - t1 >= time_step:
@@ -95,7 +95,7 @@ def record_tmnf_gamepad(path_dataset):
                         direction[2] = -gd
                 elif str(event.code) == "ABS_HAT0Y":
                     c = True
-                    print('stop recording')
+                    logging.info('stop recording')
 
         cv2.imwrite(path + str(iteration) + ".png", img)
         speeds.append(speed)
@@ -127,11 +127,11 @@ def record_tmnf_keyboard(path_dataset):
         direction[2] = float(keyboard.is_pressed(KEY_RIGHT))
         direction[3] = float(keyboard.is_pressed(KEY_LEFT))
         if keyboard.is_pressed(KEY_RESET):
-            print("reset")
+            logging.info(f"reset")
             env.reset()
             done = True
         if keyboard.is_pressed(KEY_START_RECORD):
-            print("start record")
+            logging.info(f"start record")
             is_recording = True
 
         if is_recording:
@@ -147,9 +147,9 @@ def record_tmnf_keyboard(path_dataset):
             iteration = iteration + 1
 
             if keyboard.is_pressed(KEY_STOP_RECORD):
-                print("Saving pickle file...")
+                logging.info(f"Saving pickle file...")
                 pickle.dump((iters, dirs, speeds, dones, rews), open(path + "data.pkl", "wb"))
-                print("All done")
+                logging.info(f"All done")
                 return
 
 
@@ -181,31 +181,31 @@ def record_tmnf_lidar_keyboard(path_dataset):
         if keyboard.is_pressed(KEY_RESET):
             done = True
         if keyboard.is_pressed(KEY_START_RECORD):
-            print("start record")
+            logging.info(f"start record")
             is_recording = True
 
         if is_recording:
-            # print(f"DEBUG ---")
-            # print(f"DEBUG:lidar:{obs[1][-1]}")
+            # logging.debug(f" ---")
+            # logging.debug(f"lidar:{obs[1][-1]}")
             lidars.append(obs[1][-1])
             iters.append(iteration)
-            # print(f"DEBUG:speed:{obs[0]}")
+            # logging.debug(f"speed:{obs[0]}")
             speeds.append(obs[0])
             direc = np.array([direction[0], direction[1], direction[2] - direction[3]], dtype=np.float32)  # +1 for right and -1 for left
-            # print(f"DEBUG:direction:{direc}")
+            # logging.debug(f"direction:{direc}")
             dirs.append(direc)
-            # print(f"DEBUG:done:{done}")
+            # logging.debug(f"done:{done}")
             dones.append(done)
-            # print(f"DEBUG:rew:{rew}")
-            # print(f"DEBUG ---")
+            # logging.debug(f"rew:{rew}")
+            # logging.debug(f" ---")
             rews.append(rew)
 
             iteration = iteration + 1
 
             if keyboard.is_pressed(KEY_STOP_RECORD):
-                print("Saving pickle file...")
+                logging.info(f"Saving pickle file...")
                 pickle.dump((iters, dirs, speeds, lidars, dones, rews), open(path + "data.pkl", "wb"))
-                print("All done")
+                logging.info(f"All done")
                 return
 
 
@@ -231,11 +231,11 @@ def record_tm20_lidar(path_dataset):
         )
         # obs = (obs[0], obs[1], obs[0][-3:])
         if keyboard.is_pressed(KEY_RESET):
-            print("reset")
+            logging.info(f"reset")
             env.reset()
             done = True
         if keyboard.is_pressed(KEY_START_RECORD):
-            print("start record")
+            logging.info(f"start record")
             is_recording = True
 
         if is_recording:
@@ -250,9 +250,9 @@ def record_tm20_lidar(path_dataset):
             iteration = iteration + 1
 
             if keyboard.is_pressed(KEY_STOP_RECORD):
-                print("Saving pickle file...")
+                logging.info(f"Saving pickle file...")
                 pickle.dump((iters, speeds, distances, positions, inputs, dones, rews), open(path + "data.pkl", "wb"))
-                print("All done")
+                logging.info(f"All done")
                 return
 
 
@@ -278,11 +278,11 @@ def record_tm20(path_dataset):
         obs, rew, done, info = env.step(None)
         # obs = (obs[0], obs[1], obs[0][-3:])
         if keyboard.is_pressed(KEY_RESET):
-            print("reset")
+            logging.info(f"reset")
             env.reset()
             done = True
         if keyboard.is_pressed(KEY_START_RECORD):
-            print("start record")
+            logging.info(f"start record")
             is_recording = True
 
         if is_recording:
@@ -297,12 +297,12 @@ def record_tm20(path_dataset):
             iteration = iteration + 1
 
             if keyboard.is_pressed(KEY_STOP_RECORD):
-                print("Saving pickle file...")
+                logging.info(f"Saving pickle file...")
                 pickle.dump((iters, speeds, gear, rpm, dones, rews), open(path + "data.pkl", "wb"))
                 # create video
                 cv2.destroyAllWindows()
                 video.release()
-                print("All done")
+                logging.info(f"All done")
                 return
 
 
@@ -318,7 +318,7 @@ def record_reward(path_reward=PATH_REWARD):
     while True:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
+            logging.warning(f" more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
             t1 = time.time()
             # break
         while not t2 - t1 >= time_step:
@@ -326,13 +326,13 @@ def record_reward(path_reward=PATH_REWARD):
         t1 = t1 + time_step
 
         if keyboard.is_pressed('e'):
-            print("start recording")
+            logging.info(f"start recording")
             is_recording = True
         if is_recording:
             data = client.retrieve_data()
             positions.append([data[2], data[3], data[4]])
             if keyboard.is_pressed('q'):
-                print("Smoothing and saving pickle file...")
+                logging.info(f"Smoothing and saving pickle file...")
                 positions = np.array(positions)
                 epsilon = 0.001
                 for i in range(len(positions)):
@@ -347,7 +347,7 @@ def record_reward(path_reward=PATH_REWARD):
                 for i in range(1, len(position_1) - 1):
                     position_2[i] = (position_1[i - 1] + position_1[i] + position_1[i + 1]) / 3.0
                 pickle.dump(position_2, open(path + "reward.pkl", "wb"))
-                print("All done")
+                logging.info(f"All done")
                 return
 
 
@@ -363,7 +363,7 @@ def record_reward_dist(path_reward=PATH_REWARD):
     while True:
         t2 = time.time()
         if t2 - t1 >= time_step + max_error:
-            print(f"WARNING: more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
+            logging.warning(f" more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
             t1 = time.time()
             # break
         while not t2 - t1 >= time_step:
@@ -371,15 +371,15 @@ def record_reward_dist(path_reward=PATH_REWARD):
         t1 = t1 + time_step
 
         if keyboard.is_pressed('e'):
-            print("start recording")
+            logging.info(f"start recording")
             is_recording = True
         if is_recording:
             data = client.retrieve_data()
             done = bool(data[8])
             if keyboard.is_pressed('q') or done:
-                print("Smoothing, get fixed dist and saving pickle file...")
+                logging.info(f"Smoothing, get fixed dist and saving pickle file...")
                 positions = np.array(positions)
-                print("position init ", len(positions))
+                logging.info(f"position init ", len(positions))
 
                 final_positions = [positions[0]]
                 dist_between_points = 0.1
@@ -399,10 +399,10 @@ def record_reward_dist(path_reward=PATH_REWARD):
                         move_by = dst
 
                 final_positions = np.array(final_positions)
-                print("position fin ", len(final_positions))
+                logging.info(f"position fin ", len(final_positions))
 
                 pickle.dump(final_positions, open(path, "wb"))
-                print("All done")
+                logging.info(f"All done")
                 return
             else:
                 positions.append([data[2], data[3], data[4]])

@@ -17,14 +17,14 @@ from requests import get
 import tmrl.config.config_constants as cfg
 from tmrl.sac_models import ActorModule
 from tmrl.util import collate
-
+import logging
 # PRINT: ============================================
 
 
 def print_with_timestamp(s):
     x = datetime.datetime.now()
     sx = x.strftime("%x %X ")
-    print(sx + str(s))
+    logging.info(sx + str(s))
 
 
 # NETWORK: ==========================================

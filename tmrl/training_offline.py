@@ -13,7 +13,7 @@ from tmrl.envs import Env
 from tmrl.memory_dataloading import MemoryDataloading
 from tmrl.networking import TrainerInterface
 from tmrl.util import pandas_dict
-
+import logging
 # import pybullet_envs
 
 
@@ -46,12 +46,12 @@ class TrainingOffline:
     def __post_init__(self):
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.epoch = 0
-        # print(self.SacAgent)
-        # print(self.Env)
+        # logging.info(self.SacAgent)
+        # logging.info(self.Env)
         self.memory = self.Memory(memory_size=self.memory_size, batchsize=self.batchsize, nb_steps=self.steps, device=device)
         self.agent = self.Agent(Env=self.Env, device=device)
         self.total_samples = len(self.memory)
-        print(f"INFO: Initial total_samples:{self.total_samples}")
+        logging.info(f" Initial total_samples:{self.total_samples}")
 
     def update_buffer(self, interface):
         buffer = interface.retrieve_buffer()
@@ -61,14 +61,14 @@ class TrainingOffline:
     def check_ratio(self, interface):
         ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 and self.total_samples >= self.start_training else -1.0
         if ratio > self.max_training_steps_per_env_step or ratio == -1.0:
-            print("INFO: Waiting for new samples")
+            logging.info(f" Waiting for new samples")
             while ratio > self.max_training_steps_per_env_step or ratio == -1.0:
                 # wait for new samples
                 self.update_buffer(interface)
                 ratio = self.total_updates / self.total_samples if self.total_samples > 0.0 and self.total_samples >= self.start_training else -1.0
                 if ratio > self.max_training_steps_per_env_step or ratio == -1.0:
                     time.sleep(self.sleep_between_buffer_retrieval_attempts)
-            print("INFO: Resuming training")
+            logging.info(f" Resuming training")
 
     def run_epoch(self, interface: TrainerInterface):
         stats = []
@@ -78,8 +78,8 @@ class TrainingOffline:
             self.agent_scheduler(self.agent, self.epoch)
 
         for rnd in range(self.rounds):
-            print(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
-            print(f"DEBUG: SAC (Training): current memory size:{len(self.memory)}")
+            logging.info(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
+            logging.debug(f" SAC (Training): current memory size:{len(self.memory)}")
 
             stats_training = []
 
@@ -111,7 +111,7 @@ class TrainingOffline:
                 t_update_buffer = time.time()
 
                 if self.total_updates == 0:
-                    print("starting training")
+                    logging.info(f"starting training")
                 stats_training_dict = self.agent.train(batch)
 
                 if cfg.SYNCHRONIZE_CUDA:
@@ -143,14 +143,14 @@ class TrainingOffline:
             idle_time = t1 - t0
             update_buf_time = t2 - t1
             train_time = t3 - t2
-            print(f"DEBUG: round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}")
+            logging.debug(f" round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}")
             stats += pandas_dict(memory_len=len(self.memory), round_time=round_time, idle_time=idle_time, **DataFrame(stats_training).mean(skipna=True)),
 
-            print(stats[-1].add_prefix("  ").to_string(), '\n')
+            logging.info(stats[-1].add_prefix("  ").to_string(), '\n')
 
             if self.profiling:
                 pro.stop()
-                print(pro.output_text(unicode=True, color=False, show_all=True))
+                logging.info(pro.output_text(unicode=True, color=False, show_all=True))
 
         self.epoch += 1
         return stats

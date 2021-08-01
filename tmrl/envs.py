@@ -15,7 +15,7 @@ from tmrl.wrappers import (AffineObservationWrapper, AffineRewardWrapper,
                            PreviousActionWrapper, RealTimeWrapper, TimeLimitResetWrapper,
                            TupleObservationWrapper, get_wrapper_by_class)
 from tmrl.wrappers_rd import RandomDelayWrapper
-
+import logging
 
 def mujoco_py_issue_424_workaround():
     """Mujoco_py generates files in site-packages for some reason.
@@ -61,7 +61,7 @@ class GymEnv(Env):
 
         if frame_skip:
             original_frame_skip = getattr(env.unwrapped, 'frame_skip', 1)  # on many Mujoco environments this is 5
-            # print("Original frame skip", original_frame_skip)
+            # logging.info(f"Original frame skip", original_frame_skip)
 
             # I think the two lines below were actually a mistake after all (at least for HalfCheetah)
             # if hasattr(env, 'dt'):
@@ -70,7 +70,7 @@ class GymEnv(Env):
             env.unwrapped.frame_skip = 1
             tl = get_wrapper_by_class(env, TimeLimit)
             tl._max_episode_steps = int(tl._max_episode_steps * original_frame_skip)
-            # print("New max episode steps", env._max_episode_steps)
+            # logging.info(f"New max episode steps", env._max_episode_steps)
             env = FrameSkip(env, frame_skip, 1 / original_frame_skip)
 
         env = Float64ToFloat32(env)
@@ -145,7 +145,7 @@ class RandomDelayEnv(Env):
 
         if frame_skip:
             original_frame_skip = getattr(env.unwrapped, 'frame_skip', 1)  # on many Mujoco environments this is 5
-            # print("Original frame skip", original_frame_skip)
+            # logging.info(f"Original frame skip", original_frame_skip)
 
             # I think the two lines below were actually a mistake after all (at least for HalfCheetah)
             # if hasattr(env, 'dt'):
@@ -154,7 +154,7 @@ class RandomDelayEnv(Env):
             env.unwrapped.frame_skip = 1
             tl = get_wrapper_by_class(env, TimeLimit)
             tl._max_episode_steps = int(tl._max_episode_steps * original_frame_skip)
-            # print("New max episode steps", env._max_episode_steps)
+            # logging.info(f"New max episode steps", env._max_episode_steps)
             env = FrameSkip(env, frame_skip, 1 / original_frame_skip)
 
         env = Float64ToFloat32(env)
@@ -170,7 +170,7 @@ def test_avenue():
     [env.step(env.action_space.sample()) for _ in range(1000)]
     (img, ), _, _, _ = env.step(env.action_space.sample())
     assert img == 3
-    print('done')
+    logging.info('done')
 
 
 def test_random_delay_env():
@@ -178,7 +178,7 @@ def test_random_delay_env():
     obs = env.reset()
     [env.step(env.action_space.sample()) for _ in range(1000)]
     obs, _, _, _ = env.step(env.action_space.sample())
-    print('done')
+    logging.info('done')
 
 
 if __name__ == '__main__':

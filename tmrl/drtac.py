@@ -16,11 +16,12 @@ from tmrl.drtac_models import Mlp
 from tmrl.envs import RandomDelayEnv
 from tmrl.nn import exponential_moving_average, no_grad
 from tmrl.util import partial
+import logging
 
 
 def print_debug(st):
     # return
-    print("DEBUG: " + st)
+    logging.debug(" " + st)
 
 
 class DcacInterface:

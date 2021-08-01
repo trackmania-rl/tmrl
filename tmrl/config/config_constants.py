@@ -1,7 +1,7 @@
 # standard library imports
 import os
 from pathlib import Path
-
+import logging
 # HIGH-LEVEL PRAGMAS: ==========================================
 
 PRAGMA_EDOUARD_YANN_CC = 0  # 2 if MISTlab RTX3080, 1 if ComputeCanada, 0 else
@@ -51,9 +51,9 @@ SYNCHRONIZE_CUDA = False  # Set to True for profiling, False otherwise
 # FILE SYSTEM: =================================================
 
 PATH_FILE = Path(__file__)  # TODO: this won't work with PyPI or normal install
-print(f"DEBUG: PATH_FILE:{PATH_FILE}")
+logging.debug(f" PATH_FILE:{PATH_FILE}")
 PATH_DATA = PATH_FILE.absolute().parent.parent / 'data'
-print(f"DEBUG: PATH_DATA:{PATH_DATA}")
+logging.debug(f" PATH_DATA:{PATH_DATA}")
 
 MODEL_HISTORY = 10  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
 
