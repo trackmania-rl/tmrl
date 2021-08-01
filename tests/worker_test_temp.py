@@ -46,8 +46,8 @@ fakeServer = TM2020OpenPlanetServer()
 
 
 
-subprocess.call(r"C:\Users\edoua\Desktop\tmrl\tmrl\run.py --server", shell=True)
-subprocess.call(r"C:\Users\edoua\Desktop\tmrl\tmrl\run.py --trainer", shell=True)
+subprocess.call(r"run.py --server", shell=True)
+subprocess.call(r"run.py --trainer", shell=True)
 
 worker = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": cfg_obj.CONFIG_DICT}),
                        actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
