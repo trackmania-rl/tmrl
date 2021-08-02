@@ -5,11 +5,11 @@ Before reading these instructions, make sure you have installed TMRL and OpenPla
 In this document you can learn:
 - How to test a pre-trained self-driving car in TrackMania 2020.
 - How to train your own AIs on any track (caution: the track cannot have weird triggered events such as GPS replays).
-- How to use the API in other games or applications.
+- How to use the API in other games or applications (TODO).
 
 ## Demo of a pre-trained AI in Trackmania 2020
 
-Please follow/adapt these steps so that your TrackMania game works with TMRL:
+Please follow/adapt these steps so to your TrackMania 2020 installation:
 
 - Open the `trml\resources` folder
 - Copy the `SACv1_SPINUP_4_LIDAR_pretrained_1.pth` file into `tmrl\tmrl\data\weights`
@@ -25,7 +25,6 @@ Please follow/adapt these steps so that your TrackMania game works with TMRL:
 - In the `Input` tab, select `keyboard` in `edit device`. For `Give up`, set the `Enter` key (you may remap the chat key to something else).
 - In the `Interface` tab, set `player visibility for cockpit view` to `old`.
 - Close the `Settings` menu.
-- In the lobby, select `Training` and select track number 1.
 - Enter the cockpit view by hitting the `3` key.
 - Hide the ghost by pressing the `g` key.
 
@@ -50,24 +49,28 @@ If you get an error saying that communication was refused, try reloading the `TM
 
 ## Train your own self-driving AIs
 
-Please follow/adapt these steps so that your TrackMania game works with TMRL:
+Please follow/adapt these steps to your TrackMania 2020 installation:
 
 Before starting a training session, make sure the pretrained AI is working.
 
-- select a track you want to train on, the track has to contain only plain road (black borders).
-- Open 3 terminals and put them where they do not overlap with the trackmania window.
-For instance in 3 other corners of the screen.
+- Select a track you want to train on, the track has to contain only plain road (black borders).
 - Activate the python environment in which `tmrl` is installed.
 - cd to your `tmrl` repository.
+- Record a reward for this track:
+  - Execute `python tmrl\tools\record.py`
+  - Press `e` to start recording
+  - Complete the track
+- Open 3 terminals and put them where they do not overlap with the trackmania window.
+For instance in 3 other corners of the screen.
 - Run the following commands in the 3 different terminals (one per terminal), then, quickly click somewhere in the TrackMania window so that `tmrl` can control the car.
 ```shell
-python tmrl/run.py --server
+python tmrl\run.py --server
 ```
 ```shell
-python tmrl/run.py --trainer
+python tmrl\run.py --trainer
 ```
 ```shell
-python tmrl/run.py --worker
+python tmrl\run.py --worker
 ```
 
 During training, make sure you don't see too many 'timestep timeouts' in the worker terminal.

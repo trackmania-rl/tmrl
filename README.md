@@ -157,7 +157,7 @@ In a nutshell, whereas the previous reward function was measuring how fast the c
 In TMRL, the car can be controlled in two different ways:
 
 - The policy can output simple (binary) arrow presses.
-- On Windows, the policy controls the car with analog inputs by emulating an XBox360 controller thank to the [vgamepad](https://pypi.org/project/vgamepad/) library.
+- On Windows, the policy controls the car with analog inputs by emulating an XBox360 controller thanks to the [vgamepad](https://pypi.org/project/vgamepad/) library.
 
 ### Available observation spaces
 
