@@ -1,3 +1,8 @@
+# logger (basicConfig must be called before importing anything)
+import logging
+import sys
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
 # standard library imports
 import atexit
 import gc
@@ -16,7 +21,6 @@ import pandas as pd
 import yaml
 
 # local imports
-import logging
 import tmrl.sac
 from tmrl.networking import TrainerInterface
 from tmrl.training_offline import TrainingOffline
