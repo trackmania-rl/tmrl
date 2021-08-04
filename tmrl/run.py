@@ -66,7 +66,7 @@ def main_train(args):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     parser = ArgumentParser()
     parser.add_argument('--server', action='store_true')
     parser.add_argument('--trainer', action='store_true')
