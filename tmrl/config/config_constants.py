@@ -4,9 +4,10 @@ from pathlib import Path
 import logging
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 0  # 2 if MISTlab RTX3080, 1 if ComputeCanada, 0 else
+PRAGMA_EDOUARD_YANN_CC = 2  # 2 if MISTlab RTX3080, 1 if ComputeCanada, 0 else
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SACv1_SPINUP_4_LIDAR_pretrained_1"
+# RUN_NAME = "SACv1_SPINUP_4_LIDAR_pretrained_1"
+RUN_NAME = "SACv1_SPINUP_4_LIDAR_MLP_dev_1"
 
 BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
 RW_MAX_SAMPLES_PER_EPISODE = 1000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
@@ -26,7 +27,7 @@ PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 LOCALHOST_WORKER = True  # set to True for RolloutWorkers on the same machine as the Server
 LOCALHOST_TRAINER = True  # set to True for Trainers on the same machine as the Server
-PUBLIC_IP_REDIS = "173.179.182.4" if PRAGMA_SERVER_ON_EDOUARD_YANN else "45.74.221.204"  # IP Edouard
+PUBLIC_IP_REDIS = "173.179.182.4" if PRAGMA_SERVER_ON_EDOUARD_YANN else "45.74.221.204"
 
 REDIS_IP_FOR_WORKER = PUBLIC_IP_REDIS if not LOCALHOST_WORKER else "127.0.0.1"
 REDIS_IP_FOR_TRAINER = PUBLIC_IP_REDIS if not LOCALHOST_TRAINER else "127.0.0.1"
@@ -74,9 +75,9 @@ if PRAGMA_EDOUARD_YANN_CC == 1:  # Override some of these for Compute Canada
         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME
         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for MIST Benchbot
-    MODEL_PATH_TRAINER = r"/home/ybouteiller/base_tmrl/data/" + (RUN_NAME + "_t.pth")
-    CHECKPOINT_PATH = r"/home/ybouteiller/base_tmrl/data/" + RUN_NAME
-    REWARD_PATH = r"/home/ybouteiller/base_tmrl/data/reward.pkl"
+    MODEL_PATH_TRAINER = r"/home/ybouteiller/tmrl/data/" + (RUN_NAME + "_t.pth")
+    CHECKPOINT_PATH = r"/home/ybouteiller/tmrl/data/" + RUN_NAME
+    REWARD_PATH = r"/home/ybouteiller/tmrl/data/reward.pkl"
 
 # WANDB: =======================================================
 
