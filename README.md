@@ -1,6 +1,6 @@
 # TMRL
 
-TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for distributed Real-Time Reinforcement Learning, demonstated on the TrackMania 2020 and TrackMania Nation Forever video games.
+TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for distributed Real-Time Reinforcement Learning, demonstrated on TrackMania 2020 and TrackMania Nation Forever video games.
 
 
 ![Image](readme/img/tm_annimation.gif)
@@ -38,19 +38,19 @@ SAC stores collected samples in a large dataset, called the replay memory.
 In parallel, this dataset is used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, steering angle...).
 
 * **Different types of control:**
-TMRL is able to control the video game in several ways, using either a virtual keyboard, or a virtual game controller.
+TMRL can control the video game in several ways, using either a virtual keyboard or a virtual game controller.
 
 * **Different types of observation:**
-The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots, or the raw unprocessed snapshots in order to perceive its environment.
+The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots or the raw unprocessed snapshots in order to perceive its environment.
 
 * **Models:**
-To process LIDAR measurements, TMRL uses a Multi-Layer Perceptron (MLP) or a Recurent Neural Network (RNN).
+To process LIDAR measurements, TMRL uses a Multi-Layer Perceptron (MLP) or a Recurrent Neural Network (RNN).
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
 
 ### Developer features:
 * **Distributed training:**
 Our training framework is based on a single-server / multiple-clients architecture.
-It enables collecting samples locally on one or several computers, and training distantly on a High Performance Computing cluster.
+It enables collecting samples locally on one or several computers and training distantly on a High Performance Computing cluster.
 Find out more [here](#distant-training-architecture).
 
 * **Real-time training:**
@@ -74,7 +74,7 @@ For installation instructions, please follow [this link](readme/Install.md).
 
 ## Getting started
 
-Full guidance toward testing pre-trained weights, as well as a tutorial to train, test and fine-tune your own models,
+Full guidance toward testing pre-trained weights, as well as a tutorial to train, test, and fine-tune your own models,
 are provided at [this link](readme/get_started.md).
 
 
@@ -86,7 +86,7 @@ Its goal is to learn how to complete the track by exploring its own capacities a
 
 The car feeds observations such as images to an artificial neural network, which must output the best possible controls from these observations.
 This implies that the AI must understand its environment in some way.
-To achieve this understanding, the car explores the world for a few hours (up to a few days), slowly gaining understanding of how to act efficiently.
+To achieve this understanding, the car explores the world for a few hours (up to a few days), slowly gaining an understanding of how to act efficiently.
 This is accomplished through Deep Reinforcement Learning (RL).
 More precisely, we use the Soft Actor-Critic (SAC) algorithm.
 
@@ -98,11 +98,11 @@ The policy trained by SAC interacts with this MDP as follows:
 ![reward](readme/img/mrp.png)
 
 In this illustration, the policy is represented as the stickman, and time is represented as time-steps of fixed duration.
-At each time-step, the policy applies an action (float values for gas, break and steering) computed from an observation.
+At each time-step, the policy applies an action (float values for gas, brake, and steering) computed from an observation.
 The action is applied to the environment, which yields a new observation at the end of the transition.
 
 For the purpose of training this policy, the environment also provides another signal, called the "reward".
-Indeed, RL is derived from behaviorism, which relies on the fundamental idea that intelligence is the result of an history of positive and negative stimuli.
+Indeed, RL is derived from behaviorism, which relies on the fundamental idea that intelligence is the result of a history of positive and negative stimuli.
 The reward received by the AI at each time-step is a measure of how well it performs.
 
 In order to learn how to drive, the AI tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that its long-term reward is maximized.
@@ -110,9 +110,9 @@ In order to learn how to drive, the AI tries random actions in response to incom
 More specifically, SAC does this using two separate Artificial Neural Networks (NNs):
 
 - The first one, called the "policy network" (or, in the literature, the "actor"), is the NN the user is ultimately interested in : the controller of the car.
-  It takes observations as input, and outputs actions.
-- The second, called the "value network" (or, in the literature, the "critic"), is only used to train the policy network.
-  It takes an observations ```x``` and an action ```a``` as input, to output a value.
+  It takes observations as input and outputs actions.
+- The second called the "value network" (or, in the literature, the "critic"), is only used to train the policy network.
+  It takes an observation ```x``` and an action ```a``` as input, to output a value.
   This value is an estimate of the expected sum of future rewards if the AI observes ```x```, selects ```a```, and then uses the policy network forever (there is also a discount factor so that this sum is not infinite).
 
 Both networks are trained in parallel using each other.
@@ -122,9 +122,9 @@ Fundamental advantages of SAC over other existing methods are the following:
 - It is able to store transitions in a huge circular buffer called the "replay memory" and reuse these transitions several times during training.
   This is an important property for applications such as TMRL where only a relatively small number of transitions can be collected due to the Real-Time nature of the setting.
 - It is able to output analog controls. We use this property in particular for steering.
-- It maximizes the entropy of the learnt policy.
+- It maximizes the entropy of the learned policy.
   This means that the policy will be as random as possible while maximizing the reward.
-  This property helps exploring the environment and is known to produce policies that are robust to external perturbations, which is of central importance e.g. in real-world self-driving scenarios.
+  This property helps to explore the environment and is known to produce policies that are robust to external perturbations, which is of central importance e.g. in real-world self-driving scenarios.
 
 ### A clever reward
 
@@ -133,7 +133,7 @@ As mentioned above, a reward function is needed to evaluate how well the policy 
 There are multiple reward functions that could be used.
 For instance, one could directly use the raw speed of the car as a reward.
 This makes sense because the car slows down when it crashes and goes fast when it is performing well.
-Optimizing the speed as a reward incentives the car to run as fast as it can.
+Optimizing the speed as a reward incentive the car to run as fast as it can.
 We use this as a reward in TrackMania Nations Forever.
 
 However, such approach is naive.
@@ -163,9 +163,9 @@ In TMRL, the car can be controlled in two different ways:
 
 Different observation spaces are available in TMRL:
 
-- A LIDAR measurement computed from real-time screenshots in tracks with black borders.
-- An history of several such LIDAR measurements (typically the last 4 time-steps).
-- An history of raw screenshots (typically 4).
+- A LIDAR measurement is computed from real-time screenshots in tracks with black borders.
+- A history of several such LIDAR measurements (typically the last 4 time-steps).
+- A history of raw screenshots (typically 4).
 
 In addition, we provide the norm of the velocity as part of the observation space in all our experiments.
 
@@ -179,18 +179,18 @@ In TrackMania 2020, the [OpenPlanet](https://openplanet.nl) API is used to retri
 
 ### Results
 
-We encourage you to watch our series of (TODO: incomming) YouTube videos to visualize some AIs learnt in TMRL.
+We encourage you to watch our series of (TODO: incoming) YouTube videos to visualize some AIs learned in TMRL.
 
 We train policies in Real-Time with several observation spaces.
 We show that our AIs are able to take advantage of the more complex types of observations in order to learn complex dynamics, leading to more clever policies:
 
-In the following experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using an history of 4 LIDAR measurements.
+In the following experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using a history of 4 LIDAR measurements.
 The positions of both cars are captured at constant time intervals in this animation:
 
 ![Turn](readme/img/turn_tm20.gif)
 
-The blue car learnt to drive at a constant speed, as it is the best it can do from its naive observation space.
-Conversely, the red car is able to infer higher-order dynamics from the history of 4 LIDARs, and successfully learnt to break, take the apex of the curve, and accelerate again after this sharp turn, which is slightly better in this situation.
+The blue car learned to drive at a constant speed, as it is the best it can do from its naive observation space.
+Conversely, the red car is able to infer higher-order dynamics from the history of 4 LIDARs and successfully learned to break, take the apex of the curve, and accelerate again after this sharp turn, which is slightly better in this situation.
 
 
 ## Advanced
@@ -208,12 +208,12 @@ Custom `rtgym` interfaces for Trackmania used by TMRL are implemented in [custom
 
 ### Distant training architecture:
 
-To train our model, we developped a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
-Our client-server architecture is not secured and it is not meant to compete with Ray, but it is much simpler to modify in order to implement ad-hoc pipelines, and works on both Windows and Linux.
+To train our model, we developed a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
+Our client-server architecture is not secured and it is not meant to compete with Ray, but it is much simpler to modify in order to implement ad-hoc pipelines and works on both Windows and Linux.
 
 We collect training samples from several rollout workers, typically several computers and/or robots.
 Each rollout worker stores its collected samples in a local buffer, and periodically sends this replay buffer to the central server.
-Periodically, each rollout worker also receives new policy weigths from the central server and updates its policy network.
+Periodically, each rollout worker also receives new policy weights from the central server and updates its policy network.
 
 The central server is located either on the localhost of one of the rollout worker computers, on another computer on the local network, or on another computer on the Internet.
 It collects samples from all the connected rollout workers and stores these in a local buffer.
@@ -222,7 +222,7 @@ Periodically, the central server receives updated policy weights from the traine
 
 The trainer interface is typically located on a non-rollout worker computer of the local network, or on another computer on the Internet (like a GPU cluster).
 Of course, it is also possible to locate it on localhost if needed.
-The trainer interface periodically receives the samples gathered by the central server, and appends them to the replay memory of the off-policy actor-critic algorithm.
+The trainer interface periodically receives the samples gathered by the central server and appends them to the replay memory of the off-policy actor-critic algorithm.
 Periodically, it sends the new policy weights to the central server.
 
 These mechanics can be visualized as follows:
