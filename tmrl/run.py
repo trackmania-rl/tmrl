@@ -1,6 +1,7 @@
 # standard library imports
 import time
 from argparse import ArgumentParser, ArgumentTypeError
+import logging
 
 # local imports
 import tmrl.config.config_constants as cfg
@@ -9,7 +10,6 @@ from tmrl import run_tm, run_wandb_tm
 from tmrl.envs import UntouchedGymEnv
 from tmrl.networking import RolloutWorker, Server, TrainerInterface
 from tmrl.util import partial
-import logging
 
 
 def main(args):
@@ -20,7 +20,7 @@ def main(args):
                            actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
                            get_local_buffer_sample=cfg_obj.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
-                           redis_ip=cfg.REDIS_IP_FOR_WORKER,
+                           server_ip=cfg.SERVER_IP_FOR_WORKER,
                            samples_per_worker_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                            max_samples_per_episode=cfg.RW_MAX_SAMPLES_PER_EPISODE,
                            model_path=cfg.MODEL_PATH_WORKER,
@@ -47,10 +47,8 @@ def main_train(args):
     train_cls = cfg_obj.TRAINER
 
     logging.info(f"--- NOW RUNNING: SAC/DCAC trackmania ---")
-    interface = TrainerInterface(redis_ip=cfg.REDIS_IP_FOR_TRAINER, model_path=cfg.MODEL_PATH_TRAINER)
+    interface = TrainerInterface(server_ip=cfg.SERVER_IP_FOR_TRAINER, model_path=cfg.MODEL_PATH_TRAINER)
     if not args.no_wandb:
-        # logging.info(f"start profiling")
-        # profiler.start()
         run_wandb_tm(entity=cfg.WANDB_ENTITY,
                      project=cfg.WANDB_PROJECT,
                      run_id=cfg.WANDB_RUN_ID,
@@ -59,14 +57,11 @@ def main_train(args):
                      checkpoint_path=cfg.CHECKPOINT_PATH,
                      dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
                      load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
-        # profiler.stop()
-        # logging.info(profiler.output_text(unicode=True, color=False))
     else:
         run_tm(interface=interface, run_cls=train_cls, checkpoint_path=cfg.CHECKPOINT_PATH, dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN, load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
     parser = ArgumentParser()
     parser.add_argument('--server', action='store_true')
     parser.add_argument('--trainer', action='store_true')

@@ -26,10 +26,10 @@ PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 LOCALHOST_WORKER = True  # set to True for RolloutWorkers on the same machine as the Server
 LOCALHOST_TRAINER = True  # set to True for Trainers on the same machine as the Server
-PUBLIC_IP_REDIS = "173.179.182.4" if PRAGMA_SERVER_ON_EDOUARD_YANN else "45.74.221.204"  # IP Edouard
+PUBLIC_IP_SERVER = "173.179.182.4" if PRAGMA_SERVER_ON_EDOUARD_YANN else "45.74.221.204"
 
-REDIS_IP_FOR_WORKER = PUBLIC_IP_REDIS if not LOCALHOST_WORKER else "127.0.0.1"
-REDIS_IP_FOR_TRAINER = PUBLIC_IP_REDIS if not LOCALHOST_TRAINER else "127.0.0.1"
+SERVER_IP_FOR_WORKER = PUBLIC_IP_SERVER if not LOCALHOST_WORKER else "127.0.0.1"
+SERVER_IP_FOR_TRAINER = PUBLIC_IP_SERVER if not LOCALHOST_TRAINER else "127.0.0.1"
 
 # ENVIRONMENT: =======================================================
 
@@ -74,9 +74,9 @@ if PRAGMA_EDOUARD_YANN_CC == 1:  # Override some of these for Compute Canada
         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME
         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
 elif PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for MIST Benchbot
-    MODEL_PATH_TRAINER = r"/home/ybouteiller/base_tmrl/data/" + (RUN_NAME + "_t.pth")
-    CHECKPOINT_PATH = r"/home/ybouteiller/base_tmrl/data/" + RUN_NAME
-    REWARD_PATH = r"/home/ybouteiller/base_tmrl/data/reward.pkl"
+    MODEL_PATH_TRAINER = r"/home/ybouteiller/tmrl/data/" + (RUN_NAME + "_t.pth")
+    CHECKPOINT_PATH = r"/home/ybouteiller/tmrl/data/" + RUN_NAME
+    REWARD_PATH = r"/home/ybouteiller/tmrl/data/reward.pkl"
 
 # WANDB: =======================================================
 
@@ -103,10 +103,10 @@ SOCKET_TIMEOUT_ACCEPT_ROLLOUT = 300.0  # socket waiting for rollout workers clos
 SOCKET_TIMEOUT_COMMUNICATE = 30.0
 SELECT_TIMEOUT_OUTBOUND = 30.0
 SELECT_TIMEOUT_PING_PONG = 60.0
-ACK_TIMEOUT_WORKER_TO_REDIS = 300.0
-ACK_TIMEOUT_TRAINER_TO_REDIS = 300.0
-ACK_TIMEOUT_REDIS_TO_WORKER = 300.0
-ACK_TIMEOUT_REDIS_TO_TRAINER = 300.0
+ACK_TIMEOUT_WORKER_TO_SERVER = 300.0
+ACK_TIMEOUT_TRAINER_TO_SERVER = 300.0
+ACK_TIMEOUT_SERVER_TO_WORKER = 300.0
+ACK_TIMEOUT_SERVER_TO_TRAINER = 300.0
 RECV_TIMEOUT_TRAINER_FROM_SERVER = 600.0
 RECV_TIMEOUT_WORKER_FROM_SERVER = 600.0
 WAIT_BEFORE_RECONNECTION = 10.0

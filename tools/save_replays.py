@@ -15,7 +15,7 @@ def run_car():
                        actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
                        get_local_buffer_sample=cfg_obj.SAMPLE_COMPRESSOR,
                        device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
-                       redis_ip=cfg.REDIS_IP_FOR_WORKER,
+                       server_ip=cfg.SERVER_IP_FOR_WORKER,
                        samples_per_worker_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                        model_path=cfg.MODEL_PATH_WORKER,
                        obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
