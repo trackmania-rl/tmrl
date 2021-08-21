@@ -2,7 +2,7 @@
 
 TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for distributed Real-Time Reinforcement Learning, demonstrated on TrackMania 2020 and TrackMania Nation Forever video games.
 
-The repo is under active development, but we provide stable versions on `master`.
+The repo is under active development, but we provide stable versions on `master` that should work correctly with what we describe in this README.
 
 
 ![Image](readme/img/tm_annimation.gif) (placeholder GIF)
