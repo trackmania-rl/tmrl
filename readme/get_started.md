@@ -22,10 +22,10 @@ Please follow/adapt these steps so to your TrackMania 2020 installation:
 - Bring the TrackMania window to the top-left corner of the screen. On Windows10, it should automatically fit to a quarter of the screen.
 - In the drop-down menu, hit the `Settings` icon
 - In the `Graphics` tab, ensure that the resolution is 958 (width) * 488 (height) pixels.
+- (optional but recommended): set the preset to "very fast" and set a small maximum fps (but > 30).
 - In the `Input` tab, select `keyboard` in `edit device`. For `Give up`, set the `Enter` key (you may remap the chat key to something else).
-- In the `Interface` tab, set `player visibility for cockpit view` to `old`.
 - Close the `Settings` menu.
-- Enter the cockpit view by hitting the `3` key.
+- Enter the cockpit view by hitting the `3` key (the car must be hidden, press several times if the cockpit is visible).
 - Hide the ghost by pressing the `g` key.
 
 The trackmania window should now look like this:
@@ -45,6 +45,9 @@ You should now see the car drive autonomously.
 
 ### Troubleshooting:
 If you get an error saying that communication was refused, try reloading the `TMRL grab data` script in the OpenPlanet menu.
+
+If you see many warnings saying that time-steps time out, this means that your computer struggles at running the AI and trackmania in parallel.
+Try reducing the trackmania graphics to the minimum (in particular, try setting the maximum fps to 30, but not much less than this, because screenshots are captured at 20 fps).
 
 
 ## Train your own self-driving AIs

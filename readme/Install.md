@@ -40,9 +40,11 @@ If you want to run the self-driving-car on Trackmania 2020, you will need to ins
 
 Make sure that you have the Visual C++ x64 runtime installed or OpenPlanet will not work. You can download it [here](https://aka.ms/vs/16/release/vc_redist.x64.exe).
 
-After that, go to the `tmrl\resources` folder, copy the `Scripts` folder and paste it in `C:\Users\username\OpenplanetNext\`.
+After that, go to the `tmrl\resources` folder, copy the `Scripts` folder and paste it in `C:\Users\username\OpenplanetNext\`
+(NB: if the folder doesn't exist on your machine, launch Trackmania after installing Openplanet, and it should be created automatically).
 
-Launch Trackmania 2020 game.
+Launch the Trackmania 2020 game.
 
-To check that everything works, lauch a track, then press `f3` to open the Openplanet menu, open the logs by clicking `OpenPlanet > Log`, and in the OpePlanet menu click `Developer > Reload plugin > TMRL grab data`. You should see a message like "waiting for incomming connection" appear in the logs.
+To check that everything works, lauch a track, then press `f3` to open the Openplanet menu, open the logs by clicking `OpenPlanet > Log`, and in the OpenPlanet menu click `Developer > (Re)load plugin > plugin_grab_data_0 (TMRL grab data)`.
+You should see a message like "waiting for incomming connection" appear in the logs.
 Then press `f3` again to close the menu.
