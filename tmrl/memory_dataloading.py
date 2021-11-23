@@ -210,7 +210,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         return (randint(0, len(self) - 1) for _ in range(self.batchsize))
 
     def sample(self, indices=None):
-        # logging.debug(" called sample()")
         indices = self.sample_indices() if indices is None else indices
         batch = [self[idx] for idx in indices]
         batch = self.collate_fn(batch, self.device)  # collate batch dimension

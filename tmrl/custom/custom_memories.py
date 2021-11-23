@@ -65,13 +65,19 @@ def get_local_buffer_sample_cognifly(prev_act, obs, rew, done, info):
 # FUNCTIONS ====================================================
 
 
+def last_true_in_list(li):
+    for i in reversed(range(len(li))):
+        if li[i]:
+            return i
+    return None
+
+
 def last_true_in_tensor_1d(t):
     nz = torch.nonzero(t)
     if len(nz) != 0:
         return nz[-1].item()  # FIXME: should be [-1] first ?
     else:
         return None
-
 
 def replace_hist_before_done(hist, done_idx_in_hist):
     last_idx = len(hist) - 1
@@ -136,7 +142,6 @@ class MemoryTMNF(MemoryDataloading):
         self.sup_buf_len = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.sup_buf_len - self.imgs_obs)
         self.start_acts_offset = max(0, self.sup_buf_len - self.act_buf_len)
-        self.torch_data = None
         super().__init__(memory_size=memory_size,
                          batchsize=batchsize,
                          path_loc=path_loc,
@@ -190,42 +195,40 @@ class MemoryTMNFLidar(MemoryTMNF):
         imgs_new_obs = imgs[1:]
 
         # if a reset transition has influenced the observation, special care must be taken
-        last_dones = self.torch_data[4][idx_now - self.sup_buf_len:idx_now]  # self.sup_buf_len values
-        last_done_idx = last_true_in_tensor_1d(last_dones)  # last occurrence of True
+        last_dones = self.data[4][idx_now - self.sup_buf_len:idx_now]  # self.sup_buf_len values
+        last_done_idx = last_true_in_list(last_dones)  # last occurrence of True
         assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
         last_infos = self.data[6][idx_now - self.sup_buf_len:idx_now]
-        last_ignored_dones = torch.tensor(["__no_done" in i for i in last_infos], requires_grad=False)
-        last_ignored_done_idx = last_true_in_tensor_1d(last_ignored_dones)  # last occurrence of True
-        assert last_ignored_done_idx is None or last_ignored_dones[
-            last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
+        last_ignored_dones = ["__no_done" in i for i in last_infos]
+        last_ignored_done_idx = last_true_in_list(last_ignored_dones)  # last occurrence of True
+        assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
         if last_ignored_done_idx is not None:
             last_done_idx = last_ignored_done_idx  # FIXME: might not work in extreme cases where a done is ignored right after another done
 
         if last_done_idx is not None:
-            new_act_buf = deepcopy(new_act_buf)
-            last_act_buf = deepcopy(last_act_buf)
-            imgs_new_obs = deepcopy(imgs_new_obs)
-            imgs_last_obs = deepcopy(imgs_last_obs)
+            # new_act_buf = deepcopy(new_act_buf)
+            # last_act_buf = deepcopy(last_act_buf)
+            # imgs_new_obs = deepcopy(imgs_new_obs)
+            # imgs_last_obs = deepcopy(imgs_last_obs)
             replace_hist_before_done(hist=new_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset - 1)
             replace_hist_before_done(hist=last_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset)
             replace_hist_before_done(hist=imgs_new_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset - 1)
             replace_hist_before_done(hist=imgs_last_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset)
 
-        last_obs = (self.torch_data[2][idx_last], imgs_last_obs.view(-1), *last_act_buf)
-        new_act = self.torch_data[1][idx_now]
-        rew = self.torch_data[5][idx_now]
-        new_obs = (self.torch_data[2][idx_now], imgs_new_obs.view(-1), *new_act_buf)
-        done = self.torch_data[4][idx_now]
+        last_obs = (self.data[2][idx_last], imgs_last_obs, *last_act_buf)
+        new_act = self.data[1][idx_now]
+        rew = np.float32(self.data[5][idx_now])
+        new_obs = (self.data[2][idx_now], imgs_new_obs, *new_act_buf)
+        done = self.data[4][idx_now]
         info = self.data[6][idx_now]
-
         return last_obs, new_act, rew, new_obs, done, info
 
     def load_imgs(self, item):
-        res = self.torch_data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
-        return res
+        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
+        return np.stack(res)
 
     def load_acts(self, item):
-        res = self.torch_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
         return res
 
     def append_buffer(self, buffer):
@@ -273,14 +276,13 @@ class MemoryTMNFLidar(MemoryTMNF):
             self.data[5] = self.data[5][to_trim:]
             self.data[6] = self.data[6][to_trim:]
 
-        self.torch_data = []  # TODO: optimize
-        self.torch_data.append(torch.tensor(self.data[0], dtype=torch.float32))  # indexes
-        self.torch_data.append(torch.tensor(self.data[1], dtype=torch.float32))  # actions
-        self.torch_data.append(torch.tensor(self.data[2], dtype=torch.float32))  # speeds
-        self.torch_data.append(torch.tensor(self.data[3], dtype=torch.float32))  # lidars
-        self.torch_data.append(torch.tensor(self.data[4], dtype=torch.float32))  # dones
-        self.torch_data.append(torch.tensor(self.data[5], dtype=torch.float32))  # rewards
-
+        # self.torch_data = []  # TODO: optimize
+        # self.torch_data.append(torch.tensor(self.data[0], dtype=torch.float32))  # indexes
+        # self.torch_data.append(torch.tensor(self.data[1], dtype=torch.float32))  # actions
+        # self.torch_data.append(torch.tensor(self.data[2], dtype=torch.float32))  # speeds
+        # self.torch_data.append(torch.tensor(self.data[3], dtype=torch.float32))  # lidars
+        # self.torch_data.append(torch.tensor(self.data[4], dtype=torch.float32))  # dones
+        # self.torch_data.append(torch.tensor(self.data[5], dtype=torch.float32))  # rewards
         return self
 
 
