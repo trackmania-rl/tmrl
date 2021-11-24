@@ -76,10 +76,11 @@ MEMORY = partial(MEM,
                  path_loc=cfg.DATASET_PATH,
                  imgs_obs=cfg.IMG_HIST_LEN,
                  act_buf_len=cfg.ACT_BUF_LEN,
+                 obs_preprocessor=OBS_PREPROCESSOR,
                  sample_preprocessor=None if cfg.PRAGMA_DCAC else SAMPLE_PREPROCESSOR,
                  crc_debug=cfg.CRC_DEBUG,
-                 use_dataloader=True,
-                 pin_memory=True)
+                 use_dataloader=False,
+                 pin_memory=False)
 
 # ALGORITHM: ===================================================
 
