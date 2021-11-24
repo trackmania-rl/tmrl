@@ -646,7 +646,7 @@ class RolloutWorker:
         """
         converts inputs to torch tensors and converts outputs to numpy arrays
         """
-        f self.obs_preprocessor is not None:
+        if self.obs_preprocessor is not None:
             obs = self.obs_preprocessor(obs)
         obs = collate([obs], device=self.device)
         with torch.no_grad():
