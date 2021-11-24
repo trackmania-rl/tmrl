@@ -13,7 +13,6 @@ from torch.nn.functional import mse_loss
 # local imports
 import tmrl.sac
 from tmrl.drtac_models import Mlp
-from tmrl.envs import RandomDelayEnv
 from tmrl.nn import exponential_moving_average, no_grad
 from tmrl.util import partial
 import logging

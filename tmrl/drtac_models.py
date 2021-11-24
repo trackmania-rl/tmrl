@@ -8,7 +8,6 @@ import torch
 from torch.nn import Linear, Module, ModuleList, ReLU, Sequential
 
 # local imports
-from tmrl.envs import RandomDelayEnv
 from tmrl.nn import TanhNormalLayer
 from tmrl.sac_models import ActorModule
 import logging

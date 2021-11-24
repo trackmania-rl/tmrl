@@ -1,8 +1,8 @@
 # TMRL
 
-TrackMania Reinforcement Learning (`tmrl`) consists of a Python framework for distributed Real-Time Reinforcement Learning, demonstrated on TrackMania 2020 and TrackMania Nation Forever video games.
+TrackMania through Reinforcement Learning (`tmrl`) consists of a Python framework for distributed Real-Time Reinforcement Learning, demonstrated on TrackMania 2020 and TrackMania Nation Forever video games.
 
-The repo is under active development, but we provide stable versions on `master` that should work correctly with what we describe in this README.
+The repo is under active development, but we try to provide stable versions on `master` that should work correctly with what we describe in this README.
 
 
 ![Image](readme/img/tm_annimation.gif) (placeholder GIF)
@@ -50,6 +50,9 @@ To process LIDAR measurements, TMRL uses a Multi-Layer Perceptron (MLP) or a Rec
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
 
 ### Developer features:
+* **Real-Time Gym environment:**
+TMRL comes with real-time Gym environment based on [rtgym](https://pypi.org/project/rtgym/). Once TMRL is installed, it is possible to use this environment in your own training framework.
+
 * **Distributed training:**
 Our training framework is based on a single-server / multiple-clients architecture.
 It enables collecting samples locally on one or several computers and training distantly on a High Performance Computing cluster.
@@ -67,12 +70,12 @@ For instance, in other projects, we use the same code base in order to train rob
 Advanced tutorial coming soon to develop your own applications.
 
 * **External libraries:**
-This project gave birth to a few sub-projects of more general interest that were cut out and packaged in standalone python libraries.
+This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
 In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications, and [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers.
 
 ## Installation
 
-For installation instructions, please follow [this link](readme/Install.md).
+Installation instructions are provided at [this link](readme/Install.md).
 
 ## Getting started
 
@@ -83,7 +86,7 @@ are provided at [this link](readme/get_started.md).
 
 ## TMRL presentation
 
-In TMRL, an AI, that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
+In TMRL, an AI that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
 Its goal is to learn how to complete the track by exploring its own capacities and environment.
 
 The car feeds observations such as images to an artificial neural network, which must output the best possible controls from these observations.

@@ -22,7 +22,6 @@ from rtgym import RealTimeGymInterface
 import tmrl.config.config_constants as cfg
 from tmrl.custom.utils.compute_reward import RewardFunction
 from tmrl.custom.utils.control_gamepad import control_gamepad
-from tmrl.custom.utils.drone_interface import DroneUDPInterface1
 from tmrl.custom.utils.key_event import apply_control, keyres
 from tmrl.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20, wait_for_popup_save_replay_and_improve_tm20
 from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, get_speed, load_digits

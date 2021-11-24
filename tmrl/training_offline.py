@@ -9,7 +9,7 @@ from pandas import DataFrame
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.sac
-from tmrl.envs import Env
+from tmrl.envs import UntouchedGymEnv
 from tmrl.memory_dataloading import MemoryDataloading
 from tmrl.networking import TrainerInterface
 from tmrl.util import pandas_dict
@@ -19,7 +19,7 @@ import logging
 
 @dataclass(eq=0)
 class TrainingOffline:
-    Env: type = Env
+    Env: type = UntouchedGymEnv
     Agent: type = tmrl.sac.SacAgent
     Memory: type = MemoryDataloading
     use_dataloader: bool = False  # Whether to use pytorch dataloader for multiprocess dataloading
