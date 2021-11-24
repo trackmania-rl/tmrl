@@ -1,18 +1,14 @@
-# standard library imports
-from copy import deepcopy
-
 # third-party imports
-import cv2
 import numpy as np
-import torch
+import cv2
 
 # local imports
 from tmrl.memory_dataloading import MemoryDataloading, TrajMemoryDataloading
-import logging
+
 # LOCAL BUFFER COMPRESSION ==============================
 
 
-def get_local_buffer_sample_lidar(prev_act, obs, rew, done, info):
+def get_local_buffer_sample(prev_act, obs, rew, done, info):
     """
     Input:
         prev_act: action computed from a previous observation and applied to yield obs in the transition (but not influencing the unaugmented observation in real-time envs)
@@ -23,7 +19,7 @@ def get_local_buffer_sample_lidar(prev_act, obs, rew, done, info):
     the user must define both this function and the append() method of the dataloading memory
     CAUTION: prev_act is the action that comes BEFORE obs (i.e. prev_obs, prev_act(prev_obs), obs(prev_act))
     """
-    obs_mod = (obs[0], obs[1][-19:])  # speed and most recent lidar only
+    obs_mod = (obs[0], obs[1][-1])  # speed and most recent image only
     rew_mod = np.float32(rew)
     done_mod = done
     return prev_act, obs_mod, rew_mod, done_mod, info
@@ -72,13 +68,6 @@ def last_true_in_list(li):
     return None
 
 
-def last_true_in_tensor_1d(t):
-    nz = torch.nonzero(t)
-    if len(nz) != 0:
-        return nz[-1].item()  # FIXME: should be [-1] first ?
-    else:
-        return None
-
 def replace_hist_before_done(hist, done_idx_in_hist):
     last_idx = len(hist) - 1
     assert done_idx_in_hist <= last_idx, f"DEBUG: done_idx_in_hist:{done_idx_in_hist}, last_idx:{last_idx}"
@@ -86,31 +75,6 @@ def replace_hist_before_done(hist, done_idx_in_hist):
         for i in reversed(range(len(hist))):
             if i <= done_idx_in_hist:
                 hist[i] = hist[i + 1]
-
-
-def generate_seq_res_old_res_new(data, last_done_idx, seq_len, nb_elts):
-    if last_done_idx is not None and last_done_idx < len(data) - 1:
-        val_after_done = data[last_done_idx + 1]
-        # modify things without affecting the original data
-        if last_done_idx != len(data) - 2:  # no change on old if done before transition
-            data_old = deepcopy(data[:-1])
-            data_old[:last_done_idx + 1] = val_after_done
-        else:
-            data_old = data[:-1]
-        data_new = deepcopy(data[1:])
-        data_new[:last_done_idx + 1] = val_after_done
-        _data_old = data_old
-        _data_new = data_new
-    else:
-        _data_old = data[:-1]
-        _data_new = data[1:]
-    # logging.debug(f"res_old.shape:{_data_old.shape}, data.shape:{data.shape}, last_done_idx:{last_done_idx}, seq_len:{seq_len}")
-    res_old = _data_old.unfold(0, seq_len, 1)
-    res_new = _data_new.unfold(0, seq_len, 1)
-    len_shape = len(res_old.shape) - 1
-    res_old = res_old.movedim(len_shape, 1)
-    res_new = res_new.movedim(len_shape, 1)
-    return res_old, res_new
 
 
 # MEMORY DATALOADING ===========================================
@@ -128,20 +92,15 @@ class MemoryTMNF(MemoryDataloading):
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
+                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
-                 device="cpu",
-                 sequences=False,
-                 collate_fn=None):
-
-        logging.debug(f" MemoryTMNF use_dataloader:{use_dataloader}")
-        logging.debug(f" MemoryTMNF pin_memory:{pin_memory}")
-
+                 device="cpu"):
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
-        self.sup_buf_len = max(self.imgs_obs, self.act_buf_len)
-        self.start_imgs_offset = max(0, self.sup_buf_len - self.imgs_obs)
-        self.start_acts_offset = max(0, self.sup_buf_len - self.act_buf_len)
+        self.min_samples = max(self.imgs_obs, self.act_buf_len)
+        self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
+        self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
         super().__init__(memory_size=memory_size,
                          batchsize=batchsize,
                          path_loc=path_loc,
@@ -150,19 +109,18 @@ class MemoryTMNF(MemoryDataloading):
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
-                         device=device,
-                         sequences=sequences,
-                         collate_fn=collate_fn)
+                         device=device)
 
     def append_buffer(self, buffer):  # TODO
         return self
 
     def __len__(self):
-        if self.data is None:
+        if len(self.data) == 0:
             return 0
-        res = len(self.data[0]) - self.sup_buf_len - 1
+        res = len(self.data[0]) - self.min_samples - 1
         if res < 0:
             return 0
         else:
@@ -183,8 +141,8 @@ class MemoryTMNFLidar(MemoryTMNF):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
-        idx_last = item + self.sup_buf_len - 1
-        idx_now = item + self.sup_buf_len
+        idx_last = item + self.min_samples - 1
+        idx_now = item + self.min_samples
 
         acts = self.load_acts(item)
         last_act_buf = acts[:-1]
@@ -195,10 +153,10 @@ class MemoryTMNFLidar(MemoryTMNF):
         imgs_new_obs = imgs[1:]
 
         # if a reset transition has influenced the observation, special care must be taken
-        last_dones = self.data[4][idx_now - self.sup_buf_len:idx_now]  # self.sup_buf_len values
+        last_dones = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
         last_done_idx = last_true_in_list(last_dones)  # last occurrence of True
         assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
-        last_infos = self.data[6][idx_now - self.sup_buf_len:idx_now]
+        last_infos = self.data[6][idx_now - self.min_samples:idx_now]
         last_ignored_dones = ["__no_done" in i for i in last_infos]
         last_ignored_done_idx = last_true_in_list(last_ignored_dones)  # last occurrence of True
         assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
@@ -206,10 +164,6 @@ class MemoryTMNFLidar(MemoryTMNF):
             last_done_idx = last_ignored_done_idx  # FIXME: might not work in extreme cases where a done is ignored right after another done
 
         if last_done_idx is not None:
-            # new_act_buf = deepcopy(new_act_buf)
-            # last_act_buf = deepcopy(last_act_buf)
-            # imgs_new_obs = deepcopy(imgs_new_obs)
-            # imgs_last_obs = deepcopy(imgs_last_obs)
             replace_hist_before_done(hist=new_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset - 1)
             replace_hist_before_done(hist=last_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset)
             replace_hist_before_done(hist=imgs_new_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset - 1)
@@ -256,8 +210,6 @@ class MemoryTMNFLidar(MemoryTMNF):
             self.data[5] += d5
             self.data[6] += d6
         else:
-            if self.data is None:
-                self.data = []
             self.data.append(d0)
             self.data.append(d1)
             self.data.append(d2)
@@ -276,140 +228,7 @@ class MemoryTMNFLidar(MemoryTMNF):
             self.data[5] = self.data[5][to_trim:]
             self.data[6] = self.data[6][to_trim:]
 
-        # self.torch_data = []  # TODO: optimize
-        # self.torch_data.append(torch.tensor(self.data[0], dtype=torch.float32))  # indexes
-        # self.torch_data.append(torch.tensor(self.data[1], dtype=torch.float32))  # actions
-        # self.torch_data.append(torch.tensor(self.data[2], dtype=torch.float32))  # speeds
-        # self.torch_data.append(torch.tensor(self.data[3], dtype=torch.float32))  # lidars
-        # self.torch_data.append(torch.tensor(self.data[4], dtype=torch.float32))  # dones
-        # self.torch_data.append(torch.tensor(self.data[5], dtype=torch.float32))  # rewards
         return self
-
-
-class SeqMemoryTMNFLidar(MemoryTMNFLidar):
-    """
-    For RNNs, has the sequence length as 1st extra dimension
-    """
-    def __init__(self,
-                 memory_size,
-                 batchsize,
-                 path_loc="",
-                 imgs_obs=4,
-                 act_buf_len=1,
-                 nb_steps=1,
-                 use_dataloader=False,
-                 num_workers=0,
-                 pin_memory=False,
-                 remove_size=100,
-                 sample_preprocessor: callable = None,
-                 crc_debug=False,
-                 device="cpu",
-                 seq_len=20,
-                 collate_fn=None):
-
-        logging.debug(f" SeqMemoryTMNFLidar use_dataloader:{use_dataloader}")
-        logging.debug(f" SeqMemoryTMNFLidar pin_memory:{pin_memory}")
-
-        self.seq_len = seq_len
-        super().__init__(memory_size=memory_size,
-                         batchsize=batchsize,
-                         path_loc=path_loc,
-                         imgs_obs=imgs_obs,
-                         act_buf_len=act_buf_len,
-                         nb_steps=nb_steps,
-                         use_dataloader=use_dataloader,
-                         num_workers=num_workers,
-                         pin_memory=pin_memory,
-                         remove_size=remove_size,
-                         sample_preprocessor=sample_preprocessor,
-                         crc_debug=crc_debug,
-                         device=device,
-                         sequences=True,
-                         collate_fn=collate_fn)
-
-    def __len__(self):
-        sup_len = super().__len__()
-        if sup_len < self.seq_len:
-            return 0
-        else:
-            return sup_len - self.seq_len
-
-    def get_transition(self, item):
-        # """
-        # the first dim in the returned leaf tensors is the sequence length
-        # """
-        # res = (super(SeqMemoryTMNFLidar, self).get_transition(i) for i in range(item, item+self.seq_len))
-        # return res
-        """
-        CAUTION: item is the first index of the 4 images in the images history of the OLD observation
-        CAUTION: in the buffer, a sample is (act, obs(act)) and NOT (obs, act(obs))
-            i.e. in a sample, the observation is what step returned after being fed act
-            therefore, in the RTRL setting, act is appended to obs
-        So we load 5 images from here...
-        Don't forget the info dict for CRC debugging
-        """
-        # logging.debug(f" get trantition {item}")
-
-        idx_last = item + self.sup_buf_len - 1  # beginning of seq
-        idx_now = item + self.sup_buf_len  # beginning of seq
-
-        # if a reset transition has influenced the observation, special care must be taken
-        last_dones_1d = self.torch_data[4][idx_now - self.sup_buf_len:idx_now + self.seq_len - 1]
-        last_done_idx_1d = last_true_in_tensor_1d(last_dones_1d)  # last occurrence of True
-        assert last_done_idx_1d is None or last_dones_1d[last_done_idx_1d], f"DEBUG: last_done_idx:{last_done_idx_1d}"
-        last_infos_1d = self.data[6][idx_now - self.sup_buf_len:idx_now + self.seq_len - 1]
-        last_ignored_dones_1d = torch.tensor(["__no_done" in i for i in last_infos_1d], requires_grad=False)
-        last_ignored_done_idx_1d = last_true_in_tensor_1d(last_ignored_dones_1d)  # last occurrence of True
-        assert last_ignored_done_idx_1d is None or last_ignored_dones_1d[last_ignored_done_idx_1d] and not last_dones_1d[
-            last_ignored_done_idx_1d], f"DEBUG: last_ignored_done_idx_1d:{last_ignored_done_idx_1d}, last_ignored_dones_1d:{last_ignored_dones_1d}, last_dones_1d:{last_dones_1d}"
-        if last_ignored_done_idx_1d is not None:
-            last_done_idx_1d = last_ignored_done_idx_1d  # FIXME: might not work in extreme cases where a done is ignored right after another done
-        # if last_done_idx_1d is not None:
-        #     last_done_idx_1d += idx_now - self.sup_buf_len  # this becomes the index of the last relevant done in self.data
-
-        last_act_buf_seq, new_act_buf_seq = self.load_acts_seq(item, last_done_idx_1d)
-        last_img_buf_seq, new_img_buf_seq = self.load_imgs_seq(item, last_done_idx_1d)
-
-        # logging.debug(f" last_act_buf_seq:{last_act_buf_seq}")
-        # logging.debug(f" last_img_buf_seq:{last_img_buf_seq}")
-
-        # concatenate imgs:
-        if last_img_buf_seq.shape[0] > 1:
-            last_img_buf_seq = torch.cat(tuple(last_img_buf_seq[:]), 1)
-            new_img_buf_seq = torch.cat(tuple(new_img_buf_seq[:]), 1)
-        else:
-            last_img_buf_seq = last_img_buf_seq.squeeze()
-            new_img_buf_seq = new_img_buf_seq.squeeze()
-
-        last_obs = (self.torch_data[2][idx_last:idx_last + self.seq_len], last_img_buf_seq, *last_act_buf_seq)
-        new_act = self.torch_data[1][idx_now + self.seq_len - 1]
-        rew = self.torch_data[5][idx_now + self.seq_len - 1]  # last of the sequence
-        new_obs = (self.torch_data[2][idx_now:idx_now + self.seq_len], new_img_buf_seq, *new_act_buf_seq)
-        done = self.torch_data[4][idx_now + self.seq_len - 1]  # last of the sequence
-        info = self.data[6][idx_now + self.seq_len - 1]  # last of the sequence
-
-        # logging.debug(f" len(last_obs):{len(last_obs)}")
-        # logging.debug(f" last_obs[0].shape:{last_obs[0].shape}")
-        # logging.debug(f" last_obs[1].shape:{last_obs[1].shape}")
-        # logging.debug(f" last_obs[2].shape:{last_obs[2].shape}")
-        # logging.debug(f" last_obs[2].shape:{last_obs[3].shape}")
-
-        return last_obs, new_act, rew, new_obs, done, info
-
-    def load_imgs_seq(self, item, last_done_idx):
-        # res = torch.stack([self.torch_data[3][(item + self.start_imgs_offset + i):(item + self.start_imgs_offset + self.imgs_obs + 1 + i)] for i in range(self.seq_len)])
-        data = self.torch_data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + self.seq_len)]
-        res_old, res_new = generate_seq_res_old_res_new(data, last_done_idx, self.seq_len, self.imgs_obs)
-        # res = self.torch_data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + self.seq_len)].unfold(0, self.seq_len, 1).unfold(0, self.imgs_obs, 1)
-        return res_old, res_new
-
-    def load_acts_seq(self, item, last_done_idx):
-        # res = torch.stack([self.torch_data[1][(item + self.start_acts_offset + i):(item + self.start_acts_offset + self.act_buf_len + 1 + i)] for i in range(self.seq_len)])
-        data = self.torch_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.seq_len)]
-        # logging.debug(f" data.shape{data.shape}, self.torch_data[1].shape:{self.torch_data[1].shape}, item:{item}, range:{item + self.start_acts_offset}:{item + self.start_acts_offset + self.act_buf_len + self.seq_len}")
-        res_old, res_new = generate_seq_res_old_res_new(data, last_done_idx, self.seq_len, self.imgs_obs)
-        # res = self.torch_data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + self.seq_len)].unfold(0, self.seq_len, 1).unfold(0, self.act_buf_len, 1)
-        return res_old, res_new
 
 
 class TrajMemoryTMNF(TrajMemoryDataloading):
@@ -425,6 +244,7 @@ class TrajMemoryTMNF(TrajMemoryDataloading):
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
+                 obs_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
         self.imgs_obs = imgs_obs
@@ -442,6 +262,7 @@ class TrajMemoryTMNF(TrajMemoryDataloading):
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
 
@@ -563,6 +384,7 @@ class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
+                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
@@ -579,6 +401,7 @@ class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
@@ -742,6 +565,7 @@ class MemoryCognifly(MemoryDataloading):
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
+                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
@@ -750,9 +574,6 @@ class MemoryCognifly(MemoryDataloading):
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
-        logging.info(
-            f"DEBUG: self.imgs_obs:{self.imgs_obs}, self.act_buf_len:{self.act_buf_len}, self.min_sample:{self.min_samples}, self.start_imgs_offset:{self.start_imgs_offset}, self.start_acts_offset:{self.start_acts_offset}"
-        )
         super().__init__(memory_size=memory_size,
                          batchsize=batchsize,
                          path_loc=path_loc,
@@ -761,6 +582,7 @@ class MemoryCognifly(MemoryDataloading):
                          num_workers=num_workers,
                          pin_memory=pin_memory,
                          remove_size=remove_size,
+                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
@@ -853,3 +675,4 @@ class MemoryCognifly(MemoryDataloading):
     def load_acts(self, item):
         res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
         return res
+

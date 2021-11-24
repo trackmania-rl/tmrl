@@ -12,31 +12,18 @@ import torch
 from torch.utils.data import DataLoader, Dataset, Sampler
 
 # local imports
-from tmrl.util import collate, data_to_cuda
-import logging
+from tmrl.util import collate
 
-def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, device):
-    try:
-        original_po_t = tuple(torch.tensor(x) for x in original_po) if original_po is not None else None
-        original_a_t = torch.tensor(original_a)
-        original_o_t = tuple(torch.tensor(x) for x in original_o)
-        original_r_t = torch.tensor(np.float32(original_r))
-        original_d_t = torch.tensor(np.float32(original_d))
-        assert original_po_t is None or str(original_po_t) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po_t}\n!= rebuilt:\n{rebuilt_po}"
-        assert str(original_a_t) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a_t}\n!= rebuilt:\n{rebuilt_a}"
-        assert str(original_o_t) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o_t}\n!= rebuilt:\n{rebuilt_o}"
-        assert str(original_r_t) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r_t}\n!= rebuilt:\n{rebuilt_r}"
-        assert str(original_d_t) == str(rebuilt_d), f"dones don't match:\noriginal:\n{original_d_t}\n!= rebuilt:\n{rebuilt_d}"
-    except Exception as e:
-        logging.info(f"Caught exception: {e}")
-        logging.info(f"previous observations:\noriginal:\n{original_po}\n?= rebuilt:\n{rebuilt_po}")
-        logging.info(f"actions:\noriginal:\n{original_a}\n?= rebuilt:\n{rebuilt_a}")
-        logging.info(f"observations:\noriginal:\n{original_o}\n?= rebuilt:\n{rebuilt_o}")
-        logging.info(f"rewards:\noriginal:\n{original_r}\n?= rebuilt:\n{rebuilt_r}")
-        logging.info(f"dones:\noriginal:\n{original_d}\n?= rebuilt:\n{rebuilt_d}")
-        logging.info(f"Device: {device}")
-        exit()
-    logging.debug(" CRC check passed.")
+def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d):
+    assert original_po is None or str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}"
+    assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}"
+    assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}"
+    assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}"
+    assert str(original_d) == str(rebuilt_d), f"dones don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}"
+    original_crc = zlib.crc32(str.encode(str((original_a, original_o, original_r, original_d))))
+    crc = zlib.crc32(str.encode(str((rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d))))
+    assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}.\nEither the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\noriginal sample:\n{(original_a, original_o, original_r, original_d)}\n!= rebuilt sample:\n{(rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)}"
+    print("DEBUG: CRC check passed.")
 
 
 def check_samples_crc_traj(original_o, original_r, original_d, rebuilt_o, rebuilt_r, rebuilt_d):
@@ -46,7 +33,7 @@ def check_samples_crc_traj(original_o, original_r, original_d, rebuilt_o, rebuil
     original_crc = zlib.crc32(str.encode(str((original_o, original_r, original_d))))
     crc = zlib.crc32(str.encode(str((rebuilt_o, rebuilt_r, rebuilt_d))))
     assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}.\nEither the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\noriginal sample:\n{(original_o, original_r, original_d)}\n!= rebuilt sample:\n{(rebuilt_o, rebuilt_r, rebuilt_d)}"
-    logging.debug(" CRC check passed.")
+    print("DEBUG: CRC check passed.")
 
 
 class MemoryBatchSampler(Sampler):
@@ -63,7 +50,9 @@ class MemoryBatchSampler(Sampler):
         return self._nb_steps
 
     def __iter__(self):
-        for _ in range(self._nb_steps):
+        i = 0
+        while i < self._nb_steps:
+            i += 1
             yield (int(len(self._dataset) * random()) - 1 for _ in range(self._batchsize))  # faster than randint
 
 
@@ -76,7 +65,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     OR:
         for batch in myMemoryDataloading.get_dataloader():  # this uses pytorch dataloading (does NOT collate on device)
             operations on batch ...
-    When sequences is True, the Memory expects tensors with the sequence length as first dimension
     """
     def __init__(self,
                  memory_size,
@@ -87,25 +75,19 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
                  num_workers=0,
                  pin_memory=False,
                  remove_size=100,
+                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
-                 device="cpu",
-                 sequences=True,
-                 collate_fn=None):
-
-        logging.debug(f" MemoryDataloading use_dataloader:{use_dataloader}")
-        logging.debug(f" MemoryDataloading pin_memory:{pin_memory}")
-
+                 device="cpu"):
         self.nb_steps = nb_steps
         self.use_dataloader = use_dataloader
         self.device = device
         self.batchsize = batchsize
         self.memory_size = memory_size
         self.remove_size = remove_size
+        self.obs_preprocessor = obs_preprocessor
         self.sample_preprocessor = sample_preprocessor
         self.crc_debug = crc_debug
-        self.sequences = sequences
-        self.collate_fn = collate_fn if collate_fn is not None else collate
 
         # These stats are here because they reach the trainer along with the buffer:
         self.stat_test_return = 0.0
@@ -115,18 +97,23 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 
         # init memory
         self.path = Path(path_loc)
-        logging.debug(f" MemoryDataloading self.path:{self.path}")
+        print(f"DEBUG: MemoryDataloading self.path:{self.path}")
         if os.path.isfile(self.path / 'data.pkl'):
             with open(self.path / 'data.pkl', 'rb') as f:
-                self.data = pickle.load(f)
-                logging.debug(f" data found, loaded in self.data")
+                self.data = list(pickle.load(f))
+                print(f"DEBUG: len data:{len(self.data)}")
+                print(f"DEBUG: len data[0]:{len(self.data[0])}")
         else:
-            logging.info(f" no data found, initializing self.data to None")
-            self.data = None
+            print("INFO: no data found, initializing empty replay memory")
+            self.data = []
+
+        if len(self) > self.memory_size:
+            # TODO: crop to memory_size
+            print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
         # init dataloader
         self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batchsize=batchsize)
-        self._dataloader = DataLoader(dataset=self, batch_sampler=self._batch_sampler, num_workers=num_workers, pin_memory=pin_memory, collate_fn=collate)
+        self._dataloader = DataLoader(dataset=self, batch_sampler=self._batch_sampler, num_workers=num_workers, pin_memory=pin_memory)
 
     def __iter__(self):
         if not self.use_dataloader:
@@ -134,9 +121,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
                 yield self.sample()
         else:
             for batch in self._dataloader:
-                if self.device == 'cuda':
-                    batch = data_to_cuda(batch)  # FIXME: probably doesn't work with multiprocessing
-                yield batch
+                yield batch  # TODO: move this to self.device !!!
 
     @abstractmethod
     def append_buffer(self, buffer):
@@ -152,12 +137,9 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     @abstractmethod
     def get_transition(self, item):
         """
-        Returns:
-            if not sequence: tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
-            else: sequence (tuple) of tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
-        info is required in each sample for CRC debugging. The 'crc' key is what is important when using this feature
+        Returns: tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
+        info is required in each sample for CRC debugging. The 'crc' key is what is important when using this feature.
         Do NOT apply observation preprocessing here, as it will be applied automatically after this
-        If the sequence option is set, this expects the first dimension of all tensors contained in both observations to have the first dimension as the sequence length.
         """
         raise NotImplementedError
 
@@ -169,42 +151,18 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
             self.stat_test_steps = buffer.stat_test_steps
             self.append_buffer(buffer)
 
-    def getitem_no_sequences(self, item):
-        prev_obs, new_act, rew, new_obs, done, info = self.get_transition(item)
-        if self.crc_debug:
-            po, a, o, r, d = info['crc_sample']
-            check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done, self.device)
-        # if self.obs_preprocessor is not None:
-        #     prev_obs = self.obs_preprocessor(prev_obs)
-        #     new_obs = self.obs_preprocessor(new_obs)
-        if self.sample_preprocessor is not None:
-            prev_obs, new_act, rew, new_obs, done = self.sample_preprocessor(prev_obs, new_act, rew, new_obs, done)
-        # done = np.float32(done)  # we don't want bool tensors
-        return prev_obs, new_act, rew, new_obs, done
-
-    def getitem_sequences(self, item):
-        """
-        Here, a dimension exists for sequences on obs
-        """
-        prev_obs, new_act, rew, new_obs, done, info = self.get_transition(item)
-
-        if self.crc_debug:
-            po, a, o, r, d = info['crc_sample']
-            last_prev_obs = tuple(x[-1] for x in prev_obs)
-            last_new_obs = tuple(x[-1] for x in new_obs)
-            check_samples_crc(po, a, o, r, d, last_prev_obs, new_act, last_new_obs, rew, done, self.device)
-        # if self.obs_preprocessor is not None:
-        #     prev_obs = self.obs_preprocessor(prev_obs)
-        #     new_obs = self.obs_preprocessor(new_obs)
-        if self.sample_preprocessor is not None:
-            prev_obs, new_act, rew, new_obs, done = self.sample_preprocessor(prev_obs, new_act, rew, new_obs, done)
-        # done = np.float32(done)  # we don't want bool tensors
-        return prev_obs, new_act, rew, new_obs, done
-
     def __getitem__(self, item):
-        if item < 0:
-            item = self.__len__() + item
-        return self.getitem_no_sequences(item) if not self.sequences else self.getitem_sequences(item)
+        prev_obs, new_act, rew, new_obs, done, info = self.get_transition(item)
+        if self.crc_debug:
+            po, a, o, r, d = info['crc_sample']
+            check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done)
+        if self.obs_preprocessor is not None:
+            prev_obs = self.obs_preprocessor(prev_obs)
+            new_obs = self.obs_preprocessor(new_obs)
+        if self.sample_preprocessor is not None:
+            prev_obs, new_act, rew, new_obs, done = self.sample_preprocessor(prev_obs, new_act, rew, new_obs, done)
+        done = np.float32(done)  # we don't want bool tensors
+        return prev_obs, new_act, rew, new_obs, done
 
     def sample_indices(self):
         return (randint(0, len(self) - 1) for _ in range(self.batchsize))
@@ -212,18 +170,11 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     def sample(self, indices=None):
         indices = self.sample_indices() if indices is None else indices
         batch = [self[idx] for idx in indices]
-        batch = self.collate_fn(batch, self.device)  # collate batch dimension
-        # if self.sequences:
-        #     batch = self.collate_fn(batch, self.device)  # collate sequence dimension
-        #     po, a, r, o, d = batch
-        #     batch = po, a[-1], r[-1], o, d[-1]  # drop useless sequences (keep only for observations so they can be processed by RNNs)
+        batch = collate(batch, self.device)
         return batch
 
 
 class TrajMemoryDataloading(MemoryDataloading, ABC):
-    """
-    This is specifically for the DC/AC algorithm
-    """
     def __init__(self,
                  memory_size,
                  batchsize,
@@ -250,7 +201,7 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
-        self.traj_len = traj_len  # this should be used in __len__() and in get_trajectory()
+        self.traj_len = traj_len  # this must be used in __len__() and in get_trajectory()
 
     def get_transition(self, item):
         assert False, f"Invalid method for this class, implement get_trajectory instead."
@@ -282,16 +233,15 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
 
 
 def load_and_print_pickle_file(path=r"C:\Users\Yann\Desktop\git\tmrl\data\data.pkl"):  # r"D:\data2020"
-    # standard library imports
     import pickle
     with open(path, 'rb') as f:
         data = pickle.load(f)
-    logging.info(f"nb samples: {len(data[0])}")
+    print(f"nb samples: {len(data[0])}")
     for i, d in enumerate(data):
-        logging.info(f"[{i}][0]: {d[0]}")
-    logging.info(f"full data:")
+        print(f"[{i}][0]: {d[0]}")
+    print("full data:")
     for i, d in enumerate(data):
-        logging.info(f"[{i}]: {d}")
+        print(f"[{i}]: {d}")
 
 
 if __name__ == "__main__":
