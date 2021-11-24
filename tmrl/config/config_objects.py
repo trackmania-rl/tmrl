@@ -9,14 +9,9 @@ import tmrl.config.config_constants as cfg
 from tmrl import TrainingOffline
 from tmrl.custom.custom_dcac_interfaces import Tm20rtgymDcacInterface
 # from tmrl.custom.custom_models import Tm_hybrid_1, TMPolicy
-from tmrl.custom.custom_gym_interfaces import (TM2020Interface, TM2020InterfaceLidar,
-                                               TMInterface, TMInterfaceLidar)
-from tmrl.custom.custom_memories import (MemoryTM2020RAM, MemoryTMNF, MemoryTMNFLidar,
-                                         SeqMemoryTMNFLidar, TrajMemoryTMNFLidar,
-                                         get_local_buffer_sample,
-                                         get_local_buffer_sample_tm20_imgs)
-from tmrl.custom.custom_preprocessors import (obs_preprocessor_tm_act_in_obs,
-                                              obs_preprocessor_tm_lidar_act_in_obs)
+from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TMInterface, TMInterfaceLidar
+from tmrl.custom.custom_memories import MemoryTM2020RAM, MemoryTMNF, MemoryTMNFLidar, TrajMemoryTMNFLidar, get_local_buffer_sample, get_local_buffer_sample_tm20_imgs
+from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs
 from tmrl.drtac import Agent as DCAC_Agent
 from tmrl.drtac_models import Mlp as SV_Mlp
 from tmrl.drtac_models import MlpPolicy as SV_MlpPolicy
@@ -69,10 +64,7 @@ SAMPLE_PREPROCESSOR = None
 
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
-        if cfg.PRAGMA_DCAC:
-            assert False, "DCAC not implemented here"
-        else:
-            MEM = SeqMemoryTMNFLidar
+        assert False, "not implemented"
     else:
         MEM = TrajMemoryTMNFLidar if cfg.PRAGMA_DCAC else MemoryTMNFLidar
 else:
