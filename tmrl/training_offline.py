@@ -146,7 +146,7 @@ class TrainingOffline:
             logging.debug(f" round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}")
             stats += pandas_dict(memory_len=len(self.memory), round_time=round_time, idle_time=idle_time, **DataFrame(stats_training).mean(skipna=True)),
 
-            logging.info(stats[-1].add_prefix("  ").to_string(), '\n')
+            logging.info(stats[-1].add_prefix("  ").to_string() + '\n')
 
             if self.profiling:
                 pro.stop()
