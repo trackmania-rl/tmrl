@@ -17,8 +17,7 @@ from tmrl.drtac_models import Mlp as SV_Mlp
 from tmrl.drtac_models import MlpPolicy as SV_MlpPolicy
 from tmrl.envs import UntouchedGymEnv
 # from tmrl.sac_models import Mlp, MlpPolicy
-from tmrl.sac_models import (MLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor,
-                             SquashedGaussianRNNActor)
+from tmrl.sac_models import MLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor, SquashedGaussianRNNActor
 # from tmrl.sac import SacAgent as SAC_Agent
 from tmrl.spinup_sac import SpinupSacAgent as SAC_Agent
 from tmrl.util import partial
@@ -62,6 +61,8 @@ OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if cfg.PRAGMA_LIDAR else
 # to augment data that comes out of the replay buffer (applied after observation preprocessing):
 SAMPLE_PREPROCESSOR = None
 
+assert not cfg.PRAGMA_RNN, "RNNs not supported yet"
+
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
         assert False, "not implemented"
@@ -69,7 +70,6 @@ if cfg.PRAGMA_LIDAR:
         MEM = TrajMemoryTMNFLidar if cfg.PRAGMA_DCAC else MemoryTMNFLidar
 else:
     assert not cfg.PRAGMA_DCAC, "DCAC not implemented here"
-    assert not cfg.PRAGMA_RNN, "RNNs not supported here"
     MEM = MemoryTM2020RAM if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
 
 MEMORY = partial(MEM,
@@ -98,18 +98,6 @@ if cfg.PRAGMA_DCAC:  # DCAC
         reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
         entropy_scale=1.0)  # default: 1.0),  # default: 1.0
 else:  # SAC
-    # AGENT = partial(
-    #     SAC_Agent,
-    #     OutputNorm=partial(beta=0., zero_debias=False),
-    #     device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
-    #     Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
-    #     lr_actor=0.0003,
-    #     lr_critic=0.0001,  # default 0.0003
-    #     discount=0.995,  # default and best tmnf so far: 0.99
-    #     target_update=0.001,  # default 0.005
-    #     reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
-    #     entropy_scale=1.0)  # default: 1.0),  # default: 1.0
-
     AGENT = partial(
         SAC_Agent,
         device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
