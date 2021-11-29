@@ -24,8 +24,6 @@ if platform.system() == "Windows":
     A = 0x1E
     S = 0x1F
     D = 0x20
-    BACKSPACE = 0x0E
-    ENTER = 0x1C
     DEL = 0xD3
     R = 0x13
 
@@ -83,8 +81,8 @@ if platform.system() == "Windows":
             ReleaseKey(D)
 
     def keyres():
-        PressKey(ENTER)
-        ReleaseKey(ENTER)
+        PressKey(DEL)
+        ReleaseKey(DEL)
 
     def keysavereplay():  # TODO: debug
         PressKey(R)

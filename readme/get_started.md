@@ -20,11 +20,7 @@ Please follow/adapt these steps so to your TrackMania 2020 installation:
 - Launch the tmrl-test track. This can be done by selecting `create > map editor > edit a map > tmrl-test > selct map` and hitting the green flag.
 - Set the game in windowed mode. To do this, bring the cursor to the top of the screen and a drop-down menu will show. Hit the windowed icon.
 - Bring the TrackMania window to the top-left corner of the screen. On Windows10, it should automatically fit to a quarter of the screen.
-- In the drop-down menu, hit the `Settings` icon
-- In the `Graphics` tab, ensure that the resolution is 958 (width) * 488 (height) pixels.
-- (optional but recommended): set the preset to "very fast" and set a small maximum fps (but > 30).
-- In the `Input` tab, select `keyboard` in `edit device`. For `Give up`, set the `Enter` key (you may remap the chat key to something else).
-- Close the `Settings` menu.
+
 - Enter the cockpit view by hitting the `3` key (the car must be hidden, press several times if the cockpit is visible).
 - Hide the ghost by pressing the `g` key.
 

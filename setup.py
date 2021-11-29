@@ -1,16 +1,17 @@
-# standard library imports
 import os
 import platform
 import sys
-
-# third-party imports
 from setuptools import find_packages, setup
+# import subprocess
+# from pathlib import Path
 
 if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
 
-# if sys.version_info >= (3, 9):
-#    sys.exit('Sorry, Python > 3.8 is not supported yet, we are working on it at the moment.')
+# pathExe = Path(__file__).parent.absolute() / "resources" / "OpenplanetNextSetup_1.20.5_2021_10_24.exe"
+#
+# if sys.argv[1] != 'egg_info' and sys.argv[1] != 'sdist':
+#     subprocess.call('start /i %s' % str(pathExe), shell=True)
 
 install_req = [
     'numpy',

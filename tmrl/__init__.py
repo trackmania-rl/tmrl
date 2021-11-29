@@ -28,7 +28,16 @@ from tmrl.training_offline import TrainingOffline
 from tmrl.util import (dump, git_info, load, load_json, partial, partial_from_dict,
                        partial_to_dict, save_json)
 
-__version__ = "0.9"
+from tmrl.custom.custom_gym_interfaces import TM2020InterfaceLidar
+from tmrl.envs import UntouchedGymEnv
+from tmrl.config.config_objects import CONFIG_DICT
+
+
+def get_environment():
+    """
+    Gets TMRL Gym environment
+    """
+    return UntouchedGymEnv(id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
 
 
 def log_environment_variables():
