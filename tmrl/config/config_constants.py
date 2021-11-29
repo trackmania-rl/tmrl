@@ -4,9 +4,9 @@ from pathlib import Path
 import logging
 # HIGH-LEVEL PRAGMAS: ==========================================
 
-PRAGMA_EDOUARD_YANN_CC = 0  # 2 if MISTlab RTX3080, 1 if ComputeCanada, 0 else
+PRAGMA_EDOUARD_YANN_CC = 2  # 2 if MISTlab RTX3080, 1 if ComputeCanada, 0 else
 PRAGMA_SERVER_ON_EDOUARD_YANN = 0  # 1 is server on Edouard's PC, 0 if server on Yann's PC
-RUN_NAME = "SACv1_SPINUP_4_LIDAR_pretrained"  # "SACv1_SPINUP_4_LIDAR_pretrained_test_9"
+RUN_NAME = "SACv1_SPINUP_4_LIDAR_pretrained_test_9"  # "SACv1_SPINUP_4_LIDAR_pretrained"
 
 BUFFERS_MAXLEN = 2000  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
 RW_MAX_SAMPLES_PER_EPISODE = 1000  # If this number of timesteps is reached, the RolloutWorker will reset the episode
@@ -25,7 +25,7 @@ CONFIG_COGNIFLY = False  # if True, will override config with Cognifly's config
 PRAGMA_DCAC = False  # True for DCAC, False for SAC
 
 LOCALHOST_WORKER = True  # set to True for RolloutWorkers on the same machine as the Server
-LOCALHOST_TRAINER = True  # set to True for Trainers on the same machine as the Server
+LOCALHOST_TRAINER = False  # set to True for Trainers on the same machine as the Server
 PUBLIC_IP_SERVER = "173.179.182.4" if PRAGMA_SERVER_ON_EDOUARD_YANN else "45.74.221.204"
 
 SERVER_IP_FOR_WORKER = PUBLIC_IP_SERVER if not LOCALHOST_WORKER else "127.0.0.1"
