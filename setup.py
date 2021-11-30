@@ -2,16 +2,72 @@ import os
 import platform
 import sys
 from setuptools import find_packages, setup
-# import subprocess
-# from pathlib import Path
+from pathlib import Path
+from shutil import copy2
+from zipfile import ZipFile
+import urllib.request
+import urllib.error
+import socket
 
 if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
+
+
+def url_retrieve(url: str, outfile: Path, overwrite: bool = False):
+    """
+    Adapted from https://www.scivision.dev/python-switch-urlretrieve-requests-timeout/
+    """
+    outfile = Path(outfile).expanduser().resolve()
+    if outfile.is_dir():
+        raise ValueError("Please specify full filepath, including filename")
+    if overwrite or not outfile.is_file():
+        outfile.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            urllib.request.urlretrieve(url, str(outfile))
+        except (socket.gaierror, urllib.error.URLError) as err:
+            raise ConnectionError(f"could not download {url} due to {err}")
+
 
 # pathExe = Path(__file__).parent.absolute() / "resources" / "OpenplanetNextSetup_1.20.5_2021_10_24.exe"
 #
 # if sys.argv[1] != 'egg_info' and sys.argv[1] != 'sdist':
 #     subprocess.call('start /i %s' % str(pathExe), shell=True)
+
+
+# destination folder:
+TMRL_FOLDER = Path.home() / "TmrlData"
+
+# download relevant items IF THE tmrl FOLDER DOESN'T EXIST:
+if not TMRL_FOLDER.exists():
+    CHECKPOINTS_FOLDER = TMRL_FOLDER / "checkpoints"
+    DATASET_FOLDER = TMRL_FOLDER / "dataset"
+    REWARD_FOLDER = TMRL_FOLDER / "reward"
+    WEIGHTS_FOLDER = TMRL_FOLDER / "weights"
+    CONFIG_FOLDER = TMRL_FOLDER / "config"
+    CHECKPOINTS_FOLDER.mkdir(parents=True, exist_ok=True)
+    DATASET_FOLDER.mkdir(parents=True, exist_ok=True)
+    REWARD_FOLDER.mkdir(parents=True, exist_ok=True)
+    WEIGHTS_FOLDER.mkdir(parents=True, exist_ok=True)
+    CONFIG_FOLDER.mkdir(parents=True, exist_ok=True)
+
+    # download resources:
+    RESOURCES_URL = "https://file.io/pOh5OnaI8JOG"
+    RESOURCES_TARGET = TMRL_FOLDER / "resources.zip"
+    url_retrieve(RESOURCES_URL, RESOURCES_TARGET)
+
+    # unzip downloaded resources:
+    with ZipFile(RESOURCES_TARGET, 'r') as zip_ref:
+        zip_ref.extractall(TMRL_FOLDER)
+
+    # delete zip file:
+    RESOURCES_TARGET.unlink()
+
+    # copy relevant files:
+    RESOURCES_FOLDER = TMRL_FOLDER / "resources"
+    copy2(RESOURCES_FOLDER / "config.json", CONFIG_FOLDER)
+    copy2(RESOURCES_FOLDER / "reward.pkl", REWARD_FOLDER)
+    copy2(RESOURCES_FOLDER / "SAC_4_LIDAR_pretrained.pth", WEIGHTS_FOLDER)
+
 
 install_req = [
     'numpy',
@@ -34,7 +90,7 @@ install_req = [
     'pyinstrument',
     'yapf',
     'isort',
-    'autoflake',
+    'autoflake'
 ]
 
 # if platform.system() == "Linux":
@@ -53,14 +109,14 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name='tmrl',
-    version="0.9",
-    description='self-driving car for trackmania',
+    version="0.0.1",
+    description='Autonomous racing in Trackmania',
     long_description=README,
     long_description_content_type="text/markdown",
-    keywords='reinforcement learning, self driving cars',
+    keywords='reinforcement learning, self driving car',
     url="https://github.com/trackmania-rl/tmrl",
-    author='Yann Bouteiller, Edouard Geze, Simon Ramstedt',
-    author_email='edouard.geze@hotmail.fr',
+    author='Yann Bouteiller, Edouard Geze',
+    author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
     license="MIT",
     install_requires=install_req,
     include_package_data=True,

@@ -30,42 +30,6 @@ def print_with_timestamp(s):
 # NETWORK: ==========================================
 
 
-def ping_pong(sock):
-    """
-    This pings and waits for pong
-    All inbound select() calls must expect to receive PINGPING
-    returns True if success, False otherwise
-    closes socket if failed
-    # FIXME: do not use, the pingpong mechanism interferes with transfers
-    """
-    _, wl, xl = select.select([], [sock], [sock], cfg.SELECT_TIMEOUT_OUTBOUND)  # select for writing
-    if len(xl) != 0 or len(wl) == 0:
-        print_with_timestamp("socket error/timeout while sending PING")
-        sock.close()
-        return False
-    send_ping(sock)
-    rl, _, xl = select.select([sock], [], [sock], cfg.SELECT_TIMEOUT_PING_PONG)  # select for reading
-    if len(xl) != 0 or len(rl) == 0:
-        print_with_timestamp("socket error/timeout while waiting for PONG")
-        sock.close()
-        return False
-    obj = recv_object(sock)
-    if obj == 'PINGPONG':
-        return True
-    else:
-        print_with_timestamp("PINGPONG received an object that is not PING or PONG")
-        sock.close()
-        return False
-
-
-def send_ping(sock):
-    return send_object(sock, None, ping=True, pong=False, ack=False)
-
-
-def send_pong(sock):
-    return send_object(sock, None, ping=False, pong=True, ack=False)
-
-
 def send_ack(sock):
     return send_object(sock, None, ping=False, pong=False, ack=True)
 
@@ -118,10 +82,6 @@ def recv_object(sock):
         except OSError:  # connection closed or broken
             return None
         l = len(msg)
-    if msg[:4] == b'PING' or msg[:4] == b'PONG':
-        if msg[:4] == b'PING':
-            send_pong(sock)
-        return 'PINGPONG'
     if msg[:3] == b'ACK':
         return 'ACK'
     msglen = int(msg[:cfg.HEADER_SIZE])
@@ -562,7 +522,10 @@ class RolloutWorker:
         self.device = device
         self.standalone = standalone
         if os.path.isfile(self.model_path):
+            logging.debug(f"Loading model from {self.model_path}")
             self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
+        else:
+            logging.debug(f"No model found at {self.model_path}")
         self.buffer = Buffer()
         self.__buffer = Buffer()  # deepcopy for sending
         self.__buffer_lock = Lock()
