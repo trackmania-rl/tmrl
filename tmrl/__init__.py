@@ -15,22 +15,17 @@ from dataclasses import dataclass
 from os.path import exists
 from random import randrange
 from tempfile import mkdtemp
-
-# third-party imports
 import pandas as pd
 import yaml
-
-# local imports
 import tmrl.sac
 from tmrl.networking import TrainerInterface
 from tmrl.training_offline import TrainingOffline
 # from tmrl.envs import AvenueEnv
-from tmrl.util import (dump, git_info, load, load_json, partial, partial_from_dict,
-                       partial_to_dict, save_json)
-
+from tmrl.util import dump, git_info, load, load_json, partial, partial_from_dict, partial_to_dict, save_json
 from tmrl.custom.custom_gym_interfaces import TM2020InterfaceLidar
 from tmrl.envs import UntouchedGymEnv
 from tmrl.config.config_objects import CONFIG_DICT
+from tmrl.tools.record import record_reward_dist
 
 
 def get_environment():

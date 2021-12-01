@@ -379,7 +379,7 @@ def record_reward_dist(path_reward=PATH_REWARD):
             if keyboard.is_pressed('q') or done:
                 logging.info(f"Smoothing, get fixed dist and saving pickle file...")
                 positions = np.array(positions)
-                logging.info(f"position init ", len(positions))
+                logging.info(f"position init {len(positions)}")
 
                 final_positions = [positions[0]]
                 dist_between_points = 0.1
@@ -399,7 +399,7 @@ def record_reward_dist(path_reward=PATH_REWARD):
                         move_by = dst
 
                 final_positions = np.array(final_positions)
-                logging.info(f"position fin ", len(final_positions))
+                logging.info(f"position fin {len(final_positions)}")
 
                 pickle.dump(final_positions, open(path, "wb"))
                 logging.info(f"All done")

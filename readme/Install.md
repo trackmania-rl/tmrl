@@ -1,50 +1,82 @@
 # Requirements
-* Windows
-* Python : >= 3.7
-* Trackmania 2020 or trackmania Forever
-* A recent NVIDIA GPU (this is required only if you plan to train your own AI)
+* Windows (required only for the computer(s) running TrackMania)
+* Python >= 3.7
+* A recent NVIDIA GPU (required only on the training computer if you plan to train your own AI)
+
+Most users will want to run everything on a single Windows computer, but you may want to run TrackMania on one to several Windows computers in parallel, and run the training process on a distant Linux or Windows HPC;
+`tmrl` supports these use cases.
 
 # Installation
 
-1. Clone the `tmrl` repository.
+We provide installation instructions for `tmrl` using the TrackMania 2020 video game.
+You will first need to install [TrackMania 2020](https://www.trackmania.com/) (obviously), and also a small community-supported utility called [Openplanet for TrackMania](https://openplanet.nl/) (the Gym environment needs this utility to compute the reward).
+
+
+### Install TrackMania 2020:
+_(Required only on the computer(s) running TrackMania)_
+
+To install the free version of TM20, you can follow the instructions on their [official website](https://www.trackmania.com/) .
+
+### Install Openplanet:
+_(Required only on the computer(s) running TrackMania)_
+
+Make sure you have the `Visual C++ runtime` installed or OpenPlanet will not work.
+You can download it [here](https://aka.ms/vs/16/release/vc_redist.x64.exe) for 64bits versions of Windows.
+
+Then, install [Openplanet for TrackMania](https://openplanet.nl/).
+
+During the installation, Windows may complain that OpenPlanet has no valid certificate (this is a small non-commercial tool not signed by any company). In such case, you will have to hit the link for "more info", and then click "install anyway".
+
+
+
+### Install TMRL:
+
+To install the `tmrl` python library, open your favorite terminal and run:
+
 ```shell
-git clone https://github.com/yannbouteiller/tmrl.git
-cd tmrl
-```
-2. Create a conda environment.
-```shell
-conda create -n tmrl python=3.8
-conda activate tmrl
+pip install tmrl
 ```
 
-2. Install the library **using the `-e` option** (for now, the project will not work if you omit this option).
-```shell
-pip install -e .
-```
-During the installation, a driver will be installed to emulate a virtual gamepad in order to control the game.
+If running on Windows, during the installation, a driver will be installed to emulate a virtual gamepad.
 Accept the licence agreement and install the driver when prompted.
 
 ![Image](img/Nefarius1.png)
 
-## Trackmania 2020
 
-### Install Trackmania 2020
-To install the free version of TM20, you can follow the instructions on the [official website](https://www.trackmania.com/) .
+Then, navigate to your home folder (on Windows it is `C:\Users\your username\`).
 
-### Install Openplanet
+There, you will find that `tmrl` has created a folder named `TmrlData`.
 
-![Image](img/openplanet.png)
+_On the computer(s) running TrackMania_, OpenPlanet should also have created a folder named `OpenPlanetNext` there.
+(If `OpenPlanetNext` is not there, launch Trackmania after installing Openplanet, and it should be created automatically).
+Navigate to `TmrlData\resources`, copy the `Scripts` folder, and paste it in the `OpenPlanetNext` folder.
 
-If you want to run the self-driving-car on Trackmania 2020, you will need to install 
-[Openplanet for trackmania](https://openplanet.nl/).
+### (Optional) Configure/manage TMRL:
 
-Make sure that you have the Visual C++ x64 runtime installed or OpenPlanet will not work. You can download it [here](https://aka.ms/vs/16/release/vc_redist.x64.exe).
+The `TmrlData` folder is your _"control pannel"_, it contains everything `tmrl` uses and generates:
+- The `checkpoints` subfolder is used by the trainer process: it contains persistent checkpoints of your training,
+- The `weights` subfolder is used by the worker process: it contains snapshots of your trained policies,
+- The `reward` subfolder is used by the worker process: it contains your reward function,
+- The `dataset` subfolder is for RL developers (to use with custom replay buffers),
+- The `config` subfolder contains a configuration file that you probably want to tweak.
 
-After that, go to the `tmrl\resources` folder, copy the `Scripts` folder and paste it in `C:\Users\username\OpenplanetNext\`
-(NB: if the folder doesn't exist on your machine, launch Trackmania after installing Openplanet, and it should be created automatically).
+Navigate to `TmrlData\config` and open `config.json` in a text editor.
 
-Launch the Trackmania 2020 game.
+In particular, you may want to adapt the following entries:
+- `RUN_NAME`: put a new name for starting training from scratch
+- `LOCALHOST_WORKER`: set to `false` for `workers` not on the same computer as the `server`
+- `LOCALHOST_TRAINER`: set to `false` for `trainer` not on the same computer as the `server`
+- `PUBLIC_IP_SERVER`: public IP of the `server` if not running on localhost
+- `PORT_TRAINER` and `PORT_ROLLOUT` need to be forwarded on the `server` if not running on localhost
+- `WANDB_PROJECT`, `WANDB_ENTITY` and `WANDB_KEY` can be replaced by you own [wandb](https://wandb.ai/site) credentials for monitoring training
 
-To check that everything works, lauch a track, then press `f3` to open the Openplanet menu, open the logs by clicking `OpenPlanet > Log`, and in the OpenPlanet menu click `Developer > (Re)load plugin > plugin_grab_data_0 (TMRL grab data)`.
+You can delete the content of all folders (but not the folders) whenever you like (except `config.json`, a default version is provided in `resources` if you delete this).
+If at some point you want to do a clean install, delete the whole `TmrlData` folder and pip install `tmrl` again.
+
+_NB: when pip uninstalling `tmrl`, the `TmrlData` folder is not deleted._
+
+### (Optional) Check that everything works:
+
+Launch TrackMania 2020, launch a track, then press `f3` to open the Openplanet menu, open the logs by clicking `OpenPlanet > Log`, and in the OpenPlanet menu click `Developer > (Re)load plugin > plugin_grab_data_0 (TMRL grab data)`.
 You should see a message like "waiting for incomming connection" appear in the logs.
-Then press `f3` again to close the menu.
+Press `f3` again to close the menu.
