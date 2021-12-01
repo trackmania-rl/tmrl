@@ -3,7 +3,7 @@
 TrackMania through Reinforcement Learning (`tmrl`) consists of a Real-Time Gym environment and a distributed framework for training your AIs in real time.
 It is demonstrated on the TrackMania 2020 and Trackmania Nations Forever video games.
 
-![Image](readme/img/video_lidar.gif)
+[comment]: <> (![Image]&#40;readme/img/video_lidar.gif&#41;)
 
 ## Quick links
 - [Introduction](#introduction)
