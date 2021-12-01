@@ -13,6 +13,9 @@ if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
 
 
+RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.0.1/resources.zip"
+
+
 def url_retrieve(url: str, outfile: Path, overwrite: bool = False):
     """
     Adapted from https://www.scivision.dev/python-switch-urlretrieve-requests-timeout/
@@ -51,7 +54,6 @@ if not TMRL_FOLDER.exists():
     CONFIG_FOLDER.mkdir(parents=True, exist_ok=True)
 
     # download resources:
-    RESOURCES_URL = "https://file.io/pOh5OnaI8JOG"
     RESOURCES_TARGET = TMRL_FOLDER / "resources.zip"
     url_retrieve(RESOURCES_URL, RESOURCES_TARGET)
 
@@ -109,15 +111,16 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name='tmrl',
-    version="0.0.1",
+    version='0.0.1',
     description='Autonomous racing in Trackmania',
     long_description=README,
-    long_description_content_type="text/markdown",
+    long_description_content_type='text/markdown',
     keywords='reinforcement learning, self driving car',
-    url="https://github.com/trackmania-rl/tmrl",
+    url='https://github.com/trackmania-rl/tmrl',
+    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.0.1.tar.gz',
     author='Yann Bouteiller, Edouard Geze',
     author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
-    license="MIT",
+    license='MIT',
     install_requires=install_req,
     include_package_data=True,
     # exclude_package_data={"": ["README.txt"]},
