@@ -13,7 +13,7 @@ import json
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl import run_tm, run_wandb_tm, record_reward_dist
+from tmrl import run_tm, run_wandb_tm, record_reward_dist, check_env_tm20lidar
 from tmrl.envs import UntouchedGymEnv
 from tmrl.networking import RolloutWorker, Server, TrainerInterface
 from tmrl.util import partial
@@ -49,8 +49,12 @@ def main(args):
 
     elif args.trainer:
         main_train(args)
-    elif args.record:
+    elif args.record_reward:
+        assert cfg.PRAGMA_TM2020_TMNF, "Not supported for this environment."
         record_reward_dist(path_reward=cfg.REWARD_PATH)
+    elif args.check_env:
+        assert cfg.PRAGMA_LIDAR and cfg.PRAGMA_TM2020_TMNF, "Not supported for this environment."
+        check_env_tm20lidar()
     else:
         raise ArgumentTypeError('Enter a valid argument')
 
@@ -81,7 +85,8 @@ if __name__ == "__main__":
     parser.add_argument('--worker', action='store_true', help='launches a rollout worker')
     parser.add_argument('--test', action='store_true', help='runs inference without training')
     parser.add_argument('--benchmark', action='store_true', help='runs a benchmark of the environment')
-    parser.add_argument('--record', action='store_true', help='records a reward function in TM20')
+    parser.add_argument('--record-reward', dest='record_reward', action='store_true', help='utility to record a reward function in TM20')
+    parser.add_argument('--check-environment', dest='check_env', action='store_true', help='utility to check the environment')
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
     parser.add_argument('-d', '--config', type=json.loads, default={}, help='dictionary containing configuration options (modifiers) for the rtgym environment')
     args = parser.parse_args()

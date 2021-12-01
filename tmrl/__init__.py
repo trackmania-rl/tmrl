@@ -26,6 +26,7 @@ from tmrl.custom.custom_gym_interfaces import TM2020InterfaceLidar
 from tmrl.envs import UntouchedGymEnv
 from tmrl.config.config_objects import CONFIG_DICT
 from tmrl.tools.record import record_reward_dist
+from tmrl.tools.check_environment import check_env_tm20lidar
 
 
 def get_environment():

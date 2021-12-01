@@ -10,12 +10,12 @@ from gym import spaces
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 
 # local imports
-from tmrl.custom.custom_gym_interfaces import (TM2020Interface, TM2020InterfaceLidar,
-                                               TMInterface, TMInterfaceLidar)
+from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TMInterface, TMInterfaceLidar
 from tmrl.custom.utils.tools import Lidar
 import logging
 
-def check_environment():
+
+def check_env_tm20lidar():
 
     sct = mss.mss()
     monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
@@ -38,4 +38,4 @@ def check_environment():
 
 
 if __name__ == "__main__":
-    check_environment()
+    check_env_tm20lidar()
