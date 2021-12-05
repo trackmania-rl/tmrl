@@ -71,20 +71,6 @@ CHECKPOINT_PATH = str(CHECKPOINTS_FOLDER / RUN_NAME)
 DATASET_PATH = str(DATASET_FOLDER)
 REWARD_PATH = str(REWARD_FOLDER / "reward.pkl")
 
-# if PRAGMA_EDOUARD_YANN_CC == 1:  # Override some of these for Compute Canada
-#     if PRAGMA_SERVER_ON_EDOUARD_YANN == 1:  # Edouard
-#         MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + (RUN_NAME + "_t.pth")
-#         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/" + RUN_NAME
-#         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl_edouard/data/reward.pkl"
-#     else:  # Yann
-#         MODEL_PATH_TRAINER = r"/home/yannbout/scratch/base_tmrl/data/" + (RUN_NAME + "_t.pth")
-#         CHECKPOINT_PATH = r"/home/yannbout/scratch/base_tmrl/data/" + RUN_NAME
-#         REWARD_PATH = r"/home/yannbout/scratch/base_tmrl/data/reward.pkl"
-# elif PRAGMA_EDOUARD_YANN_CC == 2:  # Override some of these for MIST Benchbot
-#     MODEL_PATH_TRAINER = r"/home/ybouteiller/tmrl/data/" + (RUN_NAME + "_t.pth")
-#     CHECKPOINT_PATH = r"/home/ybouteiller/tmrl/data/" + RUN_NAME
-#     REWARD_PATH = r"/home/ybouteiller/tmrl/data/reward.pkl"
-
 # WANDB: =======================================================
 
 WANDB_RUN_ID = RUN_NAME
