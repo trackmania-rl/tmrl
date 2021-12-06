@@ -140,7 +140,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         agent_scheduler=None,  # sac_v2_entropy_scheduler
         start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"])  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
 else:  # images
-    TRAINER = partial0(
+    TRAINER = partial(
         TrainingOffline,
         Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
