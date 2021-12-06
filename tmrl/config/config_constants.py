@@ -20,8 +20,6 @@ RUN_NAME = TMRL_CONFIG["RUN_NAME"]  # "SACv1_SPINUP_4_LIDAR_pretrained_test_9"
 BUFFERS_MAXLEN = TMRL_CONFIG["BUFFERS_MAXLEN"]  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
 RW_MAX_SAMPLES_PER_EPISODE = TMRL_CONFIG["RW_MAX_SAMPLES_PER_EPISODE"]  # If this number of timesteps is reached, the RolloutWorker will reset the episode
 
-PRAGMA_TM2020_TMNF = TMRL_CONFIG["TM2020"]  # True if TM2020, False if TMNF
-PRAGMA_LIDAR = True  # True if Lidar, False if images
 PRAGMA_RNN = False  # True to use an RNN, False to use an MLP
 
 PRAGMA_CUDA_TRAINING = TMRL_CONFIG["CUDA_TRAINING"]  # True if CUDA, False if CPU (trainer)
@@ -40,29 +38,30 @@ SERVER_IP_FOR_TRAINER = PUBLIC_IP_SERVER if not LOCALHOST_TRAINER else "127.0.0.
 
 # ENVIRONMENT: =======================================================
 
+ENV_CONFIG = TMRL_CONFIG["ENV"]
+RTGYM_INTERFACE = ENV_CONFIG["RTGYM_INTERFACE"]
+PRAGMA_TM2020_TMNF = RTGYM_INTERFACE.startswith("TM20")  # True if TM2020, False if TMNF
+PRAGMA_LIDAR = RTGYM_INTERFACE.endswith("LIDAR")  # True if Lidar, False if images
 LIDAR_BLACK_THRESHOLD = [55, 55, 55]  # [88, 88, 88] for tiny road, [55, 55, 55] FOR BASIC ROAD
 REWARD_END_OF_TRACK = 0  # bonus reward at the end of the track
 CONSTANT_PENALTY = 0  # should be <= 0 : added to the reward at each time step
-SLEEP_TIME_AT_RESET = 1.5  # 1.5 to start in a Markov state with the lidar, 0.0 for saving replays
-ACT_BUF_LEN = 2
-IMG_HIST_LEN = 4  # 4 without RNN, 1 with RNN
+SLEEP_TIME_AT_RESET = ENV_CONFIG["SLEEP_TIME_AT_RESET"]  # 1.5 to start in a Markov state with the lidar
+IMG_HIST_LEN = ENV_CONFIG["IMG_HIST_LEN"]  # 4 without RNN, 1 with RNN
+ACT_BUF_LEN = ENV_CONFIG["RTGYM_CONFIG"]["act_buf_len"]
 
 # DEBUGGING AND BENCHMARKING: ===================================
 
 CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise. Caution: difficult to handle if reset transitions are collected.
 CRC_DEBUG_SAMPLES = 100  # Number of samples collected in CRC_DEBUG mode
 PROFILE_TRAINER = False  # Will profile each epoch in the Trainer when True
-BENCHMARK = False  # The environment will be benchmarked when this is True
 SYNCHRONIZE_CUDA = False  # Set to True for profiling, False otherwise
 
 # FILE SYSTEM: =================================================
 
-# PATH_FILE = Path(__file__)  # TODO: this won't work with PyPI or normal install
-# logging.debug(f" PATH_FILE:{PATH_FILE}")
 PATH_DATA = TMRL_FOLDER
 logging.debug(f" PATH_DATA:{PATH_DATA}")
 
-MODEL_HISTORY = 10  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
+MODEL_HISTORY = TMRL_CONFIG["SAVE_MODEL_EVERY"]  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
 
 MODEL_PATH_WORKER = str(WEIGHTS_FOLDER / (RUN_NAME + ".pth"))
 MODEL_PATH_SAVE_HISTORY = str(WEIGHTS_FOLDER / (RUN_NAME + "_"))

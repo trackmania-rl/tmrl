@@ -49,7 +49,7 @@ _(note: you can only use the MLP so far)_.
 
 ### Developer features:
 * **Real-Time Gym environment:**
-`tmrl` comes with real-time Gym environment based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is possible to use this environment in your own training framework.
+`tmrl` comes with a real-time Gym environment based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is easy to use this environment in your own training framework. More information [here](#gym-environment).
 
 * **Distributed training:**
 Our training framework is based on a single-server / multiple-clients architecture.
@@ -57,8 +57,8 @@ It enables collecting samples locally on one or several computers and training d
 Find out more [here](#distant-training-architecture).
 
 * **Real-time training:**
-Our policies are trained in real-time, with no insider access to the game: we do not pause the simulation to collect samples nor in order to compute actions.
-As such, our approach can easily be extended to other video games, and to real-world robotic applications.
+Policies are trained in real-time, with no insider access to the game: we do not pause the simulation to collect samples nor in order to compute actions.
+As such, the framework can easily be extended to other video games, and to real-world robotic applications.
 Find out more [here](#real-time-gym-framework).
 
 * **Flexible framework:**
@@ -77,7 +77,7 @@ Detailed installation instructions are provided [here](readme/Install.md).
 
 ## Getting started
 
-Full guidance toward testing pre-trained weights, as well as a tutorial to train, test, and fine-tune your own models,
+Full guidance toward setting up the environment, testing pre-trained weights, as well as a tutorial to train, test, and fine-tune your own models,
 are provided at [this link](readme/get_started.md).
 
 ## Gym environment

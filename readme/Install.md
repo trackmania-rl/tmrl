@@ -70,7 +70,7 @@ In particular, you may want to adapt the following entries:
 - `PORT_TRAINER` and `PORT_ROLLOUT` need to be forwarded on the `server` if not running on localhost
 - `WANDB_PROJECT`, `WANDB_ENTITY` and `WANDB_KEY` can be replaced by you own [wandb](https://wandb.ai/site) credentials for monitoring training
 
-You can delete the content of all folders (but not the folders) whenever you like (except `config.json`, a default version is provided in `resources` if you delete this).
+You can delete the content of all folders (but not the folders themselves) whenever you like (except `config.json`, a default version is provided in `resources` if you delete this).
 If at some point you want to do a clean install, delete the whole `TmrlData` folder and pip install `tmrl` again.
 
 _NB: when pip uninstalling `tmrl`, the `TmrlData` folder is not deleted._

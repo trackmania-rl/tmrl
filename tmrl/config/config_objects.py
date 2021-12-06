@@ -43,16 +43,9 @@ else:
 
 CONFIG_DICT = rtgym.DEFAULT_CONFIG_DICT
 CONFIG_DICT["interface"] = INT
-CONFIG_DICT["time_step_duration"] = 0.05
-CONFIG_DICT["start_obs_capture"] = 0.04  # /!\ lidar capture takes 0.03s
-CONFIG_DICT["time_step_timeout_factor"] = 1.0
-CONFIG_DICT["ep_max_length"] = np.inf
-CONFIG_DICT["real_time"] = True
-CONFIG_DICT["async_threading"] = True
-CONFIG_DICT["act_in_obs"] = True  # ACT_IN_OBS
-CONFIG_DICT["act_buf_len"] = cfg.ACT_BUF_LEN
-CONFIG_DICT["benchmark"] = cfg.BENCHMARK
-CONFIG_DICT["wait_on_done"] = True
+CONFIG_DICT_MODIFIERS = cfg.ENV_CONFIG["RTGYM_CONFIG"]
+for k, v in CONFIG_DICT_MODIFIERS.items():
+    CONFIG_DICT[k] = v
 
 # to compress a sample before sending it over the local network/Internet:
 SAMPLE_COMPRESSOR = get_local_buffer_sample if cfg.PRAGMA_LIDAR else get_local_buffer_sample_tm20_imgs
@@ -84,6 +77,8 @@ MEMORY = partial(MEM,
 
 # ALGORITHM: ===================================================
 
+ALG_CONFIG = cfg.TMRL_CONFIG["ALG"]
+
 if cfg.PRAGMA_DCAC:  # DCAC
     AGENT = partial(
         DCAC_Agent,
@@ -98,18 +93,19 @@ if cfg.PRAGMA_DCAC:  # DCAC
         reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
         entropy_scale=1.0)  # default: 1.0),  # default: 1.0
 else:  # SAC
+    assert ALG_CONFIG["ALGORITHM"] == "SAC"
     AGENT = partial(
         SAC_Agent,
         device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
         Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
-        lr_actor=cfg.TMRL_CONFIG["LR_ACTOR"],
-        lr_critic=cfg.TMRL_CONFIG["LR_CRITIC"],
-        lr_entropy=cfg.TMRL_CONFIG["LR_ENTROPY"],
-        gamma=cfg.TMRL_CONFIG["GAMMA"],
-        polyak=cfg.TMRL_CONFIG["POLYAK"],
-        learn_entropy_coef=cfg.TMRL_CONFIG["LEARN_ENTROPY_COEF"],  # False for SAC v2 with no temperature autotuning
-        target_entropy=cfg.TMRL_CONFIG["TARGET_ENTROPY"],  # None for automatic
-        alpha=cfg.TMRL_CONFIG["ALPHA"])  # inverse of reward scale
+        lr_actor=ALG_CONFIG["LR_ACTOR"],
+        lr_critic=ALG_CONFIG["LR_CRITIC"],
+        lr_entropy=ALG_CONFIG["LR_ENTROPY"],
+        gamma=ALG_CONFIG["GAMMA"],
+        polyak=ALG_CONFIG["POLYAK"],
+        learn_entropy_coef=ALG_CONFIG["LEARN_ENTROPY_COEF"],  # False for SAC v2 with no temperature autotuning
+        target_entropy=ALG_CONFIG["TARGET_ENTROPY"],  # None for automatic
+        alpha=ALG_CONFIG["ALPHA"])  # inverse of reward scale
 
 # TRAINER: =====================================================
 
