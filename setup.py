@@ -13,7 +13,7 @@ if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
 
 
-RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.0.1/resources.zip"
+RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.0.2/resources.zip"
 
 
 def url_retrieve(url: str, outfile: Path, overwrite: bool = False):
@@ -111,13 +111,13 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name='tmrl',
-    version='0.0.1',
+    version='0.0.2',
     description='Autonomous racing in Trackmania',
     long_description=README,
     long_description_content_type='text/markdown',
     keywords='reinforcement learning, trackmania, self driving, roborace',
     url='https://github.com/trackmania-rl/tmrl',
-    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.0.1.tar.gz',
+    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.0.2.tar.gz',
     author='Yann Bouteiller, Edouard Geze',
     author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
     license='MIT',

@@ -102,14 +102,14 @@ else:  # SAC
         SAC_Agent,
         device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
         Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
-        lr_actor=0.0003,
-        lr_critic=0.00005,  # 0.0001 # default 0.0003
-        lr_entropy=0.0003,
-        gamma=0.995,  # default and best tmnf so far: 0.99
-        polyak=0.995,  # 0.999 # default 0.995
-        learn_entropy_coef=False,  # False for SAC v2 with no temperature autotuning
-        target_entropy=-7.0,  # None for automatic
-        alpha=1.0 / 2.7)  # best: 1 / 2.5  # inverse of reward scale
+        lr_actor=cfg.TMRL_CONFIG["LR_ACTOR"],
+        lr_critic=cfg.TMRL_CONFIG["LR_CRITIC"],
+        lr_entropy=cfg.TMRL_CONFIG["LR_ENTROPY"],
+        gamma=cfg.TMRL_CONFIG["GAMMA"],
+        polyak=cfg.TMRL_CONFIG["POLYAK"],
+        learn_entropy_coef=cfg.TMRL_CONFIG["LEARN_ENTROPY_COEF"],  # False for SAC v2 with no temperature autotuning
+        target_entropy=cfg.TMRL_CONFIG["TARGET_ENTROPY"],  # None for automatic
+        alpha=cfg.TMRL_CONFIG["ALPHA"])  # inverse of reward scale
 
 # TRAINER: =====================================================
 
@@ -127,20 +127,20 @@ if cfg.PRAGMA_LIDAR:  # lidar
         TrainingOffline,
         Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
-        memory_size=1000000,
-        batchsize=256,  # RTX3080: 256 up to 1024
-        epochs=10000,  # 400
-        rounds=10,  # 10
-        steps=1000,  # 1000
-        update_model_interval=1000,
-        update_buffer_interval=1000,
-        max_training_steps_per_env_step=4.0,  # 1.0
+        memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
+        batchsize=cfg.TMRL_CONFIG["BATCH_SIZE"],  # RTX3080: 256 up to 1024
+        epochs=cfg.TMRL_CONFIG["MAX_EPOCHS"],  # 400
+        rounds=cfg.TMRL_CONFIG["ROUNDS_PER_EPOCH"],  # 10
+        steps=cfg.TMRL_CONFIG["TRAINING_STEPS_PER_ROUND"],  # 1000
+        update_model_interval=cfg.TMRL_CONFIG["UPDATE_MODEL_INTERVAL"],
+        update_buffer_interval=cfg.TMRL_CONFIG["UPDATE_BUFFER_INTERVAL"],
+        max_training_steps_per_env_step=cfg.TMRL_CONFIG["MAX_TRAINING_STEPS_PER_ENVIRONMENT_STEP"],  # 1.0
         profiling=cfg.PROFILE_TRAINER,
         Agent=AGENT,
         agent_scheduler=None,  # sac_v2_entropy_scheduler
-        start_training=1000)  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
+        start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"])  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
 else:  # images
-    TRAINER = partial(
+    TRAINER = partial0(
         TrainingOffline,
         Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
