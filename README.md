@@ -116,24 +116,22 @@ env.wait()  # rtgym-specific method to artificially 'pause' the environment when
 
 The environment can be customized by changing the content of the `ENV` entry in `TmrlData\config\config.json`:
 
-_(NB: do not copy-paste, comments are not supported in .json files)_
-```json
+_(NB: do not copy-paste, comments are not supported in vanilla .json files)_
+```json5
 {
-  (...)
   "ENV": {
     "RTGYM_INTERFACE": "TM20LIDAR",
-    "SLEEP_TIME_AT_RESET": 1.5,  # the environment sleeps for this amount of time after each reset
-    "IMG_HIST_LEN": 4,  # length of the history of LIDAR measurements in observations (set to 1 for RNNs)
+    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
+    "IMG_HIST_LEN": 4,  // length of the history of LIDAR measurements in observations (set to 1 for RNNs)
     "RTGYM_CONFIG": {
-      "time_step_duration": 0.05,  # duration of a time step
-      "start_obs_capture": 0.04,  # duration before an observation is captured
-      "time_step_timeout_factor": 1.0,  # maximum elasticity of a time step
-      "act_buf_len": 2,  # length of the history of actions in observations (set to 1 for RNNs)
-      "benchmark": false,  # enables benchmarking your environment when true
+      "time_step_duration": 0.05,  // duration of a time step
+      "start_obs_capture": 0.04,  // duration before an observation is captured
+      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
+      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
+      "benchmark": false,  // enables benchmarking your environment when true
       "wait_on_done": true
     }
-  },
-  (...)
+  }
 }
 ```
 
