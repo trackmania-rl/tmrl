@@ -301,7 +301,7 @@ MIT, Bouteiller and Geze 2021.
 
 ## Sponsors:
 
-Thank you to our sponsors for their support!
+Many thanks to our sponsors for their support!
 
 ![mist](readme/img/mistlogo.png)
 [MISTlab - Polytechnique Montreal](https://mistlab.ca)
