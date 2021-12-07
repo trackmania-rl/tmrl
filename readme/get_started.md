@@ -4,7 +4,7 @@ Before reading these instructions, make sure you have installed TMRL and OpenPla
 
 ## Pre-trained AI in Trackmania 2020
 
-You can test our pre-trained AI diectly in TrackMania by following these steps (we recommend doing this once, so you understand how `tmrl` controls the video game):
+You can test our pre-trained AI directly in TrackMania by following these steps (we recommend doing this once, so you understand how `tmrl` controls the video game):
 
 ### Load the tmrl-test track into your TrackMania game:
 - Navigate to your home folder (`C:\Users\username\`), and open `TmrlData\resources`
