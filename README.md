@@ -22,6 +22,8 @@ It is demonstrated on the TrackMania 2020 video game.
     - [Real-time Gym framework](#real-time-gym-framework)
       - [rtgym repo](https://github.com/yannbouteiller/rtgym)
     - [Distant training architecture](#distant-training-architecture)
+- [Contribute](#contribute)
+- [Sponsors](#sponsors)
 
 
 ## Introduction
@@ -282,7 +284,10 @@ These mechanics can be visualized as follows:
 
 ![Networking architecture](readme/img/network_interface.png "Networking Architecture")
 
-## Authors:
+## Contribute:
+
+Contributions to this project are welcome, please submit a PR with your name in the contributors list.
+
 ### Maintainers:
 - Yann Bouteiller
 - Edouard Geze
@@ -293,3 +298,10 @@ These mechanics can be visualized as follows:
 ## License
 
 MIT, Bouteiller and Geze 2021.
+
+## Sponsors:
+
+Thank you to our sponsors for their support!
+
+![mist](readme/img/mistlogo.png)
+[MISTlab - Polytechnique Montreal](https://mistlab.ca)
