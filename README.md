@@ -40,19 +40,19 @@ In parallel, this dataset is used to train an artificial neural network (policy)
 
 * **Different types of observation:**
 The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots or the raw unprocessed snapshots in order to perceive its environment
-_(note: you can only use the LIDAR so far)_.
+_(note: only the LIDAR is supported at the moment, the rest is WIP)_.
 
 * **Models:**
 To process LIDAR measurements, `tmrl` uses a Multi-Layer Perceptron (MLP) or a Recurrent Neural Network (RNN).
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN)
-_(note: you can only use the MLP so far)_.
+_(note: only the MLP is supported at the moment, the rest is WIP)_.
 
 ### Developer features:
 * **Real-Time Gym environment:**
 `tmrl` comes with a real-time Gym environment based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is easy to use this environment in your own training framework. More information [here](#gym-environment).
 
 * **Distributed training:**
-Our training framework is based on a single-server / multiple-clients architecture.
+The training framework is based on a single-server / multiple-clients architecture.
 It enables collecting samples locally on one or several computers and training distantly on a High Performance Computing cluster.
 Find out more [here](#distant-training-architecture).
 
@@ -60,12 +60,6 @@ Find out more [here](#distant-training-architecture).
 Policies are trained in real-time, with no insider access to the game: we do not pause the simulation to collect samples nor in order to compute actions.
 As such, the framework can easily be extended to other video games, and to real-world robotic applications.
 Find out more [here](#real-time-gym-framework).
-
-* **Flexible framework:**
-We designed our code so that it is flexible and modular.
-It is easily compatible with other applications.
-For instance, in other projects, we use the same code base in order to train robots in the real world.
-Advanced tutorial coming soon to develop your own applications.
 
 * **External libraries:**
 This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
@@ -81,7 +75,9 @@ Full guidance toward setting up the environment, testing pre-trained weights, as
 are provided at [this link](readme/get_started.md).
 
 ## Gym environment
-In case you wish to use only the `tmrl` Real-Time Gym environment in your own python code, this is made possible by the `get_environment()` method:
+In case you wish to use only the `tmrl` Real-Time Gym environment in your own training framework, this is made possible by the `get_environment()` method:
+
+_(NB: the game window needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
 ```python
 from tmrl import get_environment
 from time import sleep
@@ -116,7 +112,28 @@ for _ in range(200):  # rtgym ensures this runs at 20Hz by default
 env.wait()  # rtgym-specific method to artificially 'pause' the environment when needed
 ```
 
+The environment can be customized by changing the content of the `ENV` entry in `TmrlData\config\config.json`:
 
+_(NB: do not copy-paste, comments are not supported in .json files)_
+```json
+{
+  (...)
+  "ENV": {
+    "RTGYM_INTERFACE": "TM20LIDAR",
+    "SLEEP_TIME_AT_RESET": 1.5,  # the environment sleeps for this amount of time after each reset
+    "IMG_HIST_LEN": 4,  # length of the history of LIDAR measurements in observations (set to 1 for RNNs)
+    "RTGYM_CONFIG": {
+      "time_step_duration": 0.05,  # duration of a time step
+      "start_obs_capture": 0.04,  # duration before an observation is captured
+      "time_step_timeout_factor": 1.0,  # maximum elasticity of a time step
+      "act_buf_len": 2,  # length of the history of actions in observations (set to 1 for RNNs)
+      "benchmark": false,  # enables benchmarking your environment when true
+      "wait_on_done": true
+    }
+  },
+  (...)
+}
+```
 
 ## TMRL details
 
