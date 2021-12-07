@@ -14,7 +14,7 @@ You can test our pre-trained AI directly in TrackMania by following these steps 
 - Launch TrackMania 2020
 - In case the OpenPlanet menu is showing in the top part of the screen, hide it using the `f3` key
 - Launch the `tmrl-test` track. This can be done by selecting `create > map editor > edit a map > tmrl-test > select map` and hitting the green flag.
-x- Set the game in windowed mode. To do this, bring the cursor to the top of the screen and a drop-down menu will show. Hit the windowed icon.
+- Set the game in windowed mode. To do this, bring the cursor to the top of the screen and a drop-down menu will show. Hit the windowed icon.
 - Bring the TrackMania window to the top-left corner of the screen. On Windows10, it should automatically fit to a quarter of the screen _(NB: this requires `1920x1080` screen resolution, otherwise, see [troubleshooting](#troubleshooting))_.
 
 - Enter the cockpit view by hitting the `3` key (the car must be hidden, press several times if the cockpit is visible).
