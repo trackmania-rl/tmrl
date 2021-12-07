@@ -22,7 +22,7 @@ It is demonstrated on the TrackMania 2020 video game.
     - [Real-time Gym framework](#real-time-gym-framework)
       - [rtgym repo](https://github.com/yannbouteiller/rtgym)
     - [Distant training architecture](#distant-training-architecture)
-- [Contribute](#contribute)
+- [Contribute](#authors)
 - [Sponsors](#sponsors)
 
 
@@ -284,7 +284,7 @@ These mechanics can be visualized as follows:
 
 ![Networking architecture](readme/img/network_interface.png "Networking Architecture")
 
-## Contribute:
+## Authors:
 
 Contributions to this project are welcome, please submit a PR with your name in the contributors list.
 
