@@ -13,7 +13,7 @@ import json
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl import run_tm, run_wandb_tm, record_reward_dist, check_env_tm20lidar
+from tmrl import run, run_with_wandb, record_reward_dist, check_env_tm20lidar
 from tmrl.envs import UntouchedGymEnv
 from tmrl.networking import RolloutWorker, Server, TrainerInterface
 from tmrl.util import partial
@@ -66,16 +66,16 @@ def main_train(args):
     logging.info(f"--- NOW RUNNING: SAC/DCAC trackmania ---")
     interface = TrainerInterface(server_ip=cfg.SERVER_IP_FOR_TRAINER, model_path=cfg.MODEL_PATH_TRAINER)
     if not args.no_wandb:
-        run_wandb_tm(entity=cfg.WANDB_ENTITY,
-                     project=cfg.WANDB_PROJECT,
-                     run_id=cfg.WANDB_RUN_ID,
-                     interface=interface,
-                     run_cls=train_cls,
-                     checkpoint_path=cfg.CHECKPOINT_PATH,
-                     dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
-                     load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
+        run_with_wandb(entity=cfg.WANDB_ENTITY,
+                       project=cfg.WANDB_PROJECT,
+                       run_id=cfg.WANDB_RUN_ID,
+                       interface=interface,
+                       run_cls=train_cls,
+                       checkpoint_path=cfg.CHECKPOINT_PATH,
+                       dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
+                       load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
     else:
-        run_tm(interface=interface, run_cls=train_cls, checkpoint_path=cfg.CHECKPOINT_PATH, dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN, load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
+        run(interface=interface, run_cls=train_cls, checkpoint_path=cfg.CHECKPOINT_PATH, dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN, load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
 
 
 if __name__ == "__main__":

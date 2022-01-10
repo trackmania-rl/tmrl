@@ -112,7 +112,7 @@ def iterate_epochs_tm(run_cls: TrainingOffline,
             os.remove(checkpoint_path)
 
 
-def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOffline, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
+def run_with_wandb(entity, project, run_id, interface, run_cls: type = TrainingOffline, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
     """
     trackmania main (remote)
     run and save config and stats to https://wandb.com
@@ -136,7 +136,7 @@ def run_wandb_tm(entity, project, run_id, interface, run_cls: type = TrainingOff
         [wandb.log(json.loads(s.to_json())) for s in stats]
 
 
-def run_tm(interface, run_cls: type = TrainingOffline, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
+def run(interface, run_cls: type = TrainingOffline, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
     """
     trackmania main (remote)
     """
