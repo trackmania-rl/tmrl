@@ -75,7 +75,11 @@ def main_train(args):
                        dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
                        load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
     else:
-        run(interface=interface, run_cls=train_cls, checkpoint_path=cfg.CHECKPOINT_PATH, dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN, load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
+        run(interface=interface,
+            run_cls=train_cls,
+            checkpoint_path=cfg.CHECKPOINT_PATH,
+            dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
+            load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ print(f"Run name: {cfg.RUN_NAME}")
 ## Trainer
 Training in `tmrl` is done within a [TrainingOffline](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/training_offline.py) object, while network communications are handled by a [TrainerInterface](https://github.com/trackmania-rl/tmrl/blob/58f66a42ea0e1478641336fa1eb076635ff77a31/tmrl/networking.py#L389).
 
-These two objects are used 
+These objects are used by the 
 
 ## Rollout worker(s)
 
