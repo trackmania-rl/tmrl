@@ -14,7 +14,7 @@ import json
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
 from tmrl import run, run_with_wandb, record_reward_dist, check_env_tm20lidar
-from tmrl.envs import UntouchedGymEnv
+from tmrl.envs import GenericGymEnv
 from tmrl.networking import RolloutWorker, Server, TrainerInterface
 from tmrl.util import partial
 
@@ -29,7 +29,7 @@ def main(args):
         config_modifiers = args.config
         for k, v in config_modifiers.items():
             config[k] = v
-        rw = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": config}),
+        rw = RolloutWorker(env_cls=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": config}),
                            actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
                            get_local_buffer_sample=cfg_obj.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
@@ -43,7 +43,7 @@ def main(args):
         if args.worker:
             rw.run()
         elif args.benchmark:
-            rw.run_env_benchmark(nb_steps=1000, deterministic=False)
+            rw.run_env_benchmark(nb_steps=1000, test=False)
         else:
             rw.run_episodes(10000)
 

@@ -15,7 +15,7 @@ from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs
 from tmrl.drtac import Agent as DCAC_Agent
 from tmrl.drtac_models import Mlp as SV_Mlp
 from tmrl.drtac_models import MlpPolicy as SV_MlpPolicy
-from tmrl.envs import UntouchedGymEnv
+from tmrl.envs import GenericGymEnv
 # from tmrl.sac_models import Mlp, MlpPolicy
 from tmrl.sac_models import MLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor, SquashedGaussianRNNActor
 # from tmrl.sac import SacAgent as SAC_Agent
@@ -121,7 +121,7 @@ def sac_v2_entropy_scheduler(agent, epoch):
 if cfg.PRAGMA_LIDAR:  # lidar
     TRAINER = partial(
         TrainingOffline,
-        Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
+        Env=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
         memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
         batchsize=cfg.TMRL_CONFIG["BATCH_SIZE"],  # RTX3080: 256 up to 1024
@@ -138,7 +138,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
 else:  # images
     TRAINER = partial(
         TrainingOffline,
-        Env=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
+        Env=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
         memory_size=1000000,
         batchsize=128,  # 128

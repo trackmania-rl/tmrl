@@ -132,7 +132,7 @@ class TanhNormal(Distribution):
 
 # noinspection PyAbstractClass
 class Independent(torch.distributions.Independent):
-    def sample_deterministic(self):
+    def sample_test(self):
         return torch.tanh(self.base_dist.normal_mean)
 
 

@@ -45,7 +45,7 @@ class ActorModule(Module):
         obs = collate([obs], device=self.device)
         with torch.no_grad():
             action_distribution = self.actor(obs)
-            action = action_distribution.sample() if train else action_distribution.sample_deterministic()
+            action = action_distribution.sample() if train else action_distribution.sample_test()
         action, = partition(action)
         return action, state, []
 
@@ -120,7 +120,7 @@ class SquashedGaussianMLPActor(nn.Module):
         self.log_std_layer = nn.Linear(hidden_sizes[-1], dim_act)
         self.act_limit = act_limit
 
-    def forward(self, obs, deterministic=False, with_logprob=True):
+    def forward(self, obs, test=False, with_logprob=True):
         net_out = self.net(torch.cat(obs, -1))
         mu = self.mu_layer(net_out)
         log_std = self.log_std_layer(net_out)
@@ -129,7 +129,7 @@ class SquashedGaussianMLPActor(nn.Module):
 
         # Pre-squash distribution and sample
         pi_distribution = Normal(mu, std)
-        if deterministic:
+        if test:
             # Only used for evaluating policy at test time.
             pi_action = mu
         else:
@@ -153,9 +153,9 @@ class SquashedGaussianMLPActor(nn.Module):
 
         return pi_action, logp_pi
 
-    def act(self, obs, deterministic=False):
+    def act(self, obs, test=False):
         with torch.no_grad():
-            a, _ = self.forward(obs, deterministic, False)
+            a, _ = self.forward(obs, test, False)
             return a.numpy()
 
 
@@ -185,9 +185,9 @@ class MLPActorCritic(nn.Module):
         self.q1 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
         self.q2 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
 
-    def act(self, obs, deterministic=False):
+    def act(self, obs, test=False):
         with torch.no_grad():
-            a, _ = self.actor(obs, deterministic, False)
+            a, _ = self.actor(obs, test, False)
             return a.numpy()
 
 
@@ -221,7 +221,7 @@ class SquashedGaussianRNNActor(nn.Module):
         self.rnn_size = rnn_size
         self.rnn_len = rnn_len
 
-    def forward(self, obs_seq, deterministic=False, with_logprob=True, save_hidden=False):
+    def forward(self, obs_seq, test=False, with_logprob=True, save_hidden=False):
         """
         obs: observation
         h: hidden state
@@ -250,7 +250,7 @@ class SquashedGaussianRNNActor(nn.Module):
 
         # Pre-squash distribution and sample
         pi_distribution = Normal(mu, std)
-        if deterministic:
+        if test:
             # Only used for evaluating policy at test time.
             pi_action = mu
         else:
@@ -277,10 +277,10 @@ class SquashedGaussianRNNActor(nn.Module):
 
         return pi_action, logp_pi
 
-    def act(self, obs, deterministic=False):
+    def act(self, obs, test=False):
         obs_seq = tuple(o.view(1, *o.shape) for o in obs)  # artificially add sequence dimension
         with torch.no_grad():
-            a, _ = self.forward(obs_seq=obs_seq, deterministic=deterministic, with_logprob=False, save_hidden=True)
+            a, _ = self.forward(obs_seq=obs_seq, test=test, with_logprob=False, save_hidden=True)
             return a.numpy()
 
 

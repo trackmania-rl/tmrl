@@ -18,7 +18,7 @@ from tmrl.wrappers_rd import RandomDelayWrapper
 import logging
 
 
-class UntouchedGymEnv(gym.Wrapper):
+class GenericGymEnv(gym.Wrapper):
     def __init__(self, id: str = "Pendulum-v0", obs_scale: float = 0., gym_kwargs={}):
         """
         Use this wrapper when using the framework with arbitrary environments

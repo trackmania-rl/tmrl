@@ -3,7 +3,7 @@
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl.envs import UntouchedGymEnv
+from tmrl.envs import GenericGymEnv
 from tmrl.networking import RolloutWorker
 from tmrl.util import partial
 
@@ -11,7 +11,7 @@ from tmrl.util import partial
 def run_car():
     config = cfg_obj.CONFIG_DICT
     config['interface_kwargs'] = {'save_replay': True}
-    rw = RolloutWorker(env_cls=partial(UntouchedGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": config}),
+    rw = RolloutWorker(env_cls=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": config}),
                        actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
                        get_local_buffer_sample=cfg_obj.SAMPLE_COMPRESSOR,
                        device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',

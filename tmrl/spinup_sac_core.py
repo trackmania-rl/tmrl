@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
+from tmrl.actor import ActorModule
 
 # import scipy.signal
 
@@ -40,7 +41,7 @@ LOG_STD_MAX = 2
 LOG_STD_MIN = -20
 
 
-class SquashedGaussianMLPActor(nn.Module):
+class SquashedGaussianMLPActor(ActorModule):
     def __init__(self, obs_space, act_space, hidden_sizes=(256, 256), activation=nn.ReLU, act_buf_len=0):
         super().__init__()
         dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
@@ -51,7 +52,7 @@ class SquashedGaussianMLPActor(nn.Module):
         self.log_std_layer = nn.Linear(hidden_sizes[-1], dim_act)
         self.act_limit = act_limit
 
-    def forward(self, obs, deterministic=False, with_logprob=True):
+    def forward(self, obs, test=False, with_logprob=True):
         net_out = self.net(torch.cat(obs, -1))
         mu = self.mu_layer(net_out)
         log_std = self.log_std_layer(net_out)
@@ -60,7 +61,7 @@ class SquashedGaussianMLPActor(nn.Module):
 
         # Pre-squash distribution and sample
         pi_distribution = Normal(mu, std)
-        if deterministic:
+        if test:
             # Only used for evaluating policy at test time.
             pi_action = mu
         else:
@@ -84,9 +85,9 @@ class SquashedGaussianMLPActor(nn.Module):
 
         return pi_action, logp_pi
 
-    def act(self, obs, deterministic=False):
+    def act(self, obs, test=False):
         with torch.no_grad():
-            a, _ = self.forward(obs, deterministic, False)
+            a, _ = self.forward(obs, test, False)
             return a.numpy()
 
 
@@ -116,7 +117,7 @@ class MLPActorCritic(nn.Module):
         self.q1 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
         self.q2 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
 
-    def act(self, obs, deterministic=False):
+    def act(self, obs, test=False):
         with torch.no_grad():
-            a, _ = self.actor(obs, deterministic, False)
+            a, _ = self.actor(obs, test, False)
             return a.numpy()

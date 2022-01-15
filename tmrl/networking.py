@@ -497,7 +497,7 @@ class TrainerInterface:
 class RolloutWorker:
     def __init__(
             self,
-            env_cls,
+            env_cls,  # class of the Gym environment
             actor_module_cls,
             get_local_buffer_sample: callable,
             device="cpu",
@@ -506,10 +506,10 @@ class RolloutWorker:
             max_samples_per_episode=1000000,  # If the episode is longer than this, it is reset by the RolloutWorker
             model_path=cfg.MODEL_PATH_WORKER,
             obs_preprocessor: callable = None,
-            crc_debug=False,
+            crc_debug=False,  # For debugging the pipeline
             model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
-            model_history=cfg.MODEL_HISTORY,  # if 0, doesn't save model history, else, the model is saved every model_history episode
-            standalone=False,  # if True, the worker will not try to connect to a server but only
+            model_history=cfg.MODEL_HISTORY,  # if 0, doesn't save model history, else, the model is saved every model_history
+            standalone=False,  # if True, the worker will not try to connect to a server (can use this for robot deployment)
     ):
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = get_local_buffer_sample
@@ -605,7 +605,7 @@ class RolloutWorker:
                 time.sleep(cfg.LOOP_SLEEP_TIME)  # TODO: adapt
             s.close()
 
-    def act(self, obs, deterministic=False):
+    def act(self, obs, test=False):
         """
         converts inputs to torch tensors and converts outputs to numpy arrays
         """
@@ -613,8 +613,8 @@ class RolloutWorker:
             obs = self.obs_preprocessor(obs)
         obs = collate([obs], device=self.device)
         with torch.no_grad():
-            action = self.actor.act(obs, deterministic=deterministic)
-            # action = action_distribution.sample() if train else action_distribution.sample_deterministic()
+            action = self.actor.act(obs, test=test)
+            # action = action_distribution.sample() if train else action_distribution.sample_test()
         # action, = partition(action)
         return action
 
@@ -634,8 +634,8 @@ class RolloutWorker:
             self.buffer.append_sample(sample)
         return new_obs
 
-    def step(self, obs, deterministic, collect_samples, last_step=False):
-        act = self.act(obs, deterministic=deterministic)
+    def step(self, obs, test, collect_samples, last_step=False):
+        act = self.act(obs, test=test)
         new_obs, rew, done, info = self.env.step(act)
         # if self.obs_preprocessor is not None:
         #     new_obs = self.obs_preprocessor(new_obs)
@@ -660,7 +660,7 @@ class RolloutWorker:
         steps = 0
         obs = self.reset(collect_samples=True)
         for i in range(max_samples):
-            obs, rew, done, info = self.step(obs=obs, deterministic=False, collect_samples=True, last_step=i == max_samples - 1)
+            obs, rew, done, info = self.step(obs=obs, test=False, collect_samples=True, last_step=i == max_samples - 1)
             ret += rew
             steps += 1
             if done:
@@ -678,7 +678,7 @@ class RolloutWorker:
             steps = 0
             obs = self.reset(collect_samples=False)
             for _ in range(max_samples):
-                obs, rew, done, info = self.step(obs=obs, deterministic=not train, collect_samples=False)
+                obs, rew, done, info = self.step(obs=obs, test=not train, collect_samples=False)
                 ret += rew
                 steps += 1
                 if done:
@@ -695,7 +695,7 @@ class RolloutWorker:
         steps = 0
         obs = self.reset(collect_samples=False)
         for _ in range(max_samples):
-            obs, rew, done, info = self.step(obs=obs, deterministic=True, collect_samples=False)
+            obs, rew, done, info = self.step(obs=obs, test=True, collect_samples=False)
             ret += rew
             steps += 1
             if done:
@@ -732,13 +732,13 @@ class RolloutWorker:
                     action = action_distribution.sample()
         print_with_timestamp(prof.key_averages().table(row_limit=20, sort_by="cpu_time_total"))
 
-    def run_env_benchmark(self, nb_steps, deterministic=False):
+    def run_env_benchmark(self, nb_steps, test=False):
         """
         This method is only compatible with rtgym environments
         """
         obs = self.reset(collect_samples=False)
         for _ in range(nb_steps):
-            obs, rew, done, info = self.step(obs=obs, deterministic=deterministic, collect_samples=False)
+            obs, rew, done, info = self.step(obs=obs, test=test, collect_samples=False)
             if done:
                 obs = self.reset(collect_samples=False)
         print_with_timestamp(f"Benchmark results:\n{self.env.benchmarks()}")

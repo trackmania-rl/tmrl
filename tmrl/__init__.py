@@ -23,17 +23,18 @@ from tmrl.training_offline import TrainingOffline
 # from tmrl.envs import AvenueEnv
 from tmrl.util import dump, git_info, load, load_json, partial, partial_from_dict, partial_to_dict, save_json
 from tmrl.custom.custom_gym_interfaces import TM2020InterfaceLidar
-from tmrl.envs import UntouchedGymEnv
+from tmrl.envs import GenericGymEnv
 from tmrl.config.config_objects import CONFIG_DICT
 from tmrl.tools.record import record_reward_dist
 from tmrl.tools.check_environment import check_env_tm20lidar
+from tmrl.actor import ActorModule
 
 
 def get_environment():
     """
     Gets TMRL Gym environment
     """
-    return UntouchedGymEnv(id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
+    return GenericGymEnv(id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
 
 
 def log_environment_variables():
