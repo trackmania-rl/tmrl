@@ -41,7 +41,7 @@ if cfg.PRAGMA_LIDAR:
 else:
     INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=cfg.IMG_HIST_LEN)
 
-CONFIG_DICT = rtgym.DEFAULT_CONFIG_DICT
+CONFIG_DICT = rtgym.DEFAULT_CONFIG_DICT.copy()
 CONFIG_DICT["interface"] = INT
 CONFIG_DICT_MODIFIERS = cfg.ENV_CONFIG["RTGYM_CONFIG"]
 for k, v in CONFIG_DICT_MODIFIERS.items():

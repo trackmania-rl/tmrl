@@ -114,7 +114,7 @@ def record_tmnf_keyboard(path_dataset):
     iteration = 0
     iters, speeds, distances, positions, dirs, dones, rews = [], [], [], [], [], [], []
 
-    env_config = DEFAULT_CONFIG_DICT
+    env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TMInterface
     env = gym.make("rtgym:real-time-gym-v0")
     env.reset()
@@ -159,7 +159,7 @@ def record_tmnf_lidar_keyboard(path_dataset):
     iteration = 0
     iters, speeds, lidars, dirs, dones, rews = [], [], [], [], [], []
 
-    env_config = DEFAULT_CONFIG_DICT
+    env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TMInterfaceLidar
 
     env = gym.make("rtgym:real-time-gym-v0")
@@ -214,7 +214,7 @@ def record_tm20_lidar(path_dataset):
     iteration = 0
     iters, speeds, distances, positions, inputs, dones, rews = [], [], [], [], [], [], []
 
-    env_config = DEFAULT_CONFIG_DICT
+    env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020InterfaceLidar
     env_config["ep_max_length"] = 2000
     env = gym.make("rtgym:real-time-gym-v0")
@@ -266,7 +266,7 @@ def record_tm20(path_dataset):
     iteration = 0
     iters, speeds, gear, rpm, dones, rews = [], [], [], [], [], []
 
-    env_config = DEFAULT_CONFIG_DICT
+    env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020Interface
     env = gym.make("rtgym:real-time-gym-v0")
     env.reset()

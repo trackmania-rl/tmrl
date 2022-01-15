@@ -20,7 +20,7 @@ def check_env_tm20lidar():
     sct = mss.mss()
     monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
     lidar = Lidar(monitor=monitor, road_point=(440, 479))
-    env_config = DEFAULT_CONFIG_DICT
+    env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020InterfaceLidar
     env_config["wait_on_done"] = True
     env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_early_done": int(20 * 60), "road_point": (440, 479), "record": False}

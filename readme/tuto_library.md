@@ -177,10 +177,42 @@ from tmrl.envs import GenericGymEnv
 env_cls=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": my_config})
 ```
 
+We could create a dummy environment to retrieve the action and observation spaces:
+
+```python
+dummy_env = env_cls()
+action_space = dummy_env.action_space
+observation_space = dummy_env.action_space
+
+print(f"action space: {action_space}")
+print(f"observation space: {observation_space}")
+```
+which outputs the following:
+```terminal
+action space: Box([-1. -1. -1.], [1. 1. 1.], (3,), float32)
+observation space: Tuple(
+  Box([0.], [1000.], (1,), float32),
+  Box([[0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+       [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+       [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]
+       [0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]],
+      [[inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf]
+       [inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf]
+       [inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf]
+       [inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf inf]],
+      (4, 19), float32),
+      Box([-1. -1. -1.], [1. 1. 1.], (3,), float32),
+      Box([-1. -1. -1.], [1. 1. 1.], (3,), float32))
+```
+
 ### Actor class
 The second argument is `actor_module_cls`.
 
-This expects a class that subclasses
+This expects a class that subclasses the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) interface.
+`ActorModule` is a pytorch neural network (i.e., a subclass of `torch.nn.Module`) that implements an extra `act()` method on top of the usual `forward()` method.
+The neural network is what will be trained by the Trainer (our policy), while the `act()` method is for the `RolloutWorker` to interact with this policy.
+
+Let us implement this for our dummy drone environment:
 
 ...
 

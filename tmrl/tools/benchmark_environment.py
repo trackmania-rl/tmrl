@@ -20,7 +20,7 @@ ACT_COMPUTE_MAX = 0.05
 def benchmark():
     action_space = spaces.Box(low=-1.0, high=1.0, shape=(3, ))
 
-    env_config = DEFAULT_CONFIG_DICT
+    env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020InterfaceLidar
     env_config["benchmark"] = True
     env_config["running_average_factor"] = 0.05
