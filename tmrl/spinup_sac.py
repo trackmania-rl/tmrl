@@ -16,6 +16,7 @@ from tmrl.nn import copy_shared, no_grad
 from tmrl.util import cached_property
 import logging
 
+
 @dataclass(eq=0)
 class SpinupSacAgent:  # Adapted from Spinup
     Env: InitVar

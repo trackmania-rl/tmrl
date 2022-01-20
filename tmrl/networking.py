@@ -239,20 +239,17 @@ class Buffer:
 class Server:
     """
     This is the main server
-    This lets 1 TrainerInterface and n RolloutWorkers connect
-    This buffers experiences sent by RolloutWorkers
-    This periodically sends the buffer to the TrainerInterface
-    This also receives the weights from the TrainerInterface and broadcast them to the connected RolloutWorkers
-    If trainer_on_localhost is True, the server only listens on trainer_on_localhost. Then the trainer is expected to talk on trainer_on_localhost.
-    Otherwise, the server also listens to the local ip and the trainer is expected to talk on the local ip (port forwarding).
+    It lets 1 TrainerInterface and n RolloutWorkers connect
+    It buffers experiences sent by RolloutWorkers and periodically sends these to the TrainerInterface
+    It also receives the weights from the TrainerInterface and broadcasts these to the connected RolloutWorkers
     """
-    def __init__(self, samples_per_server_packet=1000):
+    def __init__(self, min_samples_per_server_packet=1):
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
         self.__weights = None
         self.__weights_id = 0  # this increments each time new weights are received
-        self.samples_per_server_batch = samples_per_server_packet
+        self.samples_per_server_batch = min_samples_per_server_packet
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
 
@@ -498,27 +495,27 @@ class RolloutWorker:
     def __init__(
             self,
             env_cls,  # class of the Gym environment
-            actor_module_cls,
-            get_local_buffer_sample: callable,
-            device="cpu",
-            server_ip=None,
-            samples_per_worker_packet=1000,  # The RolloutWorker waits for this number of samples before sending
-            max_samples_per_episode=1000000,  # If the episode is longer than this, it is reset by the RolloutWorker
-            model_path=cfg.MODEL_PATH_WORKER,
-            obs_preprocessor: callable = None,
-            crc_debug=False,  # For debugging the pipeline
-            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
-            model_history=cfg.MODEL_HISTORY,  # if 0, doesn't save model history, else, the model is saved every model_history
-            standalone=False,  # if True, the worker will not try to connect to a server (can use this for robot deployment)
+            actor_module_cls,  # class of a module containing the policy
+            sample_compressor: callable = None,  # compressor for sending samples over the Internet
+            device="cpu",  # device on which the policy is running
+            server_ip=None,  # ip of the central server
+            min_samples_per_worker_packet=1,  # # the worker waits for this number of samples before sending
+            max_samples_per_episode=np.inf,  # if an episode gets longer than this, it is reset
+            model_path=cfg.MODEL_PATH_WORKER,  # path where a local copy of the policy will be stored
+            obs_preprocessor: callable = None,  # utility for modifying samples before forward passes
+            crc_debug=False,  # can be used for debugging the pipeline
+            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,  # (omit .pth) an history of policies can be stored here
+            model_history=cfg.MODEL_HISTORY,  # new policies are saved % model_history (0: not saved)
+            standalone=False,  # if True, the worker will not try to connect to a server
     ):
         self.obs_preprocessor = obs_preprocessor
-        self.get_local_buffer_sample = get_local_buffer_sample
+        self.get_local_buffer_sample = sample_compressor
         self.env = env_cls()
         obs_space = self.env.observation_space
         act_space = self.env.action_space
         self.model_path = model_path
         self.model_path_history = model_path_history
-        self.actor = actor_module_cls(obs_space, act_space).to(device)
+        self.actor = actor_module_cls(observation_space=obs_space, action_space=act_space).to(device)
         self.device = device
         self.standalone = standalone
         if os.path.isfile(self.model_path):
@@ -531,7 +528,7 @@ class RolloutWorker:
         self.__buffer_lock = Lock()
         self.__weights = None
         self.__weights_lock = Lock()
-        self.samples_per_worker_batch = samples_per_worker_packet
+        self.samples_per_worker_batch = min_samples_per_worker_packet
         self.max_samples_per_episode = max_samples_per_episode
         self.crc_debug = crc_debug
         self.model_history = model_history
@@ -630,7 +627,10 @@ class RolloutWorker:
         if collect_samples:
             if self.crc_debug:
                 info['crc_sample'] = (obs, act, new_obs, rew, done)
-            sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
+            if self.get_local_buffer_sample:
+                sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
+            else:
+                sample = act, new_obs, rew, done, info
             self.buffer.append_sample(sample)
         return new_obs
 
@@ -647,7 +647,10 @@ class RolloutWorker:
                 stored_done = False
             if self.crc_debug:
                 info['crc_sample'] = (obs, act, new_obs, rew, stored_done)
-            sample = self.get_local_buffer_sample(act, new_obs, rew, stored_done, info)
+            if self.get_local_buffer_sample:
+                sample = self.get_local_buffer_sample(act, new_obs, rew, stored_done, info)
+            else:
+                sample = act, new_obs, rew, stored_done, info
             self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return new_obs, rew, done, info
 

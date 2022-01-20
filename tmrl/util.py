@@ -1,5 +1,6 @@
 # standard library imports
 import functools
+import operator
 import inspect
 import io
 import json
@@ -270,3 +271,10 @@ class DelayInterrupt:
         [signal.signal(s, d) for s, d in zip(self.signals, self.default_handlers)]
         if self.signal_received:
             raise KeyboardInterrupt()
+
+
+# === operations =======================================================================================================
+
+
+def prod(iterable):
+    return functools.reduce(operator.mul, iterable, 1)

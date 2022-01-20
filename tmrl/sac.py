@@ -15,6 +15,7 @@ from tmrl.nn import PopArt, copy_shared, exponential_moving_average, hd_conv, no
 from tmrl.util import cached_property, collate, partial
 import logging
 
+
 @dataclass(eq=0)
 class SacAgent:  # SAC agent with PopArt
     Env: InitVar

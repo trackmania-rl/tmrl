@@ -19,11 +19,9 @@ import logging
 
 @dataclass(eq=0)
 class TrainingOffline:
-    Env: type = GenericGymEnv
-    Agent: type = tmrl.sac.SacAgent
-    Memory: type = MemoryDataloading
-    use_dataloader: bool = False  # Whether to use pytorch dataloader for multiprocess dataloading
-    nb_workers: int = 0  # Number of parallel workers in pytorch dataloader
+    Env: type = GenericGymEnv  # dummy environment, used to retrieve observation and action spaces
+    Agent: type = tmrl.sac.SacAgent  # training agent
+    Memory: type = MemoryDataloading  # replay memory
     batchsize: int = 256  # training batch size
     memory_size: int = 1000000  # replay memory size
     epochs: int = 10  # total number of epochs, we save the agent every epoch
@@ -33,12 +31,9 @@ class TrainingOffline:
     update_buffer_interval: int = 100  # number of steps between retrieving buffered experiences in the interface
     max_training_steps_per_env_step: float = 1.0  # training will pause when above this ratio
     sleep_between_buffer_retrieval_attempts: float = 0.1  # algorithm will sleep for this amount of time when waiting for needed incoming samples
-    stats_window: int = None  # default = steps, should be at least as long as a single episode
-    seed: int = 0  # seed is currently not used
-    tag: str = ''  # for logging, e.g. allows to compare groups of runs
-    profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the enc of each epoch
+    profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the end of each epoch
     agent_scheduler: callable = None  # if not None, must be of the form f(Agent, epoch), called at the beginning of each epoch
-    start_training: int = 0  # minimum number of samples in the buffer before starting training
+    start_training: int = 0  # minimum number of samples in the replay buffer before starting training
 
     device: str = None
     total_updates = 0
@@ -88,7 +83,6 @@ class TrainingOffline:
             t1 = time.time()
 
             if self.profiling:
-                # third-party imports
                 from pyinstrument import Profiler
                 pro = Profiler()
                 pro.start()

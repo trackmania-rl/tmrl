@@ -192,7 +192,10 @@ class Float64ToFloat32(gym.ObservationWrapper):
 
     # TODO: change observation/action spaces to correct dtype
     def observation(self, observation):
-        observation = deepmap({np.ndarray: float64_to_float32}, observation)
+        observation = deepmap({np.ndarray: float64_to_float32,
+                               float: float_to_float32,
+                               np.float32: float_to_float32,
+                               np.float64: float_to_float32}, observation)
         return observation
 
     def step(self, action):
@@ -328,8 +331,12 @@ def deepmap(f, m):
     elif isinstance(m, Mapping):
         return type(m)((k, deepmap(f, m[k])) for k in m)
     else:
-        raise AttributeError()
+        raise AttributeError(f"m is a {type(m)}, not a Sequence nor a Mapping: {m}")
 
 
 def float64_to_float32(x):
-    return np.asarray(x, np.float32) if x.dtype == np.float64 else x
+    return np.asarray([x, ], np.float32) if x.dtype == np.float64 else x
+
+
+def float_to_float32(x):
+    return np.asarray([x, ], np.float32)

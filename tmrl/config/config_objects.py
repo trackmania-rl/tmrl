@@ -66,6 +66,7 @@ else:
     MEM = MemoryTM2020RAM if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
 
 MEMORY = partial(MEM,
+                 memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
                  path_loc=cfg.DATASET_PATH,
                  imgs_obs=cfg.IMG_HIST_LEN,
                  act_buf_len=cfg.ACT_BUF_LEN,
@@ -123,7 +124,6 @@ if cfg.PRAGMA_LIDAR:  # lidar
         TrainingOffline,
         Env=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
-        memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
         batchsize=cfg.TMRL_CONFIG["BATCH_SIZE"],  # RTX3080: 256 up to 1024
         epochs=cfg.TMRL_CONFIG["MAX_EPOCHS"],  # 400
         rounds=cfg.TMRL_CONFIG["ROUNDS_PER_EPOCH"],  # 10
@@ -140,7 +140,6 @@ else:  # images
         TrainingOffline,
         Env=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
         Memory=MEMORY,
-        memory_size=1000000,
         batchsize=128,  # 128
         epochs=100000,  # 10
         rounds=10,  # 50

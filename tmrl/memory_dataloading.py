@@ -68,8 +68,8 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
             operations on batch ...
     """
     def __init__(self,
-                 memory_size,
-                 batchsize,
+                 memory_size=1000000,
+                 batchsize=256,
                  path_loc="",
                  nb_steps=1,
                  use_dataloader=False,
