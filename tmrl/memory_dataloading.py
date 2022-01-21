@@ -39,13 +39,13 @@ def check_samples_crc_traj(original_o, original_r, original_d, rebuilt_o, rebuil
 
 class MemoryBatchSampler(Sampler):
     """
-    Iterator over nb_steps randomly sampled batches of size batchsize
+    Iterator over nb_steps randomly sampled batches of size batch_size
     """
-    def __init__(self, data_source, nb_steps, batchsize):
+    def __init__(self, data_source, nb_steps, batch_size):
         super().__init__(data_source)
         self._dataset = data_source
         self._nb_steps = nb_steps
-        self._batchsize = batchsize
+        self._batch_size = batch_size
 
     def __len__(self):
         return self._nb_steps
@@ -54,7 +54,7 @@ class MemoryBatchSampler(Sampler):
         i = 0
         while i < self._nb_steps:
             i += 1
-            yield (int(len(self._dataset) * random()) - 1 for _ in range(self._batchsize))  # faster than randint
+            yield (int(len(self._dataset) * random()) - 1 for _ in range(self._batch_size))  # faster than randint
 
 
 class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but partial doesn't work with Dataset
@@ -68,24 +68,22 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
             operations on batch ...
     """
     def __init__(self,
-                 memory_size=1000000,
-                 batchsize=256,
-                 path_loc="",
-                 nb_steps=1,
+                 device,  # output tensors will be collated to this device
+                 nb_steps,  # number of steps per round
+                 obs_preprocessor: callable = None,  # same observation preprocessor as the RolloutWorker
+                 sample_preprocessor: callable = None,  # can be used for data augmentation
+                 memory_size=1000000,  # size of the circular buffer
+                 batch_size=256,  # batch size of the output tensors
+                 dataset_path="",  # an offline dataset may be provided here to initialize the memory
+                 crc_debug=False,
                  use_dataloader=False,
                  num_workers=0,
-                 pin_memory=False,
-                 remove_size=100,
-                 obs_preprocessor: callable = None,
-                 sample_preprocessor: callable = None,
-                 crc_debug=False,
-                 device="cpu"):
+                 pin_memory=False):
         self.nb_steps = nb_steps
         self.use_dataloader = use_dataloader
         self.device = device
-        self.batchsize = batchsize
+        self.batch_size = batch_size
         self.memory_size = memory_size
-        self.remove_size = remove_size
         self.obs_preprocessor = obs_preprocessor
         self.sample_preprocessor = sample_preprocessor
         self.crc_debug = crc_debug
@@ -97,13 +95,13 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         self.stat_train_steps = 0
 
         # init memory
-        self.path = Path(path_loc)
+        self.path = Path(dataset_path)
         print(f"DEBUG: MemoryDataloading self.path:{self.path}")
         if os.path.isfile(self.path / 'data.pkl'):
             with open(self.path / 'data.pkl', 'rb') as f:
                 self.data = list(pickle.load(f))
-                print(f"DEBUG: len data:{len(self.data)}")
-                print(f"DEBUG: len data[0]:{len(self.data[0])}")
+                # print(f"DEBUG: len data:{len(self.data)}")
+                # print(f"DEBUG: len data[0]:{len(self.data[0])}")
         else:
             print("INFO: no data found, initializing empty replay memory")
             self.data = []
@@ -113,7 +111,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
             print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
         # init dataloader
-        self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batchsize=batchsize)
+        self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batch_size=batch_size)
         self._dataloader = DataLoader(dataset=self, batch_sampler=self._batch_sampler, num_workers=num_workers, pin_memory=pin_memory)
 
     def __iter__(self):
@@ -166,7 +164,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         return prev_obs, new_act, rew, new_obs, done
 
     def sample_indices(self):
-        return (randint(0, len(self) - 1) for _ in range(self.batchsize))
+        return (randint(0, len(self) - 1) for _ in range(self.batch_size))
 
     def sample(self, indices=None):
         indices = self.sample_indices() if indices is None else indices
@@ -178,26 +176,24 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 class TrajMemoryDataloading(MemoryDataloading, ABC):
     def __init__(self,
                  memory_size,
-                 batchsize,
-                 path_loc,
+                 batch_size,
+                 dataset_path,
                  traj_len=1,
                  nb_steps=1,
                  use_dataloader=False,
                  num_workers: callable = 0,
                  pin_memory=False,
-                 remove_size=100,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
         super().__init__(memory_size=memory_size,
-                         batchsize=batchsize,
-                         path_loc=path_loc,
+                         batch_size=batch_size,
+                         dataset_path=dataset_path,
                          nb_steps=nb_steps,
                          use_dataloader=use_dataloader,
                          num_workers=num_workers,
                          pin_memory=pin_memory,
-                         remove_size=remove_size,
                          obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,

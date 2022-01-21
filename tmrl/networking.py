@@ -463,7 +463,7 @@ class TrainerInterface:
 
     def broadcast_model(self, model: ActorModule):
         """
-        model must be an ActorModule (sac_models.py)
+        model must be an ActorModule
         broadcasts the model's weights to all connected RolloutWorkers
         """
         t0 = time.time()

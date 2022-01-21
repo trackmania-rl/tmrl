@@ -158,3 +158,8 @@ class Trainer:
                        checkpoint_path=checkpoint_path,
                        dump_run_instance_fn=dump_run_instance_fn,
                        load_run_instance_fn=load_run_instance_fn)
+
+
+class TrainingAgent:
+    def __init__(self):
+        pass

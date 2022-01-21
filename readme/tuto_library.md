@@ -526,11 +526,114 @@ model_path = str(weights_folder / (my_run_name + "_t.pth"))
 Now, the real beast is `training_cls` argument.
 This expects a training class, possibly partially initialized.
 
-At the moment, `tmrl` supports one family of training classes called `TrainingOffline`.
+At the moment, `tmrl` supports one family of training classes called [TrainingOffline](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/training_offline.py).
+
 These are meant for off-policy asynchronous RL algorithms such as SAC.
 
-A `TrainingOffline` module contains other modules such as a replay memory called `MemoryDataloading`, 
+The `TrainingOffline` prototype is:
 
+```python
+@dataclass(eq=0)
+class TrainingOffline:
+    env_cls: type = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces
+    memory_cls: type = MemoryDataloading  # replay memory
+    training_agent_cls: type = TrainingAgent  # training agent
+    epochs: int = 10  # total number of epochs, we save the agent every epoch
+    rounds: int = 50  # number of rounds per epoch, we generate statistics every round
+    steps: int = 2000  # number of training steps per round
+    update_model_interval: int = 100  # number of training steps between model broadcasts
+    update_buffer_interval: int = 100  # number of training steps between retrieving buffered samples
+    max_training_steps_per_env_step: float = 1.0  # training will pause when above this ratio
+    sleep_between_buffer_retrieval_attempts: float = 0.1  # algorithm will sleep for this amount of time when waiting for needed incoming samples
+    profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the end of each epoch
+    agent_scheduler: callable = None  # if not None, must be of the form f(Agent, epoch), called at the beginning of each epoch
+    start_training: int = 0  # minimum number of samples in the replay buffer before starting training
+    device: str = None  # device on which the model of the TrainingAgent will live (None for automatic)
+```
+
+A `TrainingOffline` class instantiation requires other (possibly partially instantiated) classes: a dummy environment, a `MemoryDataloading`, a `TrainingAgent`
+
+#### Dummy environment:
+`env_cls`: Most of the time, the dummy environment class that you need to pass here is the same class as for the `RolloutWorker` Gym environment:
+
+```python
+from tmrl.util import partial
+from tmrl.envs import GenericGymEnv
+
+env_cls = partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": my_config})
+```
+This dummy environment will only be used by the `Trainer` to retrieve the observation and action spaces (`reset()` will not be called).
+Alternatively, you can pass a tuple:
+
+```python
+env_cls = (observation_space, action_space)
+```
+
+#### Memory:
+
+`memory_cls` is the (possibly partially instantiated) class of your replay buffer.
+This must be a subclass of `MemoryDataloading`, which has the following prototype:
+
+```python
+class MemoryDataloading(ABC):
+    def __init__(self,
+                 device,  # output tensors will be collated to this device
+                 nb_steps,  # number of steps per round
+                 obs_preprocessor: callable = None,  # same observation preprocessor as the RolloutWorker
+                 sample_preprocessor: callable = None,  # can be used for data augmentation
+                 memory_size=1000000,  # size of the circular buffer
+                 batch_size=256,  # batch size of the output tensors
+                 dataset_path="",  # an offline dataset may be provided here to initialize the memory
+                 ...) # unsupported stuff
+
+    @abstractmethod
+    def append_buffer(self, buffer):
+        """
+        Appends a buffer of samples to the memory
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def __len__(self):
+        """
+        Returns:
+            memory_length: int: maximum value (+1) that item can take in get_transition()
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_transition(self, item):
+        """
+        Outputs a sample, which must be the same as the one initially output by the Gym environment
+        
+        Do NOT apply observation preprocessing here, it will be applied automatically after this
+        
+        Returns:
+            tuple (prev_obs, prev_act, rew, obs, done, info)
+        """
+        raise NotImplementedError
+```
+
+You do not need to worry about `device` and `nb_steps`, as they will be set automatically by the `Trainer`.
+
+`obs_preprocessor` is the same observation preprocessor as for the `RolloutWorker`.
+The `Trainer` needs this preprocessor since it modifies observations sent to the model.
+
+`sample_preprocessor` can be used if you wish to implement data augmentation.
+We will not use it in this tutorial, but you can find a no-op example [here](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_preprocessors.py#L41) (for syntax).
+
+`memory_size` is the maximum number of transitions that can be contained in your `MemoryDataloading` object.
+When this size is exceeded, you will want to trim your memory in the `append_buffer()` method.
+The implementation of this trimming is left to your discretion.
+
+`batch_size` is the size of the batches of tensors that the `Trainer` will collate together.
+In the current iteration of `tmrl`, the `Trainer` will call your `get_transition()` method repeatedly with random `item` values to retrieve samples one by one, and will collate these samples together to form a batch.
+
+`dataset_path` enables the user to initialize the memory with a offline dataset.
+If used, this should point to a pickled file.
+This file will be unpickled and put in `self.data` on instantiation.
+Otherwise, self.data will be initialized with an empty list.
+We will not be using this option in this tutorial, though.
 
 ...
 

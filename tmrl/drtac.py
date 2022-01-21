@@ -114,7 +114,7 @@ class Agent(tmrl.sac.SacAgent):
         self.outputnorm_target = self.OutputNorm(self.model_target.critic_output_layers)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        self.memory = self.Memory(self.memory_size, self.batchsize, device)
+        self.memory = self.Memory(device)
         self.traj_new_actions = [
             None,
         ] * self.max_possible_delay
