@@ -41,10 +41,15 @@ class TrainingOffline:
     def __post_init__(self):
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.epoch = 0
-        # logging.info(self.SacAgent)
-        # logging.info(self.Env)
         self.memory = self.memory_cls(nb_steps=self.steps, device=device)
-        self.agent = self.training_agent_cls(env_cls=self.env_cls, device=device)
+        if type(env_cls) == Tuple:
+            observation_space, action_space = env_cls
+        else:
+            with env_cls() as env:
+                observation_space, action_space = env.observation_space, env.action_space
+        self.agent = self.training_agent_cls(observation_space=observation_space,
+                                             action_space=action_space,
+                                             device=device)
         self.total_samples = len(self.memory)
         logging.info(f" Initial total_samples:{self.total_samples}")
 

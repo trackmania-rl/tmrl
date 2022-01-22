@@ -20,12 +20,12 @@ import logging
 
 @dataclass(eq=0)
 class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
-    env_cls: InitVar
-
+    observation_space: type
+    action_space: type
+    model_cls: type = core.MLPActorCritic
     gamma: float = 0.99
     polyak: float = 0.995
     alpha: float = 0.2  # fixed (v1) or initial (v2) value of the entropy coefficient
-    model_cls: type = core.MLPActorCritic
     lr_actor: float = 1e-3  # learning rate
     lr_critic: float = 1e-3  # learning rate
     lr_entropy: float = 1e-3  # entropy autotuning (SAC v2)

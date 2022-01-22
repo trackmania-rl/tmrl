@@ -14,7 +14,7 @@ If you are here because you just wish to implement your own training algorithm f
 
 `tmrl` is built on a client-server architecture, where the `Server` object is a simple central mean of communication between an instance of the `Trainer` class and one to several instances of the `RolloutWorker` class.
 
-It enables `tmrl` to run on, e.g., HPC clusters where the user does not have port-forwarding access, as long as they have a local machine with port forwarded access on which the `Server` can run (this can be a machine running a `RolloutWorker` in parallel).
+It enables `tmrl` to run on, e.g., HPC clusters where the user does not have port-forwarding access, as long as they have a local machine with port-forwarding access on which the `Server` can run (this can be a machine running a `RolloutWorker` in parallel).
 
 Both the `Trainer` and the `RolloutWorkers` connect to the `Server`.
 The `RolloutWorkers` run the current policy to collect samples in the real world, and periodically send these samples to the `Server`, which forwards them to the `Trainer`.
@@ -22,7 +22,7 @@ The `Trainer` uses these samples to update the current policy, and periodically 
 
 The `Server` is thus the central communication point between entities and should be instantiated first.
 In the context of this tutorial, we will instantiate all 3 entities on the same machine, and thus they will communicate via the `localhost` address, which is `"127.0.0.1"`
-_(NB: the `Server` does not know that, it listens to any incoming connection; if you want to avoid this behavior you can disconnect from your router when running the `Server` on localhost)_.
+_(NB: the `Server` does not know that, it listens to any incoming connection)_.
 
 Instantiating a `Server` object is straightforward:
 
@@ -31,7 +31,7 @@ from tmrl import Server
 
 my_server = Server(min_samples_per_server_packet=200)
 ```
-Where the `min_samples_per_server_packet` parameter defines the number of training samples that the `Server` will buffer before sending them to the `Trainer`.
+Where the `min_samples_per_server_packet` parameter defines the number of training samples that the `Server` will buffer from the connected `RolloutWorkers` before sending them to the connected `Trainer`.
 
 In the current iteration of `tmrl`, as soon as the server is instantiated, it spawns two deamon threads that will run forever until the application is interrupted.
 These threads listen for incoming connections from the `Trainer` and the `RolloutWorkers`.
@@ -145,7 +145,7 @@ Now that we have our robot encapsulated in a Gym environment, we will create an 
 In `tmrl`, this is done within a `RolloutWorker` object.
 
 One to several `RolloutWorkers` can coexist in `tmrl`, each one typically encapsulating a robot, or, in the case of a video game, an instance of the game
-(each `RolloutWorker` possibly runs on a separate computer).
+(each `RolloutWorker` possibly running on a separate computer).
 
 The prototype of the `RolloutWorker` class is:
 
@@ -206,7 +206,7 @@ from tmrl.envs import GenericGymEnv
 env_cls=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": my_config})
 ```
 
-We could create a dummy environment to retrieve the action and observation spaces:
+We can create a dummy environment to retrieve the action and observation spaces:
 
 ```python
 dummy_env = env_cls()
@@ -230,7 +230,7 @@ observation space: Tuple(Box([-1.], [1.], (1,), float32),
 ```
 Our dummy drone environment has a simple action space of two floats (velocities on x and y).
 Its observation space is a bit more complex: 4 floats representing the position (2 values), the target position (2 values) and the 4 last actions (4 times 2 values).
-This history of actions is required to make the observation space Markov because the dummy RC drone has random delays.
+This history of actions is required to make the observation space Markov because the dummy RC drone has random communication delays.
 
 ### Actor class
 The second argument is `actor_module_cls`.
@@ -243,7 +243,7 @@ On top of the `act()` method, subclasses of `ActorModule` must implement a `__in
 This enables you to implement generic models as we will do now.
 
 Let us implement this module for our dummy drone environment.
-Here, we have basically copy-pasted the implementation of the SAC MLP actor from [OpenAI Spinup](https://github.com/openai/spinningup/blob/038665d62d569055401d91856abb287263096178/spinup/algos/pytorch/sac/core.py#L29) and adapted it to the `ActorModule` interface:
+Here, we basically copy-paste the implementation of the SAC MLP actor from [OpenAI Spinup](https://github.com/openai/spinningup/blob/038665d62d569055401d91856abb287263096178/spinup/algos/pytorch/sac/core.py#L29) and adapt it to the `ActorModule` interface:
 
 ```python
 from tmrl import ActorModule
@@ -312,7 +312,7 @@ actor_module_cls = partial(MyActorModule)  # could add paramters like hidden_siz
 
 ### Sample compression
 
-One of the main reasons for using `tmrl` is that it supports implementing ad-hoc pipelines for your applications.
+One of the possible reasons for using `tmrl` is that it supports implementing ad-hoc pipelines for your applications.
 In particular, say you have a robot that uses CNNs to process an history of 4 concatenated images.
 You certainly do not want to send these 4 images over the Internet for each sample, because samples content would overlap and you could use 4 times less bandwidth with a more clever pipeline.
 
@@ -334,9 +334,9 @@ def my_sample_compressor(prev_act, obs, rew, done, info):
 
     This function creates the sample that will actually be stored in local buffers for networking.
     This is to compress the sample before sending it over the Internet/local network.
-    Buffers of such samples will be given as input to the append() method of the dataloading memory.
-    When you implement such compressor, you must implement a corresponding decompressor.
-    This decompressor is the append() method of the memory.
+    Buffers of compressed samples will be given as input to the append() method of the dataloading memory.
+    When you implement a compressor, you also need to implement a decompressor in the dataloading memory.
+    This decompressor is the append() method of the MemoryDataloading object.
 
     Args:
         prev_act: action computed from a previous observation and applied to yield obs in the transition
@@ -386,14 +386,18 @@ server_ip = "127.0.0.1"
 ```
 
 In the current iteration of `tmrl`, samples are gathered locally in a buffer by the `RolloutWorker` and are sent to the `Server` only at the end of an episode, if the buffer length exceeds a threshold named `min_samples_per_worker_packet`.
-For instance, let us say we only want to send samples to the `Server` once at least 200 samples have been gathered in the local buffer:
+For instance, let us say we only want to send samples to the `Server` when at least 200 samples have been gathered in the local buffer:
 
 ```python
 min_samples_per_worker_packet = 200
 ```
 
 In case your Gym environment is never `done` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
-For instance, let us say we don't want an episode to last more than 1000 time-steps _(NB: this is for the sake of illustration, in fact this cannot happen in the RC drone environment):_
+For instance, let us say we don't want an episode to last more than 1000 time-steps:
+
+_(Note 1: this is for the sake of illustration, in fact this cannot happen in our RC drone environment)_
+
+_(Note 2: if the episode is stopped because of this threshold, the `done` signal will be `False` and a `"__no_done"` entry will be added to the `info` dictionary)_
 
 ```python
 max_samples_per_episode = 1000
@@ -422,7 +426,7 @@ model_path_history = str(weights_folder / (my_run_name + "_"))
 ```
 
 `model_history` can be set to 0 if you do not wish to save the weight history, and to a positive value otherwise.
-When `model_history!=0`, incoming models from the `Server` will be saved each time `model_history` models have been received since the last saved model (e.g., 1 will save all models, 2 will save every one in two models, etc.).
+When `model_history > 0`, incoming models from the `Server` will be saved each time `model_history` models have been received since the last saved model (e.g., 1 will save all models, 2 will save every one in two models, etc.).
 For instance, let us say we want to save a checkpoint of our policy for every 10 new updated policies:
 
 ```python
@@ -437,13 +441,13 @@ In particular:
 `obs_preprocessor` can be used to modify observations before they are fed to the model.
 Some examples of such preprocessors are available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_preprocessors.py).
 
-`crc_debug` is a hack we use for debugging our pipelines, it is not really supported and you can ignore it.
+`standalone` can be set to `True` for deployment, in which case the `RolloutWorker` will not attempt to connect to the `Server`.
 
-Finally, `standalone` can be set to `True` for deployment, in which case the `RolloutWorker` will not attempt to connect to the `Server`.
+Finally, `crc_debug` is a hack we use for debugging our pipelines, it is not really supported and you can ignore it
 
 ### Instantiate and run:
 
-Now let us instantiate a `RolloutWorker`:
+Now we can instantiate a `RolloutWorker`:
 
 ```python
 from tmrl import RolloutWorker
@@ -485,6 +489,11 @@ For the moment, let us just comment this line:
 
 In `tmrl`, RL training per-se happens in the `Trainer` entity.
 
+The `Trainer` connects to the `Server`, from which it receives compressed samples gathered from connected `RolloutWorkers`.
+These samples are stored (possibly in compressed format) in a memory object called `MemoryDataloading`.
+They are decompressed either when stored, or when sampled from the `MemoryDataloading`, depending on how the user wants to implement this object.
+The decompressed samples are then used by an object called `TrainingAgent` to optimize the policy weights, that the `Trainer` periodically sends back to the `Server` so they get broadcast to all connected `RolloutWorkers`.
+
 The prototype of the `Trainer` class is:
 
 ```python
@@ -500,17 +509,17 @@ class Trainer:
 
 ### Networking and files
 
-`server_ip` is similar to the one of the `RolloutWorker`.
+`server_ip` is the public IP address of the `Server`.
 Since both the `Trainer` and `RolloutWorker` will run on the same machine as the `Server` in this tutorial, the `server_ip` will also be localhost here, i.e., `"127.0.0.1"`:
 
 ```python
 server_ip = "127.0.0.1"
 ```
 
-`model_path` is also similar to the one of the `RolloutWorker`. The trainer will keep a local copy of its model that acts as a saving file.
-We recommend leaving this to its default value and just changing the value of the `"RUN_NAME"` entry in `config.json`, but again, if you do not wish to use `"config.json"`, you can set `model_path` as follows:
+`model_path` is similar to the one of the `RolloutWorker`. The trainer will keep a local copy of its model that acts as a saving file.
+We recommend leaving this to its default value and just changing the value of the `"RUN_NAME"` entry in `config.json` instead, but again, if you do not wish to use `"config.json"`, you can set `model_path` as follows:
 
-**CAUTION: do not set the exact same path as the one of the `RolloutWorker`** (here, we use _t to differentiate both).
+**CAUTION: do not set the exact same path as the one of the `RolloutWorker` when running on the same machine** (here, we use _t to differentiate both).
 
 ```python
 import tmrl.config.config_constants as cfg
@@ -523,12 +532,11 @@ model_path = str(weights_folder / (my_run_name + "_t.pth"))
 
 ### Training class
 
-Now, the real beast is `training_cls` argument.
+Now, the real beast is the `training_cls` argument.
 This expects a training class, possibly partially initialized.
 
-At the moment, `tmrl` supports one family of training classes called [TrainingOffline](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/training_offline.py).
-
-These are meant for off-policy asynchronous RL algorithms such as SAC.
+At the moment, `tmrl` supports one training class called [TrainingOffline](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/training_offline.py).
+This class is meant for off-policy asynchronous RL algorithms such as SAC.
 
 The `TrainingOffline` prototype is:
 
@@ -551,7 +559,7 @@ class TrainingOffline:
     device: str = None  # device on which the model of the TrainingAgent will live (None for automatic)
 ```
 
-A `TrainingOffline` class instantiation requires other (possibly partially instantiated) classes: a dummy environment, a `MemoryDataloading`, a `TrainingAgent`
+A `TrainingOffline` class instantiation requires other (possibly partially instantiated) classes as arguments: a dummy environment, a `MemoryDataloading`, and a `TrainingAgent`
 
 #### Dummy environment:
 `env_cls`: Most of the time, the dummy environment class that you need to pass here is the same class as for the `RolloutWorker` Gym environment:
@@ -563,7 +571,7 @@ from tmrl.envs import GenericGymEnv
 env_cls = partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": my_config})
 ```
 This dummy environment will only be used by the `Trainer` to retrieve the observation and action spaces (`reset()` will not be called).
-Alternatively, you can pass a tuple:
+Alternatively, you can pass this information as a Tuple:
 
 ```python
 env_cls = (observation_space, action_space)
@@ -571,8 +579,13 @@ env_cls = (observation_space, action_space)
 
 #### Memory:
 
-`memory_cls` is the (possibly partially instantiated) class of your replay buffer.
-This must be a subclass of `MemoryDataloading`, which has the following prototype:
+`memory_cls` is the class of your replay buffer.
+This must be a subclass of `MemoryDataloading`.
+
+The role of a `MemoryDataloading` object is to store and decompress samples received by the `Trainer` from the `Server`.
+
+
+`MemoryDataloading` has the following prototype:
 
 ```python
 class MemoryDataloading(ABC):
@@ -604,36 +617,220 @@ class MemoryDataloading(ABC):
     @abstractmethod
     def get_transition(self, item):
         """
-        Outputs a sample, which must be the same as the one initially output by the Gym environment
+        Outputs a decompressed RL transition.
         
-        Do NOT apply observation preprocessing here, it will be applied automatically after this
+        This transition is same as the one initially output by the Gym environment.
+        Do NOT apply observation preprocessing here, it will be applied automatically in the superclass.
         
+        Args:
+            item: int: indice of the transition that the Trainer wants to sample
         Returns:
-            tuple (prev_obs, prev_act, rew, obs, done, info)
+            full transition: (last_obs, new_act, rew, new_obs, done, info)
         """
         raise NotImplementedError
 ```
 
-You do not need to worry about `device` and `nb_steps`, as they will be set automatically by the `Trainer`.
+You do not need to worry about `device` and `nb_steps`, as they will be set automatically by the `Trainer` and are for the superclass.
 
-`obs_preprocessor` is the same observation preprocessor as for the `RolloutWorker`.
-The `Trainer` needs this preprocessor since it modifies observations sent to the model.
+`obs_preprocessor` must be the same observation preprocessor as for the `RolloutWorker`.
+You just want to pass this argument to the superclass.
 
-`sample_preprocessor` can be used if you wish to implement data augmentation.
-We will not use it in this tutorial, but you can find a no-op example [here](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_preprocessors.py#L41) (for syntax).
+`sample_preprocessor` can be used if you wish to implement data augmentation before the samples are used for training.
+We will not do this in the tutorial, but you can find a no-op example [here](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_preprocessors.py#L41) (for syntax).
+This argument is also only to be passed to the superclass.
 
 `memory_size` is the maximum number of transitions that can be contained in your `MemoryDataloading` object.
 When this size is exceeded, you will want to trim your memory in the `append_buffer()` method.
 The implementation of this trimming is left to your discretion.
+Use AND pass to the superclass.
 
 `batch_size` is the size of the batches of tensors that the `Trainer` will collate together.
 In the current iteration of `tmrl`, the `Trainer` will call your `get_transition()` method repeatedly with random `item` values to retrieve samples one by one, and will collate these samples together to form a batch.
+Just pass to the superclass.
 
 `dataset_path` enables the user to initialize the memory with a offline dataset.
 If used, this should point to a pickled file.
 This file will be unpickled and put in `self.data` on instantiation.
-Otherwise, self.data will be initialized with an empty list.
+Otherwise, `self.data` will be initialized with an empty list.
 We will not be using this option in this tutorial, though.
+Again, just pass to the superclass.
+
+Let us implement our own `MemoryDataloading`.
+
+```python
+from tmrl.memory_dataloading import MemoryDataloading
+
+class MyMemoryDataloading(MemoryDataloading):
+    
+    # (...)
+```
+
+You can do whatever you want in the `__init__()` method as long as you initialize the superclass with its relevant arguments.
+In our decompression scheme, we have removed the action buffer that we will need to rebuild here.
+Thus, we will use the action buffer length as an additional argument to our custom class:
+
+```python
+    def __init__(self,
+                 act_buf_len,
+                 device,
+                 nb_steps,
+                 obs_preprocessor: callable = None,
+                 sample_preprocessor: callable = None,
+                 memory_size=1000000,
+                 batch_size=256,
+                 dataset_path=""):
+
+        self.act_buf_len = act_buf_len  # length of the action buffer
+
+        super().__init__(device=device,
+                         nb_steps=nb_steps,
+                         obs_preprocessor=obs_preprocessor,
+                         sample_preprocessor=sample_preprocessor,
+                         memory_size=memory_size,
+                         batch_size=batch_size,
+                         dataset_path=dataset_path)
+```
+
+
+In fact, the `MemoryDataloading` class leaves the whole storing and sampling procedures to your discretion.
+This is because, when using `tmrl`, you may want to do exotic things such as storing samples on your hard drive (if they contain images for instance).
+If you have implemented a sample compressor for the `RolloutWorker` (as we have done earlier in this tutorial), you will also need to implement a decompression scheme.
+This decompression may happen either in `append_buffer()` (if you privilege sampling speed) or in `get_transition()` (if you privilege memory usage).
+In this tutorial, we will privilege memory usage and thus we will implement our decompression scheme in `get_transition()`.
+The `append_buffer()` method wil simply store the compressed samples components in `self.data`.
+
+`append_buffer()` is passed a [buffer](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/networking.py#L198) object that contains a list of compressed `(act, new_obs, rew, done, info)` samples in its `memory` attribute.
+`act` is the action that was sent to the `step()` method of the Gym environment to yield `new_obs`, `rew`, `done` and `info`.
+Here, we decompose our samples in their relevant components, append these components to the `self.data` list, and clip `self.data` when `self.memory_size` is exceeded:
+
+```python
+    def append_buffer(self, buffer):
+        """
+        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, done_mod, info_mod) samples
+        """
+        
+        # decompose compressed samples into their relevant components:
+        
+        list_action = [b[0] for b in buffer.memory]
+        list_x_position = [b[1][0] for b in buffer.memory]
+        list_y_position = [b[1][1] for b in buffer.memory]
+        list_x_target = [b[1][2] for b in buffer.memory]
+        list_y_target = [b[1][3] for b in buffer.memory]
+        list_reward = [b[2] for b in buffer.memory]
+        list_done = [b[3] for b in buffer.memory]
+        list_info = [b[4] for b in buffer.memory]
+        
+        # append to self.data in some arbitrary way:
+
+        if self.__len__() > 0:
+            self.data[0] += list_action
+            self.data[1] += list_x_position
+            self.data[2] += list_y_position
+            self.data[3] += list_x_target
+            self.data[4] += list_y_target
+            self.data[5] += list_reward
+            self.data[6] += list_done
+            self.data[7] += list_info
+        else:
+            self.data.append(list_action)
+            self.data.append(list_x_position)
+            self.data.append(list_y_position)
+            self.data.append(list_x_target)
+            self.data.append(list_y_target)
+            self.data.append(list_reward)
+            self.data.append(list_done)
+            self.data.append(list_info)
+
+        # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
+
+        to_trim = self.__len__() - self.memory_size
+        if to_trim > 0:
+            self.data[0] = self.data[0][to_trim:]
+            self.data[1] = self.data[1][to_trim:]
+            self.data[2] = self.data[2][to_trim:]
+            self.data[3] = self.data[3][to_trim:]
+            self.data[4] = self.data[4][to_trim:]
+            self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
+            self.data[7] = self.data[7][to_trim:]
+```
+
+We must also implement the `__len__()` method of our memory, because the content of `self.data` is arbitrary and the `Trainer` needs to know what it can ask to the `get_transition()` method:
+
+```python
+    def __len__(self):
+        if len(self.data) == 0:
+            return 0  # self.data is empty
+        result = len(self.data[0]) - self.act_buf_len - 1
+        if result < 0:
+            return 0  # not enough samples to reconstruct the action buffer
+        else:
+            return result  # we can reconstruct that many samples
+```
+Now this is becoming interesting: why is the `__len__()` method so complicated?
+`self.data` is initially an empty list, so when its `len` is `0`, our memory is empty.
+But when it is not empty and we have less samples than the length of our action buffer, we cannot reconstruct the action buffer! Thus our memory is still empty.
+Finally, if we have enough samples, we need to remove the length of the action buffer to get the number of samples we can actually reconstruct.
+Furthermore, the `get_transition()` method outputs a full RL transition, which includes the previous observation. Thus, we must subtract 1 to get the number of full transitions that we can actually output.
+
+Alright, let us finally implement `get_transition()`, where we have chosen sample decompression to happen.
+This method outputs full transitions as if they were directly output by the Gym environment
+(that is, before observation preprocessing or anything else happens):
+
+```python
+    def get_transition(self, item):
+        """
+        Args:
+            item: int: indice of the transition that the Trainer wants to sample
+        Returns:
+            full transition: (last_obs, new_act, rew, new_obs, done, info)
+        """
+        idx_last = item + self.act_buf_len - 1  # index of previous observation
+        idx_now = item + self.act_buf_len  # index of new observation
+        
+        # rebuild the action buffer of both observations:
+        actions = self.data[0][item:(item + self.act_buf_len + 1)]
+        last_act_buf = actions[:-1]  # action buffer of previous observation
+        new_act_buf = actions[1:]  # action buffer of new observation
+        
+        # rebuild the previous observation:
+        last_obs = (self.data[1][idx_last],  # x position
+                    self.data[2][idx_last],  # y position
+                    self.data[3][idx_last],  # x target
+                    self.data[4][idx_last],  # y target
+                    *last_act_buf)  # action buffer
+        
+        # rebuild the new observation:
+        new_obs = (self.data[1][idx_now],  # x position
+                   self.data[2][idx_now],  # y position
+                   self.data[3][idx_now],  # x target
+                   self.data[4][idx_now],  # y target
+                   *new_act_buf)  # action buffer
+        
+        # other components of the transition:
+        new_act = self.data[0][idx_now]  # action
+        rew = np.float32(self.data[5][idx_now])  # reward
+        done = self.data[6][idx_now]  # done signal
+        info = self.data[7][idx_now]  # info dictionary
+
+        return last_obs, new_act, rew, new_obs, done, info
+```
+_Note 1: the action buffer of `new_obs` contains `new_act`.
+This is because at least the last computed action (`new_act`) must be in the action buffer to keep a Markov state in a real-time environment. See [rtgym](https://github.com/yannbouteiller/rtgym)._
+
+_Note 2: in our dummy RC drone environment, the action buffer is not reset on calls to `reset()` and thus we don't need to do anything special about it here.
+However, in other environments, this will not always be the case.
+If you want to be extra picky, you may need to take special care for rebuilding transitions that happened after a `done` signal set to `True`.
+This is done in the `tmrl` implementation of [MemoryDataloading for TrackMania](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_memories.py#L143)._
+
+
+#### Training agent
+
+The `training_agent_cls` expects an implementation of the `TrainingAgent` class.
+`TrainingAgent` is where the actual RL training algorithm lives.
+
+
+
 
 ...
 
