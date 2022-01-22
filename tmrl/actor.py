@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import torch
 
 
-class ActorModule(ABC, torch.nn.Module):
+class ActorModule(torch.nn.Module, ABC):
     """
     Interface for the RolloutWorker(s) to interact with the policy.
 

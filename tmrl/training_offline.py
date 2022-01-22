@@ -128,7 +128,7 @@ class TrainingOffline:
                 self.total_updates += 1
                 if self.total_updates % self.update_model_interval == 0:
                     # broadcast model weights
-                    interface.broadcast_model(self.agent.model_nograd.actor)
+                    interface.broadcast_model(self.agent.get_actor())
                 self.check_ratio(interface)
 
                 if cfg.SYNCHRONIZE_CUDA:

@@ -12,9 +12,6 @@ from tmrl.envs import GenericGymEnv
 from tmrl.config.config_objects import CONFIG_DICT
 from tmrl.tools.record import record_reward_dist
 from tmrl.tools.check_environment import check_env_tm20lidar
-from tmrl.actor import ActorModule
-from tmrl.training_offline import TrainingOffline
-from tmrl.memory_dataloading import MemoryDataloading
 
 
 def get_environment():

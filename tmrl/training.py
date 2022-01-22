@@ -11,12 +11,12 @@ from random import randrange
 from tempfile import mkdtemp
 import pandas as pd
 import yaml
+from abc import ABC, abstractmethod
+
 from tmrl.networking import TrainerInterface
 from tmrl.util import dump, git_info, load, load_json, partial, partial_from_dict, partial_to_dict, save_json
-
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl.networking import TrainerInterface
 
 
 def log_environment_variables():
@@ -160,6 +160,41 @@ class Trainer:
                        load_run_instance_fn=load_run_instance_fn)
 
 
-class TrainingAgent:
-    def __init__(self):
-        pass
+class TrainingAgent(ABC):
+    def __init__(self,
+                 observation_space,
+                 action_space,
+                 device):
+        """
+        observation_space, action_space and device are here for your convenience.
+
+        You are free to use them or not, but your subclass must have them as args or kwargs of __init__() .
+        """
+        self.observation_space = observation_space
+        self.action_space = action_space
+        self.device = device
+
+    @abstractmethod
+    def train(self, batch):
+        """
+        Executes a training step.
+
+        Args:
+            batch: tuple or batched torch.tensors (previous observation, action, reward, new observation, done)
+
+        Returns:
+            ret_dict: dictionary: a dictionary containing one entry per metric you wish to log (e.g. for wandb)
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_actor(self):
+        """
+        Returns the current ActorModule to be broadcast to the RolloutWorkers.
+
+        Returns:
+             actor: ActorModule: current actor to be broadcast
+        """
+        raise NotImplementedError
+
+

@@ -585,7 +585,7 @@ This must be a subclass of `MemoryDataloading`.
 The role of a `MemoryDataloading` object is to store and decompress samples received by the `Trainer` from the `Server`.
 
 
-`MemoryDataloading` has the following prototype:
+`MemoryDataloading` has the following interface:
 
 ```python
 class MemoryDataloading(ABC):
@@ -823,16 +823,280 @@ However, in other environments, this will not always be the case.
 If you want to be extra picky, you may need to take special care for rebuilding transitions that happened after a `done` signal set to `True`.
 This is done in the `tmrl` implementation of [MemoryDataloading for TrackMania](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_memories.py#L143)._
 
+This gives us our `memory_cls` argument:
+
+```python
+memory_cls = MyMemoryDataloading
+```
 
 #### Training agent
 
-The `training_agent_cls` expects an implementation of the `TrainingAgent` class.
-`TrainingAgent` is where the actual RL training algorithm lives.
+The `training_agent_cls` expects an implementation of the `TrainingAgent` abstract class.
+`TrainingAgent` is where you can implement your actual RL training algorithm.
+
+The interface of `TrainingAgent` is:
+
+```python
+class TrainingAgent(ABC):
+    def __init__(self,
+                 observation_space,
+                 action_space,
+                 device):
+        """
+        observation_space, action_space and device are here for your convenience.
+
+        You are free to use them or not, but your subclass must have them as args or kwargs of __init__() .
+        """
+        self.observation_space = observation_space
+        self.action_space = action_space
+        self.device = device
+
+    @abstractmethod
+    def train(self, batch):
+        """
+        Executes a training step.
+
+        Args:
+            batch: tuple or batched torch.tensors
+                (previous observation, action, reward, new observation, done)
+
+        Returns:
+            ret_dict: dictionary: a dictionary containing one entry per metric you wish to log
+                (e.g. for wandb)
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_actor(self):
+        """
+        Returns the current ActorModule to be broadcast to the RolloutWorkers.
+
+        Returns:
+             actor: ActorModule: current actor to be broadcast
+        """
+        raise NotImplementedError
+```
+
+This interface has a `__init__()` method that is mostly here to remind you that your implementation needs to take at least `observation_space`, `action_space` and `device` as arguments.
+These are for you to use in your implementation.
+`device` is the device that your algorithm is supposed to use for training and where the batch lives (e.g. `"cpu"` or `"cuda:0"`), while `observation_space` and `action_space` are mandatory input to the `ActorModule` class (although you don't have to use them: they are simply here for convenience).
+
+In this tutorial, we will be implementing Soft Actor-Critic (SAC) since we have already built a SAC-compatible policy as the `ActorModule` of our `RolloutWorker`.
+
+First, let us implement a critic module, (we already have our actor from the [ActorModule](#actor-class) section):
+
+```python
+class MyCriticModule(torch.nn.Module):
+    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU):
+        super().__init__()
+        obs_dim = sum(prod(s for s in space.shape) for space in observation_space)
+        act_dim = action_space.shape[0]
+        self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation)
+
+    def forward(self, obs, act):
+        x = torch.cat((*obs, act), -1)
+        q = self.q(x)
+        return torch.squeeze(q, -1)
 
 
+class MyActorCriticModule(torch.nn.Module):
+    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU):
+        super().__init__()
+        
+        # our ActorModule:
+        self.actor = MyActorModule(observation_space, action_space, hidden_sizes, activation)
+        
+        # double Q networks:
+        self.q1 = MyCriticModule(observation_space, action_space, hidden_sizes, activation)
+        self.q2 = MyCriticModule(observation_space, action_space, hidden_sizes, activation)
+```
+
+Our custom `TrainingAgent` subclass must take the aforementioned args/kwargs, and can take any user-defined additional kwargs.
+Again, here, we simply adapt the SAC implementation from Spinup, but of course you can implement whatever you want instead:
+
+```python
+from tmrl.training import TrainingAgent
+from tmrl.nn import copy_shared, no_grad
+from tmrl.util import cached_property
+from torch.optim import Adam
+from copy import deepcopy
+
+class MyTrainingAgent(TrainingAgent):
+    def __init__(self,
+                 observation_space,
+                 action_space,
+                 device,
+                 model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
+                 gamma=0.99,  # discount factor
+                 polyak=0.995,  # exponential averaging factor for the target critic
+                 alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
+                 lr_actor=1e-3,  # learning rate for the actor
+                 lr_critic=1e-3,  # learning rate for the critic
+                 lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
+                 learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
+                 target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
+        super().__init__(observation_space=observation_space,
+                         action_space=action_space,
+                         device=device)
+
+        model = model_cls(observation_space, action_space)
+        self.model = model.to(device)
+        self.model_target = no_grad(deepcopy(self.model))
+        self.model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
+        self.gamma = gamma
+        self.polyak = polyak
+        self.alpha = alpha
+        self.lr_actor = lr_actor
+        self.lr_critic = lr_critic
+        self.lr_entropy = lr_entropy
+        self.learn_entropy_coef=learn_entropy_coef
+        self.target_entropy = target_entropy
+        self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
+        self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
+        self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
+        if self.target_entropy is None:
+            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+        else:
+            self.target_entropy = float(self.target_entropy)
+        if self.learn_entropy_coef:
+            self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
+            self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
+        else:
+            self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
+```
+
+The `get_actor()` method, which outputs the `ActorModule` to be broadcast to the `RolloutWorkers`, is straightforward:
+
+```python
+    def get_actor(self):
+        return self.model_nograd.actor
+```
+
+And finally, for the training algorithm itself, we simply adapt the SAC Spinup implementation to the `train()` signature.
+Note that `train()` returns a python dictionary in which you can store the metrics you wish to be logged automatically on `wandb`:
+
+```python
+    def train(self, batch):
+        """
+        Adapted from the SAC implementation of OpenAI Spinup
+        
+        https://github.com/openai/spinningup/tree/master/spinup/algos/pytorch/sac
+        """
+        o, a, r, o2, d = batch  # these tensors are collated on device
+        pi, logp_pi = self.model.actor(o)
+        loss_alpha = None
+        if self.learn_entropy_coef:
+            alpha_t = torch.exp(self.log_alpha.detach())
+            loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
+        else:
+            alpha_t = self.alpha_t
+        if loss_alpha is not None:
+            self.alpha_optimizer.zero_grad()
+            loss_alpha.backward()
+            self.alpha_optimizer.step()
+        q1 = self.model.q1(o, a)
+        q2 = self.model.q2(o, a)
+        with torch.no_grad():
+            a2, logp_a2 = self.model.actor(o2)
+            q1_pi_targ = self.model_target.q1(o2, a2)
+            q2_pi_targ = self.model_target.q2(o2, a2)
+            q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
+            backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
+        loss_q1 = ((q1 - backup)**2).mean()
+        loss_q2 = ((q2 - backup)**2).mean()
+        loss_q = loss_q1 + loss_q2
+        self.q_optimizer.zero_grad()
+        loss_q.backward()
+        self.q_optimizer.step()
+        for p in self.q_params:
+            p.requires_grad = False
+        q1_pi = self.model.q1(o, pi)
+        q2_pi = self.model.q2(o, pi)
+        q_pi = torch.min(q1_pi, q2_pi)
+        loss_pi = (alpha_t * logp_pi - q_pi).mean()
+        self.pi_optimizer.zero_grad()
+        loss_pi.backward()
+        self.pi_optimizer.step()
+        for p in self.q_params:
+            p.requires_grad = True
+        with torch.no_grad():
+            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
+                p_targ.data.mul_(self.polyak)
+                p_targ.data.add_((1 - self.polyak) * p.data)
+        ret_dict = dict(
+            loss_actor=loss_pi.detach(),
+            loss_critic=loss_q.detach(),
+        )
+        if self.learn_entropy_coef:
+            ret_dict["loss_entropy_coef"] = loss_alpha.detach()
+            ret_dict["entropy_coef"] = alpha_t.item()
+        return ret_dict  # dictionary of metrics to be logged
+```
+
+This gives us our `training_agent_cls` argument:
+
+```python
+training_agent_cls = MyTrainingAgent
+```
 
 
-...
+#### Training parameters
+
+There are no epochs in RL.
+What we call `epoch` in `tmrl` is simply the point where the `Trainer` sends data to `wandb` and may checkpoint the training session on hard drive.
+
+An `epoch` is made of a fixed number of `rounds`, and a `round` is made of a fixed number of training `steps`.
+These values are very arbitrary and you can set mostly whatever you like depending on how often you want to see metrics printed and logged (they are printed at the end of each `round` and logged at the end of each `epoch`):
+
+```python
+epochs = 10  # maximum number of epochs, usually set this to np.inf
+rounds = 10  # number of rounds per epoch
+steps = 1000  # number of training steps per round
+```
+
+`update_buffer_interval` defines how often we want to check for incoming samples from the `Server`.
+If it is set to 100, we will check for available new samples every 100 training `steps`:
+
+```python
+update_buffer_interval = 100
+```
+
+`update_model_interval` defines how often we want to send the model to the `Server` to be broadcast to the `RolloutWorkers`.
+If set to 1000, the model will be sent at the end of each round in our example:
+
+```python
+update_model_interval = 1000
+```
+
+`max_training_steps_per_env_step` enables limitating the impact of the asynchronous nature of training in `tmrl`.
+If set to, e.g., 2.0, training will pause until new samples are available when 2.0 times more training steps have been performed compared to the number of samples (i.e., environment steps) that the `Trainer` has received:
+
+```python
+max_training_steps_per_env_step = 2.0
+```
+
+`start_training` is the number of samples that the `Trainer` will wait for at the beginning before starting training.
+If set to 2000, training will start only after 2000 environment steps are collected:
+
+```python
+start_training = 2000
+```
+
+`device` is the device on which training will take place (it is the `device` parameter that will be passed to `MemoryDataloading` and `TrainingAgent`).
+If set to `None`, the training device will be selected automatically:
+
+```python
+device = None
+```
+
+A few more options not used in this tutorial are available.
+In particular, `profiling` enables profiling training (but this doesn't work well with CUDA), and `agent_scheduler` enables changing the `TrainingAgent` parameters during training.
+
+We can now, finally, instantiate our `Trainer`!
+
+```python
+
+```
 
 
 ## Constants
