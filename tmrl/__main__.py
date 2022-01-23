@@ -13,10 +13,10 @@ import json
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl import record_reward_dist, check_env_tm20lidar
+from tmrl.tools.record import record_reward_dist
+from tmrl.tools.check_environment import check_env_tm20lidar
 from tmrl.envs import GenericGymEnv
-from tmrl.networking import RolloutWorker, Server
-from tmrl.training import Trainer
+from tmrl.networking import Server, Trainer, RolloutWorker
 from tmrl.util import partial
 
 
@@ -50,19 +50,17 @@ def main(args):
     elif args.trainer:
         trainer = Trainer(training_cls=cfg_obj.TRAINER,
                           server_ip=cfg.SERVER_IP_FOR_TRAINER,
-                          model_path=cfg.MODEL_PATH_TRAINER)
+                          model_path=cfg.MODEL_PATH_TRAINER,
+                          checkpoint_path=cfg.CHECKPOINT_PATH,
+                          dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
+                          load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
         logging.info(f"--- NOW RUNNING: SAC trackmania ---")
         if not args.no_wandb:
             trainer.run_with_wandb(entity=cfg.WANDB_ENTITY,
                                    project=cfg.WANDB_PROJECT,
-                                   run_id=cfg.WANDB_RUN_ID,
-                                   checkpoint_path=cfg.CHECKPOINT_PATH,
-                                   dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
-                                   load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
+                                   run_id=cfg.WANDB_RUN_ID)
         else:
-            trainer.run(checkpoint_path=cfg.CHECKPOINT_PATH,
-                        dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
-                        load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
+            trainer.run()
     elif args.record_reward:
         assert cfg.PRAGMA_TM2020_TMNF, "Not supported for this environment."
         record_reward_dist(path_reward=cfg.REWARD_PATH)

@@ -9,10 +9,10 @@ from pandas import DataFrame
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.sac
-from tmrl.envs import GenericGymEnv
-from tmrl.memory_dataloading import MemoryDataloading
-from tmrl.networking import TrainerInterface
-from tmrl.training import TrainingAgent
+# from tmrl.envs import GenericGymEnv
+# from tmrl.memory_dataloading import MemoryDataloading
+# from tmrl.networking import TrainerInterface
+# from tmrl.training import TrainingAgent
 from tmrl.util import pandas_dict
 
 import logging
@@ -21,9 +21,9 @@ import logging
 
 @dataclass(eq=0)
 class TrainingOffline:
-    env_cls: type = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces if needed
-    memory_cls: type = MemoryDataloading  # replay memory
-    training_agent_cls: type = TrainingAgent  # training agent
+    env_cls: type  # = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces if needed
+    memory_cls: type  # = MemoryDataloading  # replay memory
+    training_agent_cls: type  # = TrainingAgent  # training agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
     rounds: int = 50  # number of rounds per epoch, we generate statistics every round
     steps: int = 2000  # number of training steps per round
@@ -42,10 +42,10 @@ class TrainingOffline:
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.epoch = 0
         self.memory = self.memory_cls(nb_steps=self.steps, device=device)
-        if type(env_cls) == Tuple:
-            observation_space, action_space = env_cls
+        if type(self.env_cls) == tuple:
+            observation_space, action_space = self.env_cls
         else:
-            with env_cls() as env:
+            with self.env_cls() as env:
                 observation_space, action_space = env.observation_space, env.action_space
         self.agent = self.training_agent_cls(observation_space=observation_space,
                                              action_space=action_space,
@@ -70,7 +70,7 @@ class TrainingOffline:
                     time.sleep(self.sleep_between_buffer_retrieval_attempts)
             logging.info(f" Resuming training")
 
-    def run_epoch(self, interface: TrainerInterface):
+    def run_epoch(self, interface):
         stats = []
         state = None
 

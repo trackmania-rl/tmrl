@@ -6,7 +6,7 @@ import rtgym
 
 # local imports
 import tmrl.config.config_constants as cfg
-from tmrl import TrainingOffline
+from tmrl.training_offline import TrainingOffline
 from tmrl.custom.custom_dcac_interfaces import Tm20rtgymDcacInterface
 # from tmrl.custom.custom_models import Tm_hybrid_1, TMPolicy
 from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TMInterface, TMInterfaceLidar

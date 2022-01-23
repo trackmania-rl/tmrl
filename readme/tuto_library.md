@@ -27,9 +27,9 @@ _(NB: the `Server` does not know that, it listens to any incoming connection)_.
 Instantiating a `Server` object is straightforward:
 
 ```python
-from tmrl import Server
+from tmrl.networking import Server
 
-my_server = Server(min_samples_per_server_packet=200)
+my_server = Server(min_samples_per_server_packet=100)
 ```
 Where the `min_samples_per_server_packet` parameter defines the number of training samples that the `Server` will buffer from the connected `RolloutWorkers` before sending them to the connected `Trainer`.
 
@@ -54,6 +54,7 @@ from rtgym import RealTimeGymInterface, DEFAULT_CONFIG_DICT, DummyRCDrone
 import gym.spaces as spaces
 import numpy as np
 import cv2
+from threading import Thread
 
 
 # rtgym interface:
@@ -64,6 +65,14 @@ class DummyRCDroneInterface(RealTimeGymInterface):
         self.rc_drone = None
         self.target = np.array([0.0, 0.0], dtype=np.float32)
         self.initialized = False
+        self.blank_image = np.ones((500, 500, 3), dtype=np.uint8) * 255
+        self.rendering_thread = Thread(target=self._rendering_thread, args=(), kwargs={}, daemon=True)
+
+    def _rendering_thread(self):
+        from time import sleep
+        while True:
+            sleep(0.1)
+            self.render()
 
     def get_observation_space(self):
         pos_x_space = spaces.Box(low=-1.0, high=1.0, shape=(1,))
@@ -87,10 +96,10 @@ class DummyRCDroneInterface(RealTimeGymInterface):
         if not self.initialized:
             self.rc_drone = DummyRCDrone()
             self.initialized = True
+            self.rendering_thread.start()
         pos_x, pos_y = self.rc_drone.get_observation()
         self.target[0] = np.random.uniform(-0.5, 0.5)
         self.target[1] = np.random.uniform(-0.5, 0.5)
-        self.render()
         return [pos_x, pos_y, self.target[0], self.target[1]]
 
     def get_obs_rew_done_info(self):
@@ -101,26 +110,25 @@ class DummyRCDroneInterface(RealTimeGymInterface):
         rew = -np.linalg.norm(np.array([pos_x, pos_y], dtype=np.float32) - self.target)
         done = rew > -0.01
         info = {}
-        self.render()
         return obs, rew, done, info
 
     def wait(self):
         self.send_control(self.get_default_action())
 
     def render(self):
-        image = np.ones((400, 400, 3), dtype=np.uint8) * 255
+        image = self.blank_image.copy()
         pos_x, pos_y = self.rc_drone.get_observation()
         image = cv2.circle(img=image,
-                           center=(int(pos_x * 200) + 200, int(pos_y * 200) + 200),
+                           center=(int(pos_x * 200) + 250, int(pos_y * 200) + 250),
                            radius=10,
                            color=(255, 0, 0),
                            thickness=1)
         image = cv2.circle(img=image,
-                           center=(int(self.target[0] * 200) + 200, int(self.target[1] * 200) + 200),
+                           center=(int(self.target[0] * 200) + 250, int(self.target[1] * 200) + 250),
                            radius=5,
                            color=(0, 0, 255),
                            thickness=-1)
-        cv2.imshow("PipeLine", image)
+        cv2.imshow("Dummy RC drone", image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             return
 
@@ -246,9 +254,10 @@ Let us implement this module for our dummy drone environment.
 Here, we basically copy-paste the implementation of the SAC MLP actor from [OpenAI Spinup](https://github.com/openai/spinningup/blob/038665d62d569055401d91856abb287263096178/spinup/algos/pytorch/sac/core.py#L29) and adapt it to the `ActorModule` interface:
 
 ```python
-from tmrl import ActorModule
+from tmrl.actor import ActorModule
 from tmrl.util import prod
 import torch
+import torch.nn.functional as F
 
 
 LOG_STD_MAX = 2
@@ -386,10 +395,10 @@ server_ip = "127.0.0.1"
 ```
 
 In the current iteration of `tmrl`, samples are gathered locally in a buffer by the `RolloutWorker` and are sent to the `Server` only at the end of an episode, if the buffer length exceeds a threshold named `min_samples_per_worker_packet`.
-For instance, let us say we only want to send samples to the `Server` when at least 200 samples have been gathered in the local buffer:
+For instance, let us say we only want to send samples to the `Server` when at least 100 samples have been gathered in the local buffer:
 
 ```python
-min_samples_per_worker_packet = 200
+min_samples_per_worker_packet = 100
 ```
 
 In case your Gym environment is never `done` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
@@ -450,7 +459,7 @@ Finally, `crc_debug` is a hack we use for debugging our pipelines, it is not rea
 Now we can instantiate a `RolloutWorker`:
 
 ```python
-from tmrl import RolloutWorker
+from tmrl.networking import RolloutWorker
 
 my_worker = RolloutWorker(
     env_cls=env_cls,
@@ -504,7 +513,10 @@ class Trainer:
     def __init__(self,
                  training_cls=cfg_obj.TRAINER,
                  server_ip=cfg.SERVER_IP_FOR_TRAINER,
-                 model_path=cfg.MODEL_PATH_TRAINER):
+                 model_path=cfg.MODEL_PATH_TRAINER,
+                 checkpoint_path=cfg.CHECKPOINT_PATH,
+                 dump_run_instance_fn: callable = None,
+                 load_run_instance_fn: callable = None):
 ```
 
 ### Networking and files
@@ -517,7 +529,12 @@ server_ip = "127.0.0.1"
 ```
 
 `model_path` is similar to the one of the `RolloutWorker`. The trainer will keep a local copy of its model that acts as a saving file.
-We recommend leaving this to its default value and just changing the value of the `"RUN_NAME"` entry in `config.json` instead, but again, if you do not wish to use `"config.json"`, you can set `model_path` as follows:
+
+`checkpoints_path` is similar, but this will save the whole `training_cls` instance.
+If set to `None`, training will not be checkpointed.
+
+You could leave both pathes to their default value and simply change the value of the `"RUN_NAME"` entry in `config.json` instead.
+But again, if you do not wish to use `"config.json"`, you can set these arguments as follows:
 
 **CAUTION: do not set the exact same path as the one of the `RolloutWorker` when running on the same machine** (here, we use _t to differentiate both).
 
@@ -525,9 +542,11 @@ We recommend leaving this to its default value and just changing the value of th
 import tmrl.config.config_constants as cfg
 
 weights_folder = cfg.WEIGHTS_FOLDER  # path to the weights folder
+checkpoints_folder = cfg.CHECKPOINTS_FOLDER
 my_run_name = "tutorial"
 
 model_path = str(weights_folder / (my_run_name + "_t.pth"))
+checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.cpt"))
 ```
 
 ### Training class
@@ -671,14 +690,14 @@ Thus, we will use the action buffer length as an additional argument to our cust
 
 ```python
     def __init__(self,
-                 act_buf_len,
                  device,
                  nb_steps,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  memory_size=1000000,
-                 batch_size=256,
-                 dataset_path=""):
+                 batch_size=32,
+                 dataset_path="",
+                 act_buf_len=my_config["act_buf_len"]):
 
         self.act_buf_len = act_buf_len  # length of the action buffer
 
@@ -826,7 +845,8 @@ This is done in the `tmrl` implementation of [MemoryDataloading for TrackMania](
 This gives us our `memory_cls` argument:
 
 ```python
-memory_cls = MyMemoryDataloading
+memory_cls = partial(MyMemoryDataloading,
+                     act_buf_len=my_config["act_buf_len"])
 ```
 
 #### Training agent
@@ -887,7 +907,7 @@ First, let us implement a critic module, (we already have our actor from the [Ac
 
 ```python
 class MyCriticModule(torch.nn.Module):
-    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU):
+    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU):
         super().__init__()
         obs_dim = sum(prod(s for s in space.shape) for space in observation_space)
         act_dim = action_space.shape[0]
@@ -920,6 +940,7 @@ from tmrl.nn import copy_shared, no_grad
 from tmrl.util import cached_property
 from torch.optim import Adam
 from copy import deepcopy
+import itertools
 
 class MyTrainingAgent(TrainingAgent):
     def __init__(self,
@@ -1033,10 +1054,19 @@ Note that `train()` returns a python dictionary in which you can store the metri
         return ret_dict  # dictionary of metrics to be logged
 ```
 
-This gives us our `training_agent_cls` argument:
+This gives us our `training_agent_cls` argument, e.g.:
 
 ```python
-training_agent_cls = MyTrainingAgent
+training_agent_cls = partial(MyTrainingAgent,
+                             model_cls=MyActorCriticModule,
+                             gamma=0.99,
+                             polyak=0.995,
+                             alpha=0.2,
+                             lr_actor=1e-3,
+                             lr_critic=1e-3,
+                             lr_entropy=1e-3,
+                             learn_entropy_coef=False,
+                             target_entropy=None)
 ```
 
 
@@ -1076,10 +1106,10 @@ max_training_steps_per_env_step = 2.0
 ```
 
 `start_training` is the number of samples that the `Trainer` will wait for at the beginning before starting training.
-If set to 2000, training will start only after 2000 environment steps are collected:
+If set to 500, training will start only after 500 environment steps are collected:
 
 ```python
-start_training = 2000
+start_training = 500
 ```
 
 `device` is the device on which training will take place (it is the `device` parameter that will be passed to `MemoryDataloading` and `TrainingAgent`).
