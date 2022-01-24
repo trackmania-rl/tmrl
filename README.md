@@ -7,9 +7,14 @@ It is demonstrated on the TrackMania 2020 video game.
 
  **TL;DR:**
 
-- :red_car: **AI and TM enthusiasts:** `tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md).
-- :rocket: **ML developers:** `tmrl` is now packaged as a fully-fledged python library designed to facilitate the implementation of deep RL applications in robot settings. Tutorial for you guys [here](readme/tuto_library.md).
-- :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:** `tmrl` provides a Gym environment for TM that is mostly straightforward to use. How-to [here](#gym-environment).
+- :red_car: **AI and TM enthusiasts:**\
+`tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md).
+
+- :rocket: **ML developers:**\
+`tmrl` is now packaged as a fully-fledged python library designed to facilitate the implementation of deep RL applications in robot settings. Tutorial for you guys [here](readme/tuto_library.md).
+
+- :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
+`tmrl` provides a Gym environment for TM that is mostly straightforward to use. How-to [here](#gym-environment).
 
 ## Quick links
 - [Introduction](#introduction)
