@@ -91,6 +91,7 @@ _(Note: you can exit these processes by pressing `CTRL + C` in each terminal)_
 
 ## Use the TMRL API for other robot applications
 
-(Advanced tutorial coming soon)
+If you are a python developer and wish to use the `tmrl` library with your own robots, well, we have your back.
+In fact, we have written a very long tutorial just for you :kissing_heart:
 
-
+Time to get your hands dirty with some serious [python coding](tuto_library.md).
