@@ -16,6 +16,7 @@ If you are here because you wish to implement your own training algorithm in Tra
 
 - [Tools](#tools)
   - [partial() method](#partial-method)
+  - [Constants](#constants)
 - [Server](#server) 
 - [Environment](#environment)
 - [RolloutWorker](#rollout-workers)
@@ -36,7 +37,6 @@ If you are here because you wish to implement your own training algorithm in Tra
     - [Training parameters](#training-parameters)
   - [Instantiate and run](#instantiate-and-run-the-trainer)
 - [CRC debugging](#crc-debugging)
-- [Constants](#constants)
 
 ## Tools
 
@@ -62,6 +62,22 @@ And the partially instantiated class can then be fully instantiated as:
 ```python
 my_object = my_partially_instantiated_class(missing_args_and_kwargs)
 ```
+
+### Constants
+In case you need them, you can access the constants defined in the `config.json` file via the [config_constants](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/config/config_constants.py) module.
+This module can be imported in your script as follows:
+```python
+import tmrl.config.config_constants as cfg
+```
+You can then use the constants in your script, e.g.:
+
+```python
+print(f"Run name: {cfg.RUN_NAME}")
+```
+
+_(NB: read the code for finding available constants)_
+
+
 
 ## Server
 
@@ -93,14 +109,14 @@ These threads listen for incoming connections from the `Trainer` and the `Rollou
 In RL, a task is often called an "environment".
 `tmrl` is meant for asynchronous remote training of real-time applications such as robots.
 Thus, we use [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (`rtgym`) to wrap our robots and video games into a Gym environment.
-You can also use any other environment as long as it is registered as a Gym environment.
+You can also probably use other environments as long as they are registered as Gym environments and have a relevant substitute for the `default_action` attribute.
 
 To build your own environment (e.g., an environment for your own robot or video game), follow the [rtgym tutorial](https://github.com/yannbouteiller/rtgym#tutorial).
 If you need inspiration, you can find our `rtgym` interfaces for TrackMania in [custom_gym_interfaces.py](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py).
 
 For the sake of the `tmrl` tutorial, we will be using the dummy RC drone environment from the `rtgym` tutorial:
 
-_(NB: you need `opencv-python` installed for importing cv2)_
+_(NB: you need `opencv-python` installed)_
 
 ```python
 from rtgym import RealTimeGymInterface, DEFAULT_CONFIG_DICT, DummyRCDrone
@@ -383,7 +399,6 @@ def my_sample_compressor(prev_act, obs, rew, done, info):
     This is to compress the sample before sending it over the Internet/local network.
     Buffers of compressed samples will be given as input to the append() method of the dataloading memory.
     When you implement a compressor, you also need to implement a decompressor in the dataloading memory.
-    This decompressor is the append() method of the MemoryDataloading object.
 
     Args:
         prev_act: action computed from a previous observation and applied to yield obs in the transition
@@ -480,6 +495,8 @@ For instance, let us say we want to save a checkpoint of our policy for every 10
 model_history = 10
 ```
 
+_(Note: this will save all these policies in `model_path_history`, if you want to avoid this, set `model_history = 0` instead)_
+
 ### Others:
 
 A few more parameters are configurable, although they will not be useful in this tutorial.
@@ -539,8 +556,8 @@ In `tmrl`, RL training per-se happens in the `Trainer` entity.
 
 The `Trainer` connects to the `Server`, from which it receives compressed samples gathered from connected `RolloutWorkers`.
 These samples are stored (possibly in compressed format) in a memory object called `MemoryDataloading`.
-They are decompressed either when stored, or when sampled from the `MemoryDataloading`, depending on how the user wants to implement this object.
-The decompressed samples are then used by an object called `TrainingAgent` to optimize the policy weights, that the `Trainer` periodically sends back to the `Server` so they get broadcast to all connected `RolloutWorkers`.
+They are decompressed either when stored, or when sampled from the `MemoryDataloading`, depending on the user choice.
+The decompressed samples are then used by an object called `TrainingAgent` to optimize the policy weights, that the `Trainer` periodically sends back to the `Server` so they are broadcast to all connected `RolloutWorkers`.
 
 The prototype of the `Trainer` class is:
 
@@ -569,7 +586,7 @@ server_ip = "127.0.0.1"
 
 `model_path` is similar to the one of the `RolloutWorker`. The trainer will keep a local copy of its model that acts as a saving file.
 
-`checkpoints_path` is similar, but this will save the whole `training_cls` instance.
+`checkpoints_path` is similar, but this will save the whole `training_cls` instance (including the replay buffer).
 If set to `None`, training will not be checkpointed.
 
 You could leave both pathes to their default value and simply change the value of the `"RUN_NAME"` entry in `config.json` instead.
@@ -587,6 +604,9 @@ my_run_name = "tutorial"
 model_path = str(weights_folder / (my_run_name + "_t.pth"))
 checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.cpt"))
 ```
+
+`dump_run_instance_fn` and `load_run_instance_fn` are for advanced serialization when your `Trainer` content cannot be pickled.
+You can ignore these for now.
 
 ### Training class
 
@@ -831,7 +851,7 @@ But when it is not empty and we have less samples than the length of our action 
 Finally, if we have enough samples, we need to remove the length of the action buffer to get the number of samples we can actually reconstruct.
 Furthermore, the `get_transition()` method outputs a full RL transition, which includes the previous observation. Thus, we must subtract 1 to get the number of full transitions that we can actually output.
 
-Alright, let us finally implement `get_transition()`, where we have chosen sample decompression to happen.
+Alright, let us finally implement `get_transition()`, where we have chosen sample decompression would happen.
 This method outputs full transitions as if they were directly output by the Gym environment
 (that is, before observation preprocessing or anything else happens):
 
@@ -881,7 +901,7 @@ However, in other environments, this will not always be the case.
 If you want to be extra picky, you may need to take special care for rebuilding transitions that happened after a `done` signal set to `True`.
 This is done in the `tmrl` implementation of [MemoryDataloading for TrackMania](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_memories.py#L143)._
 
-This gives us our `memory_cls` argument:
+We now have our `memory_cls` argument:
 
 ```python
 memory_cls = partial(MyMemoryDataloading,
@@ -982,6 +1002,9 @@ from copy import deepcopy
 import itertools
 
 class MyTrainingAgent(TrainingAgent):
+    
+    model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
+    
     def __init__(self,
                  observation_space,
                  action_space,
@@ -1002,7 +1025,6 @@ class MyTrainingAgent(TrainingAgent):
         model = model_cls(observation_space, action_space)
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
-        self.model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
         self.gamma = gamma
         self.polyak = polyak
         self.alpha = alpha
@@ -1025,7 +1047,7 @@ class MyTrainingAgent(TrainingAgent):
             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 ```
 
-The `get_actor()` method, which outputs the `ActorModule` to be broadcast to the `RolloutWorkers`, is straightforward:
+The `get_actor()` method outputs the `ActorModule` to be broadcast to the `RolloutWorkers`:
 
 ```python
     def get_actor(self):
@@ -1241,15 +1263,16 @@ Since we did not set `epochs=np.inf`, this code will reach completion at some po
 The worker thread will simply be killed then.
 If you have followed this tutorial carefully, you will now see the dummy RC drone (blue circle) slowly train to reach the red target.
 
-And that is all, folks! :)
+And that is mostly all, folks! :)
 
 ## CRC debugging
 
 You have probably noticed that implementing your own compression/decompression pipeline is **extremely** error-prone.
 `tmrl` provides a useful tool for debugging your pipeline: "CRC debugging".
 
-"CRC" stands for "cyclic redundancy control". This is a way to check that data has not been corrupted in the pipeline, and in fact there is no such thing as a CRC in `tmrl` at the moment.
-Instead, the "CRC debugging" tool should **only** be using for debugging as it will completely destroy the benefit of having a compression pipeline at all when turned on. Here it what it does:
+"CRC" stands for "Cyclic Redundancy Control". This is a way of checking that data has not been corrupted in the pipeline.
+In fact there is no proper CRC in `tmrl` at the moment, but a tool that does essentially the same thing.
+The "CRC debugging" tool should **only** be using for debugging as it will completely destroy the benefit of having a compression pipeline at all when turned on. Here it what it does:
 
 In `crc_debug` mode, the `RolloutWorker` will store the full transition in the `info` dictionary of each sample.
 
@@ -1259,19 +1282,3 @@ Otherwise, you will get a "CRC check passed" message printed in the terminal for
 
 We recommend using the `crc_debug` mode as a sanity check whenever you implement a compression / decompression pipeline.
 To activate this mode, set the `crc_debug` arguments to `True` for both your `RolloutWorker` and `MemoryDataloading` instances.
-
-
-## Constants
-In case you need them, you can access the constants defined in the `config.json` file via the [config_constants](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/config/config_constants.py) module.
-This module can be imported in your script as follows:
-```python
-import tmrl.config.config_constants as cfg
-```
-You can then use the constants in your script, e.g.:
-
-```python
-print(f"Run name: {cfg.RUN_NAME}")
-```
-
-_(NB: read the code for finding available constants)_
-
