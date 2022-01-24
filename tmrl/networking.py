@@ -636,7 +636,10 @@ class Trainer:
     def run_with_wandb(self,
                        entity=cfg.WANDB_ENTITY,
                        project=cfg.WANDB_PROJECT,
-                       run_id=cfg.WANDB_RUN_ID):
+                       run_id=cfg.WANDB_RUN_ID,
+                       key=None):
+        if key is not None:
+            os.environ['WANDB_API_KEY'] = key
         run_with_wandb(entity=entity,
                        project=project,
                        run_id=run_id,

@@ -7,8 +7,61 @@ This is when you need to start using `tmrl` as a python library.
 
 In this tutorial, we will learn from A to Z how to implement our own specialized pipeline, in our own robot environment, with our own training algorithm.
 
+This tutorial is quite exhaustive and serves as a documentation.
+
 **Note: some modules can be implemented independently.
-If you are here because you just wish to implement your own training algorithm for TrackMania, you can directly jump to the [Trainer](#trainer) section.**
+If you are here because you wish to implement your own training algorithm in TrackMania, all you need to do is implement a [TrainingAgent](#training-agent) and adapt [this](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py)**.
+
+## Quick links
+
+- [Tools](#tools)
+  - [partial() method](#partial-method)
+- [Server](#server) 
+- [Environment](#environment)
+- [RolloutWorker](#rollout-workers)
+  - [Environment class](#environment-class)
+  - [Actor class](#actor-class)
+  - [Sample compression](#sample-compression)
+  - [Device](#device)
+  - [Networking](#networking)
+  - [Persistent policy weights](#persistent-policy-weights)
+  - [Others](#others)
+  - [Instantiate and run](#instantiate-and-run-a-worker)
+- [Trainer](#trainer)
+  - [Networking and files](#networking-and-files)
+  - [Training class](#training-class)
+    - [Dummy environment](#dummy-environment)
+    - [MemoryDataloading](#memory)
+    - [TrainingAgent](#training-agent)
+    - [Training parameters](#training-parameters)
+  - [Instantiate and run](#instantiate-and-run-the-trainer)
+- [CRC debugging](#crc-debugging)
+- [Constants](#constants)
+
+## Tools
+
+### partial() method
+We use this method a lot in `tmrl`, it enables partially instantiating a class.
+Import this method in your script:
+
+```python
+from tmrl.util import partial
+```
+
+The method can then be used as:
+
+```python
+my_partially_instantiated_class = partial(my_class,
+                                          some_kwarg=some_value,
+                                          some_other_kwarg=some_other_value,
+                                          ...)
+```
+
+And the partially instantiated class can then be fully instantiated as:
+
+```python
+my_object = my_partially_instantiated_class(missing_args_and_kwargs)
+```
 
 ## Server
 
@@ -182,21 +235,6 @@ class RolloutWorker:
 
 For example, the default `RolloutWorker` implemented for TrackMania is instantiated [here](https://github.com/trackmania-rl/tmrl/blob/b6287e2477811ea3729104445c006d00b145227e/tmrl/__main__.py#L32).
 In this tutorial, we will implement a similar `RolloutWorker` for our dummy drone environment.
-
-### partial() method
-If you have had a look at the TrackMania `RolloutWorker` instantiation, you may have noticed a method called `partial()`.
-We use this method a lot in `tmrl`, it enables partially instantiating a class.
-Import this method in your script:
-
-```python
-from tmrl.util import partial
-```
-
-The method can then be used as:
-
-```python
-my_partially_instantiated_class = partial(my_class, some_kwargs, ...)
-```
 
 ### Environment class
 
@@ -452,9 +490,10 @@ Some examples of such preprocessors are available [here](https://github.com/trac
 
 `standalone` can be set to `True` for deployment, in which case the `RolloutWorker` will not attempt to connect to the `Server`.
 
-Finally, `crc_debug` is a hack we use for debugging our pipelines, it is not really supported and you can ignore it
+Finally, `crc_debug` is a useful tool for debugging your pipeline.
+We will see how to use it at the end of this tutorial, you can ignore it for now.
 
-### Instantiate and run:
+### Instantiate and run a worker:
 
 Now we can instantiate a `RolloutWorker`:
 
@@ -1122,11 +1161,104 @@ device = None
 A few more options not used in this tutorial are available.
 In particular, `profiling` enables profiling training (but this doesn't work well with CUDA), and `agent_scheduler` enables changing the `TrainingAgent` parameters during training.
 
-We can now, finally, instantiate our `Trainer`!
+We finally have our training class:
 
 ```python
-
+training_cls = partial(
+    TrainingOffline,
+    env_cls=env_cls,
+    memory_cls=memory_cls,
+    training_agent_cls=training_agent_cls,
+    epochs=epochs,
+    rounds=rounds,
+    steps=steps,
+    update_buffer_interval=update_buffer_interval,
+    update_model_interval=update_model_interval,
+    max_training_steps_per_env_step=max_training_steps_per_env_step,
+    start_training=start_training,
+    device=device)
 ```
+
+### Instantiate and run the trainer:
+
+We can now instantiate our `Trainer`.
+
+```python
+my_trainer = Trainer(
+    training_cls=training_cls,
+    server_ip=server_ip,
+    model_path=model_path,
+    checkpoint_path=checkpoints_path)  # None for not saving training checkpoints
+```
+
+On instantiation, the `Trainer` will automatically connect to the `Server`.
+
+We can now start training.
+Either by calling the simple `run()` method:
+
+```python
+my_trainer.run()
+```
+
+Or by calling `run_with_wandb()`, which is the same thing as `run()` but logs your training metrics on [wandb](https://wandb.ai) at the end of each `epoch`:
+
+```python
+my_wandb_entity="your_wandb_entity_here"
+my_wandb_project="your_wandb_project_here"
+my_wandb_run_id="your_wandb_run_name_here"
+my_wandb_key="your_wandb_key_here"
+
+my_trainer.run_with_wandb(entity=my_wandb_entity,
+                          project=my_wandb_project,
+                          run_id=my_wandb_run_id,
+                          key=my_wandb_key)
+```
+
+But as for the `RolloutWorker`, this would block the code here until all `epochs` are complete, which in itself would require the `RolloutWorker` to also be running.
+
+In fact, the `RolloutWorker`, `Trainer` and `Server` are best run in separate terminals (see TrackMania) because currently they are all quite verbose.
+However, for the sake of this tutorial, we will instantiate and run all of them in the same script by using python threads
+(of course, you are free to implement them in separate scripts on your end, actually it is even strongly recommended):
+
+```python
+def run_worker(worker):
+    worker.run(test_episode_interval=10)
+
+
+def run_trainer(trainer):
+    trainer.run()
+
+
+daemon_thread_worker = Thread(target=run_worker, args=(my_worker, ), kwargs={}, daemon=True)
+daemon_thread_worker.start()  # start the worker daemon thread
+
+run_trainer(my_trainer)
+
+# the worker daemon thread will be killed here.
+```
+
+Since we did not set `epochs=np.inf`, this code will reach completion at some point (but you will not be able to train for more epochs).
+The worker thread will simply be killed then.
+If you have followed this tutorial carefully, you will now see the dummy RC drone (blue circle) slowly train to reach the red target.
+
+And that is all, folks! :)
+
+## CRC debugging
+
+You have probably noticed that implementing your own compression/decompression pipeline is **extremely** error-prone.
+`tmrl` provides a useful tool for debugging your pipeline: "CRC debugging".
+
+"CRC" stands for "cyclic redundancy control". This is a way to check that data has not been corrupted in the pipeline, and in fact there is no such thing as a CRC in `tmrl` at the moment.
+Instead, the "CRC debugging" tool should **only** be using for debugging as it will completely destroy the benefit of having a compression pipeline at all when turned on. Here it what it does:
+
+In `crc_debug` mode, the `RolloutWorker` will store the full transition in the `info` dictionary of each sample.
+
+In `crc_debug` mode, your `MemoryDataloading` will convert each sampled transition into a python string, and compare this string with the one obtained from the transition in the `info` dictionary.
+If something does not match, the program will stop and you will be shown what mismatched.
+Otherwise, you will get a "CRC check passed" message printed in the terminal for each sample correctly rebuilt.
+
+We recommend using the `crc_debug` mode as a sanity check whenever you implement a compression / decompression pipeline.
+To activate this mode, set the `crc_debug` arguments to `True` for both your `RolloutWorker` and `MemoryDataloading` instances.
 
 
 ## Constants
@@ -1143,11 +1275,3 @@ print(f"Run name: {cfg.RUN_NAME}")
 
 _(NB: read the code for finding available constants)_
 
-
-## Trainer
-Training in `tmrl` is done within a [TrainingOffline](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/training_offline.py) object, while network communications are handled by a [TrainerInterface](https://github.com/trackmania-rl/tmrl/blob/58f66a42ea0e1478641336fa1eb076635ff77a31/tmrl/networking.py#L389).
-
-## Rollout worker(s)
-
-
-## Server
