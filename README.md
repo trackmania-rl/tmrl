@@ -14,7 +14,7 @@ It is demonstrated on the TrackMania 2020 video game.
 `tmrl` is now packaged as a fully-fledged python library designed to facilitate the implementation of deep RL applications in robot settings. Tutorial for you guys [here](readme/tuto_library.md).
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
-`tmrl` provides a Gym environment for TM that is mostly straightforward to use. How-to [here](#gym-environment).
+`tmrl` provides a Gym environment for TM that is mostly straightforward to use. How-to for you guys [here](#gym-environment).
 
 ## Quick links
 - [Introduction](#introduction)

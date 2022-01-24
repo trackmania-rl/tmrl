@@ -10,7 +10,7 @@ In this tutorial, we will learn from A to Z how to implement our own specialized
 This tutorial is quite exhaustive and serves as a documentation.
 
 **Note: some modules can be implemented independently.
-If you are here because you wish to implement your own training algorithm in TrackMania, all you need to do is implement a [TrainingAgent](#training-agent) and adapt [this](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py)**.
+If you are here because you wish to implement your own training algorithm in TrackMania, all you need to do is implement a [TrainingAgent](#training-agent) and adapt the default `Trainer` [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py)**.
 
 ## Quick links
 
@@ -242,14 +242,15 @@ class RolloutWorker:
             model_path=cfg.MODEL_PATH_WORKER,  # path where a local copy of the policy will be stored
             obs_preprocessor: callable = None,  # utility for modifying samples before forward passes
             crc_debug=False,  # can be used for debugging the pipeline
-            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,  # an history of policies can be stored here 
+            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,  # a
+            # history of policies can be stored here 
             model_history=cfg.MODEL_HISTORY,  # new policies are saved % model_history (0: not saved)
             standalone=False,  # if True, the worker will not try to connect to a server
     ):
         # (...)
 ```
 
-For example, the default `RolloutWorker` implemented for TrackMania is instantiated [here](https://github.com/trackmania-rl/tmrl/blob/b6287e2477811ea3729104445c006d00b145227e/tmrl/__main__.py#L32).
+For example, the default `RolloutWorker` implemented for TrackMania is instantiated [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py).
 In this tutorial, we will implement a similar `RolloutWorker` for our dummy drone environment.
 
 ### Environment class
@@ -291,7 +292,7 @@ observation space: Tuple(Box([-1.], [1.], (1,), float32),
                          Box([-2. -2.], [2. 2.], (2,), float32))
 ```
 Our dummy drone environment has a simple action space of two floats (velocities on x and y).
-Its observation space is a bit more complex: 4 floats representing the position (2 values), the target position (2 values) and the 4 last actions (4 times 2 values).
+Its observation space is a bit more complex: 4 floats representing the position (2 values) and the target position (2 values), and 4 arrays representing the 4 last actions (4 times 2 values).
 This history of actions is required to make the observation space Markov because the dummy RC drone has random communication delays.
 
 ### Actor class
@@ -376,12 +377,12 @@ actor_module_cls = partial(MyActorModule)  # could add paramters like hidden_siz
 ### Sample compression
 
 One of the possible reasons for using `tmrl` is that it supports implementing ad-hoc pipelines for your applications.
-In particular, say you have a robot that uses CNNs to process an history of 4 concatenated images.
+In particular, say you have a robot that uses CNNs to process a history of 4 concatenated images.
 You certainly do not want to send these 4 images over the Internet for each sample, because samples content would overlap and you could use 4 times less bandwidth with a more clever pipeline.
 
 For our dummy RC drone, we have a similar (yet much less serious) issue with the action buffer that is part of observations.
-This buffer contains an history of the last 4 sent actions, and thus 3 of them overlap with the content of previous samples.
-Moreover, actions are part of samples anyway because a sample is defined as `(prev_act, obs, rew, done, info)`.
+This buffer contains a history of the last 4 sent actions, and thus 3 of them overlap with the content of previous samples.
+Moreover, actions are part of samples anyway because a sample is defined as `(act, obs, rew, done, info)`.
 
 Although this is not really an issue given the small size of actions here, let us implement an optimal pipeline for the sake of illustration.
 
@@ -391,7 +392,7 @@ If left to `None`, no compression will happen and raw samples will be sent over 
 For our dummy RC drone, an optimal compression scheme just removes the action buffer from observations:
 
 ```python
-def my_sample_compressor(prev_act, obs, rew, done, info):
+def my_sample_compressor(act, obs, rew, done, info):
     """
     Compresses samples before sending over network.
 
@@ -401,18 +402,18 @@ def my_sample_compressor(prev_act, obs, rew, done, info):
     When you implement a compressor, you also need to implement a decompressor in the dataloading memory.
 
     Args:
-        prev_act: action computed from a previous observation and applied to yield obs in the transition
+        act: action computed from a previous observation and applied to yield obs in the transition
         obs, rew, done, info: outcome of the transition
     Returns:
-        prev_act_mod: compressed prev_act
+        act_mod: compressed act
         obs_mod: compressed obs
         rew_mod: compressed rew
         done_mod: compressed done
         info_mod: compressed info
     """
-    prev_act_mod, obs_mod, rew_mod, done_mod, info_mod = prev_act, obs, rew, done, info
+    act_mod, obs_mod, rew_mod, done_mod, info_mod = act, obs, rew, done, info
     obs_mod = obs_mod[:4]  # here we remove the action buffer from observations
-    return prev_act_mod, obs_mod, rew_mod, done_mod, info_mod
+    return act_mod, obs_mod, rew_mod, done_mod, info_mod
 ```
 
 We can then pass our sample compressor to the `RolloutWorker` as:
@@ -471,7 +472,7 @@ max_samples_per_episode = 1000
 Furthermore, if weights are already present at this path, they will be loaded on `RolloutWorker` instantiation
 (this acts as a saving mechanism).
 
-`model_path_history` refers to the path where the `RolloutWorker` will locally save an history of its weights during training if you set `model_history > 0`.
+`model_path_history` refers to the path where the `RolloutWorker` will locally save a history of its weights during training if you set `model_history > 0`.
 
 **CAUTION:** `model_path` and `model_path_history` are weird and will probably change in future versions.
 At the moment, we recommend not setting these parameters and changing the value of the `"RUN_NAME"` entry in the `config.json` file instead (weights will then be saved and loaded from the `weights` folder).
@@ -630,9 +631,9 @@ class TrainingOffline:
     update_model_interval: int = 100  # number of training steps between model broadcasts
     update_buffer_interval: int = 100  # number of training steps between retrieving buffered samples
     max_training_steps_per_env_step: float = 1.0  # training will pause when above this ratio
-    sleep_between_buffer_retrieval_attempts: float = 0.1  # algorithm will sleep for this amount of time when waiting for needed incoming samples
-    profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the end of each epoch
-    agent_scheduler: callable = None  # if not None, must be of the form f(Agent, epoch), called at the beginning of each epoch
+    sleep_between_buffer_retrieval_attempts: float = 0.1  # when waiting for needed incoming samples
+    profiling: bool = False  # if True, run_epoch will be profiled at the end of each epoch
+    agent_scheduler: callable = None  # if not None, must be of the form f(agent:TrainingAgent, epoch:int)
     start_training: int = 0  # minimum number of samples in the replay buffer before starting training
     device: str = None  # device on which the model of the TrainingAgent will live (None for automatic)
 ```
@@ -720,7 +721,7 @@ This argument is also only to be passed to the superclass.
 `memory_size` is the maximum number of transitions that can be contained in your `MemoryDataloading` object.
 When this size is exceeded, you will want to trim your memory in the `append_buffer()` method.
 The implementation of this trimming is left to your discretion.
-Use AND pass to the superclass.
+Pass this to the superclass.
 
 `batch_size` is the size of the batches of tensors that the `Trainer` will collate together.
 In the current iteration of `tmrl`, the `Trainer` will call your `get_transition()` method repeatedly with random `item` values to retrieve samples one by one, and will collate these samples together to form a batch.
@@ -1272,7 +1273,7 @@ You have probably noticed that implementing your own compression/decompression p
 
 "CRC" stands for "Cyclic Redundancy Control". This is a way of checking that data has not been corrupted in the pipeline.
 In fact there is no proper CRC in `tmrl` at the moment, but a tool that does essentially the same thing.
-The "CRC debugging" tool should **only** be using for debugging as it will completely destroy the benefit of having a compression pipeline at all when turned on. Here it what it does:
+The "CRC debugging" tool should **only** be using for debugging as it will completely destroy the benefit of having a compression pipeline at all when turned on. Here is what it does:
 
 In `crc_debug` mode, the `RolloutWorker` will store the full transition in the `info` dictionary of each sample.
 
