@@ -44,7 +44,7 @@ The full script for this tutorial is available [here](https://github.com/trackma
 ## Tools
 
 ### partial() method
-We use this method a lot in `tmrl`, it enables partially instantiating a class.
+We use this method a lot in `tmrl`, it enables partially initializing the kwargs of a class.
 Import this method in your script:
 
 ```python
@@ -63,7 +63,7 @@ my_partially_instantiated_class = partial(my_class,
 And the partially instantiated class can then be fully instantiated as:
 
 ```python
-my_object = my_partially_instantiated_class(missing_args_and_kwargs)
+my_object = my_partially_instantiated_class(missing_kwargs)
 ```
 
 ### Constants
@@ -235,8 +235,8 @@ import tmrl.config.config_constants as cfg  # constants from the config.json fil
 class RolloutWorker:
     def __init__(
             self,
-            env_cls,  # class of the Gym environment
-            actor_module_cls,  # class of a module containing the policy
+            env_cls=None,  # class of the Gym environment
+            actor_module_cls=None,  # class of a module containing the policy
             sample_compressor: callable = None,  # compressor for sending samples over the Internet
             device="cpu",  # device on which the policy is running
             server_ip=None,  # ip of the central server
@@ -753,8 +753,8 @@ Thus, we will use the action buffer length as an additional argument to our cust
 
 ```python
     def __init__(self,
-                 device,
-                 nb_steps,
+                 device=None,
+                 nb_steps=None,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  memory_size=1000000,
@@ -1010,9 +1010,9 @@ class MyTrainingAgent(TrainingAgent):
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
     
     def __init__(self,
-                 observation_space,
-                 action_space,
-                 device,
+                 observation_space=None,
+                 action_space=None,
+                 device=None,
                  model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
                  gamma=0.99,  # discount factor
                  polyak=0.995,  # exponential averaging factor for the target critic
@@ -1243,6 +1243,9 @@ my_trainer.run_with_wandb(entity=my_wandb_entity,
                           run_id=my_wandb_run_id,
                           key=my_wandb_key)
 ```
+
+_(**WARNING**: when using `run_with_wandb`, make sure all the partially instantiated classes that are part of the `Trainer` have kwargs only, no args, otherwise you will get an error complaining about invalid keywords.
+When it does not make sense to have default values, just set the default values to `None` as done in, e.g., `MyMemoryDataloading`)_
 
 But as for the `RolloutWorker`, this would block the code here until all `epochs` are complete, which in itself would require the `RolloutWorker` to also be running.
 

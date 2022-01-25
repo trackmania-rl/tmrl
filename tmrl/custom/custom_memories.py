@@ -70,8 +70,8 @@ def replace_hist_before_done(hist, done_idx_in_hist):
 
 class MemoryTMNF(MemoryDataloading):
     def __init__(self,
-                 memory_size,
-                 batch_size,
+                 memory_size=None,
+                 batch_size=None,
                  dataset_path="",
                  imgs_obs=4,
                  act_buf_len=1,
@@ -219,8 +219,8 @@ class MemoryTMNFLidar(MemoryTMNF):
 
 class TrajMemoryTMNF(TrajMemoryDataloading):
     def __init__(self,
-                 memory_size,
-                 batch_size,
+                 memory_size=None,
+                 batch_size=None,
                  dataset_path="",
                  imgs_obs=4,
                  act_buf_len=1,
@@ -358,8 +358,8 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
 
 class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
     def __init__(self,
-                 memory_size,
-                 batch_size,
+                 memory_size=None,
+                 batch_size=None,
                  dataset_path="",
                  imgs_obs=4,
                  act_buf_len=1,

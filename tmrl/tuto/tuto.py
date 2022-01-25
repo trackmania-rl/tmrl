@@ -304,9 +304,9 @@ from tmrl.memory_dataloading import MemoryDataloading
 
 class MyMemoryDataloading(MemoryDataloading):
     def __init__(self,
-                 act_buf_len,
-                 device,
-                 nb_steps,
+                 act_buf_len=None,
+                 device=None,
+                 nb_steps=None,
                  obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  memory_size=1000000,
@@ -457,9 +457,9 @@ class MyTrainingAgent(TrainingAgent):
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
     def __init__(self,
-                 observation_space,
-                 action_space,
-                 device,
+                 observation_space=None,
+                 action_space=None,
+                 device=None,
                  model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
                  gamma=0.99,  # discount factor
                  polyak=0.995,  # exponential averaging factor for the target critic
