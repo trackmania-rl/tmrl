@@ -1,6 +1,6 @@
 # Getting started with TMRL
 
-Before reading these instructions, make sure you have installed TMRL and OpenPlanet correctly as described [here](docs/Install.md).
+Before reading these instructions, make sure you have installed TMRL and OpenPlanet correctly as described [here](Install.md).
 
 ## Pre-trained AI in Trackmania 2020
 
