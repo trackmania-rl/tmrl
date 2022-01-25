@@ -9,47 +9,47 @@ from pandas import DataFrame
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.sac
-from tmrl.envs import GenericGymEnv
-from tmrl.memory_dataloading import MemoryDataloading
-from tmrl.networking import TrainerInterface
+# from tmrl.envs import GenericGymEnv
+# from tmrl.memory_dataloading import MemoryDataloading
+# from tmrl.networking import TrainerInterface
+# from tmrl.training import TrainingAgent
 from tmrl.util import pandas_dict
+
 import logging
 # import pybullet_envs
 
 
 @dataclass(eq=0)
 class TrainingOffline:
-    Env: type = GenericGymEnv
-    Agent: type = tmrl.sac.SacAgent
-    Memory: type = MemoryDataloading
-    use_dataloader: bool = False  # Whether to use pytorch dataloader for multiprocess dataloading
-    nb_workers: int = 0  # Number of parallel workers in pytorch dataloader
-    batchsize: int = 256  # training batch size
-    memory_size: int = 1000000  # replay memory size
+    env_cls: type  # = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces if needed
+    memory_cls: type  # = MemoryDataloading  # replay memory
+    training_agent_cls: type  # = TrainingAgent  # training agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
     rounds: int = 50  # number of rounds per epoch, we generate statistics every round
-    steps: int = 2000  # number of steps per round
-    update_model_interval: int = 100  # number of steps between model broadcasts
-    update_buffer_interval: int = 100  # number of steps between retrieving buffered experiences in the interface
+    steps: int = 2000  # number of training steps per round
+    update_model_interval: int = 100  # number of training steps between model broadcasts
+    update_buffer_interval: int = 100  # number of training steps between retrieving buffered samples
     max_training_steps_per_env_step: float = 1.0  # training will pause when above this ratio
     sleep_between_buffer_retrieval_attempts: float = 0.1  # algorithm will sleep for this amount of time when waiting for needed incoming samples
-    stats_window: int = None  # default = steps, should be at least as long as a single episode
-    seed: int = 0  # seed is currently not used
-    tag: str = ''  # for logging, e.g. allows to compare groups of runs
-    profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the enc of each epoch
+    profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the end of each epoch
     agent_scheduler: callable = None  # if not None, must be of the form f(Agent, epoch), called at the beginning of each epoch
-    start_training: int = 0  # minimum number of samples in the buffer before starting training
+    start_training: int = 0  # minimum number of samples in the replay buffer before starting training
+    device: str = None  # device on which the model of the TrainingAgent will live (None for automatic)
 
-    device: str = None
     total_updates = 0
 
     def __post_init__(self):
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.epoch = 0
-        # logging.info(self.SacAgent)
-        # logging.info(self.Env)
-        self.memory = self.Memory(memory_size=self.memory_size, batchsize=self.batchsize, nb_steps=self.steps, device=device)
-        self.agent = self.Agent(Env=self.Env, device=device)
+        self.memory = self.memory_cls(nb_steps=self.steps, device=device)
+        if type(self.env_cls) == tuple:
+            observation_space, action_space = self.env_cls
+        else:
+            with self.env_cls() as env:
+                observation_space, action_space = env.observation_space, env.action_space
+        self.agent = self.training_agent_cls(observation_space=observation_space,
+                                             action_space=action_space,
+                                             device=device)
         self.total_samples = len(self.memory)
         logging.info(f" Initial total_samples:{self.total_samples}")
 
@@ -70,7 +70,7 @@ class TrainingOffline:
                     time.sleep(self.sleep_between_buffer_retrieval_attempts)
             logging.info(f" Resuming training")
 
-    def run_epoch(self, interface: TrainerInterface):
+    def run_epoch(self, interface):
         stats = []
         state = None
 
@@ -88,7 +88,6 @@ class TrainingOffline:
             t1 = time.time()
 
             if self.profiling:
-                # third-party imports
                 from pyinstrument import Profiler
                 pro = Profiler()
                 pro.start()
@@ -129,7 +128,7 @@ class TrainingOffline:
                 self.total_updates += 1
                 if self.total_updates % self.update_model_interval == 0:
                     # broadcast model weights
-                    interface.broadcast_model(self.agent.model_nograd.actor)
+                    interface.broadcast_model(self.agent.get_actor())
                 self.check_ratio(interface)
 
                 if cfg.SYNCHRONIZE_CUDA:

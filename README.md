@@ -1,9 +1,20 @@
 # TMRL
 
-TrackMania through Reinforcement Learning (`tmrl`) consists of a Gym environment and a distributed framework for training AIs in real time.
+TrackMania through Reinforcement Learning (`tmrl`) consists of a distributed framework for training AIs in real time.
 It is demonstrated on the TrackMania 2020 video game.
 
 ![example](readme/img/video_lidar.gif)
+
+ **TL;DR:**
+
+- :red_car: **AI and TM enthusiasts:**\
+`tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md).
+
+- :rocket: **ML developers:**\
+`tmrl` is now packaged as a fully-fledged python library designed to facilitate the implementation of deep RL applications in robot settings. Tutorial for you guys [here](readme/tuto_library.md).
+
+- :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
+`tmrl` provides a Gym environment for TM that is mostly straightforward to use. How-to for you guys [here](#gym-environment).
 
 ## Quick links
 - [Introduction](#introduction)
@@ -50,6 +61,10 @@ To process raw camera images (snapshots), it uses a Convolutional Neural Network
 _(note: only the MLP is supported at the moment, the rest is WIP)_.
 
 ### Developer features:
+* **Python library:**
+`tmrl` is a complete framework designed for helping you successfully implement deep RL in your real-time applications (e.g., robots).
+A complete tutorial toward doing this is provided [here](readme/tuto_library.md).
+
 * **Real-Time Gym environment:**
 `tmrl` comes with a real-time Gym environment based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is easy to use this environment in your own training framework. More information [here](#gym-environment).
 

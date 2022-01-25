@@ -15,6 +15,7 @@ from tmrl.nn import PopArt, copy_shared, exponential_moving_average, hd_conv, no
 from tmrl.util import cached_property, collate, partial
 import logging
 
+
 @dataclass(eq=0)
 class SacAgent:  # SAC agent with PopArt
     Env: InitVar
@@ -65,7 +66,7 @@ class SacAgent:  # SAC agent with PopArt
         reward_components = torch.cat((
             self.reward_scale * rewards[:, None],
             self.entropy_scale * next_action_entropy[:, None],
-        ), dim=1)  # shape = (batchsize, reward_components)
+        ), dim=1)  # shape = (batch_size, reward_components)
 
         value_target = reward_components + (1. - dones[:, None]) * self.discount * next_value
         normalized_value_target = self.outputnorm.update(value_target)  # PopArt update and normalize
@@ -82,7 +83,7 @@ class SacAgent:  # SAC agent with PopArt
         # actor loss
         new_value = [c(obs, new_actions) for c in self.model.critics]  # new_actions with reparametrization trick
         new_value = reduce(torch.min, new_value)  # minimum action_values
-        # assert new_value.shape == (self.batchsize, 2)
+        # assert new_value.shape == (self.batch_size, 2)
         assert new_value.shape[1] == 2
 
         new_value = self.outputnorm.unnormalize(new_value)

@@ -5,19 +5,36 @@ import pickle
 import select
 import socket
 import time
+import atexit
+import gc
+import json
+import shutil
+import tempfile
+import yaml
+from os.path import exists
+from random import randrange
 from copy import deepcopy
 from threading import Lock, Thread
 
 # third-party imports
+import pandas as pd
 import numpy as np
 import torch
 from requests import get
 
 # local imports
+from tmrl.actor import ActorModule
+from tmrl.util import collate, dump, git_info, load, load_json, partial, partial_from_dict, partial_to_dict, save_json
 import tmrl.config.config_constants as cfg
-from tmrl.sac_models import ActorModule
-from tmrl.util import collate
+import tmrl.config.config_objects as cfg_obj
+
 import logging
+
+
+
+
+
+
 # PRINT: ============================================
 
 
@@ -239,20 +256,17 @@ class Buffer:
 class Server:
     """
     This is the main server
-    This lets 1 TrainerInterface and n RolloutWorkers connect
-    This buffers experiences sent by RolloutWorkers
-    This periodically sends the buffer to the TrainerInterface
-    This also receives the weights from the TrainerInterface and broadcast them to the connected RolloutWorkers
-    If trainer_on_localhost is True, the server only listens on trainer_on_localhost. Then the trainer is expected to talk on trainer_on_localhost.
-    Otherwise, the server also listens to the local ip and the trainer is expected to talk on the local ip (port forwarding).
+    It lets 1 TrainerInterface and n RolloutWorkers connect
+    It buffers experiences sent by RolloutWorkers and periodically sends these to the TrainerInterface
+    It also receives the weights from the TrainerInterface and broadcasts these to the connected RolloutWorkers
     """
-    def __init__(self, samples_per_server_packet=1000):
+    def __init__(self, min_samples_per_server_packet=1):
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
         self.__weights = None
         self.__weights_id = 0  # this increments each time new weights are received
-        self.samples_per_server_batch = samples_per_server_packet
+        self.samples_per_server_batch = min_samples_per_server_packet
         self.public_ip = get('http://api.ipify.org').text
         self.local_ip = socket.gethostbyname(socket.gethostname())
 
@@ -466,7 +480,7 @@ class TrainerInterface:
 
     def broadcast_model(self, model: ActorModule):
         """
-        model must be an ActorModule (sac_models.py)
+        model must be an ActorModule
         broadcasts the model's weights to all connected RolloutWorkers
         """
         t0 = time.time()
@@ -491,6 +505,151 @@ class TrainerInterface:
         return buffer_copy
 
 
+def log_environment_variables():
+    """
+    add certain relevant environment variables to our config
+    usage: `LOG_VARIABLES='HOME JOBID' python ...`
+    """
+    return {k: os.environ.get(k, '') for k in os.environ.get('LOG_VARIABLES', '').strip().split()}
+
+
+def load_run_instance(checkpoint_path):
+    """
+    Default function used to load trainers from checkpoint path
+    Args:
+        checkpoint_path: the path where instances of run_cls are checkpointed
+    Returns:
+        An instance of run_cls loaded from checkpoint_path
+    """
+    return load(checkpoint_path)
+
+
+def dump_run_instance(run_instance, checkpoint_path):
+    """
+    Default function used to dump trainers to checkpoint path
+    Args:
+        run_instance: the instance of run_cls to checkpoint
+        checkpoint_path: the path where instances of run_cls are checkpointed
+    """
+    dump(run_instance, checkpoint_path)
+
+
+def iterate_epochs_tm(run_cls,
+                      interface: TrainerInterface,
+                      checkpoint_path: str,
+                      dump_run_instance_fn=dump_run_instance,
+                      load_run_instance_fn=load_run_instance,
+                      epochs_between_checkpoints=1):
+    """
+    Main training loop (remote)
+    The run_cls instance is saved in checkpoint_path at the end of each epoch
+    The model weights are sent to the RolloutWorker every model_checkpoint_interval epochs
+    Generator yielding episode statistics (list of pd.Series) while running and checkpointing
+    """
+    checkpoint_path = checkpoint_path or tempfile.mktemp("_remove_on_exit")
+
+    try:
+        print(f"DEBUF: checkpoint_path: {checkpoint_path}")
+        if not exists(checkpoint_path):
+            logging.info(f"=== specification ".ljust(70, "="))
+            run_instance = run_cls()
+            dump_run_instance_fn(run_instance, checkpoint_path)
+            logging.info(f"")
+        else:
+            logging.info(f" Loading checkpoint...")
+            t1 = time.time()
+            run_instance = load_run_instance_fn(checkpoint_path)
+            logging.info(f" Loaded checkpoint in {time.time() - t1} seconds.")
+
+        while run_instance.epoch < run_instance.epochs:
+            # time.sleep(1)  # on network file systems writing files is asynchronous and we need to wait for sync
+            yield run_instance.run_epoch(interface=interface)  # yield stats data frame (this makes this function a generator)
+            if run_instance.epoch % epochs_between_checkpoints == 0:
+                logging.info(f" saving checkpoint...")
+                t1 = time.time()
+                dump_run_instance_fn(run_instance, checkpoint_path)
+                logging.info(f" saved checkpoint in {time.time() - t1} seconds.")
+                # we delete and reload the run_instance from disk to ensure the exact same code runs regardless of interruptions
+                # del run_instance
+                # gc.collect()  # garbage collection
+                # run_instance = load_run_instance_fn(checkpoint_path)
+
+    finally:
+        if checkpoint_path.endswith("_remove_on_exit") and exists(checkpoint_path):
+            os.remove(checkpoint_path)
+
+
+def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
+    """
+    main training loop (remote)
+    saves config and stats to https://wandb.com
+    """
+    dump_run_instance_fn = dump_run_instance_fn or dump_run_instance
+    load_run_instance_fn = load_run_instance_fn or load_run_instance
+    wandb_dir = tempfile.mkdtemp()  # prevent wandb from polluting the home directory
+    atexit.register(shutil.rmtree, wandb_dir, ignore_errors=True)  # clean up after wandb atexit handler finishes
+    import wandb
+    logging.debug(f" run_cls: {run_cls}")
+    config = partial_to_dict(run_cls)
+    config['seed'] = config['seed'] or randrange(1, 1000000)  # if seed == 0 replace with random
+    config['environ'] = log_environment_variables()
+    # config['git'] = git_info()  # TODO: check this for bugs
+    resume = checkpoint_path and exists(checkpoint_path)
+    wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
+    # logging.info(config)
+    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn):
+        [wandb.log(json.loads(s.to_json())) for s in stats]
+
+
+def run(interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
+    """
+    main training loop (remote)
+    """
+    dump_run_instance_fn = dump_run_instance_fn or dump_run_instance
+    load_run_instance_fn = load_run_instance_fn or load_run_instance
+    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn):
+        pass
+
+
+class Trainer:
+    def __init__(self,
+                 training_cls=cfg_obj.TRAINER,
+                 server_ip=cfg.SERVER_IP_FOR_TRAINER,
+                 model_path=cfg.MODEL_PATH_TRAINER,
+                 checkpoint_path=cfg.CHECKPOINT_PATH,
+                 dump_run_instance_fn: callable = None,
+                 load_run_instance_fn: callable = None):
+        self.checkpoint_path = checkpoint_path
+        self.dump_run_instance_fn = dump_run_instance_fn
+        self.load_run_instance_fn = load_run_instance_fn
+        self.training_cls = training_cls
+        self.interface = TrainerInterface(server_ip=server_ip,
+                                          model_path=model_path)
+
+    def run(self):
+        run(interface=self.interface,
+            run_cls=self.training_cls,
+            checkpoint_path=self.checkpoint_path,
+            dump_run_instance_fn=self.dump_run_instance_fn,
+            load_run_instance_fn=self.load_run_instance_fn)
+
+    def run_with_wandb(self,
+                       entity=cfg.WANDB_ENTITY,
+                       project=cfg.WANDB_PROJECT,
+                       run_id=cfg.WANDB_RUN_ID,
+                       key=None):
+        if key is not None:
+            os.environ['WANDB_API_KEY'] = key
+        run_with_wandb(entity=entity,
+                       project=project,
+                       run_id=run_id,
+                       interface=self.interface,
+                       run_cls=self.training_cls,
+                       checkpoint_path=self.checkpoint_path,
+                       dump_run_instance_fn=self.dump_run_instance_fn,
+                       load_run_instance_fn=self.load_run_instance_fn)
+
+
 # ROLLOUT WORKER: ===================================
 
 
@@ -498,27 +657,27 @@ class RolloutWorker:
     def __init__(
             self,
             env_cls,  # class of the Gym environment
-            actor_module_cls,
-            get_local_buffer_sample: callable,
-            device="cpu",
-            server_ip=None,
-            samples_per_worker_packet=1000,  # The RolloutWorker waits for this number of samples before sending
-            max_samples_per_episode=1000000,  # If the episode is longer than this, it is reset by the RolloutWorker
-            model_path=cfg.MODEL_PATH_WORKER,
-            obs_preprocessor: callable = None,
-            crc_debug=False,  # For debugging the pipeline
-            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
-            model_history=cfg.MODEL_HISTORY,  # if 0, doesn't save model history, else, the model is saved every model_history
-            standalone=False,  # if True, the worker will not try to connect to a server (can use this for robot deployment)
+            actor_module_cls,  # class of a module containing the policy
+            sample_compressor: callable = None,  # compressor for sending samples over the Internet
+            device="cpu",  # device on which the policy is running
+            server_ip=None,  # ip of the central server
+            min_samples_per_worker_packet=1,  # # the worker waits for this number of samples before sending
+            max_samples_per_episode=np.inf,  # if an episode gets longer than this, it is reset
+            model_path=cfg.MODEL_PATH_WORKER,  # path where a local copy of the policy will be stored
+            obs_preprocessor: callable = None,  # utility for modifying samples before forward passes
+            crc_debug=False,  # can be used for debugging the pipeline
+            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,  # (omit .pth) an history of policies can be stored here
+            model_history=cfg.MODEL_HISTORY,  # new policies are saved % model_history (0: not saved)
+            standalone=False,  # if True, the worker will not try to connect to a server
     ):
         self.obs_preprocessor = obs_preprocessor
-        self.get_local_buffer_sample = get_local_buffer_sample
+        self.get_local_buffer_sample = sample_compressor
         self.env = env_cls()
         obs_space = self.env.observation_space
         act_space = self.env.action_space
         self.model_path = model_path
         self.model_path_history = model_path_history
-        self.actor = actor_module_cls(obs_space, act_space).to(device)
+        self.actor = actor_module_cls(observation_space=obs_space, action_space=act_space).to(device)
         self.device = device
         self.standalone = standalone
         if os.path.isfile(self.model_path):
@@ -531,7 +690,7 @@ class RolloutWorker:
         self.__buffer_lock = Lock()
         self.__weights = None
         self.__weights_lock = Lock()
-        self.samples_per_worker_batch = samples_per_worker_packet
+        self.samples_per_worker_batch = min_samples_per_worker_packet
         self.max_samples_per_episode = max_samples_per_episode
         self.crc_debug = crc_debug
         self.model_history = model_history
@@ -630,7 +789,10 @@ class RolloutWorker:
         if collect_samples:
             if self.crc_debug:
                 info['crc_sample'] = (obs, act, new_obs, rew, done)
-            sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
+            if self.get_local_buffer_sample:
+                sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
+            else:
+                sample = act, new_obs, rew, done, info
             self.buffer.append_sample(sample)
         return new_obs
 
@@ -647,7 +809,10 @@ class RolloutWorker:
                 stored_done = False
             if self.crc_debug:
                 info['crc_sample'] = (obs, act, new_obs, rew, stored_done)
-            sample = self.get_local_buffer_sample(act, new_obs, rew, stored_done, info)
+            if self.get_local_buffer_sample:
+                sample = self.get_local_buffer_sample(act, new_obs, rew, stored_done, info)
+            else:
+                sample = act, new_obs, rew, stored_done, info
             self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return new_obs, rew, done, info
 

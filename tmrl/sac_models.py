@@ -1,7 +1,5 @@
 # standard library imports
-import operator
 from dataclasses import InitVar, dataclass
-from functools import reduce  # Required in Python 3
 
 # third-party imports
 import gym
@@ -14,40 +12,12 @@ from torch.nn import Linear, Module, ModuleList, ReLU, Sequential
 
 # local imports
 from tmrl.nn import SacLinear, TanhNormalLayer
-from tmrl.util import collate, partition
+from tmrl.util import collate, partition, prod
+from tmrl.actor import ActorModule
 import logging
+
+
 # Adapted from the SAC implementation of OpenAI Spinup
-
-# import scipy.signal
-
-
-def prod(iterable):
-    return reduce(operator.mul, iterable, 1)
-
-
-class ActorModule(Module):
-    device = 'cpu'
-    actor: callable
-
-    # noinspection PyMethodOverriding
-    def to(self, device):
-        """keeps track which device this module has been moved to"""
-        self.device = device
-        return super().to(device=device)
-
-    def reset(self):
-        """Initialize the hidden state. This will be collated before being fed to the actual model and thus should be a structure of numpy arrays rather than torch tensors."""
-        return np.array(())  # just so we don't get any errors when collating and partitioning
-
-    def act(self, state, obs, r, done, info, train=False):
-        """allows this module to be used with gym.Env
-        converts inputs to torch tensors and converts outputs to numpy arrays"""
-        obs = collate([obs], device=self.device)
-        with torch.no_grad():
-            action_distribution = self.actor(obs)
-            action = action_distribution.sample() if train else action_distribution.sample_test()
-        action, = partition(action)
-        return action, state, []
 
 
 class MlpActionValue(Sequential):
@@ -84,7 +54,7 @@ class Mlp(ActorModule):
         self.critic_output_layers = [c[-1] for c in self.critics]
 
 
-# Spinnup MLP:
+# Spinup MLP:
 
 
 def combined_shape(length, shape=None):
@@ -109,12 +79,12 @@ LOG_STD_MAX = 2
 LOG_STD_MIN = -20
 
 
-class SquashedGaussianMLPActor(nn.Module):
-    def __init__(self, obs_space, act_space, hidden_sizes=(256, 256), activation=nn.ReLU, act_buf_len=0):
-        super().__init__()
-        dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
-        dim_act = act_space.shape[0]
-        act_limit = act_space.high[0]
+class SquashedGaussianMLPActor(ActorModule):
+    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU, act_buf_len=0):
+        super().__init__(observation_space, action_space)
+        dim_obs = sum(prod(s for s in space.shape) for space in observation_space)
+        dim_act = action_space.shape[0]
+        act_limit = action_space.high[0]
         self.net = mlp([dim_obs] + list(hidden_sizes), activation, activation)
         self.mu_layer = nn.Linear(hidden_sizes[-1], dim_act)
         self.log_std_layer = nn.Linear(hidden_sizes[-1], dim_act)

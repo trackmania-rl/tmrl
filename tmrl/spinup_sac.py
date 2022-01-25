@@ -14,35 +14,31 @@ from torch.optim import Adam
 import tmrl.sac_models as core
 from tmrl.nn import copy_shared, no_grad
 from tmrl.util import cached_property
+from tmrl.training import TrainingAgent
 import logging
 
-@dataclass(eq=0)
-class SpinupSacAgent:  # Adapted from Spinup
-    Env: InitVar
 
-    actor_critic: type = core.MLPActorCritic
+@dataclass(eq=0)
+class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
+    observation_space: type
+    action_space: type
+    device: str = None  # device where the model will live (None for auto)
+    model_cls: type = core.MLPActorCritic
     gamma: float = 0.99
     polyak: float = 0.995
-    # lr = 1e-3
     alpha: float = 0.2  # fixed (v1) or initial (v2) value of the entropy coefficient
-    Model: type = core.MLPActorCritic
     lr_actor: float = 1e-3  # learning rate
     lr_critic: float = 1e-3  # learning rate
     lr_entropy: float = 1e-3  # entropy autotuning (SAC v2)
-    # discount: float = 0.99  # reward discount factor
-    # target_update: float = 0.005  # parameter for exponential moving average
-    # reward_scale: float = 5.
-    # entropy_scale: float = 1.
     learn_entropy_coef: bool = True  # if True, SAC v2 is used, else, SAC v1 is used
     target_entropy: float = None  # if None, the target entropy for SAC v2 is set automatically
-    device: str = None
+
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
-    def __post_init__(self, Env):
-        with Env() as env:
-            observation_space, action_space = env.observation_space, env.action_space
+    def __post_init__(self):
+        observation_space, action_space = self.observation_space, self.action_space
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
-        model = self.Model(observation_space, action_space)
+        model = self.model_cls(observation_space, action_space)
         logging.debug(f" device SAC: {device}")
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
@@ -66,6 +62,9 @@ class SpinupSacAgent:  # Adapted from Spinup
             self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
         else:
             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
+
+    def get_actor(self):
+        return self.model_nograd.actor
 
     def train(self, batch):
 
