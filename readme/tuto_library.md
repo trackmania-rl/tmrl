@@ -1187,6 +1187,8 @@ In particular, `profiling` enables profiling training (but this doesn't work wel
 We finally have our training class:
 
 ```python
+from tmrl.training_offline import TrainingOffline
+
 training_cls = partial(
     TrainingOffline,
     env_cls=env_cls,
@@ -1207,6 +1209,8 @@ training_cls = partial(
 We can now instantiate our `Trainer`.
 
 ```python
+from tmrl.networking import Trainer
+
 my_trainer = Trainer(
     training_cls=training_cls,
     server_ip=server_ip,
@@ -1264,7 +1268,24 @@ Since we did not set `epochs=np.inf`, this code will reach completion at some po
 The worker thread will simply be killed then.
 If you have followed this tutorial carefully, you will now see the dummy RC drone (blue circle) slowly train to reach the red target.
 
-And that is mostly all, folks! :)
+And that is mostly all, folks! :smile:
+
+---
+
+_(Note 1: I have not done any hyperparameter tuning when writing this tutorial and I have selected most values randomly, so it is very likely you can find much better training hyperparameters for this toy task if you like to try.
+However, be mindful that this task is much harder than it looks: the dummy RC drone has random and fairly long action and observation delays, which makes reaching the target difficult for vanilla RL algorithms like SAC.)_
+
+_(Note 2: Although in this tutorial we have run the `RolloutWorker` and the `Trainer` on the same CPU/GPU, this is of course not recommended in real applications.
+Since the environment is real-time, training may introduce noise in the time-step duration despite the best effort of `rtgym` to prevent this from happening.
+If you see `rtgym `warning you against time-step timeouts, this is probably because the `Trainer` is slowing it down too much.)_
+
+_(Note 3: If you have set `model_history > 0`, you will find the model history in your `weights` folder.
+Note also that everything will be checkpointed, so unless you empty your `checkpoints` and `weights` folders or change the run name, you will not be able to restart training from scratch.)_
+
+_(Note 4: Thank you for reading the `tmrl` tutorial.
+As Fools Garden would sing, you are now **ready for the Real Life** :kissing_heart: )_
+
+---
 
 ## CRC debugging
 
