@@ -10,9 +10,12 @@ In this tutorial, we will learn from A to Z how to implement our own specialized
 This tutorial is quite exhaustive and serves as a documentation.
 
 **Note: some modules can be implemented independently.
-If you are here because you wish to implement your own training algorithm in TrackMania, all you need to do is implement a [TrainingAgent](#training-agent) and adapt the default `Trainer` [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py)**.
+If you are here because you wish to implement your own training algorithm in TrackMania, all you need to do is implement a [TrainingAgent](#training-agent) and adapt the default `Trainer` [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py).**
 
 ## Quick links
+
+The full script for this tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
+
 
 - [Tools](#tools)
   - [partial() method](#partial-method)
@@ -1277,7 +1280,7 @@ However, be mindful that this task is much harder than it looks: the dummy RC dr
 
 _(Note 2: Although in this tutorial we have run the `RolloutWorker` and the `Trainer` on the same CPU/GPU, this is of course not recommended in real applications.
 Since the environment is real-time, training may introduce noise in the time-step duration despite the best effort of `rtgym` to prevent this from happening.
-If you see `rtgym `warning you against time-step timeouts, this is probably because the `Trainer` is slowing it down too much.)_
+If you see `rtgym` warning you against time-step timeouts, this is probably because the `Trainer` is slowing it down too much.)_
 
 _(Note 3: If you have set `model_history > 0`, you will find the model history in your `weights` folder.
 Note also that everything will be checkpointed, so unless you empty your `checkpoints` and `weights` folders or change the run name, you will not be able to restart training from scratch.)_
