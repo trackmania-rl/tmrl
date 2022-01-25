@@ -21,9 +21,9 @@ import logging
 
 @dataclass(eq=0)
 class TrainingOffline:
-    env_cls: type  # = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces if needed
-    memory_cls: type  # = MemoryDataloading  # replay memory
-    training_agent_cls: type  # = TrainingAgent  # training agent
+    env_cls: type = None  # = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces if needed
+    memory_cls: type = None  # = MemoryDataloading  # replay memory
+    training_agent_cls: type = None  # = TrainingAgent  # training agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
     rounds: int = 50  # number of rounds per epoch, we generate statistics every round
     steps: int = 2000  # number of training steps per round
