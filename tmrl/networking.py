@@ -587,7 +587,6 @@ def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path:
     import wandb
     logging.debug(f" run_cls: {run_cls}")
     config = partial_to_dict(run_cls)
-    config['seed'] = config['seed'] or randrange(1, 1000000)  # if seed == 0 replace with random
     config['environ'] = log_environment_variables()
     # config['git'] = git_info()  # TODO: check this for bugs
     resume = checkpoint_path and exists(checkpoint_path)
