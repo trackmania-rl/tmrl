@@ -1286,7 +1286,7 @@ _(Note 3: If you have set `model_history > 0`, you will find the model history i
 Note also that everything will be checkpointed, so unless you empty your `checkpoints` and `weights` folders or change the run name, you will not be able to restart training from scratch.)_
 
 _(Note 4: Thank you for reading the `tmrl` tutorial.
-As Fools Garden would sing, you are now **ready for the Real Life** :kissing_heart: )_
+You are now **ready for the Real Life** :rocket: )_
 
 ---
 

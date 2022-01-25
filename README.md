@@ -22,6 +22,7 @@ It is demonstrated on the TrackMania 2020 video game.
   - [Developer features](#developer-features)
 - [Installation](readme/Install.md)
 - [Getting started](readme/get_started.md)
+- [TMRL framework for robot RL](readme/tuto_library.md)
 - [Gym environment](#gym-environment)
 - [TMRL details](#tmrl-details)
   - [Soft Actor-Critic](#soft-actor-critic)
