@@ -8,7 +8,7 @@ Most users will want to run everything on a single Windows computer, but you may
 
 # Installation
 
-_(Note for ML developers: in case you are not interested in using support for TrackMania, jump directly to [install tmrl](#install-tmrl))._
+_(Note for ML developers: in case you are not interested in using support for TrackMania, you can simply [install tmrl](#install-tmrl))._
 
 We provide installation instructions for `tmrl` using the TrackMania 2020 video game.
 You will first need to install [TrackMania 2020](https://www.trackmania.com/) (obviously), and also a small community-supported utility called [Openplanet for TrackMania](https://openplanet.nl/) (the Gym environment needs this utility to compute the reward).
