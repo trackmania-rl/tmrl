@@ -310,7 +310,7 @@ Contributions to this project are welcome, please submit a PR with your name in 
 
 ## License
 
-MIT, Bouteiller and Geze 2021.
+MIT, Bouteiller and Geze 2021-2022.
 
 ## Sponsors:
 
