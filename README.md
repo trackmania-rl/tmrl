@@ -1,6 +1,6 @@
 # TMRL
 
-TrackMania through Reinforcement Learning (`tmrl`) consists of a distributed framework for training AIs in real time.
+Too Much Real Life (`tmrl`) consists of a distributed framework for training AIs in real-time applications.
 It is demonstrated on the TrackMania 2020 video game.
 
 ![example](readme/img/video_lidar.gif)
