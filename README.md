@@ -22,15 +22,15 @@ It is demonstrated on the TrackMania 2020 video game.
   - [Developer features](#developer-features)
 - [Installation](readme/Install.md)
 - [Getting started](readme/get_started.md)
-- [TMRL framework for robot RL](readme/tuto_library.md)
+- [TMRL python library for robot RL](readme/tuto_library.md)
 - [Gym environment](#gym-environment)
-- [TMRL details](#tmrl-details)
+- [TrackMania training details](#trackmania-training-details)
   - [Soft Actor-Critic](#soft-actor-critic)
   - [A clever reward](#a-clever-reward)
   - [Available action spaces](#available-action-spaces)
   - [Available observation spaces](#available-observation-spaces)
   - [Results](#results)
-- [Advanced](#advanced)
+- [TMRL details](#advanced)
     - [Real-time Gym framework](#real-time-gym-framework)
       - [rtgym repo](https://github.com/yannbouteiller/rtgym)
     - [Distant training architecture](#distant-training-architecture)
@@ -92,8 +92,12 @@ Detailed installation instructions are provided [here](readme/Install.md).
 Full guidance toward setting up the environment, testing pre-trained weights, as well as a tutorial to train, test, and fine-tune your own models,
 are provided at [this link](readme/get_started.md).
 
+## TMRL python library
+
+A complete tutorial toward implementing your own ad-hoc optimized training pipelines for your own real-time tasks (robots, other video games...) is provided [here](readme/tuto_library.md).
+
 ## Gym environment
-In case you wish to use only the `tmrl` Real-Time Gym environment in your own training framework, this is made possible by the `get_environment()` method:
+In case you wish to use only the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
 
 _(NB: the game window needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
 ```python
@@ -151,7 +155,7 @@ _(NB: do not copy-paste, comments are not supported in vanilla .json files)_
 }
 ```
 
-## TMRL details
+## TrackMania training details
 
 In `tmrl`, an AI that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
 Its goal is to learn how to complete the track by exploring its own capacities and environment.

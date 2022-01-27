@@ -67,6 +67,8 @@ _(Instructions for TrackMania 2020 using LIDAR)_
   - Control the car manually. You should see the LIDAR and rewards.
   - Press `CTRL + C` to exit.
 
+### Train:
+
 - Open 3 terminals and put them where they do not overlap with the trackmania window.
 For instance in 3 other corners of the screen.
 - Run the following commands in the 3 different terminals (one per terminal), then, quickly click somewhere in the TrackMania window so that `tmrl` can control the car.

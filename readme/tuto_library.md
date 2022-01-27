@@ -9,13 +9,26 @@ In this tutorial, we will learn from A to Z how to implement our own specialized
 
 This tutorial is quite exhaustive and serves as a documentation.
 
+The full script for this tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
+
+
 **Note: some modules can be implemented independently.
 If you are here because you wish to implement your own training algorithm in TrackMania, all you need to do is implement a [TrainingAgent](#training-agent) and adapt the default `Trainer` [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py).**
 
+## Installation:
+
+If this is not done yet:
+
+```bash
+pip install tmrl
+```
+
+_(Note: if installing on Windows, you will be prompted to install the vigembus driver, as part of the [vgamepad](https://github.com/yannbouteiller/vgamepad) dependency.
+This is for TrackMania support.
+If you think an option to install `tmrl` without support for TrackMania should exist on Windows, please submit a PR, or reach us.)_
+
+
 ## Quick links
-
-The full script for this tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
-
 
 - [Tools](#tools)
   - [partial() method](#partial-method)
@@ -40,6 +53,7 @@ The full script for this tutorial is available [here](https://github.com/trackma
     - [Training parameters](#training-parameters)
   - [Instantiate and run](#instantiate-and-run-the-trainer)
 - [CRC debugging](#crc-debugging)
+- [Full script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py)
 
 ## Tools
 
@@ -1300,7 +1314,7 @@ You have probably noticed that implementing your own compression/decompression p
 
 "CRC" stands for "Cyclic Redundancy Control". This is a way of checking that data has not been corrupted in the pipeline.
 In fact there is no proper CRC in `tmrl` at the moment, but a tool that does essentially the same thing.
-The "CRC debugging" tool should **only** be using for debugging as it will completely destroy the benefit of having a compression pipeline at all when turned on. Here is what it does:
+The "CRC debugging" tool should **only** be used for debugging as it will completely destroy the benefit of having a compression pipeline at all when turned on. Here is what it does:
 
 In `crc_debug` mode, the `RolloutWorker` will store the full transition in the `info` dictionary of each sample.
 
