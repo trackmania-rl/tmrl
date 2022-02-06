@@ -3,9 +3,6 @@ import platform
 
 if platform.system() == "Windows":
 
-    # third-party imports
-    import vgamepad as vg
-
     def control_gamepad(gamepad, control):
         assert all(-1.0 <= c <= 1.0 for c in control), "This function accepts only controls between -1.0 and 1.0"
         if control[0] > 0:  # gas

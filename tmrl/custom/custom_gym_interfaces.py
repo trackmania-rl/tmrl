@@ -12,8 +12,6 @@ import gym.spaces as spaces
 import mss
 import numpy as np
 
-if platform.system() == "Windows":
-    import vgamepad as vg
 
 # third-party imports
 from rtgym import RealTimeGymInterface
@@ -60,6 +58,7 @@ class TM2020Interface(RealTimeGymInterface):
     def initialize(self):
         if self.gamepad:
             assert platform.system() == "Windows", "Sorry, Only Windows is supported for gamepad control"
+            import vgamepad as vg
             self.j = vg.VX360Gamepad()
             logging.debug(" virtual joystick in use")
         self.sct = mss.mss()
