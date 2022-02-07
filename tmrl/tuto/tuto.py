@@ -207,7 +207,7 @@ def my_sample_compressor(prev_act, obs, rew, done, info):
     This is to compress the sample before sending it over the Internet/local network.
     Buffers of such samples will be given as input to the append() method of the dataloading memory.
     When you implement such compressor, you must implement a corresponding decompressor.
-    This decompressor is the append() method of the memory.
+    This decompressor is the append() or get_transition() method of the memory.
 
     Args:
         prev_act: action computed from a previous observation and applied to yield obs in the transition
@@ -247,16 +247,6 @@ weights_folder = cfg.WEIGHTS_FOLDER
 model_path = str(weights_folder / (my_run_name + ".pth"))
 model_path_history = str(weights_folder / (my_run_name + "_"))
 model_history = 10
-
-
-# Observation preprocessing:
-
-def my_observation_preprocessor(obs):
-    """
-    This takes a Gym observation as input ad outputs whatever you want fed to the model
-    """
-    obs = (obs[0], obs[1], obs[2], *obs[3], *obs[4])  # we unfold the two last arrays
-    return obs
 
 
 # Instantiation of the RolloutWorker object:
