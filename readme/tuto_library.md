@@ -954,7 +954,7 @@ class TrainingAgent(ABC):
         Executes a training step.
 
         Args:
-            batch: tuple or batched torch.tensors
+            batch: tuple of batched torch.tensors
                 (previous observation, action, reward, new observation, done)
 
         Returns:
