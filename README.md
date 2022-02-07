@@ -11,7 +11,7 @@ It is demonstrated on the TrackMania 2020 video game.
 `tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md). Video of a pre-trained AI [here](https://www.youtube.com/watch?v=LN29DDlHp1U) (with a beginner introduction to the SAC algorithm).
 
 - :rocket: **ML developers / roboticists:**\
-`tmrl` is a python library designed to facilitate the implementation of deep RL applications in real-life robot settings. Full tutorial for you guys [here](readme/tuto_library.md).
+`tmrl` is a python library designed to facilitate the implementation of deep RL applications in real-time settings such as robots and video games. Full tutorial for you guys [here](readme/tuto_library.md).
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
 `tmrl` provides a Gym environment for TrackMania that is easy to use. Fast-track for you guys [here](#gym-environment).
