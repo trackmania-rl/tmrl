@@ -9,7 +9,7 @@ In this tutorial, we will learn from A to Z how to implement our own specialized
 
 This tutorial is quite exhaustive and serves as a documentation.
 
-The full script for this tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
+The full script of the tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
 
 
 **Note: some modules can be implemented independently.

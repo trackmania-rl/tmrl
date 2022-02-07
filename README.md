@@ -1,6 +1,6 @@
 # TMRL
 
-TrackMania through Reinforcement Learning (`tmrl`) consists of a distributed framework for training AIs in real-time applications.
+`tmrl` is a distributed framework for training Deep Reinforcement Learning AIs in real-time applications.
 It is demonstrated on the TrackMania 2020 video game.
 
 ![example](readme/img/video_lidar.gif)
@@ -8,18 +8,18 @@ It is demonstrated on the TrackMania 2020 video game.
  **TL;DR:**
 
 - :red_car: **AI and TM enthusiasts:**\
-`tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md).
+`tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md). Video of a pre-trained AI [here](https://www.youtube.com/watch?v=LN29DDlHp1U) (with a beginner introduction to the SAC algorithm).
 
-- :rocket: **ML developers:**\
-`tmrl` is now packaged as a fully-fledged python library designed to facilitate the implementation of deep RL applications in robot settings. Tutorial for you guys [here](readme/tuto_library.md).
+- :rocket: **ML developers / roboticists:**\
+`tmrl` is a python library designed to facilitate the implementation of deep RL applications in real-life robot settings. Full tutorial for you guys [here](readme/tuto_library.md).
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
-`tmrl` provides a Gym environment for TM that is mostly straightforward to use. How-to for you guys [here](#gym-environment).
+`tmrl` provides a Gym environment for TrackMania that is mostly straightforward to use. Fast-track for you guys [here](#gym-environment).
 
 ## Quick links
 - [Introduction](#introduction)
-  - [User features](#user-features)
-  - [Developer features](#developer-features)
+  - [User features](#user-features-trackmania)
+  - [Developer features](#developer-features-real-time-applications)
 - [Installation](readme/Install.md)
 - [Getting started](readme/get_started.md)
 - [TMRL python library for robot RL](readme/tuto_library.md)
@@ -40,17 +40,19 @@ It is demonstrated on the TrackMania 2020 video game.
 
 ## Introduction
 
-`tmrl` uses actual video games, with no insider access, to train competitive self-driving Artificial Intelligences (AIs), also called "policies".
+`tmrl` is a python framework designed to help you train Artificial Intelligences (AIs), also called "policies", for your own robots or real-time video games.
 
-These policies are trained with Deep Reinforcement Learning (RL) algorithms, in Real-Time.
-### User features:
+
+This is done through Deep Reinforcement Learning (RL).
+
+### User features (trackmania):
 * **Training algorithm:**
-`tmrl` can train policies in TrackMania with [Soft Actor-Critic](https://arxiv.org/abs/1801.01290) (SAC), a state-of-the-art Deep Reinforcement Learning algorithm.
+`tmrl` lets you easily train policies in TrackMania with [Soft Actor-Critic](https://www.youtube.com/watch?v=LN29DDlHp1U) (SAC), a state-of-the-art Deep Reinforcement Learning algorithm.
 SAC stores collected samples in a large dataset, called a replay memory.
 In parallel, this dataset is used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, steering angle...).
 
 * **Analog control:**
-`tmrl` can control the video game using a virtual gamepad, which enables analog input.
+`tmrl` controls the game using a virtual gamepad, which enables analog input.
 
 * **Different types of observation:**
 The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots or the raw unprocessed snapshots in order to perceive its environment
@@ -61,9 +63,9 @@ To process LIDAR measurements, `tmrl` uses a Multi-Layer Perceptron (MLP) or a R
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN)
 _(note: only the MLP is supported at the moment, the rest is WIP)_.
 
-### Developer features:
+### Developer features (real-time applications):
 * **Python library:**
-`tmrl` is a complete framework designed for helping you successfully implement deep RL in your real-time applications (e.g., robots).
+`tmrl` is a complete framework designed to help you successfully implement deep RL in your real-time applications (e.g., robots).
 A complete tutorial toward doing this is provided [here](readme/tuto_library.md).
 
 * **Real-Time Gym environment:**
@@ -97,7 +99,7 @@ are provided at [this link](readme/get_started.md).
 A complete tutorial toward implementing your own ad-hoc optimized training pipelines for your own real-time tasks (robots, other video games...) is provided [here](readme/tuto_library.md).
 
 ## Gym environment
-In case you wish to use only the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
+In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
 
 _(NB: the game window needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
 ```python
@@ -167,7 +169,12 @@ This is accomplished through Deep Reinforcement Learning (RL).
 More precisely, we use the Soft Actor-Critic (SAC) algorithm.
 
 ### Soft Actor-Critic
-[Soft Actor-Critic](https://arxiv.org/abs/1801.01290) (SAC) is an algorithm that enables learning continuous stochastic controllers.
+
+([Introductory video](https://www.youtube.com/watch?v=LN29DDlHp1U))
+
+([Full paper](https://arxiv.org/abs/1801.01290))
+
+Soft Actor-Critic (SAC) is an algorithm that enables learning continuous stochastic controllers.
 Like most RL algorithms, it is based on a mathematical description of the environment called a Markov Decision Process (MDP).
 The policy trained by SAC interacts with this MDP as follows:
 
@@ -281,7 +288,7 @@ Custom `rtgym` interfaces for Trackmania used by `tmrl` are implemented in [cust
 
 ### Distant training architecture:
 
-To train our model, we developed a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
+`tmrl` is based on a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
 Our client-server architecture is not secured and it is not meant to compete with Ray, but it is much simpler to modify in order to implement ad-hoc pipelines and works on both Windows and Linux.
 
 We collect training samples from several rollout workers, typically several computers and/or robots.
@@ -295,10 +302,10 @@ Periodically, the central server receives updated policy weights from the traine
 
 The trainer interface is typically located on a non-rollout worker computer of the local network, or on another computer on the Internet (like a GPU cluster).
 Of course, it is also possible to locate it on localhost if needed.
-The trainer interface periodically receives the samples gathered by the central server and appends them to the replay memory of the off-policy actor-critic algorithm.
+The trainer interface periodically receives the samples gathered by the central server and appends them to a replay memory.
 Periodically, it sends the new policy weights to the central server.
 
-These mechanics can be visualized as follows:
+These mechanics can be summarized as follows:
 
 ![Networking architecture](readme/img/network_interface.png "Networking Architecture")
 

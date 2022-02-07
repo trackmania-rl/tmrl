@@ -1,10 +1,7 @@
 # Requirements
-* Windows (required only for the computer(s) running TrackMania)
+* Windows (required only if running TrackMania)
 * Python >= 3.7
 * A recent NVIDIA GPU (required only on the training computer if you plan to train your own AI)
-
-Most users will want to run everything on a single Windows computer, but you may want to run TrackMania on one to several Windows computers in parallel, and run the training process on a distant Linux or Windows HPC;
-`tmrl` supports these use cases.
 
 # Installation
 
@@ -65,7 +62,7 @@ The `TmrlData` folder is your _"control pannel"_, it contains everything `tmrl` 
 Navigate to `TmrlData\config` and open `config.json` in a text editor.
 
 In particular, you may want to adapt the following entries:
-- `RUN_NAME`: put a new name for starting training from scratch
+- `RUN_NAME`: set a new name for starting training from scratch
 - `LOCALHOST_WORKER`: set to `false` for `workers` not on the same computer as the `server`
 - `LOCALHOST_TRAINER`: set to `false` for `trainer` not on the same computer as the `server`
 - `PUBLIC_IP_SERVER`: public IP of the `server` if not running on localhost
