@@ -828,25 +828,16 @@ class RolloutWorker:
         self.buffer.stat_train_return = ret
         self.buffer.stat_train_steps = steps
 
-    def run_episodes(self, max_samples, train=False):
+    def run_episodes(self, max_samples_per_episode, nb_episodes=np.inf, train=False):
         """
-        collects a maximum of n test transitions (from reset to done)
-        stores test return in the local buffer of the worker
+        runs nb_episodes episodes, with at most max_samples_per_episode samples each
         """
-        while True:
-            ret = 0.0
-            steps = 0
-            obs = self.reset(collect_samples=False)
-            for _ in range(max_samples):
-                obs, rew, done, info = self.step(obs=obs, test=not train, collect_samples=False)
-                ret += rew
-                steps += 1
-                if done:
-                    break
-            self.buffer.stat_test_return = ret
-            self.buffer.stat_test_steps = steps
+        counter = 0
+        while counter < nb_episodes:
+            self.run_episode(max_samples_per_episode, train=train)
+            counter += 1
 
-    def run_test_episode(self, max_samples):
+    def run_episode(self, max_samples, train=False):
         """
         collects a maximum of n test transitions (from reset to done)
         stores test return in the local buffer of the worker
@@ -855,7 +846,7 @@ class RolloutWorker:
         steps = 0
         obs = self.reset(collect_samples=False)
         for _ in range(max_samples):
-            obs, rew, done, info = self.step(obs=obs, test=True, collect_samples=False)
+            obs, rew, done, info = self.step(obs=obs, test=not train, collect_samples=False)
             ret += rew
             steps += 1
             if done:
@@ -868,7 +859,7 @@ class RolloutWorker:
         while True:
             if episode % test_episode_interval == 0 and not self.crc_debug:
                 print_with_timestamp("running test episode")
-                self.run_test_episode(self.max_samples_per_episode)
+                self.run_episode(self.max_samples_per_episode, train=False)
             print_with_timestamp("collecting train episode")
             self.collect_train_episode(self.max_samples_per_episode)
             print_with_timestamp("copying buffer for sending")

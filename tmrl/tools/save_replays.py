@@ -1,4 +1,7 @@
+from argparse import ArgumentParser
+
 # third-party imports
+import numpy as np
 
 # local imports
 import tmrl.config.config_constants as cfg
@@ -8,7 +11,7 @@ from tmrl.networking import RolloutWorker
 from tmrl.util import partial
 
 
-def run_car():
+def save_replays(nb_replays=np.inf):
     config = cfg_obj.CONFIG_DICT
     config['interface_kwargs'] = {'save_replay': True}
     rw = RolloutWorker(env_cls=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": config}),
@@ -19,10 +22,14 @@ def run_car():
                        min_samples_per_worker_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                        model_path=cfg.MODEL_PATH_WORKER,
                        obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
-                       crc_debug=cfg.CRC_DEBUG)
+                       crc_debug=cfg.CRC_DEBUG,
+                       standalone=True)
 
-    rw.run_episodes(10000)
+    rw.run_episodes(10000, nb_episodes=nb_replays)
 
 
 if __name__ == "__main__":
-    run_car()
+    parser = ArgumentParser()
+    parser.add_argument('--nb_replays', type=int, default=np.inf, help='number of replays to record')
+    args = parser.parse_args()
+    save_replays(args.nb_replays)
