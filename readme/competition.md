@@ -1,6 +1,10 @@
-# TrackMania RL competition
+# TrackMania AI competition
 
 :red_car: Welcome to the race! :checkered_flag:
+
+The `tmrl` competition is a fun way of benchmarking self-driving approaches.
+Competitors use snapshots from the real `TrackMania 2020` video game, with no insider access, to train and test self-racing policies.
+
 
 ## Leaderboard:
 
@@ -10,7 +14,7 @@
 - _Model architecture:_ MLP 256 * 256, 3 gaussian output (default)
 - _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
 
-| Position  | Team | Time - _mean (std)_ | Weights | Description |
+| Podium  | Team | Time - _mean (std)_ | Weights | Description |
 | :---: | :---: | :---: | :---: | :---: |
 | :dragon: :one: | Baseline | 47.176 (0.769)| [download](https://github.com/trackmania-rl/tmrl/releases/download/v0.0.2/resources.zip) | SAC baseline |
 | :racehorse: :two: |
@@ -22,10 +26,6 @@
 | :turtle: :eight: |
 | :snail: :nine: |
 | :palm_tree: :keycap_ten: |
-
-## Introduction:
-The `tmrl` competition is a fun way of benchmarking self-driving approaches.
-Competitors use snapshots from the real `TrackMania 2020` video game, with no insider access, to train and test self-racing policies.
 
 ## Rules:
 
@@ -59,8 +59,10 @@ For the Alpha iteration, your score is evaluated on the `tmrl-test.Map.Gbx` trac
 You are strongly encouraged (but not required) to open-source your code and provide a description of your approach, so we can publish a link to your repo in the `description` column of the leaderboard.
 
 ## Tutorial:
+(Coming soon)
 
 ## Submit an entry:
+(Coming soon)
 
 ## Suggestions:
 Your suggestions to improve the competition are very welcome!
@@ -69,5 +71,5 @@ Please use the [discussions](https://github.com/trackmania-rl/tmrl/discussions) 
 
 ## Join the organization team:
 
-We are looking for volunteers to help us popularize the `tmrl` competition, find sponsorship for cash prizes, and make this into an AI conference competition.
+We are looking for volunteers to help us popularize the `tmrl` competition, find sponsors for cash prizes, and make this into an AI conference competition.
 Please reach us if you are interested.
