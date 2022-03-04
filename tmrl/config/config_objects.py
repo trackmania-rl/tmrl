@@ -120,10 +120,12 @@ def sac_v2_entropy_scheduler(agent, epoch):
         agent.entopy_target = start_ent + (end_ent - start_ent) * epoch / end_epoch
 
 
+ENV_CLS = partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
+
 if cfg.PRAGMA_LIDAR:  # lidar
     TRAINER = partial(
         TrainingOffline,
-        env_cls=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
+        env_cls=ENV_CLS,
         memory_cls=MEMORY,
         epochs=cfg.TMRL_CONFIG["MAX_EPOCHS"],
         rounds=cfg.TMRL_CONFIG["ROUNDS_PER_EPOCH"],
@@ -138,7 +140,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
 else:  # images
     TRAINER = partial(
         TrainingOffline,
-        env_cls=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT}),
+        env_cls=ENV_CLS,
         memory_cls=MEMORY,
         epochs=100000,  # 10
         rounds=10,  # 50

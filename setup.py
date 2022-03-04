@@ -87,7 +87,6 @@ install_req = [
     'scikit-image',
     'inputs',
     'keyboard',
-    'pyvjoy',
     'pyautogui',
     'pyinstrument',
     'yapf',
