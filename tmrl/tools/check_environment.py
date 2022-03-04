@@ -26,7 +26,7 @@ def check_env_tm20lidar():
     env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_early_done": int(20 * 60), "road_point": (440, 479), "record": False}
     # env_config["time_step_duration"] = 0.5  # nominal duration of your time-step
     # env_config["start_obs_capture"] = 0.4
-    env = gym.make("rtgym:real-time-gym-v0", config=env_config)
+    env = gym.make("real-time-gym-v0", config=env_config)
     o = env.reset()
     while True:
         o, r, d, i = env.step(None)

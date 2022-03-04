@@ -116,7 +116,7 @@ def record_tmnf_keyboard(path_dataset):
 
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TMInterface
-    env = gym.make("rtgym:real-time-gym-v0")
+    env = gym.make("real-time-gym-v0")
     env.reset()
 
     is_recording = False
@@ -162,7 +162,7 @@ def record_tmnf_lidar_keyboard(path_dataset):
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TMInterfaceLidar
 
-    env = gym.make("rtgym:real-time-gym-v0")
+    env = gym.make("real-time-gym-v0")
     env.reset()
 
     is_recording = False
@@ -217,7 +217,7 @@ def record_tm20_lidar(path_dataset):
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020InterfaceLidar
     env_config["ep_max_length"] = 2000
-    env = gym.make("rtgym:real-time-gym-v0")
+    env = gym.make("real-time-gym-v0")
     env.reset()
 
     is_recording = False
@@ -268,7 +268,7 @@ def record_tm20(path_dataset):
 
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020Interface
-    env = gym.make("rtgym:real-time-gym-v0")
+    env = gym.make("real-time-gym-v0")
     env.reset()
 
     is_recording = False

@@ -283,7 +283,7 @@ With our dummy drone environment, this translates to:
 from tmrl.util import partial
 from tmrl.envs import GenericGymEnv
 
-env_cls=partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": my_config})
+env_cls=partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": my_config})
 ```
 
 We can create a dummy environment to retrieve the action and observation spaces:
@@ -664,7 +664,7 @@ A `TrainingOffline` class instantiation requires other (possibly partially insta
 from tmrl.util import partial
 from tmrl.envs import GenericGymEnv
 
-env_cls = partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": my_config})
+env_cls = partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": my_config})
 ```
 This dummy environment will only be used by the `Trainer` to retrieve the observation and action spaces (`reset()` will not be called).
 Alternatively, you can pass this information as a Tuple:

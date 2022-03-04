@@ -120,7 +120,7 @@ def sac_v2_entropy_scheduler(agent, epoch):
         agent.entopy_target = start_ent + (end_ent - start_ent) * epoch / end_epoch
 
 
-ENV_CLS = partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
+ENV_CLS = partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
 
 if cfg.PRAGMA_LIDAR:  # lidar
     TRAINER = partial(

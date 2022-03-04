@@ -122,7 +122,7 @@ my_config["benchmark_polyak"] = 0.2
 
 # Environment class:
 
-env_cls = partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": my_config})
+env_cls = partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": my_config})
 
 
 # Observation and action space:
@@ -284,7 +284,7 @@ checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.cpt"))
 
 # Dummy environment:
 
-env_cls = partial(GenericGymEnv, id="rtgym:real-time-gym-v0", gym_kwargs={"config": my_config})
+env_cls = partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": my_config})
 # env_cls = (observation_space, action_space)
 
 

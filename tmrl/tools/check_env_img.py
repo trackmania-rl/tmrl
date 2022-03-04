@@ -12,7 +12,7 @@ def check_env():
     # env_config = DEFAULT_CONFIG_DICT.copy()
     # env_config["interface"] = TM2020InterfaceLidar
     # env_config["wait_on_done"] = True
-    # env = gym.make("rtgym:real-time-gym-v0", config=env_config)
+    # env = gym.make("real-time-gym-v0", config=env_config)
     # o = env.reset()
     while True:
         # o, r, d, i = env.step(None)

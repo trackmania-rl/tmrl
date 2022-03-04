@@ -15,4 +15,4 @@ def get_environment():
     """
     Gets TMRL Gym environment
     """
-    return GenericGymEnv(id="rtgym:real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
+    return GenericGymEnv(id="real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
