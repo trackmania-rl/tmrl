@@ -10,7 +10,6 @@ Competitors use snapshots from the real `TrackMania 2020` video game, with no in
 ### Iteration Alpha :hatching_chick:
 - _Observation space:_ 4 LIDAR of 19 beams, speed, 2 previous actions (default)
 - _Control frequency:_ 20 Hz (default)
-- _Model architecture:_ MLP 256 * 256, 3 gaussian output (default)
 - _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
 
 | Podium  | Team | Time - _mean (std)_ | Weights | Description |
@@ -32,20 +31,22 @@ Competitors use snapshots from the real `TrackMania 2020` video game, with no in
 The `tmrl` competition is an open-source research initiative, currently in its very first iteration :hatching_chick:
 
 In this iteration we keep things as simple as possible, thus we focus on training algorithms.
-Neural architecture, observation space and control frequency are imposed to the competitors.
-This makes participating very easy, because it is possible to use the default available pipeline with no modification other than to the `TrainingAgent` object, and this provides a standardized benchmark for your training approach against those of other competitors.
+Observation space and control frequency are imposed to the competitors.
 
 The setting is the following:
+- The action space is the default `TrackMania 2020` continuous action space (3 floats between -1.0 and 1.0)
 - The observation space is the default history of 4 19-beams LIDARs along with the speed and 2 previous actions.
 - The control frequency is 20 Hz.
-- The model architecture is the default 256 * 256 [SquashedGaussianMLPActor](https://github.com/trackmania-rl/tmrl/blob/70bbc0861772c89c3de0c934f654a5644c4797e5/tmrl/sac_models.py#L82).
 
-The only part that is required in your entry to the competition is a `.pth` copy of your policy weights, which must comply with the default architecture (i.e., be a [SquashedGaussianMLPActor](https://github.com/trackmania-rl/tmrl/blob/70bbc0861772c89c3de0c934f654a5644c4797e5/tmrl/sac_models.py#L82)).
-How you train these weights is entirely up to you, but we provide a fast-track [tutorial](#tutorial) for your convenience.
+The only part that is required in your entry to the competition is an implementation of the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) python interface.
+
+How to implement this module is entirely up to you, but we provide a fast-track [tutorial](#tutorial) for your convenience.
+
+:loudspeaker: **Real-world constraint**: your `ActorModule` needs to be lightweight enough to run at 20Hz on a `2.20GHz i7-2720QM` CPU core, as this is what we will be using to evaluate your submission.
 
 
 ### Evaluation and leaderboard:
-For the first iteration of this competition, we take any submitted entry, at any time, and evaluate it over 10 runs (more information regarding how to submit an entry [here](#submit-an-entry)).
+For the first iteration of this competition, we take any submitted entry, at any time, and we evaluate it over 10 runs (more information regarding how to submit an entry [here](#submit-an-entry)).
 If the **mean** time achieved by your policy on the `tmrl_test` track over those 10 runs is amongst the current 10 best entries, your entry will appear in the [leaderboard](#leaderboard).
 
 _**CAUTION**: if the car crashes (i.e., the episode auto-resets due to failure of moving forward), we don't count the episode but we add a penalty of 100 seconds to the next episode.

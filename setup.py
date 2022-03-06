@@ -31,12 +31,6 @@ def url_retrieve(url: str, outfile: Path, overwrite: bool = False):
             raise ConnectionError(f"could not download {url} due to {err}")
 
 
-# pathExe = Path(__file__).parent.absolute() / "resources" / "OpenplanetNextSetup_1.20.5_2021_10_24.exe"
-#
-# if sys.argv[1] != 'egg_info' and sys.argv[1] != 'sdist':
-#     subprocess.call('start /i %s' % str(pathExe), shell=True)
-
-
 # destination folder:
 TMRL_FOLDER = Path.home() / "TmrlData"
 
@@ -93,9 +87,6 @@ install_req = [
     'isort',
     'autoflake'
 ]
-
-# if platform.system() == "Linux":
-#     install_req.append('scikit-build')
 
 if platform.system() == "Windows":
     install_req.append('pypiwin32')
