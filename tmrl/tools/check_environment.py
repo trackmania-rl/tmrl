@@ -11,6 +11,7 @@ from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 
 # local imports
 from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TMInterface, TMInterfaceLidar
+from tmrl.custom.utils.screenshot import screenshot
 from tmrl.custom.utils.tools import Lidar
 import logging
 
@@ -19,7 +20,7 @@ def check_env_tm20lidar():
 
     sct = mss.mss()
     monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
-    lidar = Lidar(monitor=monitor, road_point=(440, 479))
+    lidar = Lidar()
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020InterfaceLidar
     env_config["wait_on_done"] = True
@@ -33,7 +34,7 @@ def check_env_tm20lidar():
         logging.info(f"r:{r}, d:{d}")
         if d:
             o = env.reset()
-        img = np.asarray(sct.grab(monitor))[:, :, :3]
+        img = screenshot()[:, :, :3]
         lidar.lidar_20(img, True)
 
 

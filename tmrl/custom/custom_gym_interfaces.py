@@ -22,6 +22,7 @@ from tmrl.custom.utils.compute_reward import RewardFunction
 from tmrl.custom.utils.control_gamepad import control_gamepad
 from tmrl.custom.utils.key_event import apply_control, keyres
 from tmrl.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20, wait_for_popup_save_replay_and_improve_tm20
+from tmrl.custom.utils.screenshot import screenshot
 from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, get_speed, load_digits
 
 # Globals ==============================================================================================================
@@ -197,16 +198,16 @@ class TM2020InterfaceLidar(TM2020Interface):
     def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_early_done=int(20 * 3.5), road_point=(440, 479), record=False, save_replay: bool = False):
         super().__init__(img_hist_len, gamepad, min_nb_steps_before_early_done, save_replay)
         self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
-        self.lidar = Lidar(monitor=self.monitor, road_point=road_point)
+        self.lidar = Lidar()
         self.record = record
 
     def grab_lidar_speed_and_data(self):
-        img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
+        img = screenshot()[:, :, :3]
         data = self.client.retrieve_data()
         speed = np.array([
             data[0],
         ], dtype='float32')
-        lidar = self.lidar.lidar_20(im=img, show=False)
+        lidar = self.lidar.lidar_20(img=img, show=False)
         return lidar, speed, data
 
     def reset(self):
@@ -309,7 +310,7 @@ class TMInterface(RealTimeGymInterface):
             apply_control(actions)
 
     def grab_img_and_speed(self):
-        img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
+        img = screenshot()[:, :, :3]
         speed = np.array([
             get_speed(img, self.digits),
         ], dtype='float32')

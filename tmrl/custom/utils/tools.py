@@ -13,6 +13,7 @@ import numpy as np
 
 # local imports
 from tmrl.config.config_constants import LIDAR_BLACK_THRESHOLD
+from screenshot import screenshot
 
 
 class TM2020OpenPlanetClient:
@@ -123,13 +124,14 @@ def armin(tab):
 
 
 class Lidar:
-    def __init__(self, monitor, road_point):
-        self.road_point = road_point
-        self.monitor = monitor
+    def __init__(self):
+        self.road_point = (0, 0)
         self.list_axis_x, self.list_axis_y = self._get_axis_lidar()
         self.black_threshold = LIDAR_BLACK_THRESHOLD
 
     def _get_axis_lidar(self):
+        h, w, rgb = screenshot().shape
+        self.road_point = (44*h//49, w//2)
         list_ax_x = []
         list_ax_y = []
         for angle in range(90, 280, 10):
@@ -144,7 +146,7 @@ class Lidar:
             while not lenght:
                 newx = int(x + dist * dx)
                 newy = int(y + dist * dy)
-                if newx <= 0 or newy <= 0 or newy >= self.monitor["width"] - 1:
+                if newx <= 0 or newy <= 0 or newy >= w - 1:
                     lenght = True
                     list_ax_x.append(np.array(axis_x))
                     list_ax_y.append(np.array(axis_y))
@@ -154,8 +156,8 @@ class Lidar:
                 dist = dist + 1
         return list_ax_x, list_ax_y
 
-    def lidar_20(self, im, show=False):
-        img = np.array(im)
+    def lidar_20(self, img, show=False):
+        #img = np.array(im)
         distances = []
         if show:
             color = (255, 0, 0)
