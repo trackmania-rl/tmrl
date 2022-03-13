@@ -13,7 +13,7 @@ import numpy as np
 
 # local imports
 from tmrl.config.config_constants import LIDAR_BLACK_THRESHOLD
-from screenshot import screenshot
+from tmrl.custom.utils.screenshot import screenshot
 
 
 class TM2020OpenPlanetClient:
