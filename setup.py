@@ -90,7 +90,6 @@ install_req = [
 
 if platform.system() == "Windows":
     install_req.append('pywin32')
-    install_req.append('pypiwin32')
     install_req.append('vgamepad')
 
 # The directory containing this file

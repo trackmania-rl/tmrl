@@ -125,13 +125,18 @@ def armin(tab):
 
 class Lidar:
     def __init__(self):
-        self.road_point = (0, 0)
-        self.list_axis_x, self.list_axis_y = self._get_axis_lidar()
+        self._set_axis_lidar()
         self.black_threshold = LIDAR_BLACK_THRESHOLD
 
-    def _get_axis_lidar(self):
-        h, w, rgb = screenshot().shape
+    def _set_axis_lidar(self, im=None):
+        if im is not None:
+            h, w, _ = im.shape
+        else:
+            h, w, _ = screenshot().shape
+        self.h = h
+        self.w = w
         self.road_point = (44*h//49, w//2)
+        min_dist = 20
         list_ax_x = []
         list_ax_y = []
         for angle in range(90, 280, 10):
@@ -142,7 +147,7 @@ class Lidar:
             dx = math.cos(math.radians(angle))
             dy = math.sin(math.radians(angle))
             lenght = False
-            dist = 20
+            dist = min_dist
             while not lenght:
                 newx = int(x + dist * dx)
                 newy = int(y + dist * dy)
@@ -154,14 +159,18 @@ class Lidar:
                     axis_x.append(newx)
                     axis_y.append(newy)
                 dist = dist + 1
-        return list_ax_x, list_ax_y
+        self.list_axis_x = list_ax_x
+        self.list_axis_y = list_ax_y
 
     def lidar_20(self, img, show=False):
-        #img = np.array(im)
+        h, w, _ = img.shape
+        if h != self.h or w != self.w:
+            self._set_axis_lidar(img)
         distances = []
         if show:
             color = (255, 0, 0)
             thickness = 4
+            img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
         for axis_x, axis_y in zip(self.list_axis_x, self.list_axis_y):
             index = armin(np.all(img[axis_x, axis_y] < self.black_threshold, axis=1))
             if show:
@@ -170,7 +179,7 @@ class Lidar:
             distances.append(index)
         res = np.array(distances, dtype=np.float32)
         if show:
-            cv2.imshow("PipeLine", img)
+            cv2.imshow("Environment", img)
             cv2.waitKey(1)
         return res
 
