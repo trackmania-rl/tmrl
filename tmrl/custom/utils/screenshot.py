@@ -7,27 +7,34 @@ import win32ui
 import win32con
 
 
-def screenshot():
-    hwnd = win32gui.FindWindow(None, "Trackmania")
-    x, y, x1, y1 = win32gui.GetWindowRect(hwnd)
-    w = x1 - x - 16
-    h = y1 - y - 39
-    # window
+def screenshot(window_name="Trackmania"):
+
+    hwnd = win32gui.FindWindow(None, window_name)
+    assert hwnd != 0, f"Could not find a window named {window_name}."
     borders = (8, 31)
-    wdc = win32gui.GetWindowDC(hwnd)
-    dc_obj = win32ui.CreateDCFromHandle(wdc)
-    cdc = dc_obj.CreateCompatibleDC()
-    data_bitmap = win32ui.CreateBitmap()
-    data_bitmap.CreateCompatibleBitmap(dc_obj, w, h)
-    cdc.SelectObject(data_bitmap)
-    cdc.BitBlt((0, 0), (w, h), dc_obj, borders, win32con.SRCCOPY)
-    img_array = data_bitmap.GetBitmapBits(True)
-    img = (np.frombuffer(img_array, dtype='uint8'))
+
+    while True:  # avoids crashes when the window is reduced
+        x, y, x1, y1 = win32gui.GetWindowRect(hwnd)
+        w = x1 - x - 16
+        h = y1 - y - 39
+        if w > 0 and h > 0:
+            break
+
+    hdc = win32gui.GetWindowDC(hwnd)
+    dc = win32ui.CreateDCFromHandle(hdc)
+    memdc = dc.CreateCompatibleDC()
+    bitmap = win32ui.CreateBitmap()
+    bitmap.CreateCompatibleBitmap(dc, w, h)
+    oldbmp = memdc.SelectObject(bitmap)
+    memdc.BitBlt((0, 0), (w, h), dc, borders, win32con.SRCCOPY)
+    bits = bitmap.GetBitmapBits(True)
+    img = (np.frombuffer(bits, dtype='uint8'))
     img.shape = (h, w, 4)
-    dc_obj.DeleteDC()
-    cdc.DeleteDC()
-    win32gui.ReleaseDC(hwnd, wdc)
-    win32gui.DeleteObject(data_bitmap.GetHandle())
+    memdc.SelectObject(oldbmp)  # avoids memory leak
+    win32gui.DeleteObject(bitmap.GetHandle())
+    memdc.DeleteDC()
+    win32gui.ReleaseDC(hwnd, hdc)
+
     return img
 
 
