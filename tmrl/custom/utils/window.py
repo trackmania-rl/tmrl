@@ -24,7 +24,7 @@ if platform.system() == "Windows":
             self.w_diff = wr[2] - wr[0] - cr[2] + cr[0]  # (16 on W10)
             self.h_diff = wr[3] - wr[1] - cr[3] + cr[1]  # (39 on W10)
 
-            self.borders = (self.w_diff // 2, 31)  # FIXME: where does this 31 come from?
+            self.borders = (self.w_diff // 2, self.h_diff - self.w_diff // 2)
 
             self.x_origin_offset = - self.w_diff // 2
             self.y_origin_offset = 0
