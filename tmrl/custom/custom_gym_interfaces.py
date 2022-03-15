@@ -9,7 +9,6 @@ from collections import deque
 # third-party imports
 import cv2
 import gym.spaces as spaces
-import mss
 import numpy as np
 
 
@@ -22,7 +21,7 @@ from tmrl.custom.utils.compute_reward import RewardFunction
 from tmrl.custom.utils.control_gamepad import control_gamepad
 from tmrl.custom.utils.key_event import apply_control, keyres
 from tmrl.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20, wait_for_popup_save_replay_and_improve_tm20
-from tmrl.custom.utils.screenshot import screenshot
+from tmrl.custom.utils.window import WindowInterface
 from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, get_speed, load_digits
 
 # Globals ==============================================================================================================
@@ -40,8 +39,6 @@ class TM2020Interface(RealTimeGymInterface):
         """
         Args:
         """
-        self.monitor = {"top": 32, "left": 1, "width": 256, "height": 127}
-        self.sct = None
         self.last_time = None
         self.digits = None
         self.img_hist_len = img_hist_len
@@ -51,18 +48,19 @@ class TM2020Interface(RealTimeGymInterface):
         self.client = None
         self.gamepad = gamepad
         self.j = None
+        self.window_interface = None
         self.min_nb_steps_before_early_done = min_nb_steps_before_early_done
         self.save_replay = save_replay
 
         self.initialized = False
 
-    def initialize(self):
+    def initialize_common(self):
         if self.gamepad:
             assert platform.system() == "Windows", "Sorry, Only Windows is supported for gamepad control"
             import vgamepad as vg
             self.j = vg.VX360Gamepad()
             logging.debug(" virtual joystick in use")
-        self.sct = mss.mss()
+        self.window_interface = WindowInterface("Trackmania")
         self.last_time = time.time()
         self.digits = load_digits()
         self.img_hist = deque(maxlen=self.img_hist_len)
@@ -73,6 +71,9 @@ class TM2020Interface(RealTimeGymInterface):
                                               nb_zero_rew_before_early_done=10,
                                               min_nb_steps_before_early_done=self.min_nb_steps_before_early_done)
         self.client = TM2020OpenPlanetClient()
+
+    def initialize(self):
+        self.initialize_common()
         self.initialized = True
 
     def send_control(self, control):
@@ -100,7 +101,7 @@ class TM2020Interface(RealTimeGymInterface):
                 apply_control(actions)
 
     def grab_data_and_img(self):
-        img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
+        img = self.window_interface.screenshot()[:, :, :3]
         img = np.moveaxis(img, -1, 0)
         data = self.client.retrieve_data()
         self.img = img  # for render()
@@ -195,20 +196,26 @@ class TM2020Interface(RealTimeGymInterface):
 
 
 class TM2020InterfaceLidar(TM2020Interface):
-    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_early_done=int(20 * 3.5), road_point=(440, 479), record=False, save_replay: bool = False):
+    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_early_done=int(20 * 3.5), record=False, save_replay: bool = False):
         super().__init__(img_hist_len, gamepad, min_nb_steps_before_early_done, save_replay)
-        self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
-        self.lidar = Lidar()
         self.record = record
+        self.window_interface = None
+        self.lidar = None
 
     def grab_lidar_speed_and_data(self):
-        img = screenshot()[:, :, :3]
+        img = self.window_interface.screenshot()[:, :, :3]
         data = self.client.retrieve_data()
         speed = np.array([
             data[0],
         ], dtype='float32')
         lidar = self.lidar.lidar_20(img=img, show=False)
         return lidar, speed, data
+
+    def initialize(self):
+        super().initialize_common()
+        self.window_interface.move_and_resize()
+        self.lidar = Lidar(self.window_interface.screenshot())
+        self.initialized = True
 
     def reset(self):
         """
@@ -282,8 +289,7 @@ class TMInterface(RealTimeGymInterface):
         """
         Args:
         """
-        self.monitor = {"top": 30, "left": 0, "width": 958, "height": 490}
-        self.sct = mss.mss()
+        self.window_interface = WindowInterface("Trackmania")
         self.last_time = time.time()
         self.digits = load_digits()
         self.img_hist_len = img_hist_len
@@ -310,7 +316,7 @@ class TMInterface(RealTimeGymInterface):
             apply_control(actions)
 
     def grab_img_and_speed(self):
-        img = screenshot()[:, :, :3]
+        img = self.window_interface.screenshot()[:, :, :3]
         speed = np.array([
             get_speed(img, self.digits),
         ], dtype='float32')
@@ -376,16 +382,16 @@ class TMInterface(RealTimeGymInterface):
 
 
 class TMInterfaceLidar(TMInterface):
-    def __init__(self, img_hist_len=4, road_point=(440, 479)):
+    def __init__(self, img_hist_len=4):
         super().__init__(img_hist_len)
-        self.lidar = Lidar(monitor=self.monitor, road_point=road_point)
+        self.lidar = Lidar(self.window_interface.screenshot())
 
     def grab_lidar_and_speed(self):
-        img = np.asarray(self.sct.grab(self.monitor))[:, :, :3]
+        img = self.window_interface.screenshot()[:, :, :3]
         speed = np.array([
             get_speed(img, self.digits),
         ], dtype='float32')
-        lidar = self.lidar.lidar_20(im=img, show=False)
+        lidar = self.lidar.lidar_20(img=img, show=False)
         return lidar, speed
 
     def reset(self):
@@ -426,6 +432,7 @@ class TMInterfaceLidar(TMInterface):
             19,
         ))  # lidars
         return spaces.Tuple((speed, imgs))
+
 
 if __name__ == "__main__":
     pass

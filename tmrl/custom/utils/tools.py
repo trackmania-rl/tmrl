@@ -13,7 +13,6 @@ import numpy as np
 
 # local imports
 from tmrl.config.config_constants import LIDAR_BLACK_THRESHOLD
-from tmrl.custom.utils.screenshot import screenshot
 
 
 class TM2020OpenPlanetClient:
@@ -124,15 +123,12 @@ def armin(tab):
 
 
 class Lidar:
-    def __init__(self):
-        self._set_axis_lidar()
+    def __init__(self, im):
+        self._set_axis_lidar(im)
         self.black_threshold = LIDAR_BLACK_THRESHOLD
 
-    def _set_axis_lidar(self, im=None):
-        if im is not None:
-            h, w, _ = im.shape
-        else:
-            h, w, _ = screenshot().shape
+    def _set_axis_lidar(self, im):
+        h, w, _ = im.shape
         self.h = h
         self.w = w
         self.road_point = (44*h//49, w//2)
