@@ -319,6 +319,7 @@ Contributions to this project are welcome, please submit a PR with your name in 
 
 ### Contributors:
 - Simon Ramstedt
+- AndrejGobeX
 
 ## License
 
