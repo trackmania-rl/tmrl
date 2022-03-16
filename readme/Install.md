@@ -1,7 +1,15 @@
-# Requirements
-* Windows (required only if running TrackMania)
+# Prerequisites
+* Windows / Linux (Windows required if running TrackMania)
 * Python >= 3.7
 * A recent NVIDIA GPU (required only on the training computer if you plan to train your own AI)
+
+#### If using Anaconda on Windows:
+
+We recommend you install the conda version of `pywin32`:
+
+```terminal
+conda install pywin32
+```
 
 # Installation
 
@@ -36,11 +44,12 @@ To install the `tmrl` python library, open your favorite terminal and run:
 pip install tmrl
 ```
 
+#### Additional information for Windows / Trackmania:
+
 If running on Windows, during the installation, a driver will be installed to emulate a virtual gamepad.
 Accept the licence agreement and install the driver when prompted.
 
 ![Image](img/Nefarius1.png)
-
 
 Then, navigate to your home folder (on Windows it is `C:\Users\your username\`).
 

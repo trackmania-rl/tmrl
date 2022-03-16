@@ -15,8 +15,7 @@ You can test our pre-trained AI directly in TrackMania by following these steps 
 - In case the OpenPlanet menu is showing in the top part of the screen, hide it using the `f3` key
 - Launch the `tmrl-test` track. This can be done by selecting `create > map editor > edit a map > tmrl-test > select map` and hitting the green flag.
 - Set the game in windowed mode. To do this, bring the cursor to the top of the screen and a drop-down menu will show. Hit the windowed icon.
-- Bring the TrackMania window to the top-left corner of the screen. On Windows10, it should automatically fit to a quarter of the screen _(NB: this requires `1920x1080` screen resolution, otherwise, see [troubleshooting](#troubleshooting))_.
-
+- Bring the TrackMania window to the top-left corner of the screen. On Windows10, it should automatically fit to a quarter of the screen _(NB: the window will automatically snap to the top-left corner and get sized properly when you start the AI)_.
 - Enter the cockpit view by hitting the `3` key (the car must be hidden, press several times if the cockpit is visible).
 - Hide the ghost by pressing the `g` key.
 
@@ -41,7 +40,8 @@ Try reducing the trackmania graphics to the minimum (in particular, try setting 
 _(NB: seeing these warnings once at each environment reset is normal, this is because we purposefully sleep when the car is waiting for green light)._
 
 In the `Graphics` tab of the TM20 settings, ensure that the resolution is 958 (width) * 488 (height) pixels.
-If your screen resolution is not `1920x1080`, you will probably need to place the window manually. You may use the `--check-environment` option described later to precisely place the window.
+
+The `Input` setting for gamepads must be the default.
 
 ## Train your own self-driving AI
 
