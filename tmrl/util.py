@@ -133,11 +133,16 @@ FKEY = '+'
 
 
 def partial_to_dict(p: functools.partial, version="3"):
+    """
+    Only for wandb.
+
+    This function has become lenient to work with new versions of Gym.
+    """
     assert not p.args, "So far only keyword arguments are supported, here"
     fields = {k: v.default for k, v in inspect.signature(p.func).parameters.items()}
     fields = {k: v for k, v in fields.items() if v is not inspect.Parameter.empty}
-    diff = p.keywords.keys() - fields.keys()
-    assert not diff, f"There are invalid keywords present: {diff}"
+    # diff = p.keywords.keys() - fields.keys()
+    # assert not diff, f"{p} cannot be converted to dict. There are invalid keywords present: {diff}"
     fields.update(p.keywords)
     nested = {k: partial_to_dict(partial(v), version="") for k, v in fields.items() if callable(v)}
     simple = {k: v for k, v in fields.items() if k not in nested}
@@ -145,12 +150,12 @@ def partial_to_dict(p: functools.partial, version="3"):
     return dict(output, __format_version__=version) if version else output
 
 
-def partial_from_dict(d: dict):
-    d = d.copy()
-    assert d.pop("__format_version__", "3") == "3"
-    d = {k: partial_from_dict(v) if isinstance(v, dict) and FKEY in v else v for k, v in d.items()}
-    func = get_class_or_function(d.pop(FKEY) or "tmrl.util:default")
-    return partial(func, **d)
+# def partial_from_dict(d: dict):
+#     d = d.copy()
+#     assert d.pop("__format_version__", "3") == "3"
+#     d = {k: partial_from_dict(v) if isinstance(v, dict) and FKEY in v else v for k, v in d.items()}
+#     func = get_class_or_function(d.pop(FKEY) or "tmrl.util:default")
+#     return partial(func, **d)
 
 
 def get_class_or_function(func):

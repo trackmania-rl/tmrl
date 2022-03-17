@@ -35,5 +35,6 @@ class GenericGymEnv(gym.Wrapper):
         # env = NormalizeActionWrapper(env)
         super().__init__(env)
 
+
 if __name__ == '__main__':
     pass

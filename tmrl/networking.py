@@ -6,25 +6,22 @@ import select
 import socket
 import time
 import atexit
-import gc
+# import gc
 import json
 import shutil
 import tempfile
-import yaml
 from os.path import exists
-from random import randrange
 from copy import deepcopy
 from threading import Lock, Thread
 
 # third-party imports
-import pandas as pd
 import numpy as np
 import torch
 from requests import get
 
 # local imports
 from tmrl.actor import ActorModule
-from tmrl.util import collate, dump, git_info, load, load_json, partial, partial_from_dict, partial_to_dict, save_json
+from tmrl.util import collate, dump, load, partial_to_dict
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
 
