@@ -5,7 +5,7 @@
 
 #### If using Anaconda on Windows:
 
-We recommend you install the conda version of `pywin32`:
+We recommend installing the conda version of `pywin32`:
 
 ```terminal
 conda install pywin32

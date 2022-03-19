@@ -33,15 +33,41 @@ python -m tmrl --test
 You should now see the car drive autonomously.
 
 ### Troubleshooting:
+#### Errors:
 If you get an error saying that communication was refused, try reloading the `TMRL grab data` script in the OpenPlanet menu.
 
-If you see many warnings saying that time-steps time out, this means that your computer struggles at running the AI and trackmania in parallel.
+In case you get a DLL error from the `win32gui/win32ui/win32con` library, install `pywin32` without using `pip` (e.g., use `conda install pywin32`).
+
+#### Profiling / optimization:
+If you see many warnings complaining about time-steps timing out, this means that your computer struggles at running the AI and trackmania in parallel.
 Try reducing the trackmania graphics to the minimum (in particular, try setting the maximum fps to 30, but not much less than this, because screenshots are captured at 20 fps)
 _(NB: seeing these warnings once at each environment reset is normal, this is because we purposefully sleep when the car is waiting for green light)._
 
 In the `Graphics` tab of the TM20 settings, ensure that the resolution is 958 (width) * 488 (height) pixels.
 
 The `Input` setting for gamepads must be the default.
+
+More insight regarding your bottlenecks can be gained using the `--benchmark` option.
+This requires you to set the `"benchmark"` entry to `true` in `config.json`, and then run:
+```bash
+python -m tmrl --benchmark
+```
+This will run an episode and print results such as:
+```terminal
+Benchmark results:
+{'time_step_duration': (0.04973503448440074, 0.0026528655942530876),
+'step_duration': (0.04807219094465544, 0.002513953782792142),
+'join_duration': (0.04780806270254146, 0.002499383592620444),
+'inference_duration': (0.001633495957288204, 0.0004890919531246595),
+'send_control_duration': (0.0006831559519106576, 0.0004686670785507652),
+'retrieve_obs_duration': (0.024897294799567357, 0.0023167497316040745)}
+```
+where each tuple is a duration in seconds representing `(mean, mean deviation)`.
+
+For instance, here, we can see that time-steps are of 0.05s (20 FPS), with a very fast inference (policy), and observation retrieval (screenshot + lidar computation) being a potential bottleneck with a non-negligible mean of 0.025s.
+Note that inference and observation retrieval happen in parallel:
+in the very worst case, both could be almost 0.05s.
+Therefore, we have some margin here, in particular regarding the policy.
 
 ## Train your own self-driving AI
 
