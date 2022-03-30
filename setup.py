@@ -8,7 +8,6 @@ from zipfile import ZipFile
 import urllib.request
 import urllib.error
 import socket
-import warnings
 
 if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
@@ -80,12 +79,12 @@ if not TMRL_FOLDER.exists():
                 copy2(TM20_SCRIPT_FILE, OP_SCRIPTS_FOLDER)
                 copy2(TM20_SCRIPT_FILE_SIG, OP_SCRIPTS_FOLDER)
             except Exception as e:
-                warnings.warn(
+                print(
                     f"An exception was caught when trying to copy the OpenPlanet script and signature automatically. \
                     Please copy these files manually for TrackMania 2020 support. The caught exception was: {str(e)}.")
         else:
             # warn the user that OpenPlanet couldn't be found:
-            warnings.warn(f"The OpenPlanet folder was not found at {OPENPLANET_FOLDER}. \
+            print(f"The OpenPlanet folder was not found at {OPENPLANET_FOLDER}. \
             Please copy the OpenPlanet script and signature manually for TrackMania 2020 support.")
 
 
