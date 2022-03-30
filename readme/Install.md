@@ -44,7 +44,7 @@ To install the `tmrl` python library, open your favorite terminal and run:
 pip install tmrl
 ```
 
-#### Additional information for Windows / Trackmania:
+#### Additional information for Windows / Trackmania 2020:
 
 If running on Windows, during the installation, a driver will be installed to emulate a virtual gamepad.
 Accept the licence agreement and install the driver when prompted.
@@ -55,9 +55,21 @@ Then, navigate to your home folder (on Windows it is `C:\Users\your username\`).
 
 There, you will find that `tmrl` has created a folder named `TmrlData`.
 
-_On the computer(s) running TrackMania_, OpenPlanet should also have created a folder named `OpenPlanetNext` there.
-(If `OpenPlanetNext` is not there, launch Trackmania after installing Openplanet, and it should be created automatically).
-Navigate to `TmrlData\resources`, copy the `Scripts` folder, and paste it in the `OpenPlanetNext` folder.
+_On the computer(s) running TrackMania_, OpenPlanet should also have created a folder named `OpenplanetNext` there.
+(If `OpenplanetNext` is not there, launch Trackmania after installing Openplanet, and it should be created automatically).
+
+Open the `OpenplanetNext\Scripts` folder and double-check that `pip` has copied a `.as` and a `.as.sig` files there.
+If not, navigate to `TmrlData\resources`, copy the `Scripts` folder, and paste it in the `OpenplanetNext` folder.
+
+_(NB: when pip-uninstalling `tmrl`, the `TmrlData` folder is not deleted.)_
+
+#### Clean install:
+
+If at some point you want to do a clean re-install of `tmrl`:
+
+- `pip uninstall tmrl`
+- Delete the `TmrlData` folder from your home folder
+- `pip install tmrl`
 
 ### (Optional) Configure/manage TMRL:
 
@@ -79,9 +91,6 @@ In particular, you may want to adapt the following entries:
 - `WANDB_PROJECT`, `WANDB_ENTITY` and `WANDB_KEY` can be replaced by you own [wandb](https://wandb.ai/site) credentials for monitoring training
 
 You can delete the content of all folders (but not the folders themselves) whenever you like (except `config.json`, a default version is provided in `resources` if you delete this).
-If at some point you want to do a clean install, delete the whole `TmrlData` folder and pip install `tmrl` again.
-
-_NB: when pip uninstalling `tmrl`, the `TmrlData` folder is not deleted._
 
 ### (Optional) Check that everything works:
 
