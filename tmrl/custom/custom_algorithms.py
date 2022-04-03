@@ -1,5 +1,3 @@
-# Adapted from the SAC v1 implementation of OpenAI Spinup and the SAC v2 implementation of Stable Baselines 3
-
 # standard library imports
 import itertools
 from copy import deepcopy
@@ -11,11 +9,14 @@ import torch
 from torch.optim import Adam
 
 # local imports
-import tmrl.sac_models as core
+import tmrl.custom.custom_models as core
 from tmrl.nn import copy_shared, no_grad
 from tmrl.util import cached_property
 from tmrl.training import TrainingAgent
 import logging
+
+
+# Soft Actor-Critic ====================================================================================================
 
 
 @dataclass(eq=0)

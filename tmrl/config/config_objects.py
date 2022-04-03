@@ -11,10 +11,10 @@ from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLi
 from tmrl.custom.custom_memories import MemoryTM2020RAM, MemoryTMNF, MemoryTMNFLidar, TrajMemoryTMNFLidar, get_local_buffer_sample, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs
 from tmrl.envs import GenericGymEnv
-# from tmrl.sac_models import Mlp, MlpPolicy
-from tmrl.sac_models import MLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor, SquashedGaussianRNNActor
+# from tmrl.custom.custom_models import Mlp, MlpPolicy
+from tmrl.custom.custom_models import MLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor, SquashedGaussianRNNActor
 # from tmrl.sac import SacAgent as SAC_Agent
-from tmrl.spinup_sac import SpinupSacAgent as SAC_Agent
+from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
 from tmrl.util import partial
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
