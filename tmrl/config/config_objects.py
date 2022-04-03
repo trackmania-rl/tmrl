@@ -7,14 +7,9 @@ import rtgym
 # local imports
 import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TrainingOffline
-from tmrl.custom.custom_dcac_interfaces import Tm20rtgymDcacInterface
-# from tmrl.custom.custom_models import Tm_hybrid_1, TMPolicy
 from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TMInterface, TMInterfaceLidar
 from tmrl.custom.custom_memories import MemoryTM2020RAM, MemoryTMNF, MemoryTMNFLidar, TrajMemoryTMNFLidar, get_local_buffer_sample, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs
-from tmrl.drtac import Agent as DCAC_Agent
-from tmrl.drtac_models import Mlp as SV_Mlp
-from tmrl.drtac_models import MlpPolicy as SV_MlpPolicy
 from tmrl.envs import GenericGymEnv
 # from tmrl.sac_models import Mlp, MlpPolicy
 from tmrl.sac_models import MLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor, SquashedGaussianRNNActor
@@ -25,8 +20,7 @@ from tmrl.util import partial
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
 if cfg.PRAGMA_DCAC:
-    TRAIN_MODEL = SV_Mlp
-    POLICY = SV_MlpPolicy
+    assert False, "Not supported"
 else:
     assert cfg.PRAGMA_LIDAR
     if cfg.PRAGMA_RNN:
@@ -82,18 +76,7 @@ MEMORY = partial(MEM,
 ALG_CONFIG = cfg.TMRL_CONFIG["ALG"]
 
 if cfg.PRAGMA_DCAC:  # DCAC
-    AGENT = partial(
-        DCAC_Agent,
-        Interface=Tm20rtgymDcacInterface,
-        OutputNorm=partial(beta=0., zero_debias=False),
-        device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
-        Model=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
-        lr_actor=0.0003,
-        lr_critic=0.0003,  # default 0.0003
-        discount=0.995,  # default and best tmnf so far: 0.99
-        target_update=0.005,
-        reward_scale=2.0,  # 2.0,  # default: 5.0, best tmnf so far: 0.1, best tm20 so far: 2.0
-        entropy_scale=1.0)  # default: 1.0),  # default: 1.0
+    assert False, "Not supported"
 else:  # SAC
     assert ALG_CONFIG["ALGORITHM"] == "SAC"
     AGENT = partial(

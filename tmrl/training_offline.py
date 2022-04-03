@@ -8,11 +8,6 @@ from pandas import DataFrame
 
 # local imports
 import tmrl.config.config_constants as cfg
-import tmrl.sac
-# from tmrl.envs import GenericGymEnv
-# from tmrl.memory_dataloading import MemoryDataloading
-# from tmrl.networking import TrainerInterface
-# from tmrl.training import TrainingAgent
 from tmrl.util import pandas_dict
 
 import logging
