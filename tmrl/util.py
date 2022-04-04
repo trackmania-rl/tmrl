@@ -9,6 +9,7 @@ import pickle
 import signal
 import subprocess
 import weakref
+from pathlib import Path
 from contextlib import contextmanager
 from dataclasses import Field, dataclass, fields, is_dataclass, make_dataclass
 from importlib import import_module
@@ -221,10 +222,12 @@ def git_info(path=None):
 
 
 def dump(obj, path):
-    # TODO: use atomic write: https://stackoverflow.com/questions/2333872/atomic-writing-to-file-with-python
+    path = Path(path)
+    tmp_path = path.with_suffix('.tmp')
     with DelayInterrupt():  # Continue to save even if SIGINT or SIGTERM is sent and raise KeyboardInterrupt afterwards.
-        with open(path, 'wb') as f:
-            return pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+        with open(tmp_path, 'wb') as f:
+            pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)  # dump temporary file (can fail)
+        os.replace(tmp_path, path)  # replace with definitive name (this is supposedly atomic)
 
 
 def load(path):
