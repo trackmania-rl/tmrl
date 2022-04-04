@@ -27,8 +27,6 @@ PRAGMA_CUDA_INFERENCE = TMRL_CONFIG["CUDA_INFERENCE"]  # True if CUDA, False if 
 
 PRAGMA_GAMEPAD = TMRL_CONFIG["VIRTUAL_GAMEPAD"]  # True to use gamepad, False to use keyboard
 
-PRAGMA_DCAC = False  # True for DCAC, False for SAC
-
 LOCALHOST_WORKER = TMRL_CONFIG["LOCALHOST_WORKER"]  # set to True for RolloutWorkers on the same machine as the Server
 LOCALHOST_TRAINER = TMRL_CONFIG["LOCALHOST_TRAINER"]  # set to True for Trainers on the same machine as the Server
 PUBLIC_IP_SERVER = TMRL_CONFIG["PUBLIC_IP_SERVER"]

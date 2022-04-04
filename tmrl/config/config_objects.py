@@ -12,23 +12,28 @@ from tmrl.custom.custom_memories import MemoryTM2020RAM, MemoryTMNF, MemoryTMNFL
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs
 from tmrl.envs import GenericGymEnv
 # from tmrl.custom.custom_models import Mlp, MlpPolicy
-from tmrl.custom.custom_models import MLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor, SquashedGaussianRNNActor
+from tmrl.custom.custom_models import MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor, SquashedGaussianRNNActor
 # from tmrl.sac import SacAgent as SAC_Agent
 from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
+from tmrl.custom.custom_algorithms import REDQSACAgent as REDQ_Agent
 from tmrl.util import partial
+
+
+ALG_CONFIG = cfg.TMRL_CONFIG["ALG"]
+ALG_NAME = ALG_CONFIG["ALGORITHM"]
+assert ALG_NAME in ["SAC", "REDQSAC"], f"If you wish to implement {ALG_NAME}, do not use 'ALG' in config.json for that."
+
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
-if cfg.PRAGMA_DCAC:
-    assert False, "Not supported"
+assert cfg.PRAGMA_LIDAR
+if cfg.PRAGMA_RNN:
+    assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
+    TRAIN_MODEL = RNNActorCritic
+    POLICY = SquashedGaussianRNNActor
 else:
-    assert cfg.PRAGMA_LIDAR
-    if cfg.PRAGMA_RNN:
-        TRAIN_MODEL = RNNActorCritic
-        POLICY = SquashedGaussianRNNActor
-    else:
-        TRAIN_MODEL = MLPActorCritic
-        POLICY = SquashedGaussianMLPActor
+    TRAIN_MODEL = MLPActorCritic if ALG_NAME == "SAC" else REDQMLPActorCritic
+    POLICY = SquashedGaussianMLPActor
 
 if cfg.PRAGMA_LIDAR:
     INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
@@ -54,16 +59,15 @@ if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
         assert False, "not implemented"
     else:
-        MEM = TrajMemoryTMNFLidar if cfg.PRAGMA_DCAC else MemoryTMNFLidar
+        MEM = MemoryTMNFLidar
 else:
-    assert not cfg.PRAGMA_DCAC, "DCAC not implemented here"
     MEM = MemoryTM2020RAM if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
 
 MEMORY = partial(MEM,
                  memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
                  batch_size=cfg.TMRL_CONFIG["BATCH_SIZE"],
                  obs_preprocessor=OBS_PREPROCESSOR,
-                 sample_preprocessor=None if cfg.PRAGMA_DCAC else SAMPLE_PREPROCESSOR,
+                 sample_preprocessor=SAMPLE_PREPROCESSOR,
                  dataset_path=cfg.DATASET_PATH,
                  imgs_obs=cfg.IMG_HIST_LEN,
                  act_buf_len=cfg.ACT_BUF_LEN,
@@ -73,12 +77,7 @@ MEMORY = partial(MEM,
 
 # ALGORITHM: ===================================================
 
-ALG_CONFIG = cfg.TMRL_CONFIG["ALG"]
-
-if cfg.PRAGMA_DCAC:  # DCAC
-    assert False, "Not supported"
-else:  # SAC
-    assert ALG_CONFIG["ALGORITHM"] == "SAC"
+if ALG_NAME == "SAC":
     AGENT = partial(
         SAC_Agent,
         device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
@@ -90,7 +89,25 @@ else:  # SAC
         polyak=ALG_CONFIG["POLYAK"],
         learn_entropy_coef=ALG_CONFIG["LEARN_ENTROPY_COEF"],  # False for SAC v2 with no temperature autotuning
         target_entropy=ALG_CONFIG["TARGET_ENTROPY"],  # None for automatic
-        alpha=ALG_CONFIG["ALPHA"])  # inverse of reward scale
+        alpha=ALG_CONFIG["ALPHA"]  # inverse of reward scale
+    )
+else:
+    AGENT = partial(
+        REDQ_Agent,
+        device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
+        model_cls=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
+        lr_actor=ALG_CONFIG["LR_ACTOR"],
+        lr_critic=ALG_CONFIG["LR_CRITIC"],
+        lr_entropy=ALG_CONFIG["LR_ENTROPY"],
+        gamma=ALG_CONFIG["GAMMA"],
+        polyak=ALG_CONFIG["POLYAK"],
+        learn_entropy_coef=ALG_CONFIG["LEARN_ENTROPY_COEF"],  # False for SAC v2 with no temperature autotuning
+        target_entropy=ALG_CONFIG["TARGET_ENTROPY"],  # None for automatic
+        alpha=ALG_CONFIG["ALPHA"],  # inverse of reward scale
+        n=ALG_CONFIG["REDQ_N"],  # number of Q networks
+        m=ALG_CONFIG["REDQ_M"],  # number of Q targets
+        q_updates_per_policy_update=ALG_CONFIG["REDQ_Q_UPDATES_PER_POLICY_UPDATE"]
+    )
 
 # TRAINER: =====================================================
 

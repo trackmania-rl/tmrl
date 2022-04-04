@@ -54,7 +54,7 @@ def main(args):
                           checkpoint_path=cfg.CHECKPOINT_PATH,
                           dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
                           load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
-        logging.info(f"--- NOW RUNNING: SAC trackmania ---")
+        logging.info(f"--- NOW RUNNING {cfg_obj.ALG_NAME} on TrackMania ---")
         if not args.no_wandb:
             trainer.run_with_wandb(entity=cfg.WANDB_ENTITY,
                                    project=cfg.WANDB_PROJECT,
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     parser.add_argument('--check-environment', dest='check_env', action='store_true', help='utility to check the environment')
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
     parser.add_argument('-d', '--config', type=json.loads, default={}, help='dictionary containing configuration options (modifiers) for the rtgym environment')
-    args = parser.parse_args()
-    logging.info(args)
+    arguments = parser.parse_args()
+    logging.info(arguments)
 
-    main(args)
+    main(arguments)
