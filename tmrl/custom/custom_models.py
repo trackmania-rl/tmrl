@@ -200,7 +200,7 @@ class REDQMLPActorCritic(nn.Module):
         # build policy and value functions
         self.actor = SquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation, act_limit)
         self.n = n
-        self.qs = [MLPQFunction(observation_space, action_space, hidden_sizes, activation) for _ in range(self.n)]
+        self.qs = ModuleList([MLPQFunction(observation_space, action_space, hidden_sizes, activation) for _ in range(self.n)])
 
     def act(self, obs, test=False):
         with torch.no_grad():
