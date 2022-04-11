@@ -201,7 +201,7 @@ class REDQSACAgent(TrainingAgent):
         # self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
         self.q_optimizer_list = [Adam(q.parameters(), lr=self.lr_critic) for q in self.model.qs]
         self.criterion = torch.nn.MSELoss()
-        self.loss_pi = torch.zeros((1,))
+        self.loss_pi = torch.zeros((1,), device=device)
 
         self.i_update = 0  # for UTD ratio
 
