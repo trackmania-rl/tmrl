@@ -16,7 +16,11 @@ from tmrl.config.config_constants import LIDAR_BLACK_THRESHOLD
 
 
 class TM2020OpenPlanetClient:
-    def __init__(self, host='127.0.0.1', port=9000):
+    def __init__(self, host='127.0.0.1', port=9000, nb_floats_to_unpack=11):
+        # Script attributes:
+        self.nb_floats_to_unpack = nb_floats_to_unpack
+        self._nb_bytes = self.nb_floats_to_unpack * 4
+        self._struct_str = '<' + 'f' * self.nb_floats_to_unpack
         self._host = host
         self._port = port
 
@@ -36,11 +40,11 @@ class TM2020OpenPlanetClient:
             s.connect((self._host, self._port))
             data_raw = b''
             while True:  # main loop
-                while len(data_raw) < 44:
+                while len(data_raw) < self._nb_bytes:
                     data_raw += s.recv(1024)
-                div = len(data_raw) // 44
-                data_used = data_raw[(div - 1) * 44:div * 44]
-                data_raw = data_raw[div * 44:]
+                div = len(data_raw) // self._nb_bytes
+                data_used = data_raw[(div - 1) * self._nb_bytes:div * self._nb_bytes]
+                data_raw = data_raw[div * self._nb_bytes:]
                 self.__lock.acquire()
                 self.__data = data_used
                 self.__lock.release()
@@ -55,7 +59,7 @@ class TM2020OpenPlanetClient:
         while c:
             self.__lock.acquire()
             if self.__data is not None:
-                data = struct.unpack('<fffffffffff', self.__data)
+                data = struct.unpack(self._struct_str, self.__data)
                 c = False
             self.__lock.release()
             if c:

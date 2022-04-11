@@ -178,9 +178,9 @@ class REDQSACAgent(TrainingAgent):
     alpha: float = 0.2  # fixed (v1) or initial (v2) value of the entropy coefficient
     lr_actor: float = 1e-3  # learning rate
     lr_critic: float = 1e-3  # learning rate
-    lr_entropy: float = 1e-3  # entropy autotuning (SAC v2)
-    learn_entropy_coef: bool = True  # if True, SAC v2 is used, else, SAC v1 is used
-    target_entropy: float = None  # if None, the target entropy for SAC v2 is set automatically
+    lr_entropy: float = 1e-3  # entropy autotuning
+    learn_entropy_coef: bool = True
+    target_entropy: float = None  # if None, the target entropy is set automatically
     n: int = 10  # number of REDQ parallel Q networks
     m: int = 2  # number of REDQ randomly sampled target networks
     q_updates_per_policy_update: int = 1  # in REDQ, this is the "UTD ratio" (20), this interplays with lr_actor
@@ -191,14 +191,10 @@ class REDQSACAgent(TrainingAgent):
         observation_space, action_space = self.observation_space, self.action_space
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         model = self.model_cls(observation_space, action_space)
-        logging.debug(f" device REDQSAC: {device}")
+        logging.debug(f" device REDQ-SAC: {device}")
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
-
-        # self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
-
         self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
-        # self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
         self.q_optimizer_list = [Adam(q.parameters(), lr=self.lr_critic) for q in self.model.qs]
         self.criterion = torch.nn.MSELoss()
         self.loss_pi = torch.zeros((1,), device=device)
@@ -223,13 +219,11 @@ class REDQSACAgent(TrainingAgent):
 
         self.i_update += 1
         update_policy = (self.i_update % self.q_updates_per_policy_update == 0)
-        # print(f"DEBUG: self.i_update:{self.i_update}, update_policy:{update_policy}")
 
         o, a, r, o2, d = batch
 
         if update_policy:
             pi, logp_pi = self.model.actor(o)
-            # print(f"DEBUG: pi.shape:{pi.shape}")
         # FIXME? log_prob = log_prob.reshape(-1, 1)
 
         loss_alpha = None
@@ -246,26 +240,17 @@ class REDQSACAgent(TrainingAgent):
 
         with torch.no_grad():
             a2, logp_a2 = self.model.actor(o2)
-            # print(f"DEBUG: a2.shape:{a2.shape}")
-            # print(f"DEBUG: logp_a2.shape:{logp_a2.shape}")
 
             sample_idxs = np.random.choice(self.n, self.m, replace=False)
 
             q_prediction_next_list = [self.model_target.qs[i](o2, a2) for i in sample_idxs]
             q_prediction_next_cat = torch.stack(q_prediction_next_list, -1)
-            # print(f"DEBUG: q_prediction_next_cat.shape:{q_prediction_next_cat.shape}")
             min_q, _ = torch.min(q_prediction_next_cat, dim=1, keepdim=True)
-            # print(f"DEBUG: min_q.shape:{min_q.shape}")
-            # print(f"DEBUG: r.shape:{r.shape}")
-            # print(f"DEBUG: d.shape:{d.shape}")
             backup = r.unsqueeze(dim=-1) + self.gamma * (1 - d.unsqueeze(dim=-1)) * (min_q - alpha_t * logp_a2.unsqueeze(dim=-1))
-            # print(f"DEBUG: backup.shape:{backup.shape}")
 
         q_prediction_list = [q(o, a) for q in self.model.qs]
         q_prediction_cat = torch.stack(q_prediction_list, -1)
-        # print(f"DEBUG: q_prediction_cat.shape:{q_prediction_cat.shape}")
         backup = backup.expand((-1, self.n)) if backup.shape[1] == 1 else backup
-        # print(f"DEBUG: expanded backup.shape:{backup.shape}")
 
         loss_q = self.criterion(q_prediction_cat, backup) * self.n
 
@@ -279,12 +264,8 @@ class REDQSACAgent(TrainingAgent):
 
             qs_pi = [q(o, pi) for q in self.model.qs]
             qs_pi_cat = torch.stack(qs_pi, -1)
-            # print(f"DEBUG: qs_pi_cat.shape:{qs_pi_cat.shape}")
             ave_q = torch.mean(qs_pi_cat, dim=1, keepdim=True)
-            # print(f"DEBUG: ave_q.shape:{ave_q.shape}")
-            # print(f"DEBUG: logp_pi.shape:{logp_pi.shape}")
             loss_pi = (alpha_t * logp_pi.unsqueeze(dim=-1) - ave_q).mean()
-            # print(f"DEBUG: loss_pi.shape:{loss_pi.shape}")
             self.pi_optimizer.zero_grad()
             loss_pi.backward()
 
@@ -314,154 +295,3 @@ class REDQSACAgent(TrainingAgent):
             ret_dict["entropy_coef"] = alpha_t.item()
 
         return ret_dict
-
-
-
-#
-# @dataclass(eq=0)
-# class REDQSACAgent(TrainingAgent):
-#     observation_space: type
-#     action_space: type
-#     device: str = None  # device where the model will live (None for auto)
-#     model_cls: type = core.REDQMLPActorCritic
-#     gamma: float = 0.99
-#     polyak: float = 0.995
-#     alpha: float = 0.2  # fixed (v1) or initial (v2) value of the entropy coefficient
-#     lr_actor: float = 1e-3  # learning rate
-#     lr_critic: float = 1e-3  # learning rate
-#     lr_entropy: float = 1e-3  # entropy autotuning (SAC v2)
-#     learn_entropy_coef: bool = True  # if True, SAC v2 is used, else, SAC v1 is used
-#     target_entropy: float = None  # if None, the target entropy for SAC v2 is set automatically
-#     n: int = 10  # number of REDQ parallel Q networks
-#     m: int = 2  # number of REDQ randomly sampled target networks
-#     q_updates_per_policy_update: int = 20  # in REDQ, this is the "UTD ratio" (20), this interplays with lr_actor
-#
-#     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
-#
-#     def __post_init__(self):
-#         observation_space, action_space = self.observation_space, self.action_space
-#         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
-#         model = self.model_cls(observation_space, action_space, n=self.n)
-#         logging.debug(f" device REDQ: {device}")
-#         self.model = model.to(device)
-#         self.model_target = no_grad(deepcopy(self.model))
-#         self.i_update = 0  # counter for REDQ updates
-#         self.loss_pi = torch.Tensor([0])
-#         self.loss_q = torch.Tensor([0])
-#
-#         # List of parameters for all Q-networks (save this for convenience)
-#         self.q_params = itertools.chain(*(q.parameters() for q in self.model.qs))
-#
-#         # Set up optimizers for policy and q-function
-#         self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
-#         self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
-#
-#         if self.target_entropy is None:  # automatic entropy coefficient
-#             self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
-#         else:
-#             self.target_entropy = float(self.target_entropy)
-#
-#         if self.learn_entropy_coef:
-#             self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
-#             self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
-#         else:
-#             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
-#
-#     def get_actor(self):
-#         return self.model_nograd.actor
-#
-#     def train(self, batch):
-#
-#         self.i_update += 1
-#         update_policy = self.i_update % self.q_updates_per_policy_update == 0
-#
-#         o, a, r, o2, d = batch
-#
-#         if update_policy:
-#             pi, logp_pi = self.model.actor(o)
-#             # FIXME? log_prob = log_prob.reshape(-1, 1)
-#
-#         # loss_alpha:
-#
-#         loss_alpha = None
-#         if self.learn_entropy_coef:
-#             # Important: detach the variable from the graph
-#             # so we don't change it with other losses
-#             # see https://github.com/rail-berkeley/softlearning/issues/60
-#             alpha_t = torch.exp(self.log_alpha.detach())
-#             if update_policy:  # REDQ also uses this for alpha
-#                 loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
-#         else:
-#             alpha_t = self.alpha_t
-#
-#         # Optimize entropy coefficient, also called
-#         # entropy temperature or alpha in the paper
-#         if loss_alpha is not None:
-#             self.alpha_optimizer.zero_grad()
-#             loss_alpha.backward()
-#             self.alpha_optimizer.step()
-#
-#         # loss_q:
-#
-#         qs = [q(o, a).unsqueeze(1) for q in self.model.qs]
-#
-#         # Bellman backup for Q functions
-#         with torch.no_grad():
-#             # Target actions come from *current* policy
-#             a2, logp_a2 = self.model.actor(o2)
-#
-#             # Target Q-values
-#             sample_idxs = np.random.choice(self.n, self.m, replace=False)
-#             qs_pi_targ = [self.model_target.qs[i](o2, a2).unsqueeze(1) for i in sample_idxs]
-#             q_pi_targ, _ = torch.min(torch.cat(qs_pi_targ, dim=1), dim=1)
-#             backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
-#
-#         # MSE loss against Bellman backup
-#         losses_qs = [((q - backup)**2).mean() for q in qs]
-#         loss_q = torch.sum(torch.stack(losses_qs))
-#
-#         self.q_optimizer.zero_grad()
-#         loss_q.backward()
-#         self.loss_q = loss_q.detach()
-#         self.q_optimizer.step()
-#
-#         if update_policy:
-#
-#             # Freeze Q-networks so you don't waste computational effort
-#             # computing gradients for them during the policy learning step.
-#             for p in self.q_params:
-#                 p.requires_grad = False
-#
-#             # loss_pi:
-#
-#             qs_pi = [q(o, pi).unsqueeze(1) for q in self.model.qs]
-#             q_pi = torch.mean(torch.cat(qs_pi, dim=1), dim=1)  # REDQ computes the mean over all Qs
-#
-#             # Entropy-regularized policy loss
-#             loss_pi = (alpha_t * logp_pi - q_pi).mean()
-#
-#             self.pi_optimizer.zero_grad()
-#             loss_pi.backward()
-#             self.loss_pi = loss_pi.detach()
-#             self.pi_optimizer.step()
-#
-#             # Unfreeze Q-networks so you can optimize it at next DDPG step.
-#             for p in self.q_params:
-#                 p.requires_grad = True
-#
-#         # Finally, update target networks by polyak averaging.
-#         with torch.no_grad():
-#             for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
-#                 p_targ.data.mul_(self.polyak)
-#                 p_targ.data.add_((1 - self.polyak) * p.data)
-#
-#         ret_dict = dict(
-#             loss_actor=self.loss_pi,
-#             loss_critic=self.loss_q,
-#         )
-#
-#         if self.learn_entropy_coef:
-#             ret_dict["loss_entropy_coef"] = loss_alpha.detach()
-#             ret_dict["entropy_coef"] = alpha_t.item()
-#
-#         return ret_dict
