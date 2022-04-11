@@ -25,7 +25,8 @@ It is demonstrated on the TrackMania 2020 video game.
 - [TMRL python library for robot RL](readme/tuto_library.md)
 - [Gym environment](#gym-environment)
 - [TrackMania training details](#trackmania-training-details)
-  - [Soft Actor-Critic](#soft-actor-critic)
+  - [SAC](#soft-actor-critic)
+  - [REDQ](#randomized-ensembled-double-q-learning)
   - [A clever reward](#a-clever-reward)
   - [Available action spaces](#available-action-spaces)
   - [Available observation spaces](#available-observation-spaces)
@@ -46,9 +47,9 @@ It is demonstrated on the TrackMania 2020 video game.
 This is done through Deep Reinforcement Learning (RL).
 
 ### User features (trackmania):
-* **Training algorithm:**
-`tmrl` lets you easily train policies in TrackMania with [Soft Actor-Critic](https://www.youtube.com/watch?v=LN29DDlHp1U) (SAC), a state-of-the-art Deep Reinforcement Learning algorithm.
-SAC stores collected samples in a large dataset, called a replay memory.
+* **Training algorithms:**
+`tmrl` lets you easily train policies in TrackMania with state-of-the-art Deep Reinforcement Learning algorithms such as [Soft Actor-Critic](https://www.youtube.com/watch?v=LN29DDlHp1U) (SAC) and [Randomized Ensembled Double Q-Learning](https://arxiv.org/abs/2101.05982) (REDQ).
+These algorithms store collected samples in a large dataset, called a replay memory.
 In parallel, this dataset is used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, steering angle...).
 
 * **Analog control:**
@@ -166,7 +167,6 @@ The car feeds observations such as images to an artificial neural network, which
 This implies that the AI must understand its environment in some way.
 To achieve this understanding, the car explores the world for a few hours (up to a few days), slowly gaining an understanding of how to act efficiently.
 This is accomplished through Deep Reinforcement Learning (RL).
-More precisely, we use the Soft Actor-Critic (SAC) algorithm.
 
 ### Soft Actor-Critic
 
@@ -208,6 +208,38 @@ Advantages of SAC over other existing methods are the following:
 - It maximizes the entropy of the learned policy.
   This means that the policy will be as random as possible while maximizing the reward.
   This property helps explore the environment and is known to produce policies that are robust to external perturbations, which is of central importance e.g. in real-world self-driving scenarios.
+
+### Randomized Ensembled Double Q-Learning
+
+([Full paper](https://arxiv.org/abs/2101.05982))
+
+REDQ is a recent methodology that improves the performance of value-based algorithms such as SAC.
+
+The improvement introduced by REDQ consists essentially of training an ensemble of parallel value networks from which a subset is randomly sampled to evaluate target values during training.
+The authors show that this enables low-bias updates and a sample efficiency comparable to model-based algorithms, at a much lower computational cost.
+
+By default, `tmrl` trains policies with vanilla SAC.
+To use REDQ-SAC, edit `TmrlData\config\config.json` on the machine used for training, and replace the `"SAC"` value with `"REDQSAC"` in the `"ALGORITHM"` entry.
+You also need values for the `"REDQ_N"`, `"REDQ_M"` and `"REDQ_Q_UPDATES_PER_POLICY_UPDATE"` entries, where `"REDQ_N"` is the number of parallel critics, `"REDQ_M"` is the size of the subset, and `"REDQ_Q_UPDATES_PER_POLICY_UPDATE"` is a number of critic updates happenning between each actor update.
+
+For instance, a valid `"ALG"` entry using REDQ-SAC is:
+
+```json
+  "ALG": {
+    "ALGORITHM": "REDQSAC",
+    "LEARN_ENTROPY_COEF":false,
+    "LR_ACTOR":0.0003,
+    "LR_CRITIC":0.00005,
+    "LR_ENTROPY":0.0003,
+    "GAMMA":0.995,
+    "POLYAK":0.995,
+    "TARGET_ENTROPY":-7.0,
+    "ALPHA":0.37,
+    "REDQ_N":10,
+    "REDQ_M":2,
+    "REDQ_Q_UPDATES_PER_POLICY_UPDATE":20
+  },
+```
 
 ### A clever reward
 
