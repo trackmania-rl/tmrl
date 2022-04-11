@@ -201,6 +201,7 @@ class REDQSACAgent(TrainingAgent):
         # self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
         self.q_optimizer_list = [Adam(q.parameters(), lr=self.lr_critic) for q in self.model.qs]
         self.criterion = torch.nn.MSELoss()
+        self.loss_pi = torch.zeros((1,))
 
         self.i_update = 0  # for UTD ratio
 
@@ -222,12 +223,13 @@ class REDQSACAgent(TrainingAgent):
 
         self.i_update += 1
         update_policy = (self.i_update % self.q_updates_per_policy_update == 0)
-        print(f"DEBUG: self.i_update:{self.i_update}, update_policy:{update_policy}")
+        # print(f"DEBUG: self.i_update:{self.i_update}, update_policy:{update_policy}")
 
         o, a, r, o2, d = batch
 
         if update_policy:
             pi, logp_pi = self.model.actor(o)
+            # print(f"DEBUG: pi.shape:{pi.shape}")
         # FIXME? log_prob = log_prob.reshape(-1, 1)
 
         loss_alpha = None
@@ -244,20 +246,26 @@ class REDQSACAgent(TrainingAgent):
 
         with torch.no_grad():
             a2, logp_a2 = self.model.actor(o2)
+            # print(f"DEBUG: a2.shape:{a2.shape}")
+            # print(f"DEBUG: logp_a2.shape:{logp_a2.shape}")
 
             sample_idxs = np.random.choice(self.n, self.m, replace=False)
 
             q_prediction_next_list = [self.model_target.qs[i](o2, a2) for i in sample_idxs]
             q_prediction_next_cat = torch.stack(q_prediction_next_list, -1)
-            print(f"DEBUG: q_prediction_next_cat.shape:{q_prediction_next_cat.shape}")
-            min_q, min_indices = torch.min(q_prediction_next_cat, dim=1, keepdim=True)
-            backup = r + self.gamma * (1 - d) * (min_q - alpha_t * logp_a2)
-            print(f"DEBUG: backup.shape:{backup.shape}")
+            # print(f"DEBUG: q_prediction_next_cat.shape:{q_prediction_next_cat.shape}")
+            min_q, _ = torch.min(q_prediction_next_cat, dim=1, keepdim=True)
+            # print(f"DEBUG: min_q.shape:{min_q.shape}")
+            # print(f"DEBUG: r.shape:{r.shape}")
+            # print(f"DEBUG: d.shape:{d.shape}")
+            backup = r.unsqueeze(dim=-1) + self.gamma * (1 - d.unsqueeze(dim=-1)) * (min_q - alpha_t * logp_a2.unsqueeze(dim=-1))
+            # print(f"DEBUG: backup.shape:{backup.shape}")
 
         q_prediction_list = [q(o, a) for q in self.model.qs]
         q_prediction_cat = torch.stack(q_prediction_list, -1)
+        # print(f"DEBUG: q_prediction_cat.shape:{q_prediction_cat.shape}")
         backup = backup.expand((-1, self.n)) if backup.shape[1] == 1 else backup
-        print(f"DEBUG: expanded backup.shape:{backup.shape}")
+        # print(f"DEBUG: expanded backup.shape:{backup.shape}")
 
         loss_q = self.criterion(q_prediction_cat, backup) * self.n
 
@@ -271,8 +279,12 @@ class REDQSACAgent(TrainingAgent):
 
             qs_pi = [q(o, pi) for q in self.model.qs]
             qs_pi_cat = torch.stack(qs_pi, -1)
+            # print(f"DEBUG: qs_pi_cat.shape:{qs_pi_cat.shape}")
             ave_q = torch.mean(qs_pi_cat, dim=1, keepdim=True)
-            loss_pi = (alpha_t * logp_pi - ave_q).mean()
+            # print(f"DEBUG: ave_q.shape:{ave_q.shape}")
+            # print(f"DEBUG: logp_pi.shape:{logp_pi.shape}")
+            loss_pi = (alpha_t * logp_pi.unsqueeze(dim=-1) - ave_q).mean()
+            # print(f"DEBUG: loss_pi.shape:{loss_pi.shape}")
             self.pi_optimizer.zero_grad()
             loss_pi.backward()
 
@@ -290,8 +302,10 @@ class REDQSACAgent(TrainingAgent):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
+        if update_policy:
+            self.loss_pi = loss_pi.detach()
         ret_dict = dict(
-            loss_actor=loss_pi.detach(),
+            loss_actor=self.loss_pi,
             loss_critic=loss_q.detach(),
         )
 
