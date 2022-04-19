@@ -25,6 +25,7 @@ It is demonstrated on the TrackMania 2020 video game.
 - [TMRL python library for robot RL](readme/tuto_library.md)
 - [Gym environment](#gym-environment)
 - [TrackMania training details](#trackmania-training-details)
+  - [MDP](#markov-decision-process)
   - [SAC](#soft-actor-critic)
   - [REDQ](#randomized-ensembled-double-q-learning)
   - [A clever reward](#a-clever-reward)
@@ -168,15 +169,10 @@ This implies that the AI must understand its environment in some way.
 To achieve this understanding, the car explores the world for a few hours (up to a few days), slowly gaining an understanding of how to act efficiently.
 This is accomplished through Deep Reinforcement Learning (RL).
 
-### Soft Actor-Critic
+### Markov Decision Process
 
-([Introductory video](https://www.youtube.com/watch?v=LN29DDlHp1U))
-
-([Full paper](https://arxiv.org/abs/1801.01290))
-
-Soft Actor-Critic (SAC) is an algorithm that enables learning continuous stochastic controllers.
-Like most RL algorithms, it is based on a mathematical description of the environment called a Markov Decision Process (MDP).
-The policy trained by SAC interacts with this MDP as follows:
+Most RL algorithms are based on a mathematical description of the environment called Markov Decision Process (MDP).
+A policy trained though RL interacts with an MDP as follows:
 
 ![reward](readme/img/mrp.png)
 
@@ -189,6 +185,14 @@ Indeed, RL is derived from behaviorism, which relies on the fundamental idea tha
 The reward received by the AI at each time-step is a measure of how well it performs.
 
 In order to learn how to drive, the AI tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that its long-term reward is maximized.
+
+### Soft Actor-Critic
+
+([Introductory video](https://www.youtube.com/watch?v=LN29DDlHp1U))
+
+([Full paper](https://arxiv.org/abs/1801.01290))
+
+Soft Actor-Critic (SAC) is an algorithm that enables learning continuous stochastic controllers.
 
 More specifically, SAC does this using two separate Artificial Neural Networks (NNs):
 
@@ -213,7 +217,7 @@ Advantages of SAC over other existing methods are the following:
 
 ([Full paper](https://arxiv.org/abs/2101.05982))
 
-REDQ is a recent methodology that improves the performance of value-based algorithms such as SAC.
+REDQ is a more recent methodology that improves the performance of value-based algorithms such as SAC.
 
 The improvement introduced by REDQ consists essentially of training an ensemble of parallel value networks from which a subset is randomly sampled to evaluate target values during training.
 The authors show that this enables low-bias updates and a sample efficiency comparable to model-based algorithms, at a much lower computational cost.
