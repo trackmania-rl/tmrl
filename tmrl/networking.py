@@ -27,6 +27,15 @@ import tmrl.config.config_objects as cfg_obj
 
 import logging
 
+# documentation:
+__all__ = [
+    'Server',
+    'RolloutWorker',
+    'Trainer',
+    'Buffer',
+]
+__docformat__ = 'google'
+
 
 # PRINT: ============================================
 
@@ -248,12 +257,18 @@ class Buffer:
 
 class Server:
     """
-    This is the main server
-    It lets 1 TrainerInterface and n RolloutWorkers connect
-    It buffers experiences sent by RolloutWorkers and periodically sends these to the TrainerInterface
-    It also receives the weights from the TrainerInterface and broadcasts these to the connected RolloutWorkers
+    Central server.
+
+    The `Server` lets 1 `Trainer` and n `RolloutWorkers` connect.
+    It buffers experiences sent by workers and periodically sends these to the trainer.
+    It also receives the weights from the trainer and broadcasts these to the connected workers.
     """
     def __init__(self, min_samples_per_server_packet=1):
+        """
+        Args:
+            min_samples_per_server_packet (int): Minimum number of samples that the
+                server buffers from connected workers before sending to the trainer.
+        """
         self.__buffer = Buffer()
         self.__buffer_lock = Lock()
         self.__weights_lock = Lock()
@@ -646,22 +661,44 @@ class Trainer:
 
 
 class RolloutWorker:
+    """RL actor.
+
+    A `RolloutWorker` deploys the current policy in the environment.
+    A `RolloutWorker` may connect to a `Server` to which it sends buffered experience.
+    Alternatively, it may exist in standalone mode for deployment.
+    """
     def __init__(
             self,
-            env_cls,  # class of the Gym environment
-            actor_module_cls,  # class of a module containing the policy
-            sample_compressor: callable = None,  # compressor for sending samples over the Internet
-            device="cpu",  # device on which the policy is running
-            server_ip=None,  # ip of the central server
-            min_samples_per_worker_packet=1,  # # the worker waits for this number of samples before sending
-            max_samples_per_episode=np.inf,  # if an episode gets longer than this, it is reset
-            model_path=cfg.MODEL_PATH_WORKER,  # path where a local copy of the policy will be stored
-            obs_preprocessor: callable = None,  # utility for modifying samples before forward passes
-            crc_debug=False,  # can be used for debugging the pipeline
-            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,  # (omit .pth) an history of policies can be stored here
-            model_history=cfg.MODEL_HISTORY,  # new policies are saved % model_history (0: not saved)
-            standalone=False,  # if True, the worker will not try to connect to a server
+            env_cls,
+            actor_module_cls,
+            sample_compressor: callable = None,
+            device="cpu",
+            server_ip=None,
+            min_samples_per_worker_packet=1,
+            max_samples_per_episode=np.inf,
+            model_path=cfg.MODEL_PATH_WORKER,
+            obs_preprocessor: callable = None,
+            crc_debug=False,
+            model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
+            model_history=cfg.MODEL_HISTORY,
+            standalone=False
     ):
+        """
+        Args:
+            env_cls (tmrl.envs.GenericGymEnv subclass): class of the Gym environment
+            actor_module_cls (tmrl.actor.ActorModule subclass): class of the module containing the policy
+            sample_compressor (callable): compressor for sending samples over the Internet
+            device (str): device on which the policy is running
+            server_ip (str): ip of the central server
+            min_samples_per_worker_packet (int): the worker waits for this number of samples before sending
+            max_samples_per_episode (int): if an episode gets longer than this, it is reset
+            model_path (str): path where a local copy of the policy will be stored
+            obs_preprocessor (callable): utility for modifying samples before forward passes
+            crc_debug (bool): can be used for debugging the pipeline
+            model_path_history (str): (omit .pth) an history of policies can be stored here
+            model_history (int): new policies are saved % model_history (0: not saved)
+            standalone (bool): If True, the worker will not try to connect to a server
+        """
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = sample_compressor
         self.env = env_cls()

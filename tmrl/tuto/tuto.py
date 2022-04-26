@@ -25,7 +25,8 @@ CRC_DEBUG = False
 
 # === Server ===========================================================================================================
 
-my_server = Server(min_samples_per_server_packet=100)
+if __name__ == "__main__":
+    my_server = Server(min_samples_per_server_packet=100)
 
 
 # === Environment ======================================================================================================
@@ -251,20 +252,21 @@ model_history = 10
 
 # Instantiation of the RolloutWorker object:
 
-my_worker = RolloutWorker(
-    env_cls=env_cls,
-    actor_module_cls=actor_module_cls,
-    sample_compressor=sample_compressor,
-    device=device,
-    server_ip=server_ip,
-    min_samples_per_worker_packet=min_samples_per_worker_packet,
-    max_samples_per_episode=max_samples_per_episode,
-    model_path=model_path,
-    model_path_history=model_path_history,
-    model_history=model_history,
-    crc_debug=CRC_DEBUG)
+if __name__ == "__main__":
+    my_worker = RolloutWorker(
+        env_cls=env_cls,
+        actor_module_cls=actor_module_cls,
+        sample_compressor=sample_compressor,
+        device=device,
+        server_ip=server_ip,
+        min_samples_per_worker_packet=min_samples_per_worker_packet,
+        max_samples_per_episode=max_samples_per_episode,
+        model_path=model_path,
+        model_path_history=model_path_history,
+        model_history=model_history,
+        crc_debug=CRC_DEBUG)
 
-# my_worker.run(test_episode_interval=10)  # this would block the script here!
+    # my_worker.run(test_episode_interval=10)  # this would block the script here!
 
 
 # === Trainer ==========================================================================================================
@@ -581,11 +583,12 @@ training_cls = partial(
     start_training=start_training,
     device=device)
 
-my_trainer = Trainer(
-    training_cls=training_cls,
-    server_ip=server_ip,
-    model_path=model_path,
-    checkpoint_path=checkpoints_path)  # None for not saving training checkpoints
+if __name__ == "__main__":
+    my_trainer = Trainer(
+        training_cls=training_cls,
+        server_ip=server_ip,
+        model_path=model_path,
+        checkpoint_path=checkpoints_path)  # None for not saving training checkpoints
 
 
 # Separate threads for running the RolloutWorker and Trainer:
@@ -599,9 +602,10 @@ def run_trainer(trainer):
     trainer.run()
 
 
-daemon_thread_worker = Thread(target=run_worker, args=(my_worker, ), kwargs={}, daemon=True)
-daemon_thread_worker.start()  # start the worker daemon thread
+if __name__ == "__main__":
+    daemon_thread_worker = Thread(target=run_worker, args=(my_worker, ), kwargs={}, daemon=True)
+    daemon_thread_worker.start()  # start the worker daemon thread
 
-run_trainer(my_trainer)
+    run_trainer(my_trainer)
 
-# the worker daemon thread will be killed here.
+    # the worker daemon thread will be killed here.

@@ -102,7 +102,6 @@ install_req = [
     'opencv-python',
     'mss',
     'scikit-image',
-    'inputs',
     'keyboard',
     'pyautogui',
     'pyinstrument',

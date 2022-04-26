@@ -129,3 +129,5 @@ dmypy.json
 *.pkl
 
 *.idea
+
+docs/*

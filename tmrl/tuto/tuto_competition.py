@@ -194,4 +194,5 @@ training_cls = partial(TrainingOffline,
                        env_cls=env_cls,
                        memory_cls=memory_cls)
 
-my_trainer = Trainer(training_cls=training_cls)
+if __name__ == "__main__":
+    my_trainer = Trainer(training_cls=training_cls)
