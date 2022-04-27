@@ -27,14 +27,8 @@ import tmrl.config.config_objects as cfg_obj
 
 import logging
 
-# documentation:
-__all__ = [
-    'Server',
-    'RolloutWorker',
-    'Trainer',
-    'Buffer',
-]
-__docformat__ = 'google'
+
+__docformat__ = "google"
 
 
 # PRINT: ============================================
@@ -215,12 +209,21 @@ def poll_and_recv_or_close_socket(conn):
 
 
 class Buffer:
+    """
+    Buffer of training samples.
+
+    `Server`, `RolloutWorker` and `Trainer` all have thei own `Buffer` to store and send training samples.
+    """
     def __init__(self, maxlen=cfg.BUFFERS_MAXLEN):
+        """
+        Args:
+            maxlen (int): buffer length
+        """
         self.memory = []
-        self.stat_train_return = 0.0
-        self.stat_test_return = 0.0
-        self.stat_train_steps = 0
-        self.stat_test_steps = 0
+        self.stat_train_return = 0.0  # stores the train return
+        self.stat_test_return = 0.0  # stores the test return
+        self.stat_train_steps = 0  # stores the number of steps per training episode
+        self.stat_test_steps = 0  # stores the number of steps per test episode
         self.maxlen = maxlen
 
     def clip_to_maxlen(self):
@@ -230,12 +233,18 @@ class Buffer:
             self.memory = self.memory[(lenmem - self.maxlen):]
 
     def append_sample(self, sample):
+        """
+        Appends `sample` to the buffer.
+
+        Args:
+            sample (Tuple): a training sample of the form (`act`, `new_obs`, `rew`, `done`, `info`)
+        """
         self.memory.append(sample)
         self.clip_to_maxlen()
 
     def clear(self):
         """
-        Clears memory but keeps train and test returns
+        Clears the buffer but keeps train and test returns.
         """
         self.memory = []
 
@@ -619,6 +628,12 @@ def run(interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=No
 
 
 class Trainer:
+    """
+    Training entity.
+
+    The `Trainer` object is where RL training happens.
+    Typically, it can be located on a HPC cluster.
+    """
     def __init__(self,
                  training_cls=cfg_obj.TRAINER,
                  server_ip=cfg.SERVER_IP_FOR_TRAINER,
@@ -626,6 +641,15 @@ class Trainer:
                  checkpoint_path=cfg.CHECKPOINT_PATH,
                  dump_run_instance_fn: callable = None,
                  load_run_instance_fn: callable = None):
+        """
+        Args:
+            training_cls (tmrl.training.TrainingOffline): training class
+            server_ip (str): ip of the central `Server`
+            model_path (str): path where a local copy of the model will be saved
+            checkpoint_path: path where the `Trainer` will be checkpointed (`None` = no checkpointing)
+            dump_run_instance_fn (callable): custom serializer (`None` = pickle.dump)
+            load_run_instance_fn (callable): custom deserializer (`None` = pickle.load)
+        """
         self.checkpoint_path = checkpoint_path
         self.dump_run_instance_fn = dump_run_instance_fn
         self.load_run_instance_fn = load_run_instance_fn
@@ -634,6 +658,9 @@ class Trainer:
                                           model_path=model_path)
 
     def run(self):
+        """
+        Runs training.
+        """
         run(interface=self.interface,
             run_cls=self.training_cls,
             checkpoint_path=self.checkpoint_path,
@@ -645,6 +672,15 @@ class Trainer:
                        project=cfg.WANDB_PROJECT,
                        run_id=cfg.WANDB_RUN_ID,
                        key=None):
+        """
+        Runs training while logging metrics to [https://wandb.ai](https://wandb.ai).
+
+        Args:
+            entity (str): wandb entity
+            project (str): wandb project
+            run_id (str): name of the run
+            key (str): wandb API key
+        """
         if key is not None:
             os.environ['WANDB_API_KEY'] = key
         run_with_wandb(entity=entity,
@@ -661,7 +697,7 @@ class Trainer:
 
 
 class RolloutWorker:
-    """RL actor.
+    """Actor.
 
     A `RolloutWorker` deploys the current policy in the environment.
     A `RolloutWorker` may connect to a `Server` to which it sends buffered experience.
@@ -795,7 +831,14 @@ class RolloutWorker:
 
     def act(self, obs, test=False):
         """
-        converts inputs to torch tensors and converts outputs to numpy arrays
+        Converts inputs to torch tensors and converts outputs to numpy arrays.
+
+        Args:
+            obs (nested structure): observation
+            test (bool): directly passed to the `act()` method of the `ActorModule`
+
+        Returns:
+            action (numpy.array): action computed by the `ActorModule`
         """
         if self.obs_preprocessor is not None:
             obs = self.obs_preprocessor(obs)
@@ -807,6 +850,15 @@ class RolloutWorker:
         return action
 
     def reset(self, collect_samples):
+        """
+        Starts a new episode.
+
+        Args:
+            collect_samples (bool): if True, samples are buffered and sent to the `Server`
+
+        Returns:
+            obs (nested structure): observation retrieved from the environment
+        """
         obs = None
         act = self.env.default_action.astype(np.float32)
         new_obs = self.env.reset()
@@ -826,6 +878,25 @@ class RolloutWorker:
         return new_obs
 
     def step(self, obs, test, collect_samples, last_step=False):
+        """
+        Performs a full RL transition.
+
+        A full RL transition is `obs` -> `act` -> `new_obs`, `rew`, `done`, `info`.
+        Note that, in the Real-Time RL setting, `act` is appended to a buffer which is part of `new_obs`.
+        This is because is does not directly affect the new observation, due to real-time delays.
+
+        Args:
+            obs (nested structure): previous observation
+            test (bool): passed to the `act()` method of the `ActorModule`
+            collect_samples (bool): if True, samples are buffered and sent to the `Server`
+            last_step (bool): if True and `done` is False, a '__no_done' entry will be added to the `info` dict
+
+        Returns:
+            new_obs (nested structure): new observation
+            rew (float): new reward
+            done (bool): episode termination signal
+            info (dict): information dictionary
+        """
         act = self.act(obs, test=test)
         new_obs, rew, done, info = self.env.step(act)
         # if self.obs_preprocessor is not None:
@@ -847,8 +918,14 @@ class RolloutWorker:
 
     def collect_train_episode(self, max_samples):
         """
-        collects a maximum of n training transitions (from reset to done)
-        stores episode and train return in the local buffer of the worker
+        Collects a maximum of n training transitions (from reset to done)
+
+        This method stores the episode and the train return in the local `Buffer` of the worker
+        for sending to the `Server`.
+
+        Args:
+            max_samples (int): if the environment is not `done` after `max_samples` time steps,
+                it is forcefully reset and a '__no_done' entry is added to the `info` dict of the corresponding sample.
         """
         ret = 0.0
         steps = 0
@@ -864,7 +941,12 @@ class RolloutWorker:
 
     def run_episodes(self, max_samples_per_episode, nb_episodes=np.inf, train=False):
         """
-        runs nb_episodes episodes, with at most max_samples_per_episode samples each
+        Runs `nb_episodes` episodes.
+
+        Args:
+            max_samples_per_episode (int): same as run_episode
+            nb_episodes (int): total number of episodes to collect
+            train (bool): same as run_episode
         """
         counter = 0
         while counter < nb_episodes:
@@ -873,8 +955,14 @@ class RolloutWorker:
 
     def run_episode(self, max_samples, train=False):
         """
-        collects a maximum of n test transitions (from reset to done)
-        stores test return in the local buffer of the worker
+        Collects a maximum of n test transitions (from reset to done).
+
+        Args:
+            max_samples (int): At most `max_samples` samples are collected per episode.
+                If the episode is longer, it is forcefully reset and a '__no_done' entry is added to the `info` dict
+                of the corresponding sample.
+            train (bool): whether the episode is a training or a test episode.
+                `step` is called with `test=not train`.
         """
         ret = 0.0
         steps = 0
@@ -888,9 +976,20 @@ class RolloutWorker:
         self.buffer.stat_test_return = ret
         self.buffer.stat_test_steps = steps
 
-    def run(self, test_episode_interval=20):  # TODO: check number of collected samples are collected before sending
+    def run(self, test_episode_interval=20, nb_episodes=np.inf):  # TODO: check number of collected samples are collected before sending
+        """
+        Runs the worker for `nb_episodes` episodes.
+
+        This method is for training.
+        It collects a test episode each `test_episode_interval` episodes.
+        For deployment, use the `run_episodes` method instead.
+
+        Args:
+            test_episode_interval (int):
+            nb_episodes (int):
+        """
         episode = 0
-        while True:
+        while episode < nb_episodes:
             if episode % test_episode_interval == 0 and not self.crc_debug:
                 print_with_timestamp("running test episode")
                 self.run_episode(self.max_samples_per_episode, train=False)
@@ -904,7 +1003,7 @@ class RolloutWorker:
             # if self.crc_debug:
             #     break
 
-    def profile_step(self, nb_steps=100):
+    def profile_step(self):
         import torch.autograd.profiler as profiler
         obs = self.reset(collect_samples=True)
         use_cuda = True if self.device == 'cuda' else False
@@ -919,7 +1018,14 @@ class RolloutWorker:
 
     def run_env_benchmark(self, nb_steps, test=False):
         """
-        This method is only compatible with rtgym environments
+        Benchmarks the environment.
+
+        This method is only compatible with [rtgym](https://github.com/yannbouteiller/rtgym) environments.
+        Furthermore, the `"benchmark"` option of the rtgym configuration dictionary must be set to `True`.
+
+        Args:
+            nb_steps (int): number of steps to perform to compute the benchmark
+            test (int): whether the actor is called in test or train mode
         """
         obs = self.reset(collect_samples=False)
         for _ in range(nb_steps):
@@ -929,6 +1035,9 @@ class RolloutWorker:
         print_with_timestamp(f"Benchmark results:\n{self.env.benchmarks()}")
 
     def send_and_clear_buffer(self):
+        """
+        Sends the buffered samples to the `Server`.
+        """
         self.__buffer_lock.acquire()  # BUFFER LOCK.....................................................................
         self.__buffer += self.buffer
         self.__buffer_lock.release()  # END BUFFER LOCK.................................................................
@@ -936,7 +1045,7 @@ class RolloutWorker:
 
     def update_actor_weights(self):
         """
-        updates the model with new weights from the trainer when available
+        Updates the actor with new weights received from the `Server` when available.
         """
         self.__weights_lock.acquire()  # WEIGHTS LOCK...................................................................
         if self.__weights is not None:  # new weights available

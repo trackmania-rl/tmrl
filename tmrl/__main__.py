@@ -1,24 +1,3 @@
-"""Command Line Interface.
-
-This module provides commands for users who wish to use the readily implemented example pipelines for TrackMania.
-
-Examples:
-    Launch the default training pipeline for TrackMania on 3 possibly different machines:
-        $ python -m tmrl --server
-        $ python -m tmrl --trainer
-        $ python -m tmrl --worker
-    Test (deploy) the readily trained example policy for TrackMania:
-        $ python -m tmrl --test
-    Launch the reward recorder in your own track in TrackMania:
-        $ python -m tmrl --record-reward
-    Ckeck that the TrackMania environment is working as expected:
-        $ python -m tmrl --check-environment
-    Benchmark the RollourWorker in TrackMania (requires `"benchmark":true` in `config.json`):
-        $ python -m tmrl --benchmark
-    Launch the Trainer but disbale logging to wandb.ai:
-        $ python -m tmrl --trainer --no-wandb
-"""
-
 import time
 from argparse import ArgumentParser, ArgumentTypeError
 import logging

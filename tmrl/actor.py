@@ -36,7 +36,10 @@ class ActorModule(torch.nn.Module, ABC):
     # noinspection PyMethodOverriding
     def to(self, device):
         """
-        keeps track which device this module has been moved to
+        Keeps track which device this module has been moved to.
+
+        Args:
+            device (str): the device on which the torch module lives (e.g., `"cpu"` or `"cuda:0"`)
         """
         self.device = device
         return super().to(device=device)
