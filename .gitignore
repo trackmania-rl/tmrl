@@ -129,5 +129,3 @@ dmypy.json
 *.pkl
 
 *.idea
-
-docs/_build/*
