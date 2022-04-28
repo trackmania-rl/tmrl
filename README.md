@@ -6,6 +6,7 @@ It is demonstrated on the TrackMania 2020 video game.
 ![example](readme/img/video_lidar.gif)
 
 [![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
 
  **TL;DR:**
 
