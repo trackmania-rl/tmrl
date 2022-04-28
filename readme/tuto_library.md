@@ -7,7 +7,7 @@ This is when you need to start using `tmrl` as a python library.
 
 In this tutorial, we will learn from A to Z how to implement our own specialized pipeline, in our own robot environment, with our own training algorithm.
 
-This tutorial is quite exhaustive and serves as a documentation.
+In complement to this tutorial, you may use the [API documentation](https://tmrl.readthedocs.io/en/latest/).
 
 The full script of the tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
 

@@ -1,4 +1,4 @@
-# TrackMania AI competition
+# TrackMania Roboracing League
 
 :red_car: Welcome to the race! :checkered_flag:
 
