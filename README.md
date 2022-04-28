@@ -1,8 +1,8 @@
 # TMRL
 
 [![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/tmrl?color=green)
-![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/tmrl?color=green)](https://pypi.org/project/tmrl)
+[![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)](https://github.com/trackmania-rl/tmrl/blob/master/LICENSE)
 [![DOI](https://zenodo.org/badge/277973609.svg)](https://zenodo.org/badge/latestdoi/277973609)
 
 **`Documentation`** |
