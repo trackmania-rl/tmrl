@@ -7,7 +7,7 @@ It is demonstrated on the TrackMania 2020 video game.
 
 [![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
-[![Github All Releases](https://img.shields.io/github/downloads/trackmania-rl/tmrl/total.svg)]()
+![PyPI - Downloads](https://img.shields.io/pypi/dm/tmrl)
 
  **TL;DR:**
 
