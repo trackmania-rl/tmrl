@@ -14,8 +14,30 @@ import logging
 # import pybullet_envs
 
 
+__docformat__ = "google"
+
+
 @dataclass(eq=0)
 class TrainingOffline:
+    """
+    Training wrapper for off-policy algorithms.
+
+    Args:
+        env_cls (type): class of a dummy environment, used only to retrieve observation and action spaces if needed. Alternatively, this can be a tuple of the form (observation_space, action_space).
+        memory_cls (type): class of the replay memory
+        training_agent_cls (type): class of the training agent
+        epochs (int): total number of epochs, we save the agent every epoch
+        rounds (int): number of rounds per epoch, we generate statistics every round
+        steps (int): number of training steps per round
+        update_model_interval (int): number of training steps between model broadcasts
+        update_buffer_interval (int): number of training steps between retrieving buffered samples
+        max_training_steps_per_env_step (float): training will pause when above this ratio
+        sleep_between_buffer_retrieval_attempts (float): algorithm will sleep for this amount of time when waiting for needed incoming samples
+        profiling (bool): if True, run_epoch will be profiled and the profiling will be printed at the end of each epoch
+        agent_scheduler (callable): if not None, must be of the form f(Agent, epoch), called at the beginning of each epoch
+        start_training (int): minimum number of samples in the replay buffer before starting training
+        device (str): device on which the model of the TrainingAgent will live (None for automatic)
+    """
     env_cls: type = None  # = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces if needed
     memory_cls: type = None  # = MemoryDataloading  # replay memory
     training_agent_cls: type = None  # = TrainingAgent  # training agent
@@ -74,7 +96,7 @@ class TrainingOffline:
 
         for rnd in range(self.rounds):
             logging.info(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
-            logging.debug(f" SAC (Training): current memory size:{len(self.memory)}")
+            logging.debug(f"(Training): current memory size:{len(self.memory)}")
 
             stats_training = []
 
@@ -137,7 +159,7 @@ class TrainingOffline:
             idle_time = t1 - t0
             update_buf_time = t2 - t1
             train_time = t3 - t2
-            logging.debug(f" round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}")
+            logging.debug(f"round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}")
             stats += pandas_dict(memory_len=len(self.memory), round_time=round_time, idle_time=idle_time, **DataFrame(stats_training).mean(skipna=True)),
 
             logging.info(stats[-1].add_prefix("  ").to_string() + '\n')

@@ -8,14 +8,18 @@ import gym
 from tmrl.wrappers import (AffineObservationWrapper, Float64ToFloat32)
 
 
+__docformat__ = "google"
+
+
 class GenericGymEnv(gym.Wrapper):
     def __init__(self, id: str = "Pendulum-v0", obs_scale: float = 0., gym_kwargs={}):
         """
-        Use this wrapper when using the framework with arbitrary environments
-        :param id: gym id
-        :param obs_scale: change this if wanting to rescale actions by a scalar
-        :param gym_kwargs: keyword arguments of the gym environment
-            (i.e. between -1.0 and 1.0 when the actual action space is something else)
+        Use this wrapper when using the framework with arbitrary environments.
+
+        Args:
+            id (str): gym id
+            obs_scale (float): change this if wanting to rescale actions by a scalar
+            gym_kwargs (dict): keyword arguments of the gym environment (i.e. between -1.0 and 1.0 when the actual action space is something else)
         """
         env = gym.make(id, **gym_kwargs)
         if obs_scale:

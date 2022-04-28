@@ -260,9 +260,9 @@ def load_json(path):
 
 
 class DelayInterrupt:
-    """Catches SIGINT and SIGTERM and re-raises them after the context manager exits. E.g.:
-    with DelayInterrupt():
-        # something that shouldn't be interrupted ...
+    """Catches SIGINT and SIGTERM and re-raises them after the context manager exits.
+
+    Can be used in a context, e.g., `with DelayInterrupt():`
     """
     signal_received = False
     signals = (signal.SIGINT, signal.SIGTERM)

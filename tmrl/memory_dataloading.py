@@ -8,11 +8,13 @@ from random import randint, random
 
 # third-party imports
 import numpy as np
-import torch
 from torch.utils.data import DataLoader, Dataset, Sampler
 
 # local imports
 from tmrl.util import collate
+
+
+__docformat__ = "google"
 
 
 def check_samples_crc(original_po, original_a, original_o, original_r, original_d, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d):
@@ -59,26 +61,41 @@ class MemoryBatchSampler(Sampler):
 
 class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but partial doesn't work with Dataset
     """
-    To sample from a MemoryDataloading, use either the iterator OR the get_dataloader() method
-    e.g. either:
-        for batch in myMemoryDataloading:  # this uses single worker dataloading (directly collates on device, unlike pytorch)
-            operations on batch ...
-    OR:
-        for batch in myMemoryDataloading.get_dataloader():  # this uses pytorch dataloading (does NOT collate on device)
-            operations on batch ...
+    Interface for a simple replay buffer.
+
+    This class supports sampling and collating simple batches of prev_obs, new_act, new_obs, rew, done.
+
+    In case you need more advanced replay buffers, you can store whatever you need in the `info` dict and collate
+    batches manually in your TrainingAgent.
+
+    CAUTION: When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
     """
     def __init__(self,
-                 device,  # output tensors will be collated to this device
-                 nb_steps,  # number of steps per round
-                 obs_preprocessor: callable = None,  # same observation preprocessor as the RolloutWorker
-                 sample_preprocessor: callable = None,  # can be used for data augmentation
-                 memory_size=1000000,  # size of the circular buffer
-                 batch_size=256,  # batch size of the output tensors
-                 dataset_path="",  # an offline dataset may be provided here to initialize the memory
+                 device,
+                 nb_steps,
+                 obs_preprocessor: callable = None,
+                 sample_preprocessor: callable = None,
+                 memory_size=1000000,
+                 batch_size=256,
+                 dataset_path="",
                  crc_debug=False,
                  use_dataloader=False,
                  num_workers=0,
                  pin_memory=False):
+        """
+        Args:
+            device (str): output tensors will be collated to this device
+            nb_steps (int): number of steps per round
+            obs_preprocessor (callable): same observation preprocessor as the RolloutWorker
+            sample_preprocessor (callable): can be used for data augmentation
+            memory_size (int): size of the circular buffer
+            batch_size (int): batch size of the output tensors
+            dataset_path (str): an offline dataset may be provided here to initialize the memory
+            crc_debug (bool): False usually, True when using CRC debugging of the pipeline
+            use_dataloader (bool): Not yet supported
+            num_workers (int): Not yet supported
+            pin_memory: Not yet supported
+        """
         self.nb_steps = nb_steps
         self.use_dataloader = use_dataloader
         self.device = device
@@ -125,20 +142,37 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     @abstractmethod
     def append_buffer(self, buffer):
         """
-        CAUTION: don't forget to append the info dictionary if you want to use CRC debugging.
+        Must append a Buffer object to the memory.
+
+        Args:
+            buffer (tmrl.networking.Buffer): the buffer of samples to append.
         """
         raise NotImplementedError
 
     @abstractmethod
     def __len__(self):
+        """
+        Must return the length of the memory.
+
+        Returns:
+            length (int): the maximum `item` argument of `get_transition`
+
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_transition(self, item):
         """
-        Returns: tuple (prev_obs, prev_act(prev_obs), rew(prev_obs, prev_act), obs, done, info)
-        info is required in each sample for CRC debugging. The 'crc' key is what is important when using this feature.
-        Do NOT apply observation preprocessing here, as it will be applied automatically after this
+        Must return a transition.
+
+        `info` is required in each sample for CRC debugging. The 'crc' key is what is important when using this feature.
+        Do NOT apply observation preprocessing here, as it will be applied automatically.
+
+        Args:
+            item (int): the index where to sample
+
+        Returns:
+            sample (Tuple): (prev_obs, prev_act, rew, obs, done, info)
         """
         raise NotImplementedError
 

@@ -212,7 +212,9 @@ class Buffer:
     """
     Buffer of training samples.
 
-    `Server`, `RolloutWorker` and `Trainer` all have thei own `Buffer` to store and send training samples.
+    `Server`, `RolloutWorker` and `Trainer` all have their own `Buffer` to store and send training samples.
+
+    Samples are tuples of the form (`act`, `new_obs`, `rew`, `done`, `info`)
     """
     def __init__(self, maxlen=cfg.BUFFERS_MAXLEN):
         """
@@ -598,7 +600,8 @@ def iterate_epochs_tm(run_cls,
 
 def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
     """
-    main training loop (remote)
+    Main training loop (remote).
+
     saves config and stats to https://wandb.com
     """
     dump_run_instance_fn = dump_run_instance_fn or dump_run_instance
@@ -619,7 +622,7 @@ def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path:
 
 def run(interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
     """
-    main training loop (remote)
+    Main training loop (remote).
     """
     dump_run_instance_fn = dump_run_instance_fn or dump_run_instance
     load_run_instance_fn = load_run_instance_fn or load_run_instance
@@ -643,7 +646,7 @@ class Trainer:
                  load_run_instance_fn: callable = None):
         """
         Args:
-            training_cls (tmrl.training.TrainingOffline): training class
+            training_cls (type): training class (subclass of tmrl.training_offline.TrainingOffline)
             server_ip (str): ip of the central `Server`
             model_path (str): path where a local copy of the model will be saved
             checkpoint_path: path where the `Trainer` will be checkpointed (`None` = no checkpointing)
@@ -673,7 +676,9 @@ class Trainer:
                        run_id=cfg.WANDB_RUN_ID,
                        key=None):
         """
-        Runs training while logging metrics to [https://wandb.ai](https://wandb.ai).
+        Runs training while logging metrics to wandb_.
+
+        .. _wandb: https://wandb.ai
 
         Args:
             entity (str): wandb entity
@@ -721,8 +726,8 @@ class RolloutWorker:
     ):
         """
         Args:
-            env_cls (tmrl.envs.GenericGymEnv subclass): class of the Gym environment
-            actor_module_cls (tmrl.actor.ActorModule subclass): class of the module containing the policy
+            env_cls (type): class of the Gym environment (subclass of tmrl.envs.GenericGymEnv)
+            actor_module_cls (type): class of the module containing the policy (subclass of tmrl.actor.ActorModule)
             sample_compressor (callable): compressor for sending samples over the Internet
             device (str): device on which the policy is running
             server_ip (str): ip of the central server
@@ -1020,8 +1025,10 @@ class RolloutWorker:
         """
         Benchmarks the environment.
 
-        This method is only compatible with [rtgym](https://github.com/yannbouteiller/rtgym) environments.
+        This method is only compatible with rtgym_ environments.
         Furthermore, the `"benchmark"` option of the rtgym configuration dictionary must be set to `True`.
+
+        .. _rtgym: https://github.com/yannbouteiller/rtgym
 
         Args:
             nb_steps (int): number of steps to perform to compute the benchmark

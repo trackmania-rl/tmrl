@@ -130,5 +130,4 @@ dmypy.json
 
 *.idea
 
-docs/*
-*.yml
+docs/_build/*

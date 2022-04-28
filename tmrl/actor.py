@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 import torch
 
 
+__docformat__ = "google"
+
+
 class ActorModule(torch.nn.Module, ABC):
     """
     Implement this interface for the RolloutWorker(s) to interact with your policy.
@@ -10,11 +13,16 @@ class ActorModule(torch.nn.Module, ABC):
     Typically, your implementation of act() may call forward() with gradients turned off.
 
     If overidden, the __init()__ definition must at least take the two following arguments (args or kwargs):
-        `observation_space`
-        `action_space`
-    The __init()__ method must initialize the superclass via super().__init__(observation_space, action_space)
+    `observation_space` and `action_space`
+
+    CAUTION: When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
     """
     def __init__(self, observation_space, action_space):
+        """
+        Args:
+            observation_space (Gym.spaces.Space): observation space (here for your convenience)
+            action_space (Gym.spaces.Space): action space (here for your convenience)
+        """
         super().__init__()
         self.observation_space = observation_space
         self.action_space = action_space
@@ -23,11 +31,12 @@ class ActorModule(torch.nn.Module, ABC):
     @abstractmethod
     def act(self, obs, test=False):
         """
-        Computes an action from an observation.
+        Must compute an action from an observation.
         
         Args:
             obs (object): the observation
             test (bool): True at test time, False otherwise
+
         Returns:
             act (numpy.array): the computed action
         """

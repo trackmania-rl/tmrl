@@ -2,14 +2,20 @@ from abc import ABC, abstractmethod
 
 
 class TrainingAgent(ABC):
+    """
+    Training algorithm.
+
+    CAUTION: When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
+    """
     def __init__(self,
                  observation_space,
                  action_space,
                  device):
         """
-        observation_space, action_space and device are here for your convenience.
-
-        You are free to use them or not, but your subclass must have them as args or kwargs of __init__() .
+        Args:
+            observation_space (Gym.spaces.Space): observation space (here for your convenience)
+            action_space (Gym.spaces.Space): action space (here for your convenience)
+            device (str): torch device that should be used for training (e.g., `"cpu"` or `"cuda:0"`)
         """
         self.observation_space = observation_space
         self.action_space = action_space

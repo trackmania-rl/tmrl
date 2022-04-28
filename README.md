@@ -25,7 +25,7 @@ It is demonstrated on the TrackMania 2020 video game.
 - [TMRL python library for robot RL](readme/tuto_library.md)
 - [Gym environment](#gym-environment)
 - [TrackMania training details](#trackmania-training-details)
-  - [MDP](#markov-decision-process)
+  - [RL basics](#reinforcement-learning-basics)
   - [SAC](#soft-actor-critic)
   - [REDQ](#randomized-ensembled-double-q-learning)
   - [A clever reward](#a-clever-reward)
@@ -169,7 +169,7 @@ This implies that the AI must understand its environment in some way.
 To achieve this understanding, the car explores the world for a few hours (up to a few days), slowly gaining an understanding of how to act efficiently.
 This is accomplished through Deep Reinforcement Learning (RL).
 
-### Markov Decision Process
+### Reinforcement Learning basics
 
 Most RL algorithms are based on a mathematical description of the environment called Markov Decision Process (MDP).
 A policy trained though RL interacts with an MDP as follows:
