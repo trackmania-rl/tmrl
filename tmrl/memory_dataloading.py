@@ -68,7 +68,9 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     In case you need more advanced replay buffers, you can store whatever you need in the `info` dict and collate
     batches manually in your TrainingAgent.
 
-    CAUTION: When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
+    .. note::
+       When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
+       Your `__init__` method needs to take at least all the arguments of the superclass.
     """
     def __init__(self,
                  device,

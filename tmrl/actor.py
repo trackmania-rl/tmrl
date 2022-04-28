@@ -12,10 +12,10 @@ class ActorModule(torch.nn.Module, ABC):
     This is a sublass of torch.nn.Module and must implement forward().
     Typically, your implementation of act() may call forward() with gradients turned off.
 
-    If overidden, the __init()__ definition must at least take the two following arguments (args or kwargs):
-    `observation_space` and `action_space`
-
-    CAUTION: When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
+    .. note::
+       If overidden, the __init()__ definition must at least take the two following arguments (args or kwargs):
+       `observation_space` and `action_space`.
+       When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
     """
     def __init__(self, observation_space, action_space):
         """
