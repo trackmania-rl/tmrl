@@ -19,5 +19,3 @@ Module list
    tmrl.training_offline
    tmrl.memory_dataloading
    tmrl.envs
-   tmrl.util
-   tmrl.wrappers
