@@ -9,6 +9,7 @@ It is demonstrated on the TrackMania 2020 video game.
 [![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/tmrl)
 ![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)
+[![DOI](https://zenodo.org/badge/277973609.svg)](https://zenodo.org/badge/latestdoi/277973609)
 
  **TL;DR:**
 
