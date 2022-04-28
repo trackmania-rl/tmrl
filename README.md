@@ -1,15 +1,20 @@
 # TMRL
 
+[![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/tmrl?color=green)
+![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)
+[![DOI](https://zenodo.org/badge/277973609.svg)](https://zenodo.org/badge/latestdoi/277973609)
+
+**`Documentation`** |
+------------------- |
+[![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest) |
+
+
 `tmrl` is a distributed framework for training Deep Reinforcement Learning AIs in real-time applications.
 It is demonstrated on the TrackMania 2020 video game.
 
 ![example](readme/img/video_lidar.gif)
 
-[![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest)
-[![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
-![PyPI - Downloads](https://img.shields.io/pypi/dm/tmrl)
-![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)
-[![DOI](https://zenodo.org/badge/277973609.svg)](https://zenodo.org/badge/latestdoi/277973609)
 
  **TL;DR:**
 
