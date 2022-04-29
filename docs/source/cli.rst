@@ -38,7 +38,7 @@ Benchmark the RollourWorker in TrackMania (requires `"benchmark":true` in `confi
 
    python -m tmrl --benchmark
 
-Launch the Trainer but disbale logging to wandb.ai:
+Launch the Trainer but disable logging to wandb.ai:
 
 .. code-block:: bash
 
