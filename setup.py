@@ -111,7 +111,7 @@ install_req = [
 ]
 
 if platform.system() == "Windows":
-    install_req.append('pywin32')
+    install_req.append('pywin32>=303')
     install_req.append('vgamepad')
 
 # The directory containing this file
@@ -123,13 +123,13 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name='tmrl',
-    version='0.1.4',
+    version='0.1.6',
     description='Autonomous racing in Trackmania',
     long_description=README,
     long_description_content_type='text/markdown',
     keywords='reinforcement learning, trackmania, self driving, roborace',
     url='https://github.com/trackmania-rl/tmrl',
-    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.1.4.tar.gz',
+    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.1.6.tar.gz',
     author='Yann Bouteiller, Edouard Geze',
     author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
     license='MIT',
