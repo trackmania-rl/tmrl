@@ -16,7 +16,7 @@ Competitors solve real-time Gym environments featuring snapshots from the real `
 
 | Podium  | Team | Time - _mean (std)_ | Weights | Description |
 | :---: | :---: | :---: | :---: | :---: |
-| :dragon: :one: | Baseline | 47.176 (0.769)| [download](https://github.com/trackmania-rl/tmrl/releases/download/v0.0.2/resources.zip) | SAC baseline training an MLP, snapshots reduced to 19-beam LIDARs|
+| :dragon: :one: | Baseline | 47.176 (0.769)| [download](https://github.com/trackmania-rl/tmrl/releases/download/v0.0.2/resources.zip) | SAC baseline, MLP, 19-beam LIDARs|
 | :racehorse: :two: |
 | :leopard: :three: |
 | :tiger2: :four: |
@@ -32,7 +32,7 @@ Competitors solve real-time Gym environments featuring snapshots from the real `
 ### Current iteration (Alpha)
 The `tmrl` competition is an open-source research initiative, currently in its very first iteration :hatching_chick:
 
-In this iteration we keep things as simple as possible.
+In this iteration, competitors race on the default `tmrl-test` track (plain road).
 
 The setting is the following:
 - The `action space` is the default TrackMania 2020 continuous action space (3 floats between -1.0 and 1.0).
