@@ -114,7 +114,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         # MSE loss against Bellman backup
         loss_q1 = ((q1 - backup)**2).mean()
         loss_q2 = ((q2 - backup)**2).mean()
-        loss_q = loss_q1 + loss_q2
+        loss_q = (loss_q1 + loss_q2) / 2  # averaged for homogeneity with REDQ
 
         self.q_optimizer.zero_grad()
         loss_q.backward()
@@ -252,7 +252,7 @@ class REDQSACAgent(TrainingAgent):
         q_prediction_cat = torch.stack(q_prediction_list, -1)
         backup = backup.expand((-1, self.n)) if backup.shape[1] == 1 else backup
 
-        loss_q = self.criterion(q_prediction_cat, backup) * self.n
+        loss_q = self.criterion(q_prediction_cat, backup)  # * self.n  # averaged for homogeneity with SAC
 
         for q in self.q_optimizer_list:
             q.zero_grad()
