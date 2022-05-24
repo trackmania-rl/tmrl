@@ -26,14 +26,19 @@ assert ALG_NAME in ["SAC", "REDQSAC"], f"If you wish to implement {ALG_NAME}, do
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
 
-assert cfg.PRAGMA_LIDAR
-if cfg.PRAGMA_RNN:
-    assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
-    TRAIN_MODEL = RNNActorCritic
-    POLICY = SquashedGaussianRNNActor
+if cfg.PRAGMA_LIDAR:
+    if cfg.PRAGMA_RNN:
+        assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
+        TRAIN_MODEL = RNNActorCritic
+        POLICY = SquashedGaussianRNNActor
+    else:
+        TRAIN_MODEL = MLPActorCritic if ALG_NAME == "SAC" else REDQMLPActorCritic
+        POLICY = SquashedGaussianMLPActor
 else:
-    TRAIN_MODEL = MLPActorCritic if ALG_NAME == "SAC" else REDQMLPActorCritic
-    POLICY = SquashedGaussianMLPActor
+    assert not cfg.PRAGMA_RNN, "RNNs not supported yet"
+    assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
+    TRAIN_MODEL = MLPActorCritic  # FIXME
+    POLICY = SquashedGaussianMLPActor  # FIXME
 
 if cfg.PRAGMA_LIDAR:
     INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)

@@ -18,9 +18,9 @@ from rtgym import RealTimeGymInterface
 # local imports
 import tmrl.config.config_constants as cfg
 from tmrl.custom.utils.compute_reward import RewardFunction
-from tmrl.custom.utils.control_gamepad import control_gamepad
-from tmrl.custom.utils.key_event import apply_control, keyres
-from tmrl.custom.utils.mouse_event import mouse_close_finish_pop_up_tm20, wait_for_popup_save_replay_and_improve_tm20
+from tmrl.custom.utils.control_gamepad import control_gamepad, gamepad_reset, gamepad_close_finish_pop_up_tm20
+from tmrl.custom.utils.control_keyboard import apply_control, keyres
+from tmrl.custom.utils.control_mouse import mouse_close_finish_pop_up_tm20, mouse_save_replay_tm20
 from tmrl.custom.utils.window import WindowInterface
 from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, get_speed, load_digits
 
@@ -49,6 +49,7 @@ class TM2020Interface(RealTimeGymInterface):
         self.gamepad = gamepad
         self.j = None
         self.window_interface = None
+        self.small_window = None
         self.min_nb_steps_before_early_done = min_nb_steps_before_early_done
         self.save_replay = save_replay
 
@@ -61,6 +62,7 @@ class TM2020Interface(RealTimeGymInterface):
             self.j = vg.VX360Gamepad()
             logging.debug(" virtual joystick in use")
         self.window_interface = WindowInterface("Trackmania")
+        self.window_interface.move_and_resize()
         self.last_time = time.time()
         self.digits = load_digits()
         self.img_hist = deque(maxlen=self.img_hist_len)
@@ -74,6 +76,7 @@ class TM2020Interface(RealTimeGymInterface):
 
     def initialize(self):
         self.initialize_common()
+        self.small_window = True
         self.initialized = True
 
     def send_control(self, control):
@@ -107,15 +110,25 @@ class TM2020Interface(RealTimeGymInterface):
         self.img = img  # for render()
         return data, img
 
+    def reset_race(self):
+        if self.gamepad:
+            gamepad_reset(self.j)
+        else:
+            keyres()
+
+    def reset_common(self):
+        if not self.initialized:
+            self.initialize()
+        self.send_control(self.get_default_action())
+        self.reset_race()
+        time_sleep = max(0, cfg.SLEEP_TIME_AT_RESET - 0.1) if self.gamepad else cfg.SLEEP_TIME_AT_RESET
+        time.sleep(time_sleep)  # must be long enough for image to be refreshed
+
     def reset(self):
         """
         obs must be a list of numpy arrays
         """
-        if not self.initialized:
-            self.initialize()
-        self.send_control(self.get_default_action())
-        keyres()
-        time.sleep(cfg.SLEEP_TIME_AT_RESET)  # must be long enough for image to be refreshed
+        self.reset_common()
         data, img = self.grab_data_and_img()
         speed = np.array([
             data[0],
@@ -133,15 +146,21 @@ class TM2020Interface(RealTimeGymInterface):
         self.reward_function.reset()
         return obs
 
+    def close_finish_pop_up_tm20(self):
+        if self.gamepad:
+            gamepad_close_finish_pop_up_tm20(self.j)
+        else:
+            mouse_close_finish_pop_up_tm20(small_window=self.small_window)
+
     def wait(self):
         """
         Non-blocking function
         The agent stays 'paused', waiting in position
         """
         self.send_control(self.get_default_action())
-        keyres()
+        self.reset_race()
         time.sleep(0.5)
-        mouse_close_finish_pop_up_tm20(small_window=True)
+        self.close_finish_pop_up_tm20()
 
     def get_obs_rew_done_info(self):
         """
@@ -167,9 +186,9 @@ class TM2020Interface(RealTimeGymInterface):
         info = {}
         if end_of_track:
             done = True
-            info["__no_done"] = True
+            info["__no_done"] = True  # TODO: we may want to remove this if we set an end-of-track reward
             if self.save_replay:
-                wait_for_popup_save_replay_and_improve_tm20(True)
+                mouse_save_replay_tm20(True)
         return obs, rew, done, info
 
     def get_observation_space(self):
@@ -179,7 +198,7 @@ class TM2020Interface(RealTimeGymInterface):
         speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
         gear = spaces.Box(low=0.0, high=6, shape=(1, ))
         rpm = spaces.Box(low=0.0, high=np.inf, shape=(1, ))
-        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 3, 127, 256))
+        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 3, cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH))
         return spaces.Tuple((speed, gear, rpm, img))
 
     def get_action_space(self):
@@ -213,7 +232,7 @@ class TM2020InterfaceLidar(TM2020Interface):
 
     def initialize(self):
         super().initialize_common()
-        self.window_interface.move_and_resize()
+        self.small_window = False
         self.lidar = Lidar(self.window_interface.screenshot())
         self.initialized = True
 
@@ -221,11 +240,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         """
         obs must be a list of numpy arrays
         """
-        if not self.initialized:
-            self.initialize()
-        self.send_control(self.get_default_action())
-        keyres()
-        time.sleep(cfg.SLEEP_TIME_AT_RESET)  # must be long enough for image to be refreshed
+        self.reset_common()
         img, speed, data = self.grab_lidar_speed_and_data()
         for _ in range(self.img_hist_len):
             self.img_hist.append(img)
@@ -233,16 +248,6 @@ class TM2020InterfaceLidar(TM2020Interface):
         obs = [speed, imgs]
         self.reward_function.reset()
         return obs  # if not self.record else data
-
-    def wait(self):
-        """
-        Non-blocking function
-        The agent stays 'paused', waiting in position
-        """
-        self.send_control(self.get_default_action())
-        keyres()
-        time.sleep(0.5)
-        mouse_close_finish_pop_up_tm20(small_window=False)
 
     def get_obs_rew_done_info(self):
         """
@@ -262,7 +267,7 @@ class TM2020InterfaceLidar(TM2020Interface):
             done = True
             info["__no_done"] = True
             if self.save_replay:
-                wait_for_popup_save_replay_and_improve_tm20()
+                mouse_save_replay_tm20()
         rew += cfg.CONSTANT_PENALTY
         return obs, rew, done, info
 

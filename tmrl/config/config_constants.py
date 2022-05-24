@@ -46,6 +46,8 @@ CONSTANT_PENALTY = 0  # should be <= 0 : added to the reward at each time step
 SLEEP_TIME_AT_RESET = ENV_CONFIG["SLEEP_TIME_AT_RESET"]  # 1.5 to start in a Markov state with the lidar
 IMG_HIST_LEN = ENV_CONFIG["IMG_HIST_LEN"]  # 4 without RNN, 1 with RNN
 ACT_BUF_LEN = ENV_CONFIG["RTGYM_CONFIG"]["act_buf_len"]
+WINDOW_WIDTH = ENV_CONFIG["WINDOW_WIDTH"]
+WINDOW_HEIGHT = ENV_CONFIG["WINDOW_HEIGHT"]
 
 # DEBUGGING AND BENCHMARKING: ===================================
 

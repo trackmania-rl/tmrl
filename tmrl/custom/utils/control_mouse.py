@@ -36,7 +36,7 @@ if platform.system() == "Windows":
             click(500, 280)
         mouseUp()
 
-    def wait_for_popup_save_replay_and_improve_tm20(small_window=False):
+    def mouse_save_replay_tm20(small_window=False):
         time.sleep(5.0)
         if small_window:
             click(130, 110)
@@ -65,7 +65,7 @@ else:
     def mouse_close_replay_window_tm20():
         pass
 
-    def wait_for_popup_save_replay_and_improve_tm20():
+    def mouse_save_replay_tm20():
         pass
 
 
@@ -73,4 +73,4 @@ if __name__ == "__main__":
     # standard library imports
     import time
 
-    wait_for_popup_save_replay_and_improve_tm20()
+    mouse_save_replay_tm20()

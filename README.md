@@ -37,6 +37,8 @@ It is demonstrated on the TrackMania 2020 video game.
 - [TMRL python library for robot RL](readme/tuto_library.md)
   - [API reference](https://tmrl.readthedocs.io/en/latest/)
 - [Gym environment](#gym-environment)
+  - [LIDAR environment](#lidar-environment)
+  - [Full environment](#full-environment)
 - [TrackMania training details](#trackmania-training-details)
   - [RL basics](#reinforcement-learning-basics)
   - [SAC](#soft-actor-critic)
@@ -153,13 +155,44 @@ env.wait()  # rtgym-specific method to artificially 'pause' the environment when
 
 The environment can be customized by changing the content of the `ENV` entry in `TmrlData\config\config.json`:
 
-_(NB: do not copy-paste, comments are not supported in vanilla .json files)_
+_(NB: do not copy-paste the examples, comments are not supported in vanilla .json files)_
+
+### LIDAR environment:
+In this version of the environment, screenshots are reduced to 19-beam LIDARs to be processed with, e.g., an MLP.
+In addition, this version features the speed (that human players can see).
+This works only on plain road with black borders, using the front camera.
 ```json5
 {
   "ENV": {
-    "RTGYM_INTERFACE": "TM20LIDAR",
+    "RTGYM_INTERFACE": "TM20LIDAR",  // TrackMania 2020 with LIDAR observations
+    "WINDOW_WIDTH": 958,  // width of the game window (min: 256)
+    "WINDOW_HEIGHT": 488,  // height of the game window (min: 128)
     "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
     "IMG_HIST_LEN": 4,  // length of the history of LIDAR measurements in observations (set to 1 for RNNs)
+    "RTGYM_CONFIG": {
+      "time_step_duration": 0.05,  // duration of a time step
+      "start_obs_capture": 0.04,  // duration before an observation is captured
+      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
+      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
+      "benchmark": false,  // enables benchmarking your environment when true
+      "wait_on_done": true
+    }
+  }
+}
+```
+
+### Full environment:
+This version of the environment features full screenshots to be processed with, e.g., a CNN.
+In addition, this version features the speed, gear and RPM (that human players can see or hear).
+This works on any track, using any (sensible) camera configuration.
+```json5
+{
+  "ENV": {
+    "RTGYM_INTERFACE": "TM20FULL",  // TrackMania 2020 with full screenshots
+    "WINDOW_WIDTH": 256,  // width of the game window and screenshots (min: 256)
+    "WINDOW_HEIGHT": 128,  // height of the game window and screenshots (min: 128)
+    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
+    "IMG_HIST_LEN": 4,  // length of the history of images in observations (set to 1 for RNNs)
     "RTGYM_CONFIG": {
       "time_step_duration": 0.05,  // duration of a time step
       "start_obs_capture": 0.04,  // duration before an observation is captured

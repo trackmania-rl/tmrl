@@ -6,6 +6,7 @@ if platform.system() == "Windows":
     import win32gui
     import win32ui
     import win32con
+    import tmrl.config.config_constants as cfg
 
 
     class WindowInterface:
@@ -55,7 +56,7 @@ if platform.system() == "Windows":
             win32gui.ReleaseDC(hwnd, hdc)
             return img
 
-        def move_and_resize(self, x=1, y=0, w=958, h=488):
+        def move_and_resize(self, x=1, y=0, w=cfg.WINDOW_WIDTH, h=cfg.WINDOW_HEIGHT):
             x += self.x_origin_offset
             y += self.y_origin_offset
             w += self.w_diff
