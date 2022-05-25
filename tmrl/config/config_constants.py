@@ -51,7 +51,7 @@ WINDOW_HEIGHT = ENV_CONFIG["WINDOW_HEIGHT"]
 
 # DEBUGGING AND BENCHMARKING: ===================================
 
-CRC_DEBUG = True  # Only for checking the consistency of the custom networking methods, set it to False otherwise. Caution: difficult to handle if reset transitions are collected.
+CRC_DEBUG = False  # Only for checking the consistency of the custom networking methods, set it to False otherwise. Caution: difficult to handle if reset transitions are collected.
 CRC_DEBUG_SAMPLES = 100  # Number of samples collected in CRC_DEBUG mode
 PROFILE_TRAINER = False  # Will profile each epoch in the Trainer when True
 SYNCHRONIZE_CUDA = False  # Set to True for profiling, False otherwise
