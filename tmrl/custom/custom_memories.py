@@ -8,7 +8,7 @@ from tmrl.memory_dataloading import MemoryDataloading, TrajMemoryDataloading
 # LOCAL BUFFER COMPRESSION ==============================
 
 
-def get_local_buffer_sample(prev_act, obs, rew, done, info):
+def get_local_buffer_sample_lidar(prev_act, obs, rew, done, info):
     """
     Input:
         prev_act: action computed from a previous observation and applied to yield obs in the transition (but not influencing the unaugmented observation in real-time envs)
@@ -19,7 +19,7 @@ def get_local_buffer_sample(prev_act, obs, rew, done, info):
     the user must define both this function and the append() method of the dataloading memory
     CAUTION: prev_act is the action that comes BEFORE obs (i.e. prev_obs, prev_act(prev_obs), obs(prev_act))
     """
-    obs_mod = (obs[0], obs[1][-1])  # speed and most recent image only
+    obs_mod = (obs[0], obs[1][-19:])  # speed and most recent LIDAR only
     rew_mod = np.float32(rew)
     done_mod = done
     return prev_act, obs_mod, rew_mod, done_mod, info
