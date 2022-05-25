@@ -153,6 +153,9 @@ class MemoryTMNFLidar(MemoryTMNF):
             replace_hist_before_done(hist=imgs_new_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset - 1)
             replace_hist_before_done(hist=imgs_last_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset)
 
+        imgs_new_obs = np.ndarray.flatten(imgs_new_obs)
+        imgs_last_obs = np.ndarray.flatten(imgs_last_obs)
+
         last_obs = (self.data[2][idx_last], imgs_last_obs, *last_act_buf)
         new_act = self.data[1][idx_now]
         rew = np.float32(self.data[5][idx_now])
