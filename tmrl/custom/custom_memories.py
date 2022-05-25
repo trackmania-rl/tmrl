@@ -79,7 +79,6 @@ class MemoryTMNF(MemoryDataloading):
                  use_dataloader=False,
                  num_workers=0,
                  pin_memory=False,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
@@ -95,7 +94,6 @@ class MemoryTMNF(MemoryDataloading):
                          use_dataloader=use_dataloader,
                          num_workers=num_workers,
                          pin_memory=pin_memory,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
@@ -122,7 +120,7 @@ class MemoryTMNFLidar(MemoryTMNF):
         """
         CAUTION: item is the first index of the 4 images in the images history of the OLD observation
         CAUTION: in the buffer, a sample is (act, obs(act)) and NOT (obs, act(obs))
-            i.e. in a sample, the observation is what step returned after being fed act
+            i.e. in a sample, the observation is what step returned after being fed act (and preprocessed)
             therefore, in the RTRL setting, act is appended to obs
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
@@ -229,7 +227,6 @@ class TrajMemoryTMNF(TrajMemoryDataloading):
                  use_dataloader=False,
                  num_workers=0,
                  pin_memory=False,
-                 obs_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
         self.imgs_obs = imgs_obs
@@ -246,7 +243,6 @@ class TrajMemoryTMNF(TrajMemoryDataloading):
                          use_dataloader=use_dataloader,
                          num_workers=num_workers,
                          pin_memory=pin_memory,
-                         obs_preprocessor=obs_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
 
@@ -367,7 +363,6 @@ class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
                  use_dataloader=False,
                  num_workers=0,
                  pin_memory=False,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
@@ -383,7 +378,6 @@ class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
                          use_dataloader=use_dataloader,
                          num_workers=num_workers,
                          pin_memory=pin_memory,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)

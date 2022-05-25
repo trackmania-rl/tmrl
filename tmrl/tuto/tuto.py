@@ -299,7 +299,6 @@ class MyMemoryDataloading(MemoryDataloading):
                  act_buf_len=None,
                  device=None,
                  nb_steps=None,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  memory_size=1000000,
                  batch_size=32,
@@ -309,7 +308,6 @@ class MyMemoryDataloading(MemoryDataloading):
 
         super().__init__(device=device,
                          nb_steps=nb_steps,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          memory_size=memory_size,
                          batch_size=batch_size,

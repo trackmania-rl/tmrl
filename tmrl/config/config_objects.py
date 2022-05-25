@@ -71,7 +71,6 @@ else:
 MEMORY = partial(MEM,
                  memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
                  batch_size=cfg.TMRL_CONFIG["BATCH_SIZE"],
-                 obs_preprocessor=OBS_PREPROCESSOR,
                  sample_preprocessor=SAMPLE_PREPROCESSOR,
                  dataset_path=cfg.DATASET_PATH,
                  imgs_obs=cfg.IMG_HIST_LEN,

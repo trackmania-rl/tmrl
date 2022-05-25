@@ -75,7 +75,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     def __init__(self,
                  device,
                  nb_steps,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  memory_size=1000000,
                  batch_size=256,
@@ -88,7 +87,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         Args:
             device (str): output tensors will be collated to this device
             nb_steps (int): number of steps per round
-            obs_preprocessor (callable): same observation preprocessor as the RolloutWorker
             sample_preprocessor (callable): can be used for data augmentation
             memory_size (int): size of the circular buffer
             batch_size (int): batch size of the output tensors
@@ -103,7 +101,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         self.device = device
         self.batch_size = batch_size
         self.memory_size = memory_size
-        self.obs_preprocessor = obs_preprocessor
         self.sample_preprocessor = sample_preprocessor
         self.crc_debug = crc_debug
 
@@ -191,9 +188,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         if self.crc_debug:
             po, a, o, r, d = info['crc_sample']
             check_samples_crc(po, a, o, r, d, prev_obs, new_act, new_obs, rew, done)
-        if self.obs_preprocessor is not None:
-            prev_obs = self.obs_preprocessor(prev_obs)
-            new_obs = self.obs_preprocessor(new_obs)
         if self.sample_preprocessor is not None:
             prev_obs, new_act, rew, new_obs, done = self.sample_preprocessor(prev_obs, new_act, rew, new_obs, done)
         done = np.float32(done)  # we don't want bool tensors
@@ -219,7 +213,6 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
                  use_dataloader=False,
                  num_workers: callable = 0,
                  pin_memory=False,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
@@ -230,7 +223,6 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
                          use_dataloader=use_dataloader,
                          num_workers=num_workers,
                          pin_memory=pin_memory,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
@@ -257,8 +249,6 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
                 _, _, o, r, d = info_traj[i]['crc_sample']
                 new_obs, rew, done = augm_obs_traj[i], rew_traj[i], done_traj[i]
                 check_samples_crc_traj(o, r, d, new_obs, rew, done)
-        if self.obs_preprocessor is not None:
-            augm_obs_traj = [self.obs_preprocessor(obs) for obs in augm_obs_traj]
         if self.sample_preprocessor is not None:
             raise NotImplementedError("Sample preprocessing is not supported for trajectories.")
         done_traj = [np.float32(done) for done in done_traj]  # we don't want bool tensors

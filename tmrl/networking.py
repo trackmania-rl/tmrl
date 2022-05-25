@@ -845,13 +845,11 @@ class RolloutWorker:
         Returns:
             action (numpy.array): action computed by the `ActorModule`
         """
-        if self.obs_preprocessor is not None:
-            obs = self.obs_preprocessor(obs)
+        # if self.obs_preprocessor is not None:
+        #     obs = self.obs_preprocessor(obs)
         obs = collate([obs], device=self.device)
         with torch.no_grad():
             action = self.actor.act(obs, test=test)
-            # action = action_distribution.sample() if train else action_distribution.sample_test()
-        # action, = partition(action)
         return action
 
     def reset(self, collect_samples):
@@ -867,8 +865,8 @@ class RolloutWorker:
         obs = None
         act = self.env.default_action.astype(np.float32)
         new_obs = self.env.reset()
-        # if self.obs_preprocessor is not None:
-        #     new_obs = self.obs_preprocessor(new_obs)
+        if self.obs_preprocessor is not None:
+            new_obs = self.obs_preprocessor(new_obs)
         rew = 0.0
         done = False
         info = {}
@@ -904,8 +902,8 @@ class RolloutWorker:
         """
         act = self.act(obs, test=test)
         new_obs, rew, done, info = self.env.step(act)
-        # if self.obs_preprocessor is not None:
-        #     new_obs = self.obs_preprocessor(new_obs)
+        if self.obs_preprocessor is not None:
+            new_obs = self.obs_preprocessor(new_obs)
         if collect_samples:
             stored_done = done
             if last_step and not done:  # ignore done when stopped by step limit

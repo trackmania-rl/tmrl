@@ -257,7 +257,7 @@ class RolloutWorker:
             min_samples_per_worker_packet=1,  # # the worker waits for this number of samples before sending
             max_samples_per_episode=np.inf,  # if an episode gets longer than this, it is reset
             model_path=cfg.MODEL_PATH_WORKER,  # path where a local copy of the policy will be stored
-            obs_preprocessor: callable = None,  # utility for modifying samples before forward passes
+            obs_preprocessor: callable = None,  # utility for modifying observations returned by the environment
             crc_debug=False,  # can be used for debugging the pipeline
             model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,  # a
             # history of policies can be stored here 
@@ -520,7 +520,7 @@ _(Note: this will save all these policies in `model_path_history`, if you want t
 A few more parameters are configurable, although they will not be useful in this tutorial.
 In particular:
 
-`obs_preprocessor` can be used to modify observations before they are fed to the model.
+`obs_preprocessor` can be used to modify observations returned by the environment (this enables, e.g., converting RGB images into grayscale without modifying the environment).
 Some examples of such preprocessors are available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_preprocessors.py).
 
 `standalone` can be set to `True` for deployment, in which case the `RolloutWorker` will not attempt to connect to the `Server`.
@@ -688,7 +688,6 @@ class MemoryDataloading(ABC):
     def __init__(self,
                  device,  # output tensors will be collated to this device
                  nb_steps,  # number of steps per round
-                 obs_preprocessor: callable = None,  # same observation preprocessor as the RolloutWorker
                  sample_preprocessor: callable = None,  # can be used for data augmentation
                  memory_size=1000000,  # size of the circular buffer
                  batch_size=256,  # batch size of the output tensors
@@ -728,9 +727,6 @@ class MemoryDataloading(ABC):
 
 You do not need to worry about `device` and `nb_steps`, as they will be set automatically by the `Trainer` and are for the superclass.
 
-`obs_preprocessor` must be the same observation preprocessor as for the `RolloutWorker`.
-You just want to pass this argument to the superclass.
-
 `sample_preprocessor` can be used if you wish to implement data augmentation before the samples are used for training.
 We will not do this in the tutorial, but you can find a no-op example [here](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_preprocessors.py#L41) (for syntax).
 This argument is also only to be passed to the superclass.
@@ -769,7 +765,6 @@ Thus, we will use the action buffer length as an additional argument to our cust
     def __init__(self,
                  device=None,
                  nb_steps=None,
-                 obs_preprocessor: callable = None,
                  sample_preprocessor: callable = None,
                  memory_size=1000000,
                  batch_size=32,
@@ -780,7 +775,6 @@ Thus, we will use the action buffer length as an additional argument to our cust
 
         super().__init__(device=device,
                          nb_steps=nb_steps,
-                         obs_preprocessor=obs_preprocessor,
                          sample_preprocessor=sample_preprocessor,
                          memory_size=memory_size,
                          batch_size=batch_size,

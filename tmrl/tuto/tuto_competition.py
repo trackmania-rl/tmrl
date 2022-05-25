@@ -111,7 +111,6 @@ act_buf_len = cfg.ACT_BUF_LEN
 memory_cls = partial(memory_base_cls,
                      memory_size=memory_size,
                      batch_size=batch_size,
-                     obs_preprocessor=obs_preprocessor,
                      sample_preprocessor=sample_preprocessor,
                      dataset_path=cfg.DATASET_PATH,
                      imgs_obs=imgs_obs,
