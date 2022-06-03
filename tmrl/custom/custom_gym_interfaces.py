@@ -105,7 +105,7 @@ class TM2020Interface(RealTimeGymInterface):
 
     def grab_data_and_img(self):
         img = self.window_interface.screenshot()[:, :, :3]
-        img = np.moveaxis(img, -1, 0)
+        img = img[:, :, ::-1]  # reversed view for numpy RGB convention
         data = self.client.retrieve_data()
         self.img = img  # for render()
         return data, img
@@ -198,7 +198,7 @@ class TM2020Interface(RealTimeGymInterface):
         speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
         gear = spaces.Box(low=0.0, high=6, shape=(1, ))
         rpm = spaces.Box(low=0.0, high=np.inf, shape=(1, ))
-        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 3, cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH))
+        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH, 3))
         return spaces.Tuple((speed, gear, rpm, img))
 
     def get_action_space(self):

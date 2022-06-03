@@ -8,12 +8,10 @@ import rtgym
 import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TrainingOffline
 from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TMInterface, TMInterfaceLidar
-from tmrl.custom.custom_memories import MemoryTM2020RAM, MemoryTMNF, MemoryTMNFLidar, TrajMemoryTMNFLidar, get_local_buffer_sample_lidar, get_local_buffer_sample_tm20_imgs
+from tmrl.custom.custom_memories import MemoryTM2020, MemoryTMNFLidar, get_local_buffer_sample_lidar, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs
 from tmrl.envs import GenericGymEnv
-# from tmrl.custom.custom_models import Mlp, MlpPolicy
-from tmrl.custom.custom_models import MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianMLPActor, SquashedGaussianRNNActor
-# from tmrl.sac import SacAgent as SAC_Agent
+from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianCNNActor, CNNActorCritic
 from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
 from tmrl.custom.custom_algorithms import REDQSACAgent as REDQ_Agent
 from tmrl.util import partial
@@ -30,15 +28,15 @@ if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
         assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
         TRAIN_MODEL = RNNActorCritic
-        POLICY = SquashedGaussianRNNActor
+        POLICY = partial(SquashedGaussianRNNActor, act_buf_len=cfg.ACT_BUF_LEN)
     else:
         TRAIN_MODEL = MLPActorCritic if ALG_NAME == "SAC" else REDQMLPActorCritic
-        POLICY = SquashedGaussianMLPActor
+        POLICY = partial(SquashedGaussianMLPActor, act_buf_len=cfg.ACT_BUF_LEN)
 else:
     assert not cfg.PRAGMA_RNN, "RNNs not supported yet"
     assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
-    TRAIN_MODEL = MLPActorCritic  # FIXME
-    POLICY = SquashedGaussianMLPActor  # FIXME
+    TRAIN_MODEL = CNNActorCritic
+    POLICY = SquashedGaussianCNNActor
 
 if cfg.PRAGMA_LIDAR:
     INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
@@ -66,7 +64,8 @@ if cfg.PRAGMA_LIDAR:
     else:
         MEM = MemoryTMNFLidar
 else:
-    MEM = MemoryTM2020RAM if cfg.PRAGMA_TM2020_TMNF else MemoryTMNF
+    assert cfg.PRAGMA_TM2020_TMNF, "TMNF is not officially supported."
+    MEM = MemoryTM2020
 
 MEMORY = partial(MEM,
                  memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
@@ -146,14 +145,16 @@ else:  # images
         TrainingOffline,
         env_cls=ENV_CLS,
         memory_cls=MEMORY,
-        epochs=100000,  # 10
-        rounds=10,  # 50
-        steps=50,  # 2000
-        update_model_interval=50,
-        update_buffer_interval=1,
-        max_training_steps_per_env_step=1.0,
+        epochs=cfg.TMRL_CONFIG["MAX_EPOCHS"],
+        rounds=cfg.TMRL_CONFIG["ROUNDS_PER_EPOCH"],
+        steps=cfg.TMRL_CONFIG["TRAINING_STEPS_PER_ROUND"],
+        update_model_interval=cfg.TMRL_CONFIG["UPDATE_MODEL_INTERVAL"],
+        update_buffer_interval=cfg.TMRL_CONFIG["UPDATE_BUFFER_INTERVAL"],
+        max_training_steps_per_env_step=cfg.TMRL_CONFIG["MAX_TRAINING_STEPS_PER_ENVIRONMENT_STEP"],
         profiling=cfg.PROFILE_TRAINER,
-        training_agent_cls=AGENT)
+        training_agent_cls=AGENT,
+        agent_scheduler=None,  # sac_v2_entropy_scheduler
+        start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"])
 
 # CHECKPOINTS: ===================================================
 

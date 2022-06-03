@@ -1,19 +1,3 @@
-# from dataclasses import InitVar, dataclass
-# standard library imports
-from math import floor
-
-# third-party imports
-import gym
-import torch
-from torch.nn import Conv2d, Linear, MaxPool2d, Module, ModuleList, ReLU, Sequential
-from torch.nn import functional as F
-
-# local imports
-from tmrl.nn import TanhNormalLayer
-# from tmrl.custom.custom_models import ActorModule, MlpActionValue, SacLinear, prod
-import logging
-
-
 # === Trackmania =======================================================================================================
 
 
@@ -27,53 +11,21 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
-from torch.nn import Linear, Module, ModuleList, ReLU, Sequential
+from math import floor, sqrt
+from torch.nn import Conv2d, Linear, Module, ModuleList, ReLU, Sequential
 
 # local imports
-from tmrl.nn import SacLinear, TanhNormalLayer
-from tmrl.util import collate, partition, prod
+from tmrl.nn import TanhNormalLayer
+from tmrl.util import prod
 from tmrl.actor import ActorModule
 import logging
 
 
-# Adapted from the SAC implementation of OpenAI Spinup
-
-
-class MlpActionValue(Sequential):
-    def __init__(self, obs_space, act_space, hidden_units):
-        dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
-        dim_act = act_space.shape[0]
-        super().__init__(SacLinear(dim_obs + dim_act, hidden_units), ReLU(), SacLinear(hidden_units, hidden_units), ReLU(), Linear(hidden_units, 2))
-
-    # noinspection PyMethodOverriding
-    def forward(self, obs, action):
-        # logging.debug(f" obs:{obs}")
-        x = torch.cat((*obs, action), -1)
-        return super().forward(x)
-
-
-class MlpPolicy(Sequential):
-    def __init__(self, obs_space, act_space, hidden_units=256, act_buf_len=0):
-        dim_obs = sum(prod(s for s in space.shape) for space in obs_space)
-        dim_act = act_space.shape[0]
-        super().__init__(SacLinear(dim_obs, hidden_units), ReLU(), SacLinear(hidden_units, hidden_units), ReLU(), TanhNormalLayer(hidden_units, dim_act))
-
-    # noinspection PyMethodOverriding
-    def forward(self, obs):
-        # logging.debug(f" obs:{obs}")
-        return super().forward(torch.cat(obs, -1))  # XXX
-
-
-class Mlp(ActorModule):
-    def __init__(self, observation_space, action_space, hidden_units: int = 256, num_critics: int = 2, act_buf_len=0):
-        super().__init__()
-        assert isinstance(observation_space, gym.spaces.Tuple), f"{observation_space}"
-        self.critics = ModuleList(MlpActionValue(observation_space, action_space, hidden_units) for _ in range(num_critics))
-        self.actor = MlpPolicy(observation_space, action_space, hidden_units)
-        self.critic_output_layers = [c[-1] for c in self.critics]
+# SUPPORTED ============================================================================================================
 
 
 # Spinup MLP: =======================================================
+# Adapted from the SAC implementation of OpenAI Spinup
 
 
 def combined_shape(length, shape=None):
@@ -206,6 +158,328 @@ class REDQMLPActorCritic(nn.Module):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
             return a.numpy()
+
+
+# CNN: ==========================================================
+# EfficientNetV2 implementation adapted from https://github.com/d-li14/efficientnetv2.pytorch/blob/main/effnetv2.py
+# We use the EfficientNetV2 structure for image features and we merge the TM2020 float features to linear layers
+
+
+def _make_divisible(v, divisor, min_value=None):
+    """
+    This function is taken from the original tf repo.
+    It ensures that all layers have a channel number that is divisible by 8
+    It can be seen here:
+    https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+    :param v:
+    :param divisor:
+    :param min_value:
+    :return:
+    """
+    if min_value is None:
+        min_value = divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+    # Make sure that round down does not go down by more than 10%.
+    if new_v < 0.9 * v:
+        new_v += divisor
+    return new_v
+
+
+# SiLU (Swish) activation function
+if hasattr(nn, 'SiLU'):
+    SiLU = nn.SiLU
+else:
+    # For compatibility with old PyTorch versions
+    class SiLU(nn.Module):
+        def forward(self, x):
+            return x * torch.sigmoid(x)
+
+
+class SELayer(nn.Module):
+    def __init__(self, inp, oup, reduction=4):
+        super(SELayer, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(oup, _make_divisible(inp // reduction, 8)),
+            SiLU(),
+            nn.Linear(_make_divisible(inp // reduction, 8), oup),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y
+
+
+def conv_3x3_bn(inp, oup, stride):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+        nn.BatchNorm2d(oup),
+        SiLU()
+    )
+
+
+def conv_1x1_bn(inp, oup):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+        SiLU()
+    )
+
+
+class MBConv(nn.Module):
+    def __init__(self, inp, oup, stride, expand_ratio, use_se):
+        super(MBConv, self).__init__()
+        assert stride in [1, 2]
+
+        hidden_dim = round(inp * expand_ratio)
+        self.identity = stride == 1 and inp == oup
+        if use_se:
+            self.conv = nn.Sequential(
+                # pw
+                nn.Conv2d(inp, hidden_dim, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                SiLU(),
+                # dw
+                nn.Conv2d(hidden_dim, hidden_dim, 3, stride, 1, groups=hidden_dim, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                SiLU(),
+                SELayer(inp, hidden_dim),
+                # pw-linear
+                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+            )
+        else:
+            self.conv = nn.Sequential(
+                # fused
+                nn.Conv2d(inp, hidden_dim, 3, stride, 1, bias=False),
+                nn.BatchNorm2d(hidden_dim),
+                SiLU(),
+                # pw-linear
+                nn.Conv2d(hidden_dim, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+            )
+
+    def forward(self, x):
+        if self.identity:
+            return x + self.conv(x)
+        else:
+            return self.conv(x)
+
+
+class EffNetV2(nn.Module):
+    def __init__(self, cfgs, nb_channels_in=3, dim_output=1, width_mult=1.):
+        super(EffNetV2, self).__init__()
+        self.cfgs = cfgs
+
+        # building first layer
+        input_channel = _make_divisible(24 * width_mult, 8)
+        layers = [conv_3x3_bn(nb_channels_in, input_channel, 2)]
+        # building inverted residual blocks
+        block = MBConv
+        for t, c, n, s, use_se in self.cfgs:
+            output_channel = _make_divisible(c * width_mult, 8)
+            for i in range(n):
+                layers.append(block(input_channel, output_channel, s if i == 0 else 1, t, use_se))
+                input_channel = output_channel
+        self.features = nn.Sequential(*layers)
+        # building last several layers
+        output_channel = _make_divisible(1792 * width_mult, 8) if width_mult > 1.0 else 1792
+        self.conv = conv_1x1_bn(input_channel, output_channel)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.classifier = nn.Linear(output_channel, dim_output)
+
+        self._initialize_weights()
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.conv(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, sqrt(2. / n))
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0, 0.001)
+                m.bias.data.zero_()
+
+
+def effnetv2_s(**kwargs):
+    """
+    Constructs a EfficientNetV2-S model
+    """
+    cfgs = [
+        # t, c, n, s, SE
+        [1, 24, 2, 1, 0],
+        [4, 48, 4, 2, 0],
+        [4, 64, 4, 2, 0],
+        [4, 128, 6, 2, 1],
+        [6, 160, 9, 1, 1],
+        [6, 256, 15, 2, 1],
+    ]
+    return EffNetV2(cfgs, **kwargs)
+
+
+def effnetv2_m(**kwargs):
+    """
+    Constructs a EfficientNetV2-M model
+    """
+    cfgs = [
+        # t, c, n, s, SE
+        [1, 24, 3, 1, 0],
+        [4, 48, 5, 2, 0],
+        [4, 80, 5, 2, 0],
+        [4, 160, 7, 2, 1],
+        [6, 176, 14, 1, 1],
+        [6, 304, 18, 2, 1],
+        [6, 512, 5, 1, 1],
+    ]
+    return EffNetV2(cfgs, **kwargs)
+
+
+def effnetv2_l(**kwargs):
+    """
+    Constructs a EfficientNetV2-L model
+    """
+    cfgs = [
+        # t, c, n, s, SE
+        [1, 32, 4, 1, 0],
+        [4, 64, 7, 2, 0],
+        [4, 96, 7, 2, 0],
+        [4, 192, 10, 2, 1],
+        [6, 224, 19, 1, 1],
+        [6, 384, 25, 2, 1],
+        [6, 640, 7, 1, 1],
+    ]
+    return EffNetV2(cfgs, **kwargs)
+
+
+def effnetv2_xl(**kwargs):
+    """
+    Constructs a EfficientNetV2-XL model
+    """
+    cfgs = [
+        # t, c, n, s, SE
+        [1, 32, 4, 1, 0],
+        [4, 64, 8, 2, 0],
+        [4, 96, 8, 2, 0],
+        [4, 192, 16, 2, 1],
+        [6, 256, 24, 1, 1],
+        [6, 512, 32, 2, 1],
+        [6, 640, 8, 1, 1],
+    ]
+    return EffNetV2(cfgs, **kwargs)
+
+
+class SquashedGaussianCNNActor(ActorModule):
+    def __init__(self, observation_space, action_space):
+        super().__init__(observation_space, action_space)
+        dim_act = action_space.shape[0]
+        act_limit = action_space.high[0]
+
+        self.cnn = effnetv2_s(nb_channels_in=4, dim_output=247, width_mult=1.).float()
+        self.net = mlp([256, 256], [nn.ReLU, nn.ReLU])
+        self.mu_layer = nn.Linear(256, dim_act)
+        self.log_std_layer = nn.Linear(256, dim_act)
+        self.act_limit = act_limit
+
+    def forward(self, obs, test=False, with_logprob=True):
+        imgs_tensor = obs[3].float()
+        float_tensors = (obs[0], obs[1], obs[2], *obs[4:])
+        float_tensor = torch.cat(float_tensors, -1).float()
+        cnn_out = self.cnn(imgs_tensor)
+        mlp_in = torch.cat((cnn_out, float_tensor), -1)
+        net_out = self.net(mlp_in)
+        mu = self.mu_layer(net_out)
+        log_std = self.log_std_layer(net_out)
+        log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
+        std = torch.exp(log_std)
+
+        # Pre-squash distribution and sample
+        pi_distribution = Normal(mu, std)
+        if test:
+            # Only used for evaluating policy at test time.
+            pi_action = mu
+        else:
+            pi_action = pi_distribution.rsample()
+
+        if with_logprob:
+            # Compute logprob from Gaussian, and then apply correction for Tanh squashing.
+            # NOTE: The correction formula is a little bit magic. To get an understanding
+            # of where it comes from, check out the original SAC paper (arXiv 1801.01290)
+            # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
+            # Try deriving it yourself as a (very difficult) exercise. :)
+            logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
+            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
+        else:
+            logp_pi = None
+
+        pi_action = torch.tanh(pi_action)
+        pi_action = self.act_limit * pi_action
+
+        pi_action = pi_action.squeeze()
+
+        return pi_action, logp_pi
+
+    def act(self, obs, test=False):
+        import sys
+        size = sys.getsizeof(obs)
+        print(f"DEBUG: size: {size}")
+        # # DEBUG
+        # nb = sum(p.numel() for p in self.parameters() if p.requires_grad)
+        # print(f"DEBUG: nb_params: {nb}")
+        exit()
+        with torch.no_grad():
+            a, _ = self.forward(obs, test, False)
+            return a.numpy()
+
+
+class CNNQFunction(nn.Module):
+    def __init__(self, obs_space, act_space, hidden_sizes=(256, 256), activation=nn.ReLU):
+        super().__init__()
+        obs_dim = sum(prod(s for s in space.shape) for space in obs_space)
+        act_dim = act_space.shape[0]
+        self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation)
+
+    def forward(self, obs, act):
+        x = torch.cat((*obs, act), -1)
+        q = self.q(x)
+        return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
+
+
+class CNNActorCritic(nn.Module):
+    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU, act_buf_len=0):
+        super().__init__()
+
+        # obs_dim = observation_space.shape[0]
+        # act_dim = action_space.shape[0]
+        act_limit = action_space.high[0]
+
+        # build policy and value functions
+        self.actor = SquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation, act_limit)
+        self.q1 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
+        self.q2 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
+
+    def act(self, obs, test=False):
+        with torch.no_grad():
+            a, _ = self.actor(obs, test, False)
+            return a.numpy()
+
+
+# UNSUPPORTED ==========================================================================================================
+
 
 # RNN: ==========================================================
 

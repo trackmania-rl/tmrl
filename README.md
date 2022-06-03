@@ -1,7 +1,6 @@
 # TMRL
 
 [![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/tmrl?color=green)](https://pypi.org/project/tmrl)
 [![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)](https://github.com/trackmania-rl/tmrl/blob/master/LICENSE)
 [![DOI](https://zenodo.org/badge/277973609.svg)](https://zenodo.org/badge/latestdoi/277973609)
 
@@ -183,8 +182,9 @@ This works only on plain road with black borders, using the front camera.
 
 ### Full environment:
 This version of the environment features full screenshots to be processed with, e.g., a CNN.
-In addition, this version features the speed, gear and RPM (that human players can see or hear).
+In addition, this version features the speed, gear and RPM.
 This works on any track, using any (sensible) camera configuration.
+
 ```json5
 {
   "ENV": {
@@ -204,6 +204,10 @@ This works on any track, using any (sensible) camera configuration.
   }
 }
 ```
+
+Note that human players can see or hear the features provided by this environment: we provide no "cheat" that would render the approach non-transferable to the real world.
+In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py) to build your own custom environment for TrackMania.
+Of course, custom environments will not be accepted for the competition :wink:
 
 ## TrackMania training details
 

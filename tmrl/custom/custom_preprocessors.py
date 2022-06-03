@@ -6,17 +6,18 @@ import logging
 
 def obs_preprocessor_tm_act_in_obs(obs):
     """
-    This takes the output of gym as input
-    Therefore the output of the memory must be the same as gym
+    Preprocessor for TM2020 with images, converting RGB images to grayscale
     """
-    obs = (obs[0], obs[1], obs[2], obs[3], *obs[4:])  # >= 1 action
+    images = obs[3]
+    rgb_weights = [0.2989, 0.5870, 0.1140]
+    grayscale_images = np.dot(images[..., :3], rgb_weights)
+    obs = (obs[0], obs[1], obs[2], grayscale_images, *obs[4:])  # >= 1 action
     return obs
 
 
 def obs_preprocessor_tm_lidar_act_in_obs(obs):
     """
-    This takes the output of gym as input
-    Therefore the output of the memory must be the same as gym
+    Preprocessor for the LIDAR environment, flattening LIDARs
     """
     obs = (obs[0], np.ndarray.flatten(obs[1]), *obs[2:])  # >= 1  action
     return obs

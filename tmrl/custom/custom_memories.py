@@ -65,10 +65,10 @@ def replace_hist_before_done(hist, done_idx_in_hist):
                 hist[i] = hist[i + 1]
 
 
-# MEMORY DATALOADING ===========================================
+# SUPPORTED CUSTOM MEMORIES ============================================================================================
 
 
-class MemoryTMNF(MemoryDataloading):
+class MemoryTM(MemoryDataloading):
     def __init__(self,
                  memory_size=None,
                  batch_size=None,
@@ -98,8 +98,8 @@ class MemoryTMNF(MemoryDataloading):
                          crc_debug=crc_debug,
                          device=device)
 
-    def append_buffer(self, buffer):  # TODO
-        return self
+    def append_buffer(self, buffer):
+        raise NotImplementedError
 
     def __len__(self):
         if len(self.data) == 0:
@@ -110,12 +110,11 @@ class MemoryTMNF(MemoryDataloading):
         else:
             return res
 
-    def get_transition(self, item):  # TODO
-        pass
-        # return last_obs, new_act, rew, new_obs, done
+    def get_transition(self, item):
+        raise NotImplementedError
 
 
-class MemoryTMNFLidar(MemoryTMNF):
+class MemoryTMNFLidar(MemoryTM):
     def get_transition(self, item):
         """
         CAUTION: item is the first index of the 4 images in the images history of the OLD observation
@@ -139,11 +138,15 @@ class MemoryTMNFLidar(MemoryTMNF):
         # if a reset transition has influenced the observation, special care must be taken
         last_dones = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
         last_done_idx = last_true_in_list(last_dones)  # last occurrence of True
+
         assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
+
         last_infos = self.data[6][idx_now - self.min_samples:idx_now]
         last_ignored_dones = ["__no_done" in i for i in last_infos]
         last_ignored_done_idx = last_true_in_list(last_ignored_dones)  # last occurrence of True
+
         assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
+
         if last_ignored_done_idx is not None:
             last_done_idx = last_ignored_done_idx  # FIXME: might not work in extreme cases where a done is ignored right after another done
 
@@ -217,6 +220,120 @@ class MemoryTMNFLidar(MemoryTMNF):
 
         return self
 
+
+class MemoryTM2020(MemoryTM):
+    def get_transition(self, item):
+        """
+        CAUTION: item is the first index of the 4 images in the images history of the OLD observation
+        CAUTION: in the buffer, a sample is (act, obs(act)) and NOT (obs, act(obs))
+            i.e. in a sample, the observation is what step returned after being fed act (and preprocessed)
+            therefore, in the RTRL setting, act is appended to obs
+        So we load 5 images from here...
+        Don't forget the info dict for CRC debugging
+        """
+        idx_last = item + self.min_samples - 1
+        idx_now = item + self.min_samples
+
+        acts = self.load_acts(item)
+        last_act_buf = acts[:-1]
+        new_act_buf = acts[1:]
+
+        imgs = self.load_imgs(item)
+        imgs_last_obs = imgs[:-1]
+        imgs_new_obs = imgs[1:]
+
+        # if a reset transition has influenced the observation, special care must be taken
+        last_dones = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
+        last_done_idx = last_true_in_list(last_dones)  # last occurrence of True
+
+        assert last_done_idx is None or last_dones[last_done_idx], f"DEBUG: last_done_idx:{last_done_idx}"
+
+        last_infos = self.data[6][idx_now - self.min_samples:idx_now]
+        last_ignored_dones = ["__no_done" in i for i in last_infos]
+        last_ignored_done_idx = last_true_in_list(last_ignored_dones)  # last occurrence of True
+
+        assert last_ignored_done_idx is None or last_ignored_dones[last_ignored_done_idx] and not last_dones[last_ignored_done_idx], f"DEBUG: last_ignored_done_idx:{last_ignored_done_idx}, last_ignored_dones:{last_ignored_dones}, last_dones:{last_dones}"
+
+        if last_ignored_done_idx is not None:
+            last_done_idx = last_ignored_done_idx  # FIXME: might not work in extreme cases where a done is ignored right after another done
+
+        if last_done_idx is not None:
+            replace_hist_before_done(hist=new_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset - 1)
+            replace_hist_before_done(hist=last_act_buf, done_idx_in_hist=last_done_idx - self.start_acts_offset)
+            replace_hist_before_done(hist=imgs_new_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset - 1)
+            replace_hist_before_done(hist=imgs_last_obs, done_idx_in_hist=last_done_idx - self.start_imgs_offset)
+
+        last_obs = (self.data[2][idx_last], self.data[7][idx_last], self.data[8][idx_last], imgs_last_obs, *last_act_buf)
+        new_act = self.data[1][idx_now]
+        rew = np.float32(self.data[5][idx_now])
+        new_obs = (self.data[2][idx_now], self.data[7][idx_now], self.data[8][idx_now], imgs_new_obs, *new_act_buf)
+        done = self.data[4][idx_now]
+        info = self.data[6][idx_now]
+        return last_obs, new_act, rew, new_obs, done, info
+
+    def load_imgs(self, item):
+        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
+        return np.stack(res)
+
+    def load_acts(self, item):
+        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        return res
+
+    def append_buffer(self, buffer):
+        """
+        buffer is a list of samples ( act, obs, rew, done, info)
+        don't forget to keep the info dictionary in the sample for CRC debugging
+        """
+
+        first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
+
+        d0 = [first_data_idx + i for i, _ in enumerate(buffer.memory)]  # indexes
+        d1 = [b[0] for b in buffer.memory]  # actions
+        d2 = [b[1][0] for b in buffer.memory]  # speeds
+        d3 = [b[1][3] for b in buffer.memory]  # images
+        d4 = [b[3] for b in buffer.memory]  # dones
+        d5 = [b[2] for b in buffer.memory]  # rewards
+        d6 = [b[4] for b in buffer.memory]  # infos
+        d7 = [b[1][1] for b in buffer.memory]  # gears
+        d8 = [b[1][2] for b in buffer.memory]  # rpms
+
+        if self.__len__() > 0:
+            self.data[0] += d0
+            self.data[1] += d1
+            self.data[2] += d2
+            self.data[3] += d3
+            self.data[4] += d4
+            self.data[5] += d5
+            self.data[6] += d6
+            self.data[7] += d7
+            self.data[8] += d8
+        else:
+            self.data.append(d0)
+            self.data.append(d1)
+            self.data.append(d2)
+            self.data.append(d3)
+            self.data.append(d4)
+            self.data.append(d5)
+            self.data.append(d6)
+            self.data.append(d7)
+            self.data.append(d8)
+
+        to_trim = self.__len__() - self.memory_size
+        if to_trim > 0:
+            self.data[0] = self.data[0][to_trim:]
+            self.data[1] = self.data[1][to_trim:]
+            self.data[2] = self.data[2][to_trim:]
+            self.data[3] = self.data[3][to_trim:]
+            self.data[4] = self.data[4][to_trim:]
+            self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
+            self.data[7] = self.data[7][to_trim:]
+            self.data[8] = self.data[8][to_trim:]
+
+        return self
+
+
+# UNSUPPORTED ==========================================================================================================
 
 class TrajMemoryTMNF(TrajMemoryDataloading):
     def __init__(self,
@@ -355,7 +472,7 @@ class TrajMemoryTMNFLidar(TrajMemoryTMNF):
         return self
 
 
-class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
+class MemoryTM2020OLD(MemoryDataloading):  # TODO: reset transitions
     def __init__(self,
                  memory_size=None,
                  batch_size=None,
@@ -473,7 +590,7 @@ class MemoryTM2020(MemoryDataloading):  # TODO: reset transitions
         return res
 
 
-class MemoryTM2020RAM(MemoryTM2020):
+class MemoryTM2020RAM(MemoryTM2020OLD):
     """
     Same as MemoryTM2020 but the full buffer is in RAM to avoid dataloading latencies
     """
