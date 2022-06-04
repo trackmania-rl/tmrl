@@ -94,7 +94,7 @@ install_req = [
     'imageio',
     'imageio-ffmpeg',
     'pandas',
-    'gym==0.22',
+    'gym>=0.24.0',  # for disable_env_checker
     'rtgym>=0.6',
     'pyyaml',
     'wandb',

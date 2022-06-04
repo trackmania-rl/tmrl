@@ -21,7 +21,7 @@ class GenericGymEnv(gym.Wrapper):
             obs_scale (float): change this if wanting to rescale actions by a scalar
             gym_kwargs (dict): keyword arguments of the gym environment (i.e. between -1.0 and 1.0 when the actual action space is something else)
         """
-        env = gym.make(id, **gym_kwargs)
+        env = gym.make(id, **gym_kwargs, disable_env_checker=True)
         if obs_scale:
             env = AffineObservationWrapper(env, 0, obs_scale)
         env = Float64ToFloat32(env)
