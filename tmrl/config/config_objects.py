@@ -7,9 +7,9 @@ import rtgym
 # local imports
 import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TrainingOffline
-from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TMInterface, TMInterfaceLidar
-from tmrl.custom.custom_memories import MemoryTM2020, MemoryTMNFLidar, get_local_buffer_sample_lidar, get_local_buffer_sample_tm20_imgs
-from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs
+from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TM2020InterfaceLidarProgress, TMInterface, TMInterfaceLidar
+from tmrl.custom.custom_memories import MemoryTM2020, MemoryTMNFLidar, MemoryTMNFLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
+from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs,obs_preprocessor_tm_lidar_progress_act_in_obs
 from tmrl.envs import GenericGymEnv
 from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianCNNActor, CNNActorCritic
 from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
@@ -39,7 +39,13 @@ else:
     POLICY = SquashedGaussianCNNActor
 
 if cfg.PRAGMA_LIDAR:
-    INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
+    if cfg.PRAGMA_TM2020_TMNF:
+        if cfg.PRAGMA_PROGRESS:
+            INT = partial(TM2020InterfaceLidarProgress, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
+        else:
+            INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
+    else:
+        INT = partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
 else:
     INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=cfg.IMG_HIST_LEN)
 
@@ -50,9 +56,21 @@ for k, v in CONFIG_DICT_MODIFIERS.items():
     CONFIG_DICT[k] = v
 
 # to compress a sample before sending it over the local network/Internet:
-SAMPLE_COMPRESSOR = get_local_buffer_sample_lidar if cfg.PRAGMA_LIDAR else get_local_buffer_sample_tm20_imgs
+if cfg.PRAGMA_LIDAR:
+    if cfg.PRAGMA_PROGRESS:
+        SAMPLE_COMPRESSOR = get_local_buffer_sample_lidar_progress
+    else:
+        SAMPLE_COMPRESSOR = get_local_buffer_sample_lidar
+else:
+    SAMPLE_COMPRESSOR = get_local_buffer_sample_tm20_imgs
 # to preprocess observations that come out of the gym environment and of the replay buffer:
-OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs if cfg.PRAGMA_LIDAR else obs_preprocessor_tm_act_in_obs
+if cfg.PRAGMA_LIDAR:
+    if cfg.PRAGMA_PROGRESS:
+        OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_progress_act_in_obs
+    else:
+        OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs
+else:
+    OBS_PREPROCESSOR = obs_preprocessor_tm_act_in_obs
 # to augment data that comes out of the replay buffer (applied after observation preprocessing):
 SAMPLE_PREPROCESSOR = None
 
@@ -62,7 +80,10 @@ if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
         assert False, "not implemented"
     else:
-        MEM = MemoryTMNFLidar
+        if cfg.PRAGMA_PROGRESS:
+            MEM = MemoryTMNFLidarProgress
+        else:
+            MEM = MemoryTMNFLidar
 else:
     assert cfg.PRAGMA_TM2020_TMNF, "TMNF is not officially supported."
     MEM = MemoryTM2020

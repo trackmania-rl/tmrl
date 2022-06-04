@@ -283,6 +283,58 @@ class TM2020InterfaceLidar(TM2020Interface):
         return spaces.Tuple((speed, imgs))
 
 
+class TM2020InterfaceLidarProgress(TM2020InterfaceLidar):
+
+    def reset(self):
+        """
+        obs must be a list of numpy arrays
+        """
+        self.reset_common()
+        img, speed, data = self.grab_lidar_speed_and_data()
+        for _ in range(self.img_hist_len):
+            self.img_hist.append(img)
+        imgs = np.array(list(self.img_hist), dtype='float32')
+        progress = np.array([0], dtype='float32')
+        obs = [speed, progress, imgs]
+        self.reward_function.reset()
+        return obs  # if not self.record else data
+
+    def get_obs_rew_done_info(self):
+        """
+        returns the observation, the reward, and a done signal for end of episode
+        obs must be a list of numpy arrays
+        """
+        img, speed, data = self.grab_lidar_speed_and_data()
+        rew, done = self.reward_function.compute_reward(pos=np.array([data[2], data[3], data[4]]))
+        progress = np.array([self.reward_function.cur_idx / self.reward_function.datalen], dtype='float32')
+        rew = np.float32(rew)
+        self.img_hist.append(img)
+        imgs = np.array(list(self.img_hist), dtype='float32')
+        obs = [speed, progress, imgs]
+        end_of_track = bool(data[8])
+        info = {}
+        if end_of_track:
+            rew += cfg.REWARD_END_OF_TRACK
+            done = True
+            info["__no_done"] = True
+            if self.save_replay:
+                mouse_save_replay_tm20()
+        rew += cfg.CONSTANT_PENALTY
+        return obs, rew, done, info
+
+    def get_observation_space(self):
+        """
+        must be a Tuple
+        """
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
+        progress = spaces.Box(low=0.0, high=1.0, shape=(1,))
+        imgs = spaces.Box(low=0.0, high=np.inf, shape=(
+            self.img_hist_len,
+            19,
+        ))  # lidars
+        return spaces.Tuple((speed, progress, imgs))
+
+
 # Interface for Trackmania Nations Forever: ============================================================================
 
 

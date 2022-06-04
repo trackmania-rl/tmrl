@@ -23,6 +23,14 @@ def obs_preprocessor_tm_lidar_act_in_obs(obs):
     return obs
 
 
+def obs_preprocessor_tm_lidar_progress_act_in_obs(obs):
+    """
+    Preprocessor for the LIDAR environment, flattening LIDARs
+    """
+    obs = (obs[0], obs[1], np.ndarray.flatten(obs[2]), *obs[3:])  # >= 1  action
+    return obs
+
+
 # SAMPLE PREPROCESSING =======================================
 # these can be called when sampling from the replay memory, on the whole sample after observation preprocesing
 # this is useful in particular for data augmentation

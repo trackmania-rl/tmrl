@@ -40,6 +40,9 @@ ENV_CONFIG = TMRL_CONFIG["ENV"]
 RTGYM_INTERFACE = ENV_CONFIG["RTGYM_INTERFACE"]
 PRAGMA_TM2020_TMNF = RTGYM_INTERFACE.startswith("TM20")  # True if TM2020, False if TMNF
 PRAGMA_LIDAR = RTGYM_INTERFACE.endswith("LIDAR")  # True if Lidar, False if images
+PRAGMA_PROGRESS = RTGYM_INTERFACE.endswith("LIDARPROGRESS")
+if PRAGMA_PROGRESS:
+    PRAGMA_LIDAR = True
 LIDAR_BLACK_THRESHOLD = [55, 55, 55]  # [88, 88, 88] for tiny road, [55, 55, 55] FOR BASIC ROAD
 REWARD_END_OF_TRACK = 0  # bonus reward at the end of the track
 CONSTANT_PENALTY = 0  # should be <= 0 : added to the reward at each time step

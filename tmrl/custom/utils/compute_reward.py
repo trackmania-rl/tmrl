@@ -21,6 +21,7 @@ class RewardFunction:
         self.min_nb_steps_before_early_done = min_nb_steps_before_early_done
         self.step_counter = 0
         self.early_done_counter = 0
+        self.datalen = len(self.data)
 
     def compute_reward(self, pos):
         done = False
@@ -38,7 +39,7 @@ class RewardFunction:
             index += 1
             temp -= 1
             # stop condition
-            if index >= len(self.data) or temp <= 0:
+            if index >= self.datalen or temp <= 0:
                 break
         reward = best_index - self.cur_idx
         if best_index == self.cur_idx:  # if the best index didn't change, we rewind (more Markovian reward)
