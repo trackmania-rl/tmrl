@@ -117,7 +117,7 @@ A complete tutorial toward implementing your own ad-hoc optimized training pipel
 ## Gym environment
 In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
 
-_(NB: the game window needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
+_(NB: the game needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
 ```python
 from tmrl import get_environment
 from time import sleep
