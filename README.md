@@ -209,6 +209,32 @@ Note that human players can see or hear the features provided by this environmen
 In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py) to build your own custom environment for TrackMania.
 Of course, custom environments will not be accepted for the competition :wink:
 
+### LIDAR + track progress
+
+If you have watched the Underscore_ episode of 2022-06-08, note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion od the track, so that the AI can know the turns in advance.
+It is not yet clear whether we want to use this environment in the competition, as it is de-facto less generalizable.
+If you wish to use this environment, to reproduce or beat our results, use the following `config.json`:
+
+```json5
+{
+  "ENV": {
+    "RTGYM_INTERFACE": "TM20LIDARPROGRESS",  // TrackMania 2020 with LIDAR observations
+    "WINDOW_WIDTH": 958,  // width of the game window (min: 256)
+    "WINDOW_HEIGHT": 488,  // height of the game window (min: 128)
+    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
+    "IMG_HIST_LEN": 4,  // length of the history of LIDAR measurements in observations (set to 1 for RNNs)
+    "RTGYM_CONFIG": {
+      "time_step_duration": 0.05,  // duration of a time step
+      "start_obs_capture": 0.04,  // duration before an observation is captured
+      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
+      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
+      "benchmark": false,  // enables benchmarking your environment when true
+      "wait_on_done": true
+    }
+  }
+}
+```
+
 ## TrackMania training details
 
 In `tmrl`, an AI that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
