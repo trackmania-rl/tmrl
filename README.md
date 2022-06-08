@@ -218,7 +218,7 @@ However, if you wish to use this environment, e.g., to beat our results, you can
 ```json5
 {
   "ENV": {
-    "RTGYM_INTERFACE": "TM20LIDARPROGRESS",  // TrackMania 2020 with LIDAR observations
+    "RTGYM_INTERFACE": "TM20LIDARPROGRESS",  // TrackMania 2020 with LIDAR and percentage of completion
     "WINDOW_WIDTH": 958,  // width of the game window (min: 256)
     "WINDOW_HEIGHT": 488,  // height of the game window (min: 128)
     "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
