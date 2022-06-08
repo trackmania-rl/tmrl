@@ -211,9 +211,9 @@ Of course, custom environments will not be accepted for the competition :wink:
 
 ### LIDAR + track progress
 
-If you have watched the Underscore_ episode of 2022-06-08, note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion od the track, so that the AI can know the turns in advance.
+If you have watched the 2022-06-08 episode of the Underscore_ talk show (french), note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion od the track, so that the AI can know the turns in advance.
 It is not yet clear whether we want to use this environment in the competition, as it is de-facto less generalizable.
-If you wish to use this environment, to reproduce or beat our results, use the following `config.json`:
+However, if you wish to use this environment, e.g., to beat our results, you can use the following `config.json`:
 
 ```json5
 {
