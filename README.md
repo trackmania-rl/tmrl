@@ -27,16 +27,11 @@ It is demonstrated on the TrackMania 2020 video game.
 `tmrl` provides a Gym environment for TrackMania that is easy to use. Fast-track for you guys [here](#gym-environment).
 
 
-## TMRL in the media:
-In the French show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions.
-The superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s.
-We support the training pipeline used for the show [here](#lidar-with-track-progress).
-
-
 ## Quick links
 - [Introduction](#introduction)
   - [User features](#user-features-trackmania)
   - [Developer features](#developer-features-real-time-applications)
+  - [TMRL in the media](#tmrl-in-the-media)
 - [Installation](readme/Install.md)
 - [Getting started](readme/get_started.md)
 - [TMRL python library for robot RL](readme/tuto_library.md)
@@ -66,6 +61,11 @@ We support the training pipeline used for the show [here](#lidar-with-track-prog
 
 
 This is done through Deep Reinforcement Learning (RL).
+
+### TMRL in the media:
+In the French show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions.
+The superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s.
+We support the training pipeline used for the show [here](#lidar-with-track-progress).
 
 ### User features (trackmania):
 * **Training algorithms:**
@@ -426,6 +426,7 @@ Periodically, it sends the new policy weights to the central server.
 These mechanics can be summarized as follows:
 
 ![Networking architecture](readme/img/network_interface.png "Networking Architecture")
+
 
 ## Authors:
 
