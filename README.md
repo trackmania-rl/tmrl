@@ -27,7 +27,7 @@ It is demonstrated on the TrackMania 2020 video game.
 `tmrl` provides a Gym environment for TrackMania that is easy to use. Fast-track for you guys [here](#gym-environment).
 
 
-**TMRL in the media:**
+## TMRL in the media:
 - [Underscore_ 2022-06-08](https://www.youtube.com/watch?v=c1xq7iJ3f9E) (French show) had an AI trained in `tmrl` play against the TrackMania world champions. Spoiler: the AI lost by far; the show has set the superhuman target to about 30s on the `tmrl-test` track. To try the training pipeline we used for the show, use [this config](#lidar-with-track-progress).
 
 
