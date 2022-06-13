@@ -103,7 +103,7 @@ This project gave birth to a few sub-projects of more general interest that were
 In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications, and [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers.
 
 ### TMRL in the media:
-- In the French show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. We support the training pipeline used for the show [here](#lidar-with-track-progress).
+- In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. We support the training pipeline used for the show [here](#lidar-with-track-progress).
 
 ## Installation
 
