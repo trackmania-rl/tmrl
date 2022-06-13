@@ -62,11 +62,6 @@ It is demonstrated on the TrackMania 2020 video game.
 
 This is done through Deep Reinforcement Learning (RL).
 
-### TMRL in the media:
-In the French show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions.
-The superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s.
-We support the training pipeline used for the show [here](#lidar-with-track-progress).
-
 ### User features (trackmania):
 * **Training algorithms:**
 `tmrl` lets you easily train policies in TrackMania with state-of-the-art Deep Reinforcement Learning algorithms such as [Soft Actor-Critic](https://www.youtube.com/watch?v=LN29DDlHp1U) (SAC) and [Randomized Ensembled Double Q-Learning](https://arxiv.org/abs/2101.05982) (REDQ).
@@ -106,6 +101,9 @@ Find out more [here](#real-time-gym-framework).
 * **External libraries:**
 This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
 In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications, and [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers.
+
+### TMRL in the media:
+- In the French show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. The superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. We support the training pipeline used for the show [here](#lidar-with-track-progress).
 
 ## Installation
 
