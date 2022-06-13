@@ -27,6 +27,10 @@ It is demonstrated on the TrackMania 2020 video game.
 `tmrl` provides a Gym environment for TrackMania that is easy to use. Fast-track for you guys [here](#gym-environment).
 
 
+**TMRL in the media:**
+- [Underscore_ 2022-06-08](https://www.youtube.com/watch?v=c1xq7iJ3f9E) (French show) had an AI trained in `tmrl` play against the TrackMania world champions. Spoiler: the AI lost by far; the show has set the superhuman target to about 30s on the `tmrl-test` track. To try the training pipeline we used for the show, use [this config](#lidar-with-track-progress).
+
+
 ## Quick links
 - [Introduction](#introduction)
   - [User features](#user-features-trackmania)
@@ -209,9 +213,9 @@ Note that human players can see or hear the features provided by this environmen
 In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py) to build your own custom environment for TrackMania.
 Of course, custom environments will not be accepted for the competition :wink:
 
-### LIDAR + track progress
+### LIDAR with track progress
 
-If you have watched the 2022-06-08 episode of the Underscore_ talk show (french), note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion of the track, so that the AI can know the turns in advance similarly to humans practicing a given track.
+If you have watched the [2022-06-08 episode](https://www.youtube.com/watch?v=c1xq7iJ3f9E) of the Underscore_ talk show (french), note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion of the track, so that the AI can know the turns in advance similarly to humans practicing a given track.
 It is not yet clear whether we want to use this environment in the competition, as it is de-facto less generalizable.
 However, if you wish to use this environment, e.g., to beat our results, you can use the following `config.json`:
 
