@@ -28,7 +28,9 @@ It is demonstrated on the TrackMania 2020 video game.
 
 
 ## TMRL in the media:
-- [Underscore_ 2022-06-08](https://www.youtube.com/watch?v=c1xq7iJ3f9E) (French show) had an AI trained in `tmrl` play against the TrackMania world champions. Spoiler: the AI lost by far; the show has set the superhuman target to about 30s on the `tmrl-test` track. To try the training pipeline we used for the show, use [this config](#lidar-with-track-progress).
+The French show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E) used a computer-vision-based policy trained in `tmrl` to play against the TrackMania world champions.
+The superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy was about 45s (best run: 43.75s).
+We support the same training pipeline as used for the show [here](#lidar-with-track-progress).
 
 
 ## Quick links
