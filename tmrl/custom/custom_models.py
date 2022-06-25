@@ -13,6 +13,7 @@ import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from math import floor, sqrt
 from torch.nn import Conv2d, Linear, Module, ModuleList, ReLU, Sequential
+import torchvision
 
 # local imports
 from tmrl.nn import TanhNormalLayer
@@ -480,29 +481,116 @@ class EffNetActorCritic(nn.Module):
 
 # Simple lightweight CNN for CPU inference: =====================
 
+class MobileNetV3(nn.Module):
+    def __init__(self, q_net=False):
+        # input 4 images not 1  so no rgb but 4 channels or 3*4 = 12
+        self.q_net = q_net
+        self.net_features = torchvision.models.mobilenet_v3_small(pretrained=True).features
+        self.net_avgpool = torchvision.models.mobilenet_v3_small(pretrained=True).avgpool
+        self.net_classifier = torchvision.models.mobilenet_v3_small(pretrained=True).classifier
 
-class MobileNet(nn.Module):
-    def __init__(self, channel_list, kernel_list, stride_list, padding_list, dilation_list, dim_output=1):
-        assert len(channel_list) - 1 == len(kernel_list) == len(stride_list) == len(padding_list) == len(dilation_list)
-        nb_layers = len(channel_list) - 1
-        self.convs = nn.Sequential(*(
-            nn.Conv2d(in_channels=channel_list[layer],
-                      out_channels=channel_list[layer + 1],
-                      kernel_size=kernel_list[layer],
-                      stride=stride_list[layer],  # 1
-                      padding=padding_list[layer],  # 0
-                      dilation=dilation_list[layer])  # 1
-            for layer in range(nb_layers)
-        ))
-        super(CNN, self).__init__()
+        self.net_classifier.classifier[3] = nn.Linear(in_features=1024, out_features=256, bias=True)
+        if self.q_net:
+            self.net_classifier.classifier[0] = Linear(in_features=582, out_features=1024, bias=True)  # we add gear, speed, rpm, actions
+            self.fcn_1 = nn.Linear(in_features=256, out_features=1, bias=True)
+        else:
+            self.net_classifier.classifier[0] = Linear(in_features=579, out_features=1024, bias=True)  # we add gear, speed, rpm
 
     def forward(self, x):
-        x = self.features(x)
-        x = self.conv(x)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        if self.q_net:
+            speed, gear, rpm, images, act = x
+        else:
+            speed, gear, rpm, images = x
+
+        print(images.shape)
+        exit()
+
+        x = self.net_features(images)
+        x = self.net_avgpool(x)
+
+        if self.q_net:
+            x = self.net_classifier(torch.cat((act, speed, gear, rpm, x), -1))
+            x = self.fcn_1(x)
+        else:
+            x = self.net_classifier(torch.cat((speed, gear, rpm, x), -1))
         return x
+
+
+class SquashedGaussianMobileNetActor(ActorModule):
+    def __init__(self, observation_space, action_space):
+        super().__init__(observation_space, action_space)
+        dim_act = action_space.shape[0]
+        act_limit = action_space.high[0]
+        self.net = MobileNetV3()
+        hidden_size = self.net.classifier[-1].out_features
+        print(hidden_size)
+        self.mu_layer = nn.Linear(hidden_size, dim_act)
+        self.log_std_layer = nn.Linear(hidden_size, dim_act)
+        self.act_limit = act_limit
+
+    def forward(self, obs, test=False, with_logprob=True):
+        net_out = self.net(obs)
+        mu = self.mu_layer(net_out)
+        log_std = self.log_std_layer(net_out)
+        log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
+        std = torch.exp(log_std)
+
+        # Pre-squash distribution and sample
+        pi_distribution = Normal(mu, std)
+        if test:
+            # Only used for evaluating policy at test time.
+            pi_action = mu
+        else:
+            pi_action = pi_distribution.rsample()
+
+        if with_logprob:
+            # Compute logprob from Gaussian, and then apply correction for Tanh squashing.
+            # NOTE: The correction formula is a little bit magic. To get an understanding
+            # of where it comes from, check out the original SAC paper (arXiv 1801.01290)
+            # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
+            # Try deriving it yourself as a (very difficult) exercise. :)
+            logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
+            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
+        else:
+            logp_pi = None
+
+        pi_action = torch.tanh(pi_action)
+        pi_action = self.act_limit * pi_action
+
+        pi_action = pi_action.squeeze()
+
+        return pi_action, logp_pi
+
+    def act(self, obs, test=False):
+        with torch.no_grad():
+            a, _ = self.forward(obs, test, False)
+            return a.numpy()
+
+
+class MobileNetQFunction(nn.Module):
+    def __init__(self, obs_space, act_space):
+        super().__init__()
+        self.q = MobileNetV3(q_net=True)
+
+    def forward(self, obs, act):
+        x = (*obs, act)
+        q = self.q(x)
+        return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
+
+
+class MobileNetActorCritic(nn.Module):
+    def __init__(self, observation_space, action_space):
+        super().__init__()
+        # build policy and value functions
+        self.actor = SquashedGaussianMobileNetActor(observation_space, action_space)
+        self.q1 = MobileNetQFunction(observation_space, action_space)
+        self.q2 = MobileNetQFunction(observation_space, action_space)
+
+    def act(self, obs, test=False):
+        with torch.no_grad():
+            a, _ = self.actor(obs, test, False)
+            return a.numpy()
+
 
 
 class SquashedGaussianEffNetActor(ActorModule):
@@ -576,7 +664,7 @@ class EffNetQFunction(nn.Module):
         self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation)
 
     def forward(self, obs, act):
-        x = torch.cat((*obs, act), -1)
+        x = (*obs, act)
         q = self.q(x)
         return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
 

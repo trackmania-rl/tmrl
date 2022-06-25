@@ -91,6 +91,7 @@ if not TMRL_FOLDER.exists():
 install_req = [
     'numpy',
     'torch',
+    'torchvision',
     'imageio',
     'imageio-ffmpeg',
     'pandas',
