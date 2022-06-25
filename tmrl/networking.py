@@ -568,7 +568,7 @@ def iterate_epochs_tm(run_cls,
     checkpoint_path = checkpoint_path or tempfile.mktemp("_remove_on_exit")
 
     try:
-        print(f"DEBUF: checkpoint_path: {checkpoint_path}")
+        print(f"DEBUG: checkpoint_path: {checkpoint_path}")
         if not exists(checkpoint_path):
             logging.info(f"=== specification ".ljust(70, "="))
             run_instance = run_cls()
@@ -979,7 +979,7 @@ class RolloutWorker:
         self.buffer.stat_test_return = ret
         self.buffer.stat_test_steps = steps
 
-    def run(self, test_episode_interval=20, nb_episodes=np.inf):  # TODO: check number of collected samples are collected before sending
+    def run(self, test_episode_interval=50, nb_episodes=np.inf):  # TODO: check number of collected samples are collected before sending
         """
         Runs the worker for `nb_episodes` episodes.
 

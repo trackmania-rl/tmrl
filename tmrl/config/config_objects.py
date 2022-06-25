@@ -11,7 +11,7 @@ from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLi
 from tmrl.custom.custom_memories import MemoryTM2020, MemoryTMNFLidar, MemoryTMNFLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs,obs_preprocessor_tm_lidar_progress_act_in_obs
 from tmrl.envs import GenericGymEnv
-from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianCNNActor, CNNActorCritic
+from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianEffNetActor, EffNetActorCritic
 from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
 from tmrl.custom.custom_algorithms import REDQSACAgent as REDQ_Agent
 from tmrl.util import partial
@@ -35,8 +35,8 @@ if cfg.PRAGMA_LIDAR:
 else:
     assert not cfg.PRAGMA_RNN, "RNNs not supported yet"
     assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
-    TRAIN_MODEL = CNNActorCritic
-    POLICY = SquashedGaussianCNNActor
+    TRAIN_MODEL = EffNetActorCritic
+    POLICY = SquashedGaussianEffNetActor
 
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_TM2020_TMNF:
