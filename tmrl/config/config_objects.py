@@ -11,7 +11,7 @@ from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLi
 from tmrl.custom.custom_memories import MemoryTM2020, MemoryTMNFLidar, MemoryTMNFLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs,obs_preprocessor_tm_lidar_progress_act_in_obs
 from tmrl.envs import GenericGymEnv
-from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianEffNetActor, EffNetActorCritic
+from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianMobileNetActor, MobileNetActorCritic
 from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
 from tmrl.custom.custom_algorithms import REDQSACAgent as REDQ_Agent
 from tmrl.util import partial
@@ -28,15 +28,15 @@ if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
         assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
         TRAIN_MODEL = RNNActorCritic
-        POLICY = partial(SquashedGaussianRNNActor, act_buf_len=cfg.ACT_BUF_LEN)
+        POLICY = SquashedGaussianRNNActor
     else:
         TRAIN_MODEL = MLPActorCritic if ALG_NAME == "SAC" else REDQMLPActorCritic
-        POLICY = partial(SquashedGaussianMLPActor, act_buf_len=cfg.ACT_BUF_LEN)
+        POLICY =SquashedGaussianMLPActor
 else:
     assert not cfg.PRAGMA_RNN, "RNNs not supported yet"
     assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
-    TRAIN_MODEL = EffNetActorCritic
-    POLICY = SquashedGaussianEffNetActor
+    TRAIN_MODEL = MobileNetActorCritic
+    POLICY = SquashedGaussianMobileNetActor
 
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_TM2020_TMNF:
@@ -63,7 +63,7 @@ if cfg.PRAGMA_LIDAR:
         SAMPLE_COMPRESSOR = get_local_buffer_sample_lidar
 else:
     SAMPLE_COMPRESSOR = get_local_buffer_sample_tm20_imgs
-# to preprocess observations that come out of the gym environment and of the replay buffer:
+# to preprocess observations that come out of the gym environment:
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_PROGRESS:
         OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_progress_act_in_obs
@@ -71,7 +71,7 @@ if cfg.PRAGMA_LIDAR:
         OBS_PREPROCESSOR = obs_preprocessor_tm_lidar_act_in_obs
 else:
     OBS_PREPROCESSOR = obs_preprocessor_tm_act_in_obs
-# to augment data that comes out of the replay buffer (applied after observation preprocessing):
+# to augment data that comes out of the replay buffer:
 SAMPLE_PREPROCESSOR = None
 
 assert not cfg.PRAGMA_RNN, "RNNs not supported yet"
@@ -105,7 +105,7 @@ if ALG_NAME == "SAC":
     AGENT = partial(
         SAC_Agent,
         device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
-        model_cls=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
+        model_cls=TRAIN_MODEL,
         lr_actor=ALG_CONFIG["LR_ACTOR"],
         lr_critic=ALG_CONFIG["LR_CRITIC"],
         lr_entropy=ALG_CONFIG["LR_ENTROPY"],
@@ -119,7 +119,7 @@ else:
     AGENT = partial(
         REDQ_Agent,
         device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
-        model_cls=partial(TRAIN_MODEL, act_buf_len=cfg.ACT_BUF_LEN),
+        model_cls=TRAIN_MODEL,
         lr_actor=ALG_CONFIG["LR_ACTOR"],
         lr_critic=ALG_CONFIG["LR_CRITIC"],
         lr_entropy=ALG_CONFIG["LR_ENTROPY"],

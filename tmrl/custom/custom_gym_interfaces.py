@@ -35,7 +35,13 @@ class TM2020Interface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control Trackmania2020
     """
-    def __init__(self, img_hist_len: int = 4, gamepad: bool = False, min_nb_steps_before_early_done: int = int(3.5 * 20), save_replay: bool = False):
+    def __init__(self,
+                 img_hist_len: int = 4,
+                 gamepad: bool = False,
+                 min_nb_steps_before_early_done: int = int(3.5 * 20),
+                 save_replay: bool = False,
+                 grayscale: bool = True,
+                 resize_to=(64, 64)):
         """
         Args:
         """
@@ -52,6 +58,8 @@ class TM2020Interface(RealTimeGymInterface):
         self.small_window = None
         self.min_nb_steps_before_early_done = min_nb_steps_before_early_done
         self.save_replay = save_replay
+        self.grayscale = grayscale
+        self.resize_to = resize_to
 
         self.initialized = False
 
@@ -104,8 +112,13 @@ class TM2020Interface(RealTimeGymInterface):
                 apply_control(actions)
 
     def grab_data_and_img(self):
-        img = self.window_interface.screenshot()[:, :, :3]
-        img = img[:, :, ::-1]  # reversed view for numpy RGB convention
+        img = self.window_interface.screenshot()[:, :, :3]  # BGR ordering
+        if self.resize_to is not None:
+            img = cv2.resize(img, self.resize_to)
+        if self.grayscale:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            img = img[:, :, ::-1]  # reversed view for numpy RGB convention
         data = self.client.retrieve_data()
         self.img = img  # for render()
         return data, img
@@ -198,7 +211,14 @@ class TM2020Interface(RealTimeGymInterface):
         speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
         gear = spaces.Box(low=0.0, high=6, shape=(1, ))
         rpm = spaces.Box(low=0.0, high=np.inf, shape=(1, ))
-        img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH, 3))
+        if self.resize_to is not None:
+            h, w = self.resize_to
+        else:
+            h, w = cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH
+        if self.grayscale:
+            img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, h, w))
+        else:
+            img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, h, w, 3))
         return spaces.Tuple((speed, gear, rpm, img))
 
     def get_action_space(self):
@@ -426,6 +446,8 @@ class TM2020InterfaceLidarProgress(TM2020InterfaceLidar):
         ))  # lidars
         return spaces.Tuple((speed, progress, imgs))
 
+
+# UNSUPPORTED: =========================================================================================================
 
 # Interface for Trackmania Nations Forever: ============================================================================
 

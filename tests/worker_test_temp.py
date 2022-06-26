@@ -50,7 +50,7 @@ subprocess.call(r"run.py --server", shell=True)
 subprocess.call(r"run.py --trainer", shell=True)
 
 worker = RolloutWorker(env_cls=partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": cfg_obj.CONFIG_DICT}),
-                       actor_module_cls=partial(cfg_obj.POLICY, act_buf_len=cfg.ACT_BUF_LEN),
+                       actor_module_cls=cfg_obj.POLICY,
                        sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
                        device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
                        server_ip=cfg.SERVER_IP_FOR_WORKER,

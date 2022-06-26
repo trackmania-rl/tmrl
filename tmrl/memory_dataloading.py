@@ -5,6 +5,7 @@ import zlib
 from abc import ABC, abstractmethod
 from pathlib import Path
 from random import randint, random
+import logging
 
 # third-party imports
 import numpy as np
@@ -112,19 +113,17 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 
         # init memory
         self.path = Path(dataset_path)
-        print(f"DEBUG: MemoryDataloading self.path:{self.path}")
+        logging.debug(f"MemoryDataloading self.path:{self.path}")
         if os.path.isfile(self.path / 'data.pkl'):
             with open(self.path / 'data.pkl', 'rb') as f:
                 self.data = list(pickle.load(f))
-                # print(f"DEBUG: len data:{len(self.data)}")
-                # print(f"DEBUG: len data[0]:{len(self.data[0])}")
         else:
-            print("INFO: no data found, initializing empty replay memory")
+            logging.info("no data found, initializing empty replay memory")
             self.data = []
 
         if len(self) > self.memory_size:
             # TODO: crop to memory_size
-            print(f"WARNING: the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
+            logging.warning(f"the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
         # init dataloader
         self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batch_size=batch_size)
@@ -165,7 +164,6 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         Must return a transition.
 
         `info` is required in each sample for CRC debugging. The 'crc' key is what is important when using this feature.
-        Do NOT apply observation preprocessing here, as it will be applied automatically.
 
         Args:
             item (int): the index where to sample
@@ -237,7 +235,6 @@ class TrajMemoryDataloading(MemoryDataloading, ABC):
         Returns: tuple (augm_obs_traj:list, rew_traj:list, done_traj:list, info_traj:list)
         each trajectory must be of length self.traj_len
         info_traj is required for CRC debugging. The 'crc' key is what is important when using this feature.
-        Do NOT apply observation preprocessing here, as it will be applied automatically after this
         """
         raise NotImplementedError
 

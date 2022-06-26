@@ -714,8 +714,7 @@ class MemoryDataloading(ABC):
         """
         Outputs a decompressed RL transition.
         
-        This transition is the same as the one initially output by the Gym environment.
-        Do NOT apply observation preprocessing here, it will be applied automatically in the superclass.
+        This transition is the same as the output by the Gym environment (after observation preprocessing).
         
         Args:
             item: int: indices of the transition that the Trainer wants to sample
@@ -864,8 +863,8 @@ Finally, if we have enough samples, we need to remove the length of the action b
 Furthermore, the `get_transition()` method outputs a full RL transition, which includes the previous observation. Thus, we must subtract 1 to get the number of full transitions that we can actually output.
 
 Alright, let us finally implement `get_transition()`, where we have chosen sample decompression would happen.
-This method outputs full transitions as if they were directly output by the Gym environment
-(that is before observation preprocessing or anything else happens):
+This method outputs full transitions as if they were output by the Gym environment
+(after observation preprocessing if used):
 
 ```python
     def get_transition(self, item):

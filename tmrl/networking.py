@@ -568,7 +568,7 @@ def iterate_epochs_tm(run_cls,
     checkpoint_path = checkpoint_path or tempfile.mktemp("_remove_on_exit")
 
     try:
-        print(f"DEBUG: checkpoint_path: {checkpoint_path}")
+        logging.debug(f"checkpoint_path: {checkpoint_path}")
         if not exists(checkpoint_path):
             logging.info(f"=== specification ".ljust(70, "="))
             run_instance = run_cls()
@@ -734,7 +734,7 @@ class RolloutWorker:
             min_samples_per_worker_packet (int): the worker waits for this number of samples before sending
             max_samples_per_episode (int): if an episode gets longer than this, it is reset
             model_path (str): path where a local copy of the policy will be stored
-            obs_preprocessor (callable): utility for modifying samples before forward passes
+            obs_preprocessor (callable): utility for modifying observations retrieved from the environment
             crc_debug (bool): can be used for debugging the pipeline
             model_path_history (str): (omit .pth) an history of policies can be stored here
             model_history (int): new policies are saved % model_history (0: not saved)

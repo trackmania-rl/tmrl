@@ -1,16 +1,18 @@
 # third-party imports
 import numpy as np
 import logging
+import cv2
+
+
 # OBSERVATION PREPROCESSING ==================================
 
 
 def obs_preprocessor_tm_act_in_obs(obs):
     """
-    Preprocessor for TM2020 with images, converting RGB images to grayscale
+    Preprocessor for TM2020 with images, converting images back to uint8
     """
-    images = obs[3]
-    rgb_weights = [0.2989, 0.5870, 0.1140]
-    grayscale_images = np.dot(images[..., :3], rgb_weights)
+    grayscale_images = obs[3]
+    grayscale_images = grayscale_images.astype(np.float32) / 256.0
     obs = (obs[0], obs[1], obs[2], grayscale_images, *obs[4:])  # >= 1 action
     return obs
 
@@ -32,7 +34,7 @@ def obs_preprocessor_tm_lidar_progress_act_in_obs(obs):
 
 
 # SAMPLE PREPROCESSING =======================================
-# these can be called when sampling from the replay memory, on the whole sample after observation preprocesing
+# these can be called when sampling from the replay memory, on the whole sample
 # this is useful in particular for data augmentation
 # be careful whatever you do here is consistent, because consistency after this will NOT be checked by CRC
 
