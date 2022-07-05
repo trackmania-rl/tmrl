@@ -558,7 +558,8 @@ def iterate_epochs_tm(run_cls,
                       checkpoint_path: str,
                       dump_run_instance_fn=dump_run_instance,
                       load_run_instance_fn=load_run_instance,
-                      epochs_between_checkpoints=1):
+                      epochs_between_checkpoints=1,
+                      updater_fn=None):
     """
     Main training loop (remote)
     The run_cls instance is saved in checkpoint_path at the end of each epoch
@@ -575,10 +576,15 @@ def iterate_epochs_tm(run_cls,
             dump_run_instance_fn(run_instance, checkpoint_path)
             logging.info(f"")
         else:
-            logging.info(f" Loading checkpoint...")
+            logging.info(f"Loading checkpoint...")
             t1 = time.time()
             run_instance = load_run_instance_fn(checkpoint_path)
             logging.info(f" Loaded checkpoint in {time.time() - t1} seconds.")
+            if updater_fn is not None:
+                logging.info(f"Updating checkpoint...")
+                t1 = time.time()
+                run_instance = updater_fn(run_instance)
+                logging.info(f"Checkpoint updated in {time.time() - t1} seconds.")
 
         while run_instance.epoch < run_instance.epochs:
             # time.sleep(1)  # on network file systems writing files is asynchronous and we need to wait for sync
@@ -598,7 +604,7 @@ def iterate_epochs_tm(run_cls,
             os.remove(checkpoint_path)
 
 
-def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
+def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None, updater_fn=None):
     """
     Main training loop (remote).
 
@@ -616,17 +622,17 @@ def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path:
     resume = checkpoint_path and exists(checkpoint_path)
     wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
     # logging.info(config)
-    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn):
+    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
         [wandb.log(json.loads(s.to_json())) for s in stats]
 
 
-def run(interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None):
+def run(interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=None, load_run_instance_fn=None, updater_fn=None):
     """
     Main training loop (remote).
     """
     dump_run_instance_fn = dump_run_instance_fn or dump_run_instance
     load_run_instance_fn = load_run_instance_fn or load_run_instance
-    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn):
+    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
         pass
 
 
@@ -643,7 +649,8 @@ class Trainer:
                  model_path=cfg.MODEL_PATH_TRAINER,
                  checkpoint_path=cfg.CHECKPOINT_PATH,
                  dump_run_instance_fn: callable = None,
-                 load_run_instance_fn: callable = None):
+                 load_run_instance_fn: callable = None,
+                 updater_fn: callable = None):
         """
         Args:
             training_cls (type): training class (subclass of tmrl.training_offline.TrainingOffline)
@@ -652,10 +659,14 @@ class Trainer:
             checkpoint_path: path where the `Trainer` will be checkpointed (`None` = no checkpointing)
             dump_run_instance_fn (callable): custom serializer (`None` = pickle.dump)
             load_run_instance_fn (callable): custom deserializer (`None` = pickle.load)
+            updater_fn (callable): custom updater (`None` = no updater). If provided, this must be a function \
+            that takes an instance of training_cls as argument and returns an updated instance of training_cls. \
+            the updater is called after a checkpoint is loaded, e.g., to update your checkpoint with new arguments.
         """
         self.checkpoint_path = checkpoint_path
         self.dump_run_instance_fn = dump_run_instance_fn
         self.load_run_instance_fn = load_run_instance_fn
+        self.updater_fn = updater_fn
         self.training_cls = training_cls
         self.interface = TrainerInterface(server_ip=server_ip,
                                           model_path=model_path)
@@ -668,7 +679,8 @@ class Trainer:
             run_cls=self.training_cls,
             checkpoint_path=self.checkpoint_path,
             dump_run_instance_fn=self.dump_run_instance_fn,
-            load_run_instance_fn=self.load_run_instance_fn)
+            load_run_instance_fn=self.load_run_instance_fn,
+            updater_fn=self.updater_fn)
 
     def run_with_wandb(self,
                        entity=cfg.WANDB_ENTITY,
@@ -695,7 +707,8 @@ class Trainer:
                        run_cls=self.training_cls,
                        checkpoint_path=self.checkpoint_path,
                        dump_run_instance_fn=self.dump_run_instance_fn,
-                       load_run_instance_fn=self.load_run_instance_fn)
+                       load_run_instance_fn=self.load_run_instance_fn,
+                       updater_fn=self.updater_fn)
 
 
 # ROLLOUT WORKER: ===================================

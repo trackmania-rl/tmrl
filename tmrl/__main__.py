@@ -46,7 +46,8 @@ def main(args):
                           model_path=cfg.MODEL_PATH_TRAINER,
                           checkpoint_path=cfg.CHECKPOINT_PATH,
                           dump_run_instance_fn=cfg_obj.DUMP_RUN_INSTANCE_FN,
-                          load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN)
+                          load_run_instance_fn=cfg_obj.LOAD_RUN_INSTANCE_FN,
+                          updater_fn=cfg_obj.UPDATER_FN)
         logging.info(f"--- NOW RUNNING {cfg_obj.ALG_NAME} on TrackMania ---")
         if not args.no_wandb:
             trainer.run_with_wandb(entity=cfg.WANDB_ENTITY,

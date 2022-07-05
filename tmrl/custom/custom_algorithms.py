@@ -44,12 +44,9 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
 
-        # List of parameters for both Q-networks (save this for convenience)
-        self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
-
         # Set up optimizers for policy and q-function
         self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
-        self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
+        self.q_optimizer = Adam(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), lr=self.lr_critic)
 
         if self.target_entropy is None:  # automatic entropy coefficient
             self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
@@ -60,7 +57,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             # Note: we optimize the log of the entropy coeff which is slightly different from the paper
             # as discussed in https://github.com/rail-berkeley/softlearning/issues/37
             self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
-            self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
+            self.alpha_optimizer = Adam([self.log_alpha], lr=self.lr_entropy)
         else:
             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 
@@ -122,8 +119,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
         # Freeze Q-networks so you don't waste computational effort
         # computing gradients for them during the policy learning step.
-        for p in self.q_params:
-            p.requires_grad = False
+        self.model.q1.requires_grad_(False)
+        self.model.q2.requires_grad_(False)
 
         # Next run one gradient descent step for actor.
 
@@ -142,8 +139,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.pi_optimizer.step()
 
         # Unfreeze Q-networks so you can optimize it at next DDPG step.
-        for p in self.q_params:
-            p.requires_grad = True
+        self.model.q1.requires_grad_(True)
+        self.model.q2.requires_grad_(True)
 
         # Finally, update target networks by polyak averaging.
         with torch.no_grad():
@@ -208,7 +205,7 @@ class REDQSACAgent(TrainingAgent):
 
         if self.learn_entropy_coef:
             self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
-            self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
+            self.alpha_optimizer = Adam([self.log_alpha], lr=self.lr_entropy)
         else:
             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 
