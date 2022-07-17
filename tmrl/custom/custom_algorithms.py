@@ -37,12 +37,15 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
     def __post_init__(self):
+        print(f"DEBUG: post init")
         observation_space, action_space = self.observation_space, self.action_space
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"DEBUG: self.device:{self.device}, device:{device}")
         model = self.model_cls(observation_space, action_space)
         logging.debug(f" device SAC: {device}")
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
+        print(f"DEBUG: c1")
 
         # Set up optimizers for policy and q-function
         self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
@@ -53,6 +56,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         else:
             self.target_entropy = float(self.target_entropy)
 
+        print(f"DEBUG: c2")
+
         if self.learn_entropy_coef:
             # Note: we optimize the log of the entropy coeff which is slightly different from the paper
             # as discussed in https://github.com/rail-berkeley/softlearning/issues/37
@@ -61,15 +66,23 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         else:
             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 
+        print(f"DEBUG: c3")
+
     def get_actor(self):
         return self.model_nograd.actor
 
     def train(self, batch):
 
+        print(f"DEBUG: c4")
+
         o, a, r, o2, d = batch
+
+        print(f"DEBUG: c5")
 
         pi, logp_pi = self.model.actor(o)
         # FIXME? log_prob = log_prob.reshape(-1, 1)
+
+        print(f"DEBUG: c6")
 
         # loss_alpha:
 
@@ -83,6 +96,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         else:
             alpha_t = self.alpha_t
 
+        print(f"DEBUG: c7")
+
         # Optimize entropy coefficient, also called
         # entropy temperature or alpha in the paper
         if loss_alpha is not None:
@@ -90,12 +105,16 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             loss_alpha.backward()
             self.alpha_optimizer.step()
 
+        print(f"DEBUG: c8")
+
         # Run one gradient descent step for Q1 and Q2
 
         # loss_q:
 
         q1 = self.model.q1(o, a)
+        print(f"DEBUG: c9")
         q2 = self.model.q2(o, a)
+        print(f"DEBUG: c10")
 
         # Bellman backup for Q functions
         with torch.no_grad():
@@ -108,6 +127,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
             backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
 
+        print(f"DEBUG: c11")
+
         # MSE loss against Bellman backup
         loss_q1 = ((q1 - backup)**2).mean()
         loss_q2 = ((q2 - backup)**2).mean()
@@ -116,6 +137,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.q_optimizer.zero_grad()
         loss_q.backward()
         self.q_optimizer.step()
+
+        print(f"DEBUG: c12")
 
         # Freeze Q-networks so you don't waste computational effort
         # computing gradients for them during the policy learning step.
@@ -128,7 +151,9 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
         # pi, logp_pi = self.model.actor(o)
         q1_pi = self.model.q1(o, pi)
+        print(f"DEBUG: c13")
         q2_pi = self.model.q2(o, pi)
+        print(f"DEBUG: c14")
         q_pi = torch.min(q1_pi, q2_pi)
 
         # Entropy-regularized policy loss
@@ -137,6 +162,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.pi_optimizer.zero_grad()
         loss_pi.backward()
         self.pi_optimizer.step()
+
+        print(f"DEBUG: c15")
 
         # Unfreeze Q-networks so you can optimize it at next DDPG step.
         self.model.q1.requires_grad_(True)
@@ -150,6 +177,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
+        print(f"DEBUG: c16")
+
         ret_dict = dict(
             loss_actor=loss_pi.detach(),
             loss_critic=loss_q.detach(),
@@ -159,6 +188,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             ret_dict["loss_entropy_coef"] = loss_alpha.detach()
             ret_dict["entropy_coef"] = alpha_t.item()
 
+        print(f"DEBUG: c17")
         return ret_dict
 
 
