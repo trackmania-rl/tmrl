@@ -118,23 +118,12 @@ class MemoryTM(MemoryDataloading):
         raise NotImplementedError
 
     def __len__(self):
-        import time  # DEBUG
-        print(f"DEBUG cw0")
-        time.sleep(10)  # DEBUG
         if len(self.data) == 0:
-            print(f"DEBUG cw1")
-            time.sleep(10)  # DEBUG
             return 0
-        print(f"DEBUG cw2")
-        time.sleep(10)  # DEBUG
         res = len(self.data[0]) - self.min_samples - 1
         if res < 0:
-            print(f"DEBUG cw3")
-            time.sleep(10)  # DEBUG
             return 0
         else:
-            print(f"DEBUG cw4")
-            time.sleep(10)  # DEBUG
             return res
 
     def get_transition(self, item):

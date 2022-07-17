@@ -88,25 +88,14 @@ class TrainingOffline:
             logging.info(f" Resuming training")
 
     def run_epoch(self, interface):
-        print(f"DEBUG: ce00")
-        time.sleep(10)  # DEBUG
         stats = []
         state = None
-
-        print(f"DEBUG: ce0")
 
         if self.agent_scheduler is not None:
             self.agent_scheduler(self.agent, self.epoch)
 
-        print(f"DEBUG: ce01")
-        time.sleep(10)  # DEBUG
-
         for rnd in range(self.rounds):
-            print(f"DEBUG: ce02")
-            time.sleep(10)  # DEBUG
             logging.info(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
-            print(f"DEBUG: ce03")
-            time.sleep(10)  # DEBUG
             logging.debug(f"(Training): current memory size:{len(self.memory)}")
 
             print(f"DEBUG ce1")

@@ -568,8 +568,6 @@ def iterate_epochs_tm(run_cls,
     """
     checkpoint_path = checkpoint_path or tempfile.mktemp("_remove_on_exit")
 
-    print(f"DEBUG: cie0")
-
     try:
         logging.debug(f"checkpoint_path: {checkpoint_path}")
         if not exists(checkpoint_path):
@@ -588,17 +586,10 @@ def iterate_epochs_tm(run_cls,
                 run_instance = updater_fn(run_instance)
                 logging.info(f"Checkpoint updated in {time.time() - t1} seconds.")
 
-        print(f"DEBUG: cie1")
-        time.sleep(10)  # DEBUG
-
         while run_instance.epoch < run_instance.epochs:
-            print(f"DEBUG: cie2")
-            time.sleep(10)  # DEBUG
             # time.sleep(1)  # on network file systems writing files is asynchronous and we need to wait for sync
             yield run_instance.run_epoch(interface=interface)  # yield stats data frame (this makes this function a generator)
-            print(f"DEBUG: cie3")
             if run_instance.epoch % epochs_between_checkpoints == 0:
-                print(f"DEBUG: cie4")
                 logging.info(f" saving checkpoint...")
                 t1 = time.time()
                 dump_run_instance_fn(run_instance, checkpoint_path)
