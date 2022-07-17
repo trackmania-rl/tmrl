@@ -61,6 +61,7 @@ def update_run_instance(run_instance):
     Returns:
         run_instance: the updated checkpoint
     """
+    print(f"DEBUG chk1")
     # update training Agent:
     ALG_CONFIG = cfg.TMRL_CONFIG["ALG"]
     ALG_NAME = ALG_CONFIG["ALGORITHM"]
@@ -181,6 +182,8 @@ def update_run_instance(run_instance):
     memory_size = cfg.TMRL_CONFIG["MEMORY_SIZE"]
     batch_size = cfg.TMRL_CONFIG["BATCH_SIZE"]
 
+    print(f"DEBUG chk2")
+
     if run_instance.steps != steps \
             or run_instance.memory.batch_size != batch_size \
             or run_instance.memory.memory_size != memory_size:
@@ -192,5 +195,7 @@ def update_run_instance(run_instance):
         run_instance.memory.memory_size = memory_size
         run_instance.memory._batch_sampler = MemoryBatchSampler(data_source=run_instance.memory, nb_steps=steps, batch_size=batch_size)
         logging.info(f"Memory updated with steps:{steps}, batch size:{batch_size}, memory size:{memory_size}.")
+
+    print(f"DEBUG chk3")
 
     return run_instance
