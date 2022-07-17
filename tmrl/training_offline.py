@@ -88,8 +88,11 @@ class TrainingOffline:
             logging.info(f" Resuming training")
 
     def run_epoch(self, interface):
+        print(f"DEBUG: ce00")
         stats = []
         state = None
+
+        print(f"DEBUG: ce0")
 
         if self.agent_scheduler is not None:
             self.agent_scheduler(self.agent, self.epoch)
