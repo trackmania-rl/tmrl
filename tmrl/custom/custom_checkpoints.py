@@ -95,13 +95,13 @@ def update_run_instance(run_instance):
         if run_instance.agent.lr_entropy != lr_entropy or run_instance.agent.alpha != alpha:
             run_instance.agent.lr_entropy = lr_entropy
             run_instance.agent.alpha = alpha
+            device = run_instance.device or ("cuda" if torch.cuda.is_available() else "cpu")
             if run_instance.agent.learn_entropy_coef:
-                logging.debug(f"DEBUG: run_instance.device:{run_instance.device}")
-                run_instance.agent.log_alpha = torch.log(torch.ones(1) * run_instance.agent.alpha).to(run_instance.device).requires_grad_(True)
+                run_instance.agent.log_alpha = torch.log(torch.ones(1) * run_instance.agent.alpha).to(device).requires_grad_(True)
                 run_instance.agent.alpha_optimizer = Adam([run_instance.agent.log_alpha], lr=lr_entropy)
                 logging.info(f"Entropy optimizer reinitialized.")
             else:
-                run_instance.agent.alpha_t = torch.tensor(float(run_instance.agent.alpha)).to(run_instance.device)
+                run_instance.agent.alpha_t = torch.tensor(float(run_instance.agent.alpha)).to(device)
                 logging.info(f"Alpha changed to {alpha}.")
         
         if run_instance.agent.gamma != gamma:

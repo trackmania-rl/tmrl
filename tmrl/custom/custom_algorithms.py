@@ -66,35 +66,22 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
     def train(self, batch):
 
-        logging.debug(f"DEBUG: c4")
-
         o, a, r, o2, d = batch
-
-        logging.debug(f"DEBUG: c5")
 
         pi, logp_pi = self.model.actor(o)
         # FIXME? log_prob = log_prob.reshape(-1, 1)
-
-        logging.debug(f"DEBUG: c6")
 
         # loss_alpha:
 
         loss_alpha = None
         if self.learn_entropy_coef:
-            logging.debug(f"DEBUG: c61")
             # Important: detach the variable from the graph
             # so we don't change it with other losses
             # see https://github.com/rail-berkeley/softlearning/issues/60
             alpha_t = torch.exp(self.log_alpha.detach())
-            logging.debug(f"DEBUG: c62: self.log_alpha:{self.log_alpha}, logp_pi:{logp_pi}, self.target_entropy:{self.target_entropy}")
             loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
-            logging.debug(f"DEBUG: c63")
         else:
-            logging.debug(f"DEBUG: c64")
             alpha_t = self.alpha_t
-            logging.debug(f"DEBUG: c65")
-
-        logging.debug(f"DEBUG: c7")
 
         # Optimize entropy coefficient, also called
         # entropy temperature or alpha in the paper
@@ -103,16 +90,12 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             loss_alpha.backward()
             self.alpha_optimizer.step()
 
-        logging.debug(f"DEBUG: c8")
-
         # Run one gradient descent step for Q1 and Q2
 
         # loss_q:
 
         q1 = self.model.q1(o, a)
-        logging.debug(f"DEBUG: c9")
         q2 = self.model.q2(o, a)
-        logging.debug(f"DEBUG: c10")
 
         # Bellman backup for Q functions
         with torch.no_grad():
@@ -125,8 +108,6 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
             backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
 
-        logging.debug(f"DEBUG: c11")
-
         # MSE loss against Bellman backup
         loss_q1 = ((q1 - backup)**2).mean()
         loss_q2 = ((q2 - backup)**2).mean()
@@ -135,8 +116,6 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.q_optimizer.zero_grad()
         loss_q.backward()
         self.q_optimizer.step()
-
-        logging.debug(f"DEBUG: c12")
 
         # Freeze Q-networks so you don't waste computational effort
         # computing gradients for them during the policy learning step.
@@ -149,9 +128,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
         # pi, logp_pi = self.model.actor(o)
         q1_pi = self.model.q1(o, pi)
-        logging.debug(f"DEBUG: c13")
         q2_pi = self.model.q2(o, pi)
-        logging.debug(f"DEBUG: c14")
         q_pi = torch.min(q1_pi, q2_pi)
 
         # Entropy-regularized policy loss
@@ -160,8 +137,6 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.pi_optimizer.zero_grad()
         loss_pi.backward()
         self.pi_optimizer.step()
-
-        logging.debug(f"DEBUG: c15")
 
         # Unfreeze Q-networks so you can optimize it at next DDPG step.
         self.model.q1.requires_grad_(True)
@@ -175,8 +150,6 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
-        logging.debug(f"DEBUG: c16")
-
         ret_dict = dict(
             loss_actor=loss_pi.detach(),
             loss_critic=loss_q.detach(),
@@ -186,7 +159,6 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             ret_dict["loss_entropy_coef"] = loss_alpha.detach()
             ret_dict["entropy_coef"] = alpha_t.item()
 
-        logging.debug(f"DEBUG: c17")
         return ret_dict
 
 
