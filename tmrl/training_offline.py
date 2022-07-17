@@ -98,11 +98,15 @@ class TrainingOffline:
             logging.info(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
             logging.debug(f"(Training): current memory size:{len(self.memory)}")
 
+            print(f"DEBUG ce1")
+
             stats_training = []
 
             t0 = time.time()
             self.check_ratio(interface)
             t1 = time.time()
+
+            print(f"DEBUG ce2")
 
             if self.profiling:
                 from pyinstrument import Profiler
@@ -114,6 +118,8 @@ class TrainingOffline:
             t_sample_prev = t2
 
             for batch in self.memory:  # this samples a fixed number of batches
+
+                print(f"DEBUG ce3")
 
                 if cfg.SYNCHRONIZE_CUDA:
                     torch.cuda.synchronize()
@@ -128,7 +134,12 @@ class TrainingOffline:
 
                 if self.total_updates == 0:
                     logging.info(f"starting training")
+
+                print(f"DEBUG ce4")
+
                 stats_training_dict = self.agent.train(batch)
+
+                print(f"DEBUG ce5")
 
                 if cfg.SYNCHRONIZE_CUDA:
                     torch.cuda.synchronize()
