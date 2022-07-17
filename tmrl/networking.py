@@ -589,9 +589,11 @@ def iterate_epochs_tm(run_cls,
                 logging.info(f"Checkpoint updated in {time.time() - t1} seconds.")
 
         print(f"DEBUG: cie1")
+        time.sleep(10)  # DEBUG
 
         while run_instance.epoch < run_instance.epochs:
             print(f"DEBUG: cie2")
+            time.sleep(10)  # DEBUG
             # time.sleep(1)  # on network file systems writing files is asynchronous and we need to wait for sync
             yield run_instance.run_epoch(interface=interface)  # yield stats data frame (this makes this function a generator)
             print(f"DEBUG: cie3")
