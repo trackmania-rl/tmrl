@@ -97,8 +97,12 @@ class TrainingOffline:
         if self.agent_scheduler is not None:
             self.agent_scheduler(self.agent, self.epoch)
 
+        print(f"DEBUG: ce01")
+
         for rnd in range(self.rounds):
+            print(f"DEBUG: ce02")
             logging.info(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
+            print(f"DEBUG: ce03")
             logging.debug(f"(Training): current memory size:{len(self.memory)}")
 
             print(f"DEBUG ce1")
