@@ -86,7 +86,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             # so we don't change it with other losses
             # see https://github.com/rail-berkeley/softlearning/issues/60
             alpha_t = torch.exp(self.log_alpha.detach())
-            logging.debug(f"DEBUG: c62")
+            logging.debug(f"DEBUG: c62: self.log_alpha:{self.log_alpha}, logp_pi:{logp_pi}, self.target_entropy:{self.target_entropy}")
             loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
             logging.debug(f"DEBUG: c63")
         else:
