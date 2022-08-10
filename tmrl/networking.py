@@ -620,7 +620,18 @@ def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path:
     config['environ'] = log_environment_variables()
     # config['git'] = git_info()  # TODO: check this for bugs
     resume = checkpoint_path and exists(checkpoint_path)
-    wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
+    wandb_initialized = False
+    err_cpt = 0
+    while not wandb_initialized:
+        try:
+            wandb.init(dir=wandb_dir, entity=entity, project=project, id=run_id, resume=resume, config=config)
+            wandb_initialized = True
+        except wandb.errors.UsageError as e:
+            logging.warning(f"Caught wandb error: {e}")
+            err_cpt += 1
+            if err_cpt > 10:
+                logging.warning(f"Could not connect to wandb, aborting.")
+                exit()
     # logging.info(config)
     for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
         [wandb.log(json.loads(s.to_json())) for s in stats]
