@@ -16,6 +16,7 @@ from importlib import import_module
 from itertools import chain
 from typing import Any, Callable, Dict, Mapping, Sequence, Tuple, Type, TypeVar, Union
 from weakref import WeakKeyDictionary
+import gym.spaces as spaces
 
 # third-party imports
 import numpy as np
@@ -53,6 +54,16 @@ def data_to_cuda(data):
     else:
         return data
 
+def dict_to_list(l):
+    ll = []
+    for i in l:
+        if type(i) == dict:
+            ll += dict_to_list(list(i.values()))
+        elif type(i) == list:
+            ll += dict_to_list(i)
+        else:
+            ll.append(i)
+    return ll
 
 def collate(batch, device=None):
     """Turns a batch of nested structures with numpy arrays as leaves into into a single element of the same nested structure with batched torch tensors as leaves"""
@@ -64,7 +75,14 @@ def collate(batch, device=None):
         else:
             return torch.stack([b.contiguous().to(device) for b in batch], 0)
     elif isinstance(elem, np.ndarray):
-        return collate(tuple(torch.from_numpy(b) for b in batch), device)
+        for b in batch:
+            if type(b[0]) != dict:
+                return collate(tuple(torch.from_numpy(b)))
+            else:
+                l = dict_to_list(b)
+                l = np.array(l, np.float32)
+                l[l >= 1E308] = 1E30 # to prevent of number infini
+                return collate(tuple(torch.from_numpy(l)))
     elif hasattr(elem, '__torch_tensor__'):
         return torch.stack([b.__torch_tensor__().to(device) for b in batch], 0)
     elif isinstance(elem, Sequence):
@@ -73,7 +91,9 @@ def collate(batch, device=None):
     elif isinstance(elem, Mapping):
         return type(elem)((key, collate(tuple(d[key] for d in batch), device)) for key in elem)
     else:
-        return torch.from_numpy(np.array(batch)).to(device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
+        l = np.array(batch, np.float32)
+        l[l >= 1E308] = 1E30
+        return torch.from_numpy(l).to(device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
 
 
 def partition(x):
@@ -284,5 +304,20 @@ class DelayInterrupt:
 # === operations =======================================================================================================
 
 
-def prod(iterable):
-    return functools.reduce(operator.mul, iterable, 1)
+def mul(a,b) -> int:
+    if type(a) == spaces.Dict:
+        n = 0
+        for i in a:
+            n += prod(a[i].shape)
+        a = n
+    
+    if type(b) == spaces.Dict:
+        n = 0
+        for i in b:
+            n += prod(b[i].shape)
+        b = n
+    
+    return a*b
+
+def prod(iterable: tuple[int]) -> int:
+    return functools.reduce(mul, iterable, 1) # need to be fix with a dict
