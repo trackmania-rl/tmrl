@@ -31,6 +31,7 @@ It is demonstrated on the TrackMania 2020 video game.
 - [Introduction](#introduction)
   - [User features](#user-features-trackmania)
   - [Developer features](#developer-features-real-time-applications)
+  - [TMRL in the media](#tmrl-in-the-media)
 - [Installation](readme/Install.md)
 - [Getting started](readme/get_started.md)
 - [TMRL python library for robot RL](readme/tuto_library.md)
@@ -101,6 +102,9 @@ Find out more [here](#real-time-gym-framework).
 This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
 In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications, and [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers.
 
+### TMRL in the media:
+- In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. We support the training pipeline used for the show [here](#lidar-with-track-progress).
+
 ## Installation
 
 Detailed installation instructions are provided [here](readme/Install.md).
@@ -117,7 +121,7 @@ A complete tutorial toward implementing your own ad-hoc optimized training pipel
 ## Gym environment
 In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
 
-_(NB: the game window needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
+_(NB: the game needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
 ```python
 from tmrl import get_environment
 from time import sleep
@@ -208,6 +212,32 @@ This works on any track, using any (sensible) camera configuration.
 Note that human players can see or hear the features provided by this environment: we provide no "cheat" that would render the approach non-transferable to the real world.
 In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py) to build your own custom environment for TrackMania.
 Of course, custom environments will not be accepted for the competition :wink:
+
+### LIDAR with track progress
+
+If you have watched the [2022-06-08 episode](https://www.youtube.com/watch?v=c1xq7iJ3f9E) of the Underscore_ talk show (french), note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion of the track, so that the AI can know the turns in advance similarly to humans practicing a given track.
+It is not yet clear whether we want to use this environment in the competition, as it is de-facto less generalizable.
+However, if you wish to use this environment, e.g., to beat our results, you can use the following `config.json`:
+
+```json5
+{
+  "ENV": {
+    "RTGYM_INTERFACE": "TM20LIDARPROGRESS",  // TrackMania 2020 with LIDAR and percentage of completion
+    "WINDOW_WIDTH": 958,  // width of the game window (min: 256)
+    "WINDOW_HEIGHT": 488,  // height of the game window (min: 128)
+    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
+    "IMG_HIST_LEN": 4,  // length of the history of LIDAR measurements in observations (set to 1 for RNNs)
+    "RTGYM_CONFIG": {
+      "time_step_duration": 0.05,  // duration of a time step
+      "start_obs_capture": 0.04,  // duration before an observation is captured
+      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
+      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
+      "benchmark": false,  // enables benchmarking your environment when true
+      "wait_on_done": true
+    }
+  }
+}
+```
 
 ## TrackMania training details
 
@@ -394,6 +424,7 @@ Periodically, it sends the new policy weights to the central server.
 These mechanics can be summarized as follows:
 
 ![Networking architecture](readme/img/network_interface.png "Networking Architecture")
+
 
 ## Authors:
 
