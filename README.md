@@ -12,7 +12,7 @@
 `tmrl` is a distributed framework for training Deep Reinforcement Learning AIs in real-time applications.
 It is demonstrated on the TrackMania 2020 video game.
 
-![example](readme/img/video_lidar.gif)
+![example](https://github.com/trackmania-rl/tmrl/releases/download/v0.2.0/video_lidar.gif)
 
 
  **TL;DR:**
