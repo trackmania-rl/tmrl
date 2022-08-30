@@ -583,7 +583,7 @@ def iterate_epochs_tm(run_cls,
             if updater_fn is not None:
                 logging.info(f"Updating checkpoint...")
                 t1 = time.time()
-                run_instance = updater_fn(run_instance)
+                run_instance = updater_fn(run_instance, run_cls)
                 logging.info(f"Checkpoint updated in {time.time() - t1} seconds.")
 
         while run_instance.epoch < run_instance.epochs:
@@ -673,8 +673,8 @@ class Trainer:
             dump_run_instance_fn (callable): custom serializer (`None` = pickle.dump)
             load_run_instance_fn (callable): custom deserializer (`None` = pickle.load)
             updater_fn (callable): custom updater (`None` = no updater). If provided, this must be a function \
-            that takes an instance of training_cls as argument and returns an updated instance of training_cls. \
-            the updater is called after a checkpoint is loaded, e.g., to update your checkpoint with new arguments.
+            that takes a checkpoint and training_cls as argument and returns an updated checkpoint. \
+            The updater is called after a checkpoint is loaded, e.g., to update your checkpoint with new arguments.
         """
         self.checkpoint_path = checkpoint_path
         self.dump_run_instance_fn = dump_run_instance_fn

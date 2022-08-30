@@ -4,9 +4,9 @@
 [![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)](https://github.com/trackmania-rl/tmrl/blob/master/LICENSE)
 [![DOI](https://zenodo.org/badge/277973609.svg)](https://zenodo.org/badge/latestdoi/277973609)
 
-**`API reference`** |
-------------------- |
-[![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest) |
+| **`API reference`**                                                                                                                         |
+|---------------------------------------------------------------------------------------------------------------------------------------------|
+| [![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest) |
 
 
 `tmrl` is a distributed framework for training Deep Reinforcement Learning AIs in real-time applications.
@@ -72,13 +72,11 @@ In parallel, this dataset is used to train an artificial neural network (policy)
 `tmrl` controls the game using a virtual gamepad, which enables analog input.
 
 * **Different types of observation:**
-The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots or the raw unprocessed snapshots in order to perceive its environment
-_(note: only the LIDAR is supported at the moment, the rest is WIP)_.
+The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots or the raw unprocessed snapshots in order to perceive its environment.
 
 * **Models:**
-To process LIDAR measurements, `tmrl` uses a Multi-Layer Perceptron (MLP) or a Recurrent Neural Network (RNN).
-To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN)
-_(note: only the MLP is supported at the moment, the rest is WIP)_.
+To process LIDAR measurements, `tmrl` uses a Multi-Layer Perceptron (MLP).
+To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
 
 ### Developer features (real-time applications):
 * **Python library:**

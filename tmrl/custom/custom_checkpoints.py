@@ -51,16 +51,42 @@ def dump_run_instance_images_dataset(run_instance, checkpoint_path):
     dump(run_instance, checkpoint_path)
 
 
-def update_run_instance(run_instance):
+def update_memory(run_instance):
+    steps = cfg.TMRL_CONFIG["TRAINING_STEPS_PER_ROUND"]
+    memory_size = cfg.TMRL_CONFIG["MEMORY_SIZE"]
+    batch_size = cfg.TMRL_CONFIG["BATCH_SIZE"]
+    if run_instance.steps != steps \
+            or run_instance.memory.batch_size != batch_size \
+            or run_instance.memory.memory_size != memory_size:
+        assert not run_instance.memory.use_dataloader, "Dataloaders not implemented in this checkpoint updater."
+        from tmrl.memory_dataloading import MemoryBatchSampler
+        run_instance.steps = steps
+        run_instance.memory.nb_steps = steps
+        run_instance.memory.batch_size = batch_size
+        run_instance.memory.memory_size = memory_size
+        run_instance.memory._batch_sampler = MemoryBatchSampler(data_source=run_instance.memory, nb_steps=steps, batch_size=batch_size)
+        logging.info(f"Memory updated with steps:{steps}, batch size:{batch_size}, memory size:{memory_size}.")
+    return run_instance
+
+
+def update_run_instance(run_instance, training_cls):
     """
     Updates the checkpoint after loading with compatible values from config.json
 
     Args:
         run_instance: the instance of the checkpoint to update
+        training_cls: partially instantiated class of a new checkpoint (to replace run_instance if needed)
 
     Returns:
         run_instance: the updated checkpoint
     """
+    # check whether we should start a new experiment entirely and keep only the memory:
+    if "RESET_TRAINING" in cfg.TMRL_CONFIG and cfg.TMRL_CONFIG["RESET_TRAINING"]:
+        new_run_instance = training_cls()
+        new_run_instance.memory = run_instance.memory
+        new_run_instance = update_memory(new_run_instance)
+        return new_run_instance
+
     # update training Agent:
     ALG_CONFIG = cfg.TMRL_CONFIG["ALG"]
     ALG_NAME = ALG_CONFIG["ALGORITHM"]
@@ -178,20 +204,6 @@ def update_run_instance(run_instance):
         run_instance.start_training = start_training
         logging.info(f"Number of environment steps before training changed to {start_training} (old: {old}).")
 
-    steps = cfg.TMRL_CONFIG["TRAINING_STEPS_PER_ROUND"]
-    memory_size = cfg.TMRL_CONFIG["MEMORY_SIZE"]
-    batch_size = cfg.TMRL_CONFIG["BATCH_SIZE"]
-
-    if run_instance.steps != steps \
-            or run_instance.memory.batch_size != batch_size \
-            or run_instance.memory.memory_size != memory_size:
-        assert not run_instance.memory.use_dataloader, "Dataloaders not implemented in this checkpoint updater."
-        from tmrl.memory_dataloading import MemoryBatchSampler
-        run_instance.steps = steps
-        run_instance.memory.nb_steps = steps
-        run_instance.memory.batch_size = batch_size
-        run_instance.memory.memory_size = memory_size
-        run_instance.memory._batch_sampler = MemoryBatchSampler(data_source=run_instance.memory, nb_steps=steps, batch_size=batch_size)
-        logging.info(f"Memory updated with steps:{steps}, batch size:{batch_size}, memory size:{memory_size}.")
+    run_instance = update_memory(run_instance)
 
     return run_instance
