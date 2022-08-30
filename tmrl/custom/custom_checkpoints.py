@@ -85,6 +85,7 @@ def update_run_instance(run_instance, training_cls):
         new_run_instance = training_cls()
         new_run_instance.memory = run_instance.memory
         new_run_instance = update_memory(new_run_instance)
+        new_run_instance.total_samples = len(new_run_instance.memory)
         return new_run_instance
 
     # update training Agent:
