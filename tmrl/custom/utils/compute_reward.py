@@ -6,7 +6,11 @@ import pickle
 import numpy as np
 import logging
 
+
 class RewardFunction:
+    """
+    Computes a reward from the Openplanet API for Trackmania 2020
+    """
     def __init__(self, reward_data_path, nb_obs_forward=10, nb_obs_backward=10, nb_zero_rew_before_early_done=10, min_nb_steps_before_early_done=int(3.5 * 20)):
         if not os.path.exists(reward_data_path):
             logging.debug(f" reward not found at path:{reward_data_path}")
@@ -41,7 +45,7 @@ class RewardFunction:
             # stop condition
             if index >= self.datalen or temp <= 0:
                 break
-        reward = best_index - self.cur_idx
+        reward = (best_index - self.cur_idx) / 100.0
         if best_index == self.cur_idx:  # if the best index didn't change, we rewind (more Markovian reward)
             min_dist = np.inf
             index = self.cur_idx
