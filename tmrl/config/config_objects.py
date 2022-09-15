@@ -8,7 +8,7 @@ import rtgym
 import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TrainingOffline
 from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TM2020InterfaceLidarProgress, TMInterface, TMInterfaceLidar
-from tmrl.custom.custom_memories import MemoryTM2020, MemoryTMNFLidar, MemoryTMNFLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
+from tmrl.custom.custom_memories import MemoryTMFull, MemoryTMLidar, MemoryTMLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs,obs_preprocessor_tm_lidar_progress_act_in_obs
 from tmrl.envs import GenericGymEnv
 from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianVanillaCNNActor, VanillaCNNActorCritic
@@ -82,12 +82,12 @@ if cfg.PRAGMA_LIDAR:
         assert False, "not implemented"
     else:
         if cfg.PRAGMA_PROGRESS:
-            MEM = MemoryTMNFLidarProgress
+            MEM = MemoryTMLidarProgress
         else:
-            MEM = MemoryTMNFLidar
+            MEM = MemoryTMLidar
 else:
     assert cfg.PRAGMA_TM2020_TMNF, "TMNF is not officially supported."
-    MEM = MemoryTM2020
+    MEM = MemoryTMFull
 
 MEMORY = partial(MEM,
                  memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],

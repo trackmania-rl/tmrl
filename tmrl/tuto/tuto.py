@@ -6,7 +6,7 @@ import torch
 from torch.optim import Adam
 from copy import deepcopy
 
-from threading import Thread
+from threading import Thread, Lock
 
 from tmrl.networking import Server, RolloutWorker, Trainer
 from tmrl.util import partial, cached_property
@@ -69,22 +69,28 @@ class DummyRCDroneInterface(RealTimeGymInterface):
     def reset(self):
         if not self.initialized:
             self.rc_drone = DummyRCDrone()
-            self.initialized = True
             self.rendering_thread.start()
+            self.initialized = True
         pos_x, pos_y = self.rc_drone.get_observation()
         self.target[0] = np.random.uniform(-0.5, 0.5)
         self.target[1] = np.random.uniform(-0.5, 0.5)
-        return [pos_x, pos_y, self.target[0], self.target[1]]
+        return [np.array([pos_x], dtype='float32'),
+                np.array([pos_y], dtype='float32'),
+                np.array([self.target[0]], dtype='float32'),
+                np.array([self.target[1]], dtype='float32')], {}
 
-    def get_obs_rew_done_info(self):
+    def get_obs_rew_terminated_info(self):
         pos_x, pos_y = self.rc_drone.get_observation()
         tar_x = self.target[0]
         tar_y = self.target[1]
-        obs = [pos_x, pos_y, tar_x, tar_y]
+        obs = [np.array([pos_x], dtype='float32'),
+               np.array([pos_y], dtype='float32'),
+               np.array([tar_x], dtype='float32'),
+               np.array([tar_y], dtype='float32')]
         rew = -np.linalg.norm(np.array([pos_x, pos_y], dtype=np.float32) - self.target)
-        done = rew > -0.01
+        terminated = rew > -0.01
         info = {}
-        return obs, rew, done, info
+        return obs, rew, terminated, info
 
     def wait(self):
         self.send_control(self.get_default_action())
@@ -200,7 +206,7 @@ actor_module_cls = partial(MyActorModule)
 
 # Sample compression
 
-def my_sample_compressor(prev_act, obs, rew, done, info):
+def my_sample_compressor(prev_act, obs, rew, terminated, truncated, info):
     """
     Compresses samples before sending over network.
 
@@ -212,17 +218,18 @@ def my_sample_compressor(prev_act, obs, rew, done, info):
 
     Args:
         prev_act: action computed from a previous observation and applied to yield obs in the transition
-        obs, rew, done, info: outcome of the transition
+        obs, rew, terminated, truncated, info: outcome of the transition
     Returns:
         prev_act_mod: compressed prev_act
         obs_mod: compressed obs
         rew_mod: compressed rew
-        done_mod: compressed done
+        terminated_mod: compressed terminated
+        truncated_mod: compressed truncated
         info_mod: compressed info
     """
-    prev_act_mod, obs_mod, rew_mod, done_mod, info_mod = prev_act, obs, rew, done, info
+    prev_act_mod, obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod = prev_act, obs, rew, terminated, truncated, info
     obs_mod = obs_mod[:4]  # here we remove the action buffer from observations
-    return prev_act_mod, obs_mod, rew_mod, done_mod, info_mod
+    return prev_act_mod, obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod
 
 
 sample_compressor = my_sample_compressor
@@ -317,7 +324,7 @@ class MyMemoryDataloading(MemoryDataloading):
 
     def append_buffer(self, buffer):
         """
-        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, done_mod, info_mod) samples
+        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
         """
 
         # decompose compressed samples into their relevant components:
@@ -328,8 +335,9 @@ class MyMemoryDataloading(MemoryDataloading):
         list_x_target = [b[1][2] for b in buffer.memory]
         list_y_target = [b[1][3] for b in buffer.memory]
         list_reward = [b[2] for b in buffer.memory]
-        list_done = [b[3] for b in buffer.memory]
-        list_info = [b[4] for b in buffer.memory]
+        list_terminated = [b[3] for b in buffer.memory]
+        list_truncated = [b[4] for b in buffer.memory]
+        list_info = [b[5] for b in buffer.memory]
 
         # append to self.data in some arbitrary way:
 
@@ -340,8 +348,9 @@ class MyMemoryDataloading(MemoryDataloading):
             self.data[3] += list_x_target
             self.data[4] += list_y_target
             self.data[5] += list_reward
-            self.data[6] += list_done
+            self.data[6] += list_terminated
             self.data[7] += list_info
+            self.data[8] += list_truncated
         else:
             self.data.append(list_action)
             self.data.append(list_x_position)
@@ -349,8 +358,9 @@ class MyMemoryDataloading(MemoryDataloading):
             self.data.append(list_x_target)
             self.data.append(list_y_target)
             self.data.append(list_reward)
-            self.data.append(list_done)
+            self.data.append(list_terminated)
             self.data.append(list_info)
+            self.data.append(list_truncated)
 
         # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
 
@@ -364,6 +374,7 @@ class MyMemoryDataloading(MemoryDataloading):
             self.data[5] = self.data[5][to_trim:]
             self.data[6] = self.data[6][to_trim:]
             self.data[7] = self.data[7][to_trim:]
+            self.data[8] = self.data[8][to_trim:]
 
     def __len__(self):
         if len(self.data) == 0:
@@ -379,7 +390,7 @@ class MyMemoryDataloading(MemoryDataloading):
         Args:
             item: int: indice of the transition that the Trainer wants to sample
         Returns:
-            full transition: (last_obs, new_act, rew, new_obs, done, info)
+            full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
         """
         idx_last = item + self.act_buf_len - 1  # index of previous observation
         idx_now = item + self.act_buf_len  # index of new observation
@@ -406,10 +417,11 @@ class MyMemoryDataloading(MemoryDataloading):
         # other components of the transition:
         new_act = self.data[0][idx_now]  # action
         rew = np.float32(self.data[5][idx_now])  # reward
-        done = self.data[6][idx_now]  # done signal
+        terminated = self.data[6][idx_now]  # terminated signal
+        truncated = self.data[8][idx_now]  # truncated signal
         info = self.data[7][idx_now]  # info dictionary
 
-        return last_obs, new_act, rew, new_obs, done, info
+        return last_obs, new_act, rew, new_obs, terminated, truncated, info
 
 
 memory_cls = partial(MyMemoryDataloading,
@@ -491,7 +503,7 @@ class MyTrainingAgent(TrainingAgent):
         return self.model_nograd.actor
 
     def train(self, batch):
-        o, a, r, o2, d = batch
+        o, a, r, o2, d, _ = batch  # ignore the truncated signal
         pi, logp_pi = self.model.actor(o)
         loss_alpha = None
         if self.learn_entropy_coef:

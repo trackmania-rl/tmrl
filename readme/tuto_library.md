@@ -182,21 +182,26 @@ class DummyRCDroneInterface(RealTimeGymInterface):
         if not self.initialized:
             self.rc_drone = DummyRCDrone()
             self.initialized = True
-            self.rendering_thread.start()
         pos_x, pos_y = self.rc_drone.get_observation()
         self.target[0] = np.random.uniform(-0.5, 0.5)
         self.target[1] = np.random.uniform(-0.5, 0.5)
-        return [pos_x, pos_y, self.target[0], self.target[1]]
+        return [np.array([pos_x], dtype='float32'),
+                np.array([pos_y], dtype='float32'),
+                np.array([self.target[0]], dtype='float32'),
+                np.array([self.target[1]], dtype='float32')], {}
 
-    def get_obs_rew_done_info(self):
+    def get_obs_rew_terminated_info(self):
         pos_x, pos_y = self.rc_drone.get_observation()
         tar_x = self.target[0]
         tar_y = self.target[1]
-        obs = [pos_x, pos_y, tar_x, tar_y]
+        obs = [np.array([pos_x], dtype='float32'),
+               np.array([pos_y], dtype='float32'),
+               np.array([tar_x], dtype='float32'),
+               np.array([tar_y], dtype='float32')]
         rew = -np.linalg.norm(np.array([pos_x, pos_y], dtype=np.float32) - self.target)
-        done = rew > -0.01
+        terminated = rew > -0.01
         info = {}
-        return obs, rew, done, info
+        return obs, rew, terminated, info
 
     def wait(self):
         self.send_control(self.get_default_action())
@@ -399,7 +404,7 @@ You certainly do not want to send these 4 images over the Internet for each samp
 
 For our dummy RC drone, we have a similar (yet much less serious) issue with the action buffer that is part of the observations.
 This buffer contains a history of the last 4 sent actions, and thus 3 of them overlap with the content of previous samples.
-Moreover, actions are part of samples anyway because a sample is defined as `(act, obs, rew, done, info)`.
+Moreover, actions are part of samples anyway because a sample is defined as `(act, obs, rew, terminated, truncated, info)`.
 
 Although this is not really an issue given the small size of actions here, let us implement an optimal pipeline for the sake of illustration.
 
@@ -409,7 +414,7 @@ If left to `None`, no compression will happen and raw samples will be sent over 
 For our dummy RC drone, an optimal compression scheme just removes the action buffer from observations:
 
 ```python
-def my_sample_compressor(act, obs, rew, done, info):
+def my_sample_compressor(act, obs, rew, terminated, truncated, info):
     """
     Compresses samples before sending them over the network.
 
@@ -420,17 +425,18 @@ def my_sample_compressor(act, obs, rew, done, info):
 
     Args:
         act: action computed from a previous observation and applied to yield obs in the transition
-        obs, rew, done, info: outcome of the transition
+        obs, rew, terminated, truncated, info: outcome of the transition
     Returns:
         act_mod: compressed act
         obs_mod: compressed obs
         rew_mod: compressed rew
-        done_mod: compressed done
+        terminated_mod: compressed terminated
+        truncated_mod: compressed truncated
         info_mod: compressed info
     """
-    act_mod, obs_mod, rew_mod, done_mod, info_mod = act, obs, rew, done, info
+    act_mod, obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod = act, obs, rew, terminated, truncated, info
     obs_mod = obs_mod[:4]  # here we remove the action buffer from observations
-    return act_mod, obs_mod, rew_mod, done_mod, info_mod
+    return act_mod, obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod
 ```
 
 We can then pass our sample compressor to the `RolloutWorker` as:
@@ -472,12 +478,12 @@ For instance, let us say we only want to send samples to the `Server` when at le
 min_samples_per_worker_packet = 100
 ```
 
-In case your Gym environment is never `done` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
+In case your Gym environment is never `terminated` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
 For instance, let us say we don't want an episode to last more than 1000 time-steps:
 
 _(Note 1: This is for the sake of illustration, in fact, this cannot happen in our RC drone environment)_
 
-_(Note 2: If the episode is stopped because of this threshold, the `done` signal will be `False` and a `"__no_done"` entry will be added to the `info` dictionary)_
+_(Note 2: If the episode is stopped because of this threshold, the `terminated` signal will be `False` and the `truncated` signal will be `True`)_
 
 ```python
 max_samples_per_episode = 1000
@@ -719,7 +725,7 @@ class MemoryDataloading(ABC):
         Args:
             item: int: indices of the transition that the Trainer wants to sample
         Returns:
-            full transition: (last_obs, new_act, rew, new_obs, done, info)
+            full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
         """
         raise NotImplementedError
 ```
@@ -788,14 +794,14 @@ This decompression may happen either in `append_buffer()` (if you privilege samp
 In this tutorial, we will privilege memory usage and thus we will implement our decompression scheme in `get_transition()`.
 The `append_buffer()` method will simply store the compressed sample components in `self.data`.
 
-`append_buffer()` is passed a [buffer](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/networking.py#L198) object that contains a list of compressed `(act, new_obs, rew, done, info)` samples in its `memory` attribute.
-`act` is the action that was sent to the `step()` method of the Gym environment to yield `new_obs`, `rew`, `done`, and `info`.
+`append_buffer()` is passed a [buffer](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/networking.py#L198) object that contains a list of compressed `(act, new_obs, rew, terminated, truncated, info)` samples in its `memory` attribute.
+`act` is the action that was sent to the `step()` method of the Gym environment to yield `new_obs`, `rew`, `terminated`, `truncated`, and `info`.
 Here, we decompose our samples in their relevant components, append these components to the `self.data` list, and clip `self.data` when `self.memory_size` is exceeded:
 
 ```python
     def append_buffer(self, buffer):
         """
-        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, done_mod, info_mod) samples
+        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
         """
         
         # decompose compressed samples into their relevant components:
@@ -806,8 +812,9 @@ Here, we decompose our samples in their relevant components, append these compon
         list_x_target = [b[1][2] for b in buffer.memory]
         list_y_target = [b[1][3] for b in buffer.memory]
         list_reward = [b[2] for b in buffer.memory]
-        list_done = [b[3] for b in buffer.memory]
-        list_info = [b[4] for b in buffer.memory]
+        list_terminated = [b[3] for b in buffer.memory]
+        list_truncated = [b[4] for b in buffer.memory]
+        list_info = [b[5] for b in buffer.memory]
         
         # append to self.data in some arbitrary way:
 
@@ -818,8 +825,9 @@ Here, we decompose our samples in their relevant components, append these compon
             self.data[3] += list_x_target
             self.data[4] += list_y_target
             self.data[5] += list_reward
-            self.data[6] += list_done
+            self.data[6] += list_terminated
             self.data[7] += list_info
+            self.data[8] += list_truncated
         else:
             self.data.append(list_action)
             self.data.append(list_x_position)
@@ -827,8 +835,9 @@ Here, we decompose our samples in their relevant components, append these compon
             self.data.append(list_x_target)
             self.data.append(list_y_target)
             self.data.append(list_reward)
-            self.data.append(list_done)
+            self.data.append(list_terminated)
             self.data.append(list_info)
+            self.data.append(list_truncated)
 
         # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
 
@@ -842,6 +851,7 @@ Here, we decompose our samples in their relevant components, append these compon
             self.data[5] = self.data[5][to_trim:]
             self.data[6] = self.data[6][to_trim:]
             self.data[7] = self.data[7][to_trim:]
+            self.data[8] = self.data[8][to_trim:]
 ```
 
 We must also implement the `__len__()` method of our memory because the content of `self.data` is arbitrary and the `Trainer` needs to know what it can ask to the `get_transition()` method:
@@ -872,7 +882,7 @@ This method outputs full transitions as if they were output by the Gym environme
         Args:
             item: int: indices of the transition that the Trainer wants to sample
         Returns:
-            full transition: (last_obs, new_act, rew, new_obs, done, info)
+            full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
         """
         idx_last = item + self.act_buf_len - 1  # index of previous observation
         idx_now = item + self.act_buf_len  # index of new observation
@@ -899,18 +909,19 @@ This method outputs full transitions as if they were output by the Gym environme
         # other components of the transition:
         new_act = self.data[0][idx_now]  # action
         rew = np.float32(self.data[5][idx_now])  # reward
-        done = self.data[6][idx_now]  # done signal
+        terminated = self.data[6][idx_now]  # terminated signal
+        truncated = self.data[8][idx_now]  # truncated signal
         info = self.data[7][idx_now]  # info dictionary
 
-        return last_obs, new_act, rew, new_obs, done, info
+        return last_obs, new_act, rew, new_obs, terminated, truncated, info
 ```
 _Note 1: the action buffer of `new_obs` contains `new_act`.
 This is because at least the last computed action (`new_act`) must be in the action buffer to keep a Markov state in a real-time environment. See [rtgym](https://github.com/yannbouteiller/rtgym)._
 
 _Note 2: in our dummy RC drone environment, the action buffer is not reset on calls to `reset()` and thus we don't need to do anything special about it here.
 However, in other environments, this will not always be the case.
-If you want to be extra picky, you may need to take special care for rebuilding transitions that happened after a `done` signal is set to `True`.
-This is done in the `tmrl` implementation of [MemoryDataloading for TrackMania](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_memories.py#L143)._
+If you want to be extra picky, you may need to take special care for rebuilding transitions that happened after a `terminated` or `truncated` signal is set to `True`.
+This is done in the `tmrl` implementation of [MemoryDataloading for TrackMania](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_memories.py)._
 
 We now have our `memory_cls` argument:
 
@@ -948,7 +959,7 @@ class TrainingAgent(ABC):
 
         Args:
             batch: tuple of batched torch.tensors
-                (previous observation, action, reward, new observation, done)
+                (previous observation, action, reward, new observation, terminated, truncated)
 
         Returns:
             ret_dict: dictionary: a dictionary containing one entry per metric you wish to log
@@ -1075,7 +1086,9 @@ Note that `train()` returns a python dictionary in which you can store the metri
         
         https://github.com/openai/spinningup/tree/master/spinup/algos/pytorch/sac
         """
-        o, a, r, o2, d = batch  # these tensors are collated on device
+        o, a, r, o2, d, _ = batch  # these tensors are collated on device
+        # note that we purposefully ignore the truncated signal ( _ )
+        # thus, our value estimator will not be affected by episode truncation
         pi, logp_pi = self.model.actor(o)
         loss_alpha = None
         if self.learn_entropy_coef:
@@ -1285,7 +1298,7 @@ And that is mostly all, folks! :smile:
 
 ---
 
-_(Note 1: I have not done any hyperparameter tuning when writing this tutorial and I have selected most values randomly, so it is very likely you can find much better training hyperparameters for this toy task if you like to try.
+_(Note 1: I have not conducted any hyperparameter tuning when writing this tutorial and I have selected most values randomly, so it is very likely you can find much better training hyperparameters for this toy task if you like to try.
 However, be mindful that this task is much harder than it looks: the dummy RC drone has random and fairly long action and observation delays, which makes reaching the target difficult for vanilla RL algorithms like SAC.)_
 
 _(Note 2: Although in this tutorial we have run the `RolloutWorker` and the `Trainer` on the same CPU/GPU, this is of course not recommended in real applications.

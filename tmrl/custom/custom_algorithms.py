@@ -66,7 +66,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
     def train(self, batch):
 
-        o, a, r, o2, d = batch
+        o, a, r, o2, d, _ = batch
 
         pi, logp_pi = self.model.actor(o)
         # FIXME? log_prob = log_prob.reshape(-1, 1)
@@ -217,7 +217,7 @@ class REDQSACAgent(TrainingAgent):
         self.i_update += 1
         update_policy = (self.i_update % self.q_updates_per_policy_update == 0)
 
-        o, a, r, o2, d = batch
+        o, a, r, o2, d, _ = batch
 
         if update_policy:
             pi, logp_pi = self.model.actor(o)

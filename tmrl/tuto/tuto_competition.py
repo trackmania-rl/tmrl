@@ -437,7 +437,7 @@ class SACTrainingAgent(TrainingAgent):
         return self.model_nograd.actor
 
     def train(self, batch):
-        o, a, r, o2, d = batch
+        o, a, r, o2, d, _ = batch
         pi, logp_pi = self.model.actor(o)
         loss_alpha = None
         if self.learn_entropy_coef:

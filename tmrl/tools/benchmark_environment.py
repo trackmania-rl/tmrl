@@ -25,17 +25,17 @@ def benchmark():
     env_config["benchmark"] = True
     env_config["running_average_factor"] = 0.05
     env_config["wait_on_done"] = True
-    env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_early_done": int(20 * 60), "record": False}
+    env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_failure": int(20 * 60), "record": False}
     env = gym.make("real-time-gym-v0", config=env_config)
 
     t_d = time.time()
-    obs = env.reset()
+    o, i = env.reset()
     for idx in range(NB_STEPS - 1):
         act = action_space.sample()
         time.sleep(random.uniform(ACT_COMPUTE_MIN, ACT_COMPUTE_MAX))
-        # o, r, d, i = env.step(act)
-        o, r, d, i = env.step(None)
-        if d:
+        # o, r, d, t, i = env.step(act)
+        o, r, d, t, i = env.step(None)
+        if d or t:
             env.reset()
         logging.info(f"rew:{r}")
     t_f = time.time()

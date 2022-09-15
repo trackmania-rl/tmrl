@@ -40,8 +40,8 @@ def record_reward_dist(path_reward=PATH_REWARD):
             is_recording = True
         if is_recording:
             data = client.retrieve_data()
-            done = bool(data[8])
-            if keyboard.is_pressed('q') or done:
+            terminated = bool(data[8])
+            if keyboard.is_pressed('q') or terminated:
                 logging.info(f"Smoothing, get fixed dist and saving pickle file...")
                 positions = np.array(positions)
                 logging.info(f"position init {len(positions)}")

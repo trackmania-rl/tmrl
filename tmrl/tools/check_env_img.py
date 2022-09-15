@@ -8,7 +8,7 @@ def check_env():
     sct = mss.mss()
     monitor = {"top": 32, "left": 1, "width": 256, "height": 127}
     while True:
-        # o, r, d, i = env.step(None)
+        # o, r, d, t, i = env.step(None)
         # logging.info(r)
         img = np.asarray(sct.grab(monitor))[:, :, :3]
         cv2.imshow("PipeLine", img)

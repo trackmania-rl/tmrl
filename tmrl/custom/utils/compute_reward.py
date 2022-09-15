@@ -11,7 +11,7 @@ class RewardFunction:
     """
     Computes a reward from the Openplanet API for Trackmania 2020
     """
-    def __init__(self, reward_data_path, nb_obs_forward=10, nb_obs_backward=10, nb_zero_rew_before_early_done=10, min_nb_steps_before_early_done=int(3.5 * 20)):
+    def __init__(self, reward_data_path, nb_obs_forward=10, nb_obs_backward=10, nb_zero_rew_before_failure=10, min_nb_steps_before_failure=int(3.5 * 20)):
         if not os.path.exists(reward_data_path):
             logging.debug(f" reward not found at path:{reward_data_path}")
             self.data = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])  # dummy reward
@@ -21,14 +21,14 @@ class RewardFunction:
         self.cur_idx = 0
         self.nb_obs_forward = nb_obs_forward
         self.nb_obs_backward = nb_obs_backward
-        self.nb_zero_rew_before_early_done = nb_zero_rew_before_early_done
-        self.min_nb_steps_before_early_done = min_nb_steps_before_early_done
+        self.nb_zero_rew_before_failure = nb_zero_rew_before_failure
+        self.min_nb_steps_before_failure = min_nb_steps_before_failure
         self.step_counter = 0
-        self.early_done_counter = 0
+        self.failure_counter = 0
         self.datalen = len(self.data)
 
     def compute_reward(self, pos):
-        done = False
+        terminated = False
         self.step_counter += 1
         min_dist = np.inf
         index = self.cur_idx
@@ -60,16 +60,16 @@ class RewardFunction:
                 # stop condition
                 if index <= 0 or temp <= 0:
                     break
-            if self.step_counter > self.min_nb_steps_before_early_done:
-                self.early_done_counter += 1
-                if self.early_done_counter > self.nb_zero_rew_before_early_done:
-                    done = True
+            if self.step_counter > self.min_nb_steps_before_failure:
+                self.failure_counter += 1
+                if self.failure_counter > self.nb_zero_rew_before_failure:
+                    terminated = True
         else:
-            self.early_done_counter = 0
+            self.failure_counter = 0
         self.cur_idx = best_index
-        return reward, done
+        return reward, terminated
 
     def reset(self):
         self.cur_idx = 0
         self.step_counter = 0
-        self.early_done_counter = 0
+        self.failure_counter = 0

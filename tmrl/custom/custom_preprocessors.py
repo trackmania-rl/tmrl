@@ -39,5 +39,5 @@ def obs_preprocessor_tm_lidar_progress_act_in_obs(obs):
 # be careful whatever you do here is consistent, because consistency after this will NOT be checked by CRC
 
 
-def sample_preprocessor_tm_lidar_act_in_obs(last_obs, act, rew, new_obs, done):
-    return last_obs, act, rew, new_obs, done
+def sample_preprocessor_tm_lidar_act_in_obs(last_obs, act, rew, new_obs, terminated, truncated):
+    return last_obs, act, rew, new_obs, terminated, truncated

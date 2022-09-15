@@ -214,7 +214,7 @@ class Buffer:
 
     `Server`, `RolloutWorker` and `Trainer` all have their own `Buffer` to store and send training samples.
 
-    Samples are tuples of the form (`act`, `new_obs`, `rew`, `done`, `info`)
+    Samples are tuples of the form (`act`, `new_obs`, `rew`, `terminated`, `truncated`, `info`)
     """
     def __init__(self, maxlen=cfg.BUFFERS_MAXLEN):
         """
@@ -239,7 +239,7 @@ class Buffer:
         Appends `sample` to the buffer.
 
         Args:
-            sample (Tuple): a training sample of the form (`act`, `new_obs`, `rew`, `done`, `info`)
+            sample (Tuple): a training sample of the form (`act`, `new_obs`, `rew`, `terminated`, `truncated`, `info`)
         """
         self.memory.append(sample)
         self.clip_to_maxlen()
@@ -887,30 +887,30 @@ class RolloutWorker:
 
         Returns:
             obs (nested structure): observation retrieved from the environment
+            info (dict): information retrieved from the environment
         """
         obs = None
         act = self.env.default_action.astype(np.float32)
-        new_obs = self.env.reset()
+        new_obs, info = self.env.reset()
         if self.obs_preprocessor is not None:
             new_obs = self.obs_preprocessor(new_obs)
         rew = 0.0
-        done = False
-        info = {}
+        terminated, truncated = False, False
         if collect_samples:
             if self.crc_debug:
-                info['crc_sample'] = (obs, act, new_obs, rew, done)
+                info['crc_sample'] = (obs, act, new_obs, rew, terminated, truncated)
             if self.get_local_buffer_sample:
-                sample = self.get_local_buffer_sample(act, new_obs, rew, done, info)
+                sample = self.get_local_buffer_sample(act, new_obs, rew, terminated, truncated, info)
             else:
-                sample = act, new_obs, rew, done, info
+                sample = act, new_obs, rew, terminated, truncated, info
             self.buffer.append_sample(sample)
-        return new_obs
+        return new_obs, info
 
     def step(self, obs, test, collect_samples, last_step=False):
         """
         Performs a full RL transition.
 
-        A full RL transition is `obs` -> `act` -> `new_obs`, `rew`, `done`, `info`.
+        A full RL transition is `obs` -> `act` -> `new_obs`, `rew`, `terminated`, `truncated`, `info`.
         Note that, in the Real-Time RL setting, `act` is appended to a buffer which is part of `new_obs`.
         This is because is does not directly affect the new observation, due to real-time delays.
 
@@ -918,52 +918,50 @@ class RolloutWorker:
             obs (nested structure): previous observation
             test (bool): passed to the `act()` method of the `ActorModule`
             collect_samples (bool): if True, samples are buffered and sent to the `Server`
-            last_step (bool): if True and `done` is False, a '__no_done' entry will be added to the `info` dict
+            last_step (bool): if True and `terminated` is False, `truncated` will be set to True
 
         Returns:
             new_obs (nested structure): new observation
             rew (float): new reward
-            done (bool): episode termination signal
+            terminated (bool): episode termination signal
+            truncated (bool): episode truncation signal
             info (dict): information dictionary
         """
         act = self.act(obs, test=test)
-        new_obs, rew, done, info = self.env.step(act)
+        new_obs, rew, terminated, truncated, info = self.env.step(act)
         if self.obs_preprocessor is not None:
             new_obs = self.obs_preprocessor(new_obs)
         if collect_samples:
-            stored_done = done
-            if last_step and not done:  # ignore done when stopped by step limit
-                info["__no_done"] = True
-            if "__no_done" in info:
-                stored_done = False
+            if last_step and not terminated:
+                truncated = True
             if self.crc_debug:
-                info['crc_sample'] = (obs, act, new_obs, rew, stored_done)
+                info['crc_sample'] = (obs, act, new_obs, rew, terminated, truncated)
             if self.get_local_buffer_sample:
-                sample = self.get_local_buffer_sample(act, new_obs, rew, stored_done, info)
+                sample = self.get_local_buffer_sample(act, new_obs, rew, terminated, truncated, info)
             else:
-                sample = act, new_obs, rew, stored_done, info
+                sample = act, new_obs, rew, terminated, truncated, info
             self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
-        return new_obs, rew, done, info
+        return new_obs, rew, terminated, truncated, info
 
     def collect_train_episode(self, max_samples):
         """
-        Collects a maximum of n training transitions (from reset to done)
+        Collects a maximum of n training transitions (from reset to terminated or truncated)
 
         This method stores the episode and the train return in the local `Buffer` of the worker
         for sending to the `Server`.
 
         Args:
-            max_samples (int): if the environment is not `done` after `max_samples` time steps,
-                it is forcefully reset and a '__no_done' entry is added to the `info` dict of the corresponding sample.
+            max_samples (int): if the environment is not `terminated` after `max_samples` time steps,
+                it is forcefully reset and `truncated` is set to True.
         """
         ret = 0.0
         steps = 0
-        obs = self.reset(collect_samples=True)
+        obs, info = self.reset(collect_samples=True)
         for i in range(max_samples):
-            obs, rew, done, info = self.step(obs=obs, test=False, collect_samples=True, last_step=i == max_samples - 1)
+            obs, rew, terminated, truncated, info = self.step(obs=obs, test=False, collect_samples=True, last_step=i == max_samples - 1)
             ret += rew
             steps += 1
-            if done:
+            if terminated or truncated:
                 break
         self.buffer.stat_train_return = ret
         self.buffer.stat_train_steps = steps
@@ -984,23 +982,22 @@ class RolloutWorker:
 
     def run_episode(self, max_samples, train=False):
         """
-        Collects a maximum of n test transitions (from reset to done).
+        Collects a maximum of n test transitions (from reset to terminated or truncated).
 
         Args:
             max_samples (int): At most `max_samples` samples are collected per episode.
-                If the episode is longer, it is forcefully reset and a '__no_done' entry is added to the `info` dict
-                of the corresponding sample.
+                If the episode is longer, it is forcefully reset and `truncated` is set to True.
             train (bool): whether the episode is a training or a test episode.
                 `step` is called with `test=not train`.
         """
         ret = 0.0
         steps = 0
-        obs = self.reset(collect_samples=False)
+        obs, info = self.reset(collect_samples=False)
         for _ in range(max_samples):
-            obs, rew, done, info = self.step(obs=obs, test=not train, collect_samples=False)
+            obs, rew, terminated, truncated, info = self.step(obs=obs, test=not train, collect_samples=False)
             ret += rew
             steps += 1
-            if done:
+            if terminated or truncated:
                 break
         self.buffer.stat_test_return = ret
         self.buffer.stat_test_steps = steps
@@ -1034,7 +1031,7 @@ class RolloutWorker:
 
     def profile_step(self):
         import torch.autograd.profiler as profiler
-        obs = self.reset(collect_samples=True)
+        obs, info = self.reset(collect_samples=True)
         use_cuda = True if self.device == 'cuda' else False
         print_with_timestamp(f"use_cuda:{use_cuda}")
         with profiler.profile(record_shapes=True, use_cuda=use_cuda) as prof:
@@ -1058,11 +1055,11 @@ class RolloutWorker:
             nb_steps (int): number of steps to perform to compute the benchmark
             test (int): whether the actor is called in test or train mode
         """
-        obs = self.reset(collect_samples=False)
+        obs, info = self.reset(collect_samples=False)
         for _ in range(nb_steps):
-            obs, rew, done, info = self.step(obs=obs, test=test, collect_samples=False)
-            if done:
-                obs = self.reset(collect_samples=False)
+            obs, rew, terminated, truncated, info = self.step(obs=obs, test=test, collect_samples=False)
+            if terminated or truncated:
+                obs, info = self.reset(collect_samples=False)
         print_with_timestamp(f"Benchmark results:\n{self.env.benchmarks()}")
 
     def send_and_clear_buffer(self):
