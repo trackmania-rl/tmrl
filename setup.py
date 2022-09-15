@@ -13,7 +13,7 @@ if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
 
 
-RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.2.0/resources.zip"
+RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip"
 
 
 def url_retrieve(url: str, outfile: Path, overwrite: bool = False):
@@ -64,6 +64,7 @@ if not TMRL_FOLDER.exists():
     copy2(RESOURCES_FOLDER / "config.json", CONFIG_FOLDER)
     copy2(RESOURCES_FOLDER / "reward.pkl", REWARD_FOLDER)
     copy2(RESOURCES_FOLDER / "SAC_4_LIDAR_pretrained.pth", WEIGHTS_FOLDER)
+    copy2(RESOURCES_FOLDER / "SAC_4_imgs_pretrained.pth", WEIGHTS_FOLDER)
 
     # on Windows, look for OpenPlanet:
     if platform.system() == "Windows":

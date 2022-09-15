@@ -4,25 +4,80 @@ Before reading these instructions, make sure you have installed TMRL and OpenPla
 
 ## Pre-trained AI in Trackmania 2020
 
-You can test our pre-trained AI directly in TrackMania by following these steps (we recommend doing this once, so you understand how `tmrl` controls the video game):
+You can test our pre-trained AIs directly in TrackMania by following these steps (we recommend doing this once, so you understand how `tmrl` controls the video game):
 
 ### Load the tmrl-test track into your TrackMania game:
 - Navigate to your home folder (`C:\Users\username\`), and open `TmrlData\resources`
 - Copy the `tmrl-test.Map.Gbx` file into `...\Documents\Trackmania\Maps\My Maps` (or equivalent on your system).
 
-### Test the pre-trained AI:
+### Test pre-trained AIs:
+
+#### Game preparation
+
 - Launch TrackMania 2020
 - In case the OpenPlanet menu is showing in the top part of the screen, hide it using the `f3` key
 - Launch the `tmrl-test` track. This can be done by selecting `create > map editor > edit a map > tmrl-test > select map` and hitting the green flag.
 - Set the game in windowed mode. To do this, bring the cursor to the top of the screen and a drop-down menu will show. Hit the windowed icon.
 - Bring the TrackMania window to the top-left corner of the screen. On Windows10, it should automatically fit to a quarter of the screen _(NB: the window will automatically snap to the top-left corner and get sized properly when you start the AI)_.
-- Enter the cockpit view by hitting the `3` key (the car must be hidden, press several times if the cockpit is visible).
 - Hide the ghost by pressing the `g` key.
+
+#### If you want to test the pre-train AI for LIDARs:
+- Replace/ensure the following entries in `TmrlData\config\config.json`:
+```json
+  "RUN_NAME": "SAC_4_LIDAR_pretrained"
+```
+```json
+  "ENV": {
+    "RTGYM_INTERFACE": "TM20LIDAR",
+    "WINDOW_WIDTH": 958,
+    "WINDOW_HEIGHT": 488,
+    "SLEEP_TIME_AT_RESET": 1.5,
+    "IMG_HIST_LEN": 4,
+    "RTGYM_CONFIG": {
+      "time_step_duration": 0.05,
+      "start_obs_capture": 0.04,
+      "time_step_timeout_factor": 1.0,
+      "act_buf_len": 2,
+      "benchmark": false,
+      "wait_on_done": true
+    }
+  }
+```
+- Enter the cockpit view by hitting the `3` key (the car must be hidden, press several times if the cockpit is visible).
 
 The trackmania window should now look like this:
 
 ![screenshot1](img/screenshot1.PNG)
 
+#### If you want to test the pre-train AI for raw screenshots:
+- Replace/ensure the following entries in `TmrlData\config\config.json`:
+```json
+  "RUN_NAME": "SAC_4_imgs_pretrained"
+```
+```json
+  "ENV": {
+    "RTGYM_INTERFACE": "TM20IMAGES",
+    "WINDOW_WIDTH": 256,
+    "WINDOW_HEIGHT": 128,
+    "IMG_WIDTH": 64,
+    "IMG_HEIGHT": 64,
+    "IMG_GRAYSCALE": true,
+    "SLEEP_TIME_AT_RESET": 1.5,
+    "IMG_HIST_LEN": 4,
+    "RTGYM_CONFIG": {
+      "time_step_duration": 0.05,
+      "start_obs_capture": 0.04,
+      "time_step_timeout_factor": 1.0,
+      "act_buf_len": 2,
+      "benchmark": false,
+      "wait_on_done": true
+    }
+  }
+```
+- Use the default camera by hitting the `1` key (the car must be visible).
+- For best performance, use the `Canadian flag` skin, because this is what we trained with.
+
+#### Then:
 - Open a terminal and put it where it does not overlap with the trackmania window.
 For instance in the bottom-left corner of the screen.
 - Run the following command, and directly click somewhere in the TrackMania window so that `tmrl` can control the car.
@@ -39,11 +94,11 @@ If you get an error saying that communication was refused, try reloading the `TM
 In case you get a DLL error from the `win32gui/win32ui/win32con` library, install `pywin32` without using `pip` (e.g., use `conda install pywin32`).
 
 #### Profiling / optimization:
-If you see many warnings complaining about time-steps timing out, this means that your computer struggles at running the AI and trackmania in parallel.
+If you see many warnings complaining about time-steps timing out, this means your computer struggles at running the AI and trackmania in parallel.
 Try reducing the trackmania graphics to the minimum (in particular, try setting the maximum fps to 30, but not much less than this, because screenshots are captured at 20 fps)
 _(NB: seeing these warnings once at each environment reset is normal, this is because we purposefully sleep when the car is waiting for green light)._
 
-In the `Graphics` tab of the TM20 settings, ensure that the resolution is 958 (width) * 488 (height) pixels.
+In the `Graphics` tab of the TM20 settings, ensure that the resolution is 958 * 488 pixels for the LIDAR environment and 256 * 128 pixels for the raw screenshot environment.
 
 The `Input` setting for gamepads must be the default.
 
@@ -113,7 +168,10 @@ _(Note: you may want to run these commands on separate computers instead, for in
 During training, make sure you don't see too many 'timestep timeouts' in the worker terminal.
 If you do, this means that your GPU is not powerful enough, and you should use remote training instead of localhost training (see `TmrlData\config\config.json`).
 
-With an RTX3080 on a distant machine as trainer and one local machine as worker/server, it takes approximatively 5 hours for the car to understand how to take a turn correctly.
+Don't forget to tune training hyperparameters in `config.json` (the default should work for the LIDAR environment).
+
+With carefully chosen hyperparameters, an RTX3080 on a distant machine as trainer and one local machine as worker/server, it takes approximatively 5 hours for the car to understand how to take a turn correctly in the LIDAR environment.
+And it takes more like 5 days in the raw screenshots environment! :wink:
 
 _(Note: you can exit these processes by pressing `CTRL + C` in each terminal)_
 

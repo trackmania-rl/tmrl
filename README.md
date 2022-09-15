@@ -50,7 +50,7 @@ It is demonstrated on the TrackMania 2020 video game.
 - [TMRL details](#advanced)
     - [Real-time Gym framework](#real-time-gym-framework)
       - [rtgym repo](https://github.com/yannbouteiller/rtgym)
-    - [Distant training architecture](#distant-training-architecture)
+    - [Remote training architecture](#remote-training-architecture)
 - [Contribute](#authors)
 - [Sponsors](#sponsors)
 
@@ -66,17 +66,18 @@ This is done through Deep Reinforcement Learning (RL).
 * **Training algorithms:**
 `tmrl` lets you easily train policies in TrackMania with state-of-the-art Deep Reinforcement Learning algorithms such as [Soft Actor-Critic](https://www.youtube.com/watch?v=LN29DDlHp1U) (SAC) and [Randomized Ensembled Double Q-Learning](https://arxiv.org/abs/2101.05982) (REDQ).
 These algorithms store collected samples in a large dataset, called a replay memory.
-In parallel, this dataset is used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, steering angle...).
+In parallel, this dataset is used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, break, steering angle...).
 
 * **Analog control:**
 `tmrl` controls the game using a virtual gamepad, which enables analog input.
 
 * **Different types of observation:**
-The car can use either a LIDAR (Light Detection and Ranging) computed from snapshots or the raw unprocessed snapshots in order to perceive its environment.
+The car cam either use raw unprocessed snapshots, or a LIDAR (Light Detection and Ranging) computed from the snapshots in order to perceive its environment.
 
 * **Models:**
 To process LIDAR measurements, `tmrl` uses a Multi-Layer Perceptron (MLP).
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
+These models learn the physics from histories or observations equally spaced in time.
 
 ### Developer features (real-time applications):
 * **Python library:**
@@ -105,7 +106,7 @@ In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implemen
 
 ## Installation
 
-Detailed installation instructions are provided [here](readme/Install.md).
+Detailed instructions for installation are provided [here](readme/Install.md).
 
 ## Getting started
 
@@ -125,12 +126,12 @@ from tmrl import get_environment
 from time import sleep
 import numpy as np
 
-# default observations are of shape: ((1,), (4, 19), (3,), (3,))
+# default LIDAR observations are of shape: ((1,), (4, 19), (3,), (3,))
 # representing: (speed, 4 last LIDARs, 2 previous actions)
 # actions are [gas, break, steer], analog between -1.0 and +1.0
 def model(obs):
     """
-    simplistic policy
+    simplistic policy for LIDAR observations
     """
     deviation = obs[1].mean(0)
     deviation /= (deviation.sum() + 0.001)
@@ -141,7 +142,9 @@ def model(obs):
     steer = min(max(steer, -1.0), 1.0)
     return np.array([1.0, 0.0, steer])
 
-env = get_environment()  # retrieve the TMRL Gym environment
+# Let us retrieve the TMRL Gym environment.
+# The environment you get from get_environment() depends on the content of config.json
+env = get_environment()
 
 sleep(1.0)  # just so we have time to focus the TM20 window after starting the script
 
@@ -154,33 +157,9 @@ for _ in range(200):  # rtgym ensures this runs at 20Hz by default
 env.wait()  # rtgym-specific method to artificially 'pause' the environment when needed
 ```
 
-The environment can be customized by changing the content of the `ENV` entry in `TmrlData\config\config.json`:
+The environment flavor can be chosen and customized by changing the content of the `ENV` entry in `TmrlData\config\config.json`:
 
 _(NB: do not copy-paste the examples, comments are not supported in vanilla .json files)_
-
-### LIDAR environment:
-In this version of the environment, screenshots are reduced to 19-beam LIDARs to be processed with, e.g., an MLP.
-In addition, this version features the speed (that human players can see).
-This works only on plain road with black borders, using the front camera.
-```json5
-{
-  "ENV": {
-    "RTGYM_INTERFACE": "TM20LIDAR",  // TrackMania 2020 with LIDAR observations
-    "WINDOW_WIDTH": 958,  // width of the game window (min: 256)
-    "WINDOW_HEIGHT": 488,  // height of the game window (min: 128)
-    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
-    "IMG_HIST_LEN": 4,  // length of the history of LIDAR measurements in observations (set to 1 for RNNs)
-    "RTGYM_CONFIG": {
-      "time_step_duration": 0.05,  // duration of a time step
-      "start_obs_capture": 0.04,  // duration before an observation is captured
-      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
-      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
-      "benchmark": false,  // enables benchmarking your environment when true
-      "wait_on_done": true
-    }
-  }
-}
-```
 
 ### Full environment:
 This version of the environment features full screenshots to be processed with, e.g., a CNN.
@@ -206,15 +185,38 @@ This works on any track, using any (sensible) camera configuration.
   }
 }
 ```
-
 Note that human players can see or hear the features provided by this environment: we provide no "cheat" that would render the approach non-transferable to the real world.
 In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py) to build your own custom environment for TrackMania.
 Of course, custom environments will not be accepted for the competition :wink:
 
+### LIDAR environment:
+In this version of the environment, screenshots are reduced to 19-beam LIDARs to be processed with, e.g., an MLP.
+In addition, this version features the speed (that human players can see).
+This works only on plain road with black borders, using the front camera with car hidden.
+```json5
+{
+  "ENV": {
+    "RTGYM_INTERFACE": "TM20LIDAR",  // TrackMania 2020 with LIDAR observations
+    "WINDOW_WIDTH": 958,  // width of the game window (min: 256)
+    "WINDOW_HEIGHT": 488,  // height of the game window (min: 128)
+    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
+    "IMG_HIST_LEN": 4,  // length of the history of LIDAR measurements in observations (set to 1 for RNNs)
+    "RTGYM_CONFIG": {
+      "time_step_duration": 0.05,  // duration of a time step
+      "start_obs_capture": 0.04,  // duration before an observation is captured
+      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
+      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
+      "benchmark": false,  // enables benchmarking your environment when true
+      "wait_on_done": true
+    }
+  }
+}
+```
+
 ### LIDAR with track progress
 
-If you have watched the [2022-06-08 episode](https://www.youtube.com/watch?v=c1xq7iJ3f9E) of the Underscore_ talk show (french), note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion of the track, so that the AI can know the turns in advance similarly to humans practicing a given track.
-It is not yet clear whether we want to use this environment in the competition, as it is de-facto less generalizable.
+If you have watched the [2022-06-08 episode](https://www.youtube.com/watch?v=c1xq7iJ3f9E) of the Underscore_ talk show (french), note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion of the track, so that the model can know the turns in advance similarly to humans practicing a given track.
+This environment will not be accepted in the competition, as it is de-facto less generalizable.
 However, if you wish to use this environment, e.g., to beat our results, you can use the following `config.json`:
 
 ```json5
@@ -239,8 +241,8 @@ However, if you wish to use this environment, e.g., to beat our results, you can
 
 ## TrackMania training details
 
-In `tmrl`, an AI that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
-Its goal is to learn how to complete the track by exploring its own capacities and environment.
+In `tmrl`, model (AI) that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
+Its goal is to learn how to complete the track as fast as possible by exploring its own capacities and environment.
 
 The car feeds observations such as images to an artificial neural network, which must output the best possible controls from these observations.
 This implies that the AI must understand its environment in some way.
@@ -359,9 +361,8 @@ In `tmrl`, the car can be controlled in two different ways:
 
 Different observation spaces are available in `tmrl`:
 
-- A LIDAR measurement is computed from real-time screenshots in tracks with black borders.
-- A history of several such LIDAR measurements (typically the last 4 time-steps).
 - A history of raw screenshots (typically 4).
+- A history of LIDAR measurement computed from raw screenshots in tracks with black borders.
 
 In addition, we provide the norm of the velocity as part of the observation space in all our experiments.
 
@@ -369,9 +370,9 @@ Example of `tmrl` environment in TrackMania Nations Forever with a single LIDAR 
 
 ![reward](readme/img/lidar.png)
 
-In TrackMania Nations Forever, the raw speed is computed from screen captures thanks to the 1-NN algorithm.
+In TrackMania Nations Forever, we use to compute the raw speed from screenshots thanks to the 1-NN algorithm.
 
-In TrackMania 2020, the [OpenPlanet](https://openplanet.nl) API is used to retrieve the raw speed directly.
+In TrackMania 2020, we now use the [OpenPlanet](https://openplanet.nl) API to retrieve the raw speed directly.
 
 ### Results
 
@@ -400,10 +401,10 @@ Time-steps are being elastically constrained to their nominal duration. When thi
 
 Custom `rtgym` interfaces for Trackmania used by `tmrl` are implemented in [custom_gym_interfaces.py](https://github.com/yannbouteiller/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py).
 
-### Distant training architecture:
+### Remote training architecture:
 
 `tmrl` is based on a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
-Our client-server architecture is not secured and it is not meant to compete with Ray, but it is much simpler to modify in order to implement ad-hoc pipelines and works on both Windows and Linux.
+Our client-server architecture is not secured yet and it is not meant to compete with Ray, but it is much simpler to modify in order to implement ad-hoc pipelines and works on both Windows and Linux.
 
 We collect training samples from several rollout workers, typically several computers and/or robots.
 Each rollout worker stores its collected samples in a local buffer, and periodically sends this replay buffer to the central server.
@@ -424,17 +425,25 @@ These mechanics can be summarized as follows:
 ![Networking architecture](readme/img/network_interface.png "Networking Architecture")
 
 
+## Development roadmap:
+You are welcome to contribute to the `tmrl` project.
+Please consider the following:
+- Further profiling and code optimization.
+- Secure and improve network communications.
+- Find the cleanest way to support sequences in `MemoryDataloading` for RNN training.
+
+
 ## Authors:
 
-Contributions to this project are welcome, please submit a PR with your name in the contributors list.
+When contributing, please submit a PR with your name in the contributors list with a short caption.
 
 ### Maintainers:
 - Yann Bouteiller
 - Edouard Geze
 
 ### Contributors:
-- Simon Ramstedt
-- AndrejGobeX
+- Simon Ramstedt - initial code base
+- AndrejGobeX - optimization of screen capture
 
 ## License
 
