@@ -3,7 +3,7 @@ import gym
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 
 # local imports
-from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TMInterface, TMInterfaceLidar
+from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar
 from tmrl.custom.utils.window import WindowInterface
 from tmrl.custom.utils.tools import Lidar
 import logging

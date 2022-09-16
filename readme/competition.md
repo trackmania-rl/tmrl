@@ -32,11 +32,11 @@ Competitors solve real-time Gym environments featuring snapshots from the real `
 ### Current iteration (Alpha)
 The `tmrl` competition is an open-source research initiative, currently in its very first iteration :hatching_chick:
 
-In this iteration, competitors race on the default `tmrl-test` track (plain road) by solving the default [TrackMania 2020 Gym environment](https://github.com/trackmania-rl/tmrl#gym-environment) (either with raw snapshots or with the readily available LIDAR reduction).
+In this iteration, competitors race on the default `tmrl-test` track (plain road) by solving the `Full` version of the [TrackMania 2020 Gym environment](https://github.com/trackmania-rl/tmrl#gym-environment) (the `LIDAR` version is also accepted).
 
 The setting is the following:
 - The `action space` is the default TrackMania 2020 continuous action space (3 floats between -1.0 and 1.0).
-- The `observation space` is a history of 4 raw snapshots along with the speed and 2 previous actions. Using the readily available default 19-beam LIDAR reduction instead of raw snapshots is allowed.
+- The `observation space` is a history of 4 raw snapshots along with the speed, gear, rpm and 2 previous actions.
 - The `control frequency` is 20 Hz.
 
 The only thing that is required in your entry to the competition is an implementation of the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) python interface.

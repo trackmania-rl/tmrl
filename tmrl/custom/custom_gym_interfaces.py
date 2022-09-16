@@ -22,7 +22,7 @@ from tmrl.custom.utils.control_gamepad import control_gamepad, gamepad_reset, ga
 from tmrl.custom.utils.control_keyboard import apply_control, keyres
 from tmrl.custom.utils.control_mouse import mouse_close_finish_pop_up_tm20, mouse_save_replay_tm20
 from tmrl.custom.utils.window import WindowInterface
-from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, get_speed, load_digits
+from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient
 
 # Globals ==============================================================================================================
 
@@ -48,7 +48,6 @@ class TM2020Interface(RealTimeGymInterface):
         Args:
         """
         self.last_time = None
-        self.digits = None
         self.img_hist_len = img_hist_len
         self.img_hist = None
         self.img = None
@@ -76,7 +75,6 @@ class TM2020Interface(RealTimeGymInterface):
         self.window_interface = WindowInterface("Trackmania")
         self.window_interface.move_and_resize()
         self.last_time = time.time()
-        self.digits = load_digits()
         self.img_hist = deque(maxlen=self.img_hist_len)
         self.img = None
         self.reward_function = RewardFunction(reward_data_path=cfg.REWARD_PATH,
@@ -449,164 +447,6 @@ class TM2020InterfaceLidarProgress(TM2020InterfaceLidar):
             19,
         ))  # lidars
         return spaces.Tuple((speed, progress, imgs))
-
-
-# UNSUPPORTED: =========================================================================================================
-
-# Interface for Trackmania Nations Forever: ============================================================================
-
-
-class TMInterface(RealTimeGymInterface):
-    """
-    This is the API needed for the algorithm to control Trackmania Nations Forever
-    """
-    def __init__(self, img_hist_len=4):
-        """
-        Args:
-        """
-        self.window_interface = WindowInterface("Trackmania")
-        self.last_time = time.time()
-        self.digits = load_digits()
-        self.img_hist_len = img_hist_len
-        self.img_hist = deque(maxlen=self.img_hist_len)
-
-    def send_control(self, control):
-        """
-        Non-blocking function
-        Applies the action given by the RL policy
-        If control is None, does nothing
-        Args:
-            control: np.array: [forward,backward,right,left]
-        """
-        if control is not None:
-            actions = []
-            if control[0] > 0:
-                actions.append('f')
-            if control[1] > 0:
-                actions.append('b')
-            if control[2] > 0.5:
-                actions.append('r')
-            elif control[2] < -0.5:
-                actions.append('l')
-            apply_control(actions)
-
-    def grab_img_and_speed(self):
-        img = self.window_interface.screenshot()[:, :, :3]
-        speed = np.array([
-            get_speed(img, self.digits),
-        ], dtype='float32')
-        img = img[100:-150, :]
-        img = cv2.resize(img, (190, 50))
-        # img = np.moveaxis(img, -1, 0)
-        return img, speed
-
-    def reset(self):
-        """
-        obs must be a list of numpy arrays
-        """
-        self.send_control(self.get_default_action())
-        keyres()
-        # time.sleep(0.05)  # must be long enough for image to be refreshed
-        img, speed = self.grab_img_and_speed()
-        for _ in range(self.img_hist_len):
-            self.img_hist.append(img)
-        imgs = np.array(list(self.img_hist), dtype='float32')
-        obs = [speed, imgs]
-        return obs, {}
-
-    def wait(self):
-        """
-        Non-blocking function
-        The agent stays 'paused', waiting in position
-        """
-        self.send_control(self.get_default_action())
-
-    def get_obs_rew_terminated_info(self):
-        """
-        returns the observation, the reward, and a terminated signal for end of episode
-        obs must be a list of numpy arrays
-        """
-        img, speed = self.grab_img_and_speed()
-        rew = speed[0]
-        self.img_hist.append(img)
-        imgs = np.array(list(self.img_hist), dtype='float32')
-        obs = [speed, imgs]
-        terminated = False  # TODO: True if race complete
-        # logging.debug(f" len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
-        return obs, rew, terminated, {}
-
-    def get_observation_space(self):
-        """
-        must be a Tuple
-        """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
-        imgs = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, 50, 190, 3))
-        return spaces.Tuple((speed, imgs))
-
-    def get_action_space(self):
-        """
-        must be a Box
-        """
-        return spaces.Box(low=-1.0, high=1.0, shape=(3, ))  # 1=f; 1=b; -1=l,+1=r
-
-    def get_default_action(self):
-        """
-        initial action at episode start
-        """
-        return np.array([0.0, 0.0, 0.0], dtype='float32')
-
-
-class TMInterfaceLidar(TMInterface):
-    def __init__(self, img_hist_len=4):
-        super().__init__(img_hist_len)
-        self.lidar = Lidar(self.window_interface.screenshot())
-
-    def grab_lidar_and_speed(self):
-        img = self.window_interface.screenshot()[:, :, :3]
-        speed = np.array([
-            get_speed(img, self.digits),
-        ], dtype='float32')
-        lidar = self.lidar.lidar_20(img=img, show=False)
-        return lidar, speed
-
-    def reset(self):
-        """
-        obs must be a list of numpy arrays
-        """
-        self.send_control(self.get_default_action())
-        keyres()
-        # time.sleep(0.05)  # must be long enough for image to be refreshed
-        img, speed = self.grab_lidar_and_speed()
-        for _ in range(self.img_hist_len):
-            self.img_hist.append(img)
-        imgs = np.array(list(self.img_hist), dtype='float32')
-        obs = [speed, imgs]
-        return obs, {}
-
-    def get_obs_rew_terminated_info(self):
-        """
-        returns the observation, the reward, and a terminated signal for end of episode
-        obs must be a list of numpy arrays
-        """
-        img, speed = self.grab_lidar_and_speed()
-        rew = speed[0]
-        self.img_hist.append(img)
-        imgs = np.array(list(self.img_hist), dtype='float32')
-        obs = [speed, imgs]
-        terminated = False  # TODO: True if race complete
-        # logging.debug(f" len(obs):{len(obs)}, obs[0]:{obs[0]}, obs[1].shape:{obs[1].shape}")
-        return obs, rew, terminated, {}
-
-    def get_observation_space(self):
-        """
-        must be a Tuple
-        """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
-        imgs = spaces.Box(low=0.0, high=np.inf, shape=(
-            self.img_hist_len,
-            19,
-        ))  # lidars
-        return spaces.Tuple((speed, imgs))
 
 
 if __name__ == "__main__":

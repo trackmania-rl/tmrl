@@ -7,7 +7,7 @@ import rtgym
 # local imports
 import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TrainingOffline
-from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TM2020InterfaceLidarProgress, TMInterface, TMInterfaceLidar
+from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TM2020InterfaceLidarProgress
 from tmrl.custom.custom_memories import MemoryTMFull, MemoryTMLidar, MemoryTMLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs,obs_preprocessor_tm_lidar_progress_act_in_obs
 from tmrl.envs import GenericGymEnv
@@ -40,15 +40,12 @@ else:
     POLICY = SquashedGaussianVanillaCNNActor
 
 if cfg.PRAGMA_LIDAR:
-    if cfg.PRAGMA_TM2020_TMNF:
-        if cfg.PRAGMA_PROGRESS:
-            INT = partial(TM2020InterfaceLidarProgress, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
-        else:
-            INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
+    if cfg.PRAGMA_PROGRESS:
+        INT = partial(TM2020InterfaceLidarProgress, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
     else:
-        INT = partial(TMInterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN)
+        INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
 else:
-    INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD) if cfg.PRAGMA_TM2020_TMNF else partial(TMInterface, img_hist_len=cfg.IMG_HIST_LEN)
+    INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
 
 CONFIG_DICT = rtgym.DEFAULT_CONFIG_DICT.copy()
 CONFIG_DICT["interface"] = INT
@@ -86,7 +83,6 @@ if cfg.PRAGMA_LIDAR:
         else:
             MEM = MemoryTMLidar
 else:
-    assert cfg.PRAGMA_TM2020_TMNF, "TMNF is not officially supported."
     MEM = MemoryTMFull
 
 MEMORY = partial(MEM,

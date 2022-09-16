@@ -56,10 +56,9 @@ def main(args):
         else:
             trainer.run()
     elif args.record_reward:
-        assert cfg.PRAGMA_TM2020_TMNF, "Not supported for this environment."
         record_reward_dist(path_reward=cfg.REWARD_PATH)
     elif args.check_env:
-        assert cfg.PRAGMA_LIDAR and cfg.PRAGMA_TM2020_TMNF, "Not supported for this environment."
+        assert cfg.PRAGMA_LIDAR, "Not supported for this environment."
         check_env_tm20lidar()
     else:
         raise ArgumentTypeError('Enter a valid argument')
