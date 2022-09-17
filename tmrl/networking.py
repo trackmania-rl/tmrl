@@ -335,6 +335,7 @@ class Server:
                     print_with_timestamp(f"CAUTION: object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                     if elapsed >= cfg.ACK_TIMEOUT_SERVER_TO_TRAINER:
                         print_with_timestamp("ACK timed-out, breaking connection")
+                        conn.close()
                         self.__buffer_lock.release()
                         wait_ack = False
                         break
@@ -396,6 +397,7 @@ class Server:
                     print_with_timestamp(f"object ready but ACK from last transmission not received. Elapsed:{elapsed}s")
                     if elapsed >= cfg.ACK_TIMEOUT_SERVER_TO_WORKER:
                         print_with_timestamp("ACK timed-out, breaking connection")
+                        conn.close()
                         self.__weights_lock.release()
                         # wait_ack = False  # not needed since we end the thread
                         break
