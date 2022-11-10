@@ -36,6 +36,7 @@ It is demonstrated on the TrackMania 2020 video game.
 - [Getting started](readme/get_started.md)
 - [TMRL python library for robot RL](readme/tuto_library.md)
   - [API reference](https://tmrl.readthedocs.io/en/latest/)
+- [Security (important)](#security)
 - [Gym environment](#gym-environment)
   - [LIDAR environment](#lidar-environment)
   - [Full environment](#full-environment)
@@ -117,6 +118,27 @@ are provided at [this link](readme/get_started.md).
 ## TMRL python library
 
 A complete tutorial toward implementing your own ad-hoc optimized training pipelines for your own real-time tasks (robots, other video games...) is provided [here](readme/tuto_library.md).
+
+## Security
+
+:warning: **IMPORTANT: READ AND UNDERSTAND THIS SECTION BEFORE YOU USE `tmrl` ON A PUBLIC NETWORK**
+
+Security-wise, `tmrl` is based on [tlspyo](https://github.com/MISTLab/tls-python-object).
+
+By default, `tmrl` transfers objects via TCP in order to work out-of-the-box.
+This is fine as long as you use `tmrl` on your own private network.
+
+HOWEVER, THIS IS A SECURITY BREACH IF YOU START USING `tmrl` ON A PUBLIC NETWORK.
+
+To use `tmrl` on a public network (for instance, on the Internet), it is important that you enable Transport Layer Security (TLS).
+Follow these instructions on all your machines:
+
+- Open `config.json`;
+- Set the `"TLS"` entry to `True`;
+- Replace the `"PASSWORD"` entry with a strong password of your own (the same on all machines);
+- On the machine hosting your `Server`, generate a TLS key and certificate (follow the [tlspyo instructions](https://github.com/MISTLab/tls-python-object#tls-setup));
+- On all other machines, copy the certificate (either in the default tlspyo credentials directory or in a directory of your choice);
+- If you used your own directory in the previous step, replace the `"TLS_CREDENTIALS_DIRECTORY"` entry with its path.
 
 ## Gym environment
 In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
