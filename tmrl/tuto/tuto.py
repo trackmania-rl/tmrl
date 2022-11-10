@@ -26,7 +26,7 @@ CRC_DEBUG = False
 # === Server ===========================================================================================================
 
 if __name__ == "__main__":
-    my_server = Server(min_samples_per_server_packet=100)
+    my_server = Server()
 
 
 # === Environment ======================================================================================================
@@ -243,7 +243,6 @@ device = "cpu"
 # Networking
 
 server_ip = "127.0.0.1"
-min_samples_per_worker_packet = 100
 max_samples_per_episode = 1000
 
 
@@ -266,7 +265,6 @@ if __name__ == "__main__":
         sample_compressor=sample_compressor,
         device=device,
         server_ip=server_ip,
-        min_samples_per_worker_packet=min_samples_per_worker_packet,
         max_samples_per_episode=max_samples_per_episode,
         model_path=model_path,
         model_path_history=model_path_history,

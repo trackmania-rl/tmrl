@@ -57,10 +57,9 @@ It is demonstrated on the TrackMania 2020 video game.
 
 ## Introduction
 
-`tmrl` is a python framework designed to help you train Artificial Intelligences (AIs), also called "policies", for your own robots or real-time video games.
+`tmrl` is a python framework designed to help you train Artificial Intelligences (AIs) through deep Reinforcement Learning (RL), for your own robots or real-time video games.
 
-
-This is done through Deep Reinforcement Learning (RL).
+_Note: In RL, an AI is called a policy._
 
 ### User features (trackmania):
 * **Training algorithms:**
@@ -99,7 +98,9 @@ Find out more [here](#real-time-gym-framework).
 
 * **External libraries:**
 This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
-In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications, and [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers.
+In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications,
+[vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers,
+and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring python object over the Internet in a secure fashion.
 
 ### TMRL in the media:
 - In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. We support the training pipeline used for the show [here](#lidar-with-track-progress).
@@ -403,10 +404,11 @@ Custom `rtgym` interfaces for Trackmania used by `tmrl` are implemented in [cust
 
 ### Remote training architecture:
 
-`tmrl` is based on a client-server framework on the model of [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
-Our client-server architecture is not secured yet and it is not meant to compete with Ray, but it is much simpler to modify in order to implement ad-hoc pipelines and works on both Windows and Linux.
+`tmrl` is built with [tlspyo](https://github.com/MISTLab/tls-python-object).
+Its client-server architecture is similar to [Ray RLlib](https://docs.ray.io/en/latest/rllib.html).
+`tmrl` is not meant to compete with Ray, but it is much simpler to adapt in order to implement ad-hoc pipelines, and works on both Windows and Linux.
 
-We collect training samples from several rollout workers, typically several computers and/or robots.
+`tmrl` collects training samples from several rollout workers (typically several computers and/or robots).
 Each rollout worker stores its collected samples in a local buffer, and periodically sends this replay buffer to the central server.
 Periodically, each rollout worker also receives new policy weights from the central server and updates its policy network.
 
@@ -416,8 +418,8 @@ This buffer is periodically sent to the trainer interface.
 Periodically, the central server receives updated policy weights from the trainer interface and broadcasts these to all connected rollout workers.
 
 The trainer interface is typically located on a non-rollout worker computer of the local network, or on another computer on the Internet (like a GPU cluster).
-Of course, it is also possible to locate it on localhost if needed.
-The trainer interface periodically receives the samples gathered by the central server and appends them to a replay memory.
+Of course, it is also possible to locate everything on localhost when needed.
+The trainer interface periodically receives the samples gathered by the central server and appends these to a replay memory.
 Periodically, it sends the new policy weights to the central server.
 
 These mechanics can be summarized as follows:
@@ -429,7 +431,6 @@ These mechanics can be summarized as follows:
 You are welcome to contribute to the `tmrl` project.
 Please consider the following:
 - Further profiling and code optimization.
-- Secure and improve network communications.
 - Find the cleanest way to support sequences in `MemoryDataloading` for RNN training.
 
 

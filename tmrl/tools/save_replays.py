@@ -19,7 +19,6 @@ def save_replays(nb_replays=np.inf):
                        sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
                        device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
                        server_ip=cfg.SERVER_IP_FOR_WORKER,
-                       min_samples_per_worker_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                        model_path=cfg.MODEL_PATH_WORKER,
                        obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
                        crc_debug=cfg.CRC_DEBUG,

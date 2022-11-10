@@ -15,7 +15,7 @@ from tmrl.util import partial
 
 def main(args):
     if args.server:
-        Server(min_samples_per_server_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES)
+        serv = Server()
         while True:
             time.sleep(1.0)
     elif args.worker or args.test or args.benchmark:
@@ -28,7 +28,6 @@ def main(args):
                            sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
                            server_ip=cfg.SERVER_IP_FOR_WORKER,
-                           min_samples_per_worker_packet=1000 if not cfg.CRC_DEBUG else cfg.CRC_DEBUG_SAMPLES,
                            max_samples_per_episode=cfg.RW_MAX_SAMPLES_PER_EPISODE,
                            model_path=cfg.MODEL_PATH_WORKER,
                            obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,

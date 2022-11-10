@@ -189,12 +189,17 @@ def conv2d_out_dims(conv_layer, h_in, w_in):
     return h_out, w_out
 
 
-# Let us now define the main building block of both our actor and critic:
+# Let us now define a module that will be the main building block of both our actor and critic:
 class VanillaCNN(Module):
     def __init__(self, q_net):
+        """
+        Simple CNN model for SAC.
+
+        Args:
+            q_net: bool - indicates whether the object is a critic network:
+        """
         super(VanillaCNN, self).__init__()
 
-        # We will implement SAC, which uses a critic; this flag indicates whether the object is a critic network:
         self.q_net = q_net
 
         # Convolutional layers processing screenshots:
@@ -251,7 +256,7 @@ class VanillaCNN(Module):
 
 
 # Let us now implement our actor, wrapped in the TMRL ActorModule interface.
-# A trained such ActorModule is all you need to submit to the competition.
+# Note: A trained ActorModule is all you need to submit to the competition.
 class SquashedGaussianVanillaCNNActor(ActorModule):
     """
     ActorModule class wrapping our policy.
@@ -384,6 +389,8 @@ class SACTrainingAgent(TrainingAgent):
     """
     Our custom training algorithm (SAC).
 
+    Your implementation must at least pass these three arguments to the superclass.
+
     Args:
         observation_space (Gym.spaces.Space): observation space (here for your convenience)
         action_space (Gym.spaces.Space): action space (here for your convenience)
@@ -406,9 +413,11 @@ class SACTrainingAgent(TrainingAgent):
                  lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
                  learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
                  target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
+        # required arguments passed to the superclass:
         super().__init__(observation_space=observation_space,
                          action_space=action_space,
                          device=device)
+        # custom stuff:
         model = model_cls(observation_space, action_space)
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
@@ -434,9 +443,24 @@ class SACTrainingAgent(TrainingAgent):
             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 
     def get_actor(self):
+        """
+        Returns the current ActorModule.
+
+        Returns:
+            actor: ActorModule: updated actor module to forward to the worker(s)
+        """
         return self.model_nograd.actor
 
     def train(self, batch):
+        """
+        Executes a training iteration from batched tensors.
+
+        Args:
+            batch: (previous observation, action, reward, new observation, terminated signal, truncated signal)
+
+        Returns:
+            logs: Dictionary: a python dictionary of training metrics you wish to log on wandb
+        """
         o, a, r, o2, d, _ = batch
         pi, logp_pi = self.model.actor(o)
         loss_alpha = None

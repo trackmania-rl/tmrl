@@ -115,9 +115,8 @@ Instantiating a `Server` object is straightforward:
 ```python
 from tmrl.networking import Server
 
-my_server = Server(min_samples_per_server_packet=100)
+my_server = Server()
 ```
-Where the `min_samples_per_server_packet` parameter defines the number of training samples that the `Server` will buffer from the connected `RolloutWorkers` before sending them to the connected `Trainer`.
 
 In the current iteration of `tmrl`, as soon as the server is instantiated, it spawns two daemon threads that will run forever until the application is interrupted.
 These threads listen for incoming connections from the `Trainer` and the `RolloutWorkers`.
@@ -259,7 +258,6 @@ class RolloutWorker:
             sample_compressor: callable = None,  # compressor for sending samples over the Internet
             device="cpu",  # device on which the policy is running
             server_ip=None,  # ip of the central server
-            min_samples_per_worker_packet=1,  # # the worker waits for this number of samples before sending
             max_samples_per_episode=np.inf,  # if an episode gets longer than this, it is reset
             model_path=cfg.MODEL_PATH_WORKER,  # path where a local copy of the policy will be stored
             obs_preprocessor: callable = None,  # utility for modifying observations returned by the environment
@@ -471,12 +469,7 @@ This is done by setting the `Server` IP as the localhost IP, i.e., `"127.0.0.1"`
 server_ip = "127.0.0.1"
 ```
 
-In the current iteration of `tmrl`, samples are gathered locally in a buffer by the `RolloutWorker` and are sent to the `Server` only at the end of an episode, if the buffer length exceeds a threshold named `min_samples_per_worker_packet`.
-For instance, let us say we only want to send samples to the `Server` when at least 100 samples have been gathered in the local buffer:
-
-```python
-min_samples_per_worker_packet = 100
-```
+In the current iteration of `tmrl`, samples are gathered locally in a buffer by the `RolloutWorker` and are sent to the `Server` only at the end of an episode.
 
 In case your Gym environment is never `terminated` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
 For instance, let us say we don't want an episode to last more than 1000 time-steps:
@@ -547,7 +540,6 @@ my_worker = RolloutWorker(
     sample_compressor=sample_compressor,
     device=device,
     server_ip=server_ip,
-    min_samples_per_worker_packet=min_samples_per_worker_packet,
     max_samples_per_episode=max_samples_per_episode,
     model_path=model_path,
     model_path_history=model_path_history,
