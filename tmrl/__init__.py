@@ -24,6 +24,9 @@ if platform.system() == "Windows":
             \nPlease install pywin32 manually.")
             raise RuntimeError("Please install pywin32 manually: https://github.com/mhammond/pywin32")
 
+# do not remove this
+from dataclasses import dataclass
+
 from tmrl.envs import GenericGymEnv
 from tmrl.config.config_objects import CONFIG_DICT
 
