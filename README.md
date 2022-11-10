@@ -121,7 +121,7 @@ A complete tutorial toward implementing your own ad-hoc optimized training pipel
 
 ## Security
 
-:warning: **IMPORTANT: READ AND UNDERSTAND THIS SECTION BEFORE YOU USE `tmrl` ON A PUBLIC NETWORK**
+:warning: **IMPORTANT: READ AND UNDERSTAND THIS SECTION BEFORE YOU USE `tmrl` ON A PUBLIC NETWORK.**
 
 Security-wise, `tmrl` is based on [tlspyo](https://github.com/MISTLab/tls-python-object).
 
@@ -131,13 +131,13 @@ This is fine as long as you use `tmrl` on your own private network.
 HOWEVER, THIS IS A SECURITY BREACH IF YOU START USING `tmrl` ON A PUBLIC NETWORK.
 
 To use `tmrl` on a public network (for instance, on the Internet), it is important that you enable Transport Layer Security (TLS).
-Follow these instructions on all your machines:
+To do so, follow these instructions on all your machines:
 
 - Open `config.json`;
-- Set the `"TLS"` entry to `True`;
-- Replace the `"PASSWORD"` entry with a strong password of your own (the same on all machines);
+- Set the `"TLS"` entry to `true`;
+- Replace the `"PASSWORD"` entry with a strong password of your own (the same on all your machines);
 - On the machine hosting your `Server`, generate a TLS key and certificate (follow the [tlspyo instructions](https://github.com/MISTLab/tls-python-object#tls-setup));
-- On all other machines, copy the certificate (either in the default tlspyo credentials directory or in a directory of your choice);
+- Copy your generated certificate on all other machines (either in the default tlspyo credentials directory or in a directory of your choice);
 - If you used your own directory in the previous step, replace the `"TLS_CREDENTIALS_DIRECTORY"` entry with its path.
 
 ## Gym environment
