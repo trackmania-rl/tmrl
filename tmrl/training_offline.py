@@ -47,7 +47,7 @@ class TrainingOffline:
     update_model_interval: int = 100  # number of training steps between model broadcasts
     update_buffer_interval: int = 100  # number of training steps between retrieving buffered samples
     max_training_steps_per_env_step: float = 1.0  # training will pause when above this ratio
-    sleep_between_buffer_retrieval_attempts: float = 0.1  # algorithm will sleep for this amount of time when waiting for needed incoming samples
+    sleep_between_buffer_retrieval_attempts: float = 1.0  # algorithm will sleep for this amount of time when waiting for needed incoming samples
     profiling: bool = False  # if True, run_epoch will be profiled and the profiling will be printed at the end of each epoch
     agent_scheduler: callable = None  # if not None, must be of the form f(Agent, epoch), called at the beginning of each epoch
     start_training: int = 0  # minimum number of samples in the replay buffer before starting training
