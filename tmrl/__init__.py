@@ -1,7 +1,7 @@
 # logger (basicConfig must be called before importing anything)
 import logging
 import sys
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 import platform
 if platform.system() == "Windows":
