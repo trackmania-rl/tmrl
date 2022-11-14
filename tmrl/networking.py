@@ -128,7 +128,7 @@ class Server:
                                      'max_consumables': None}},
                              local_com_port=cfg.LOCAL_PORT_SERVER,
                              header_size=cfg.HEADER_SIZE,
-                             connection=cfg.CONNECTION,
+                             security=cfg.SECURITY,
                              keys_dir=cfg.CREDENTIALS_DIRECTORY)
 
 
@@ -153,7 +153,7 @@ class TrainerInterface:
                                    local_com_port=cfg.LOCAL_PORT_TRAINER,
                                    header_size=cfg.HEADER_SIZE,
                                    max_buf_len=cfg.BUFFER_SIZE,
-                                   connection=cfg.CONNECTION,
+                                   security=cfg.SECURITY,
                                    keys_dir=cfg.CREDENTIALS_DIRECTORY,
                                    hostname=cfg.HOSTNAME)
 
@@ -462,7 +462,7 @@ class RolloutWorker:
                                        local_com_port=cfg.LOCAL_PORT_WORKER,
                                        header_size=cfg.HEADER_SIZE,
                                        max_buf_len=cfg.BUFFER_SIZE,
-                                       connection=cfg.CONNECTION,
+                                       security=cfg.SECURITY,
                                        keys_dir=cfg.CREDENTIALS_DIRECTORY,
                                        hostname=cfg.HOSTNAME)
         else:
