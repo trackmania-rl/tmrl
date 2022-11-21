@@ -13,7 +13,50 @@ import tmrl.custom.custom_models as core
 from tmrl.nn import copy_shared, no_grad
 from tmrl.util import cached_property
 from tmrl.training import TrainingAgent
+import tmrl.config.config_constants as cfg
+
 import logging
+
+
+if cfg.DEBUG_MODEL > 0:
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    import wandb
+
+    def plot_grad_flow(model):
+        named_parameters = model.cpu().named_parameters()
+        ave_grads = []
+        max_grads = []
+        layers = []
+        for n, p in named_parameters:
+            if p.requires_grad:  # and ("bias" not in n):
+                if p.grad is None:
+                    continue
+                layers.append(n)
+                ave_grads.append(p.grad.abs().mean())
+                max_grads.append(p.grad.abs().max())
+        plt.figure(figsize=(15, 7))
+        plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
+        plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
+        plt.hlines(0, 0, len(ave_grads) + 1, lw=2, color="k")
+        plt.xticks(range(0, len(ave_grads), 1), layers, rotation="vertical")
+        plt.xlim(left=0, right=len(ave_grads))
+        plt.ylim(bottom=0.0, top=max(max_grads))  # zoom in on the lower gradient regions
+        plt.xlabel("Layers")
+        plt.ylabel("average gradient")
+        plt.title("Gradient flow")
+        plt.grid(True)
+        plt.legend([Line2D([0], [0], color="c", lw=4),
+                    Line2D([0], [0], color="b", lw=4),
+                    Line2D([0], [0], color="k", lw=4)], ['max-gradient', 'mean-gradient', 'zero-gradient'])
+        plt.tight_layout()
+        plt.draw()
+        res = wandb.Image(plt)
+        plt.close()
+        return res
+else:
+    def plot_grad_flow(model):
+        return None
 
 
 # Soft Actor-Critic ====================================================================================================
@@ -61,10 +104,21 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         else:
             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 
+        self.debug_model_every = cfg.DEBUG_MODEL
+        self.debug_model = self.debug_model_every > 0
+        self.debug_model_cpt = self.debug_model_every - 1
+
     def get_actor(self):
         return self.model_nograd.actor
 
     def train(self, batch):
+
+        debug_model_now = False
+        if self.debug_model:
+            self.debug_model_cpt += 1
+            if self.debug_model_cpt == self.debug_model_every:
+                debug_model_now = True
+                self.debug_model_cpt = 0
 
         o, a, r, o2, d, _ = batch
 
@@ -115,6 +169,9 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
         self.q_optimizer.zero_grad()
         loss_q.backward()
+        if debug_model_now:
+            im_q1 = plot_grad_flow(self.model.q1)
+            im_q2 = plot_grad_flow(self.model.q2)
         self.q_optimizer.step()
 
         # Freeze Q-networks so you don't waste computational effort
@@ -136,6 +193,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
         self.pi_optimizer.zero_grad()
         loss_pi.backward()
+        if debug_model_now:
+            im_pi = plot_grad_flow(self.model.actor)
         self.pi_optimizer.step()
 
         # Unfreeze Q-networks so you can optimize it at next DDPG step.
@@ -158,6 +217,15 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         if self.learn_entropy_coef:
             ret_dict["loss_entropy_coef"] = loss_alpha.detach()
             ret_dict["entropy_coef"] = alpha_t.item()
+
+        if debug_model_now:
+            wandb.log(
+                {
+                    "grads_q1": im_q1,
+                    "grads_q2": im_q2,
+                    "grads_pi": im_pi,
+                }
+            )
 
         return ret_dict
 

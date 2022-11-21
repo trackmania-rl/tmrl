@@ -57,6 +57,7 @@ CRC_DEBUG = False  # Only for checking the consistency of the custom networking 
 CRC_DEBUG_SAMPLES = 100  # Number of samples collected in CRC_DEBUG mode
 PROFILE_TRAINER = False  # Will profile each epoch in the Trainer when True
 SYNCHRONIZE_CUDA = False  # Set to True for profiling, False otherwise
+DEBUG_MODEL = TMRL_CONFIG["DEBUG_MODEL_EVERY"] if "DEBUG_MODEL_EVERY" in TMRL_CONFIG.keys() else -1
 
 # FILE SYSTEM: =================================================
 
@@ -85,7 +86,7 @@ os.environ['WANDB_API_KEY'] = WANDB_KEY
 
 PRINT_BYTESIZES = True
 
-PORT = TMRL_CONFIG["PORT"]  # Port to listen on (non-privileged ports are > 1023)
+PORT = TMRL_CONFIG["PORT"]  # Port to listen to (non-privileged ports are > 1023)
 LOCAL_PORT_SERVER = TMRL_CONFIG["LOCAL_PORT_SERVER"]
 LOCAL_PORT_TRAINER = TMRL_CONFIG["LOCAL_PORT_TRAINER"]
 LOCAL_PORT_WORKER = TMRL_CONFIG["LOCAL_PORT_WORKER"]
