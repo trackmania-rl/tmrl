@@ -25,8 +25,7 @@ if cfg.DEBUG_MODEL > 0:
     import wandb
 
     def plot_grad_flow(model):
-        model_copy = copy.deepcopy(model).cpu()
-        named_parameters = model_copy.named_parameters()
+        named_parameters = model.named_parameters()
         ave_grads = []
         max_grads = []
         layers = []
