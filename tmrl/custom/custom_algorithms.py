@@ -1,4 +1,5 @@
 # standard library imports
+import copy
 import itertools
 from copy import deepcopy
 from dataclasses import InitVar, dataclass
@@ -24,7 +25,8 @@ if cfg.DEBUG_MODEL > 0:
     import wandb
 
     def plot_grad_flow(model):
-        named_parameters = model.cpu().named_parameters()
+        model_copy = copy.deepcopy(model).cpu()
+        named_parameters = model_copy.named_parameters()
         ave_grads = []
         max_grads = []
         layers = []
@@ -33,8 +35,8 @@ if cfg.DEBUG_MODEL > 0:
                 if p.grad is None:
                     continue
                 layers.append(n)
-                ave_grads.append(p.grad.abs().mean())
-                max_grads.append(p.grad.abs().max())
+                ave_grads.append(p.grad.detach().abs().mean())
+                max_grads.append(p.grad.detach().abs().max())
         plt.figure(figsize=(15, 7))
         plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
         plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
