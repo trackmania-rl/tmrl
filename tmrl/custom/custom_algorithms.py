@@ -34,8 +34,8 @@ if cfg.DEBUG_MODEL > 0:
                 if p.grad is None:
                     continue
                 layers.append(n)
-                ave_grads.append(p.grad.detach().abs().mean())
-                max_grads.append(p.grad.detach().abs().max())
+                ave_grads.append(p.grad.detach().abs().mean().cpu())
+                max_grads.append(p.grad.detach().abs().max().cpu())
         plt.figure(figsize=(15, 7))
         plt.bar(np.arange(len(max_grads)), max_grads, alpha=0.1, lw=1, color="c")
         plt.bar(np.arange(len(max_grads)), ave_grads, alpha=0.1, lw=1, color="b")
