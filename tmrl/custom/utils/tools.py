@@ -16,11 +16,12 @@ from tmrl.config.config_constants import LIDAR_BLACK_THRESHOLD
 
 
 class TM2020OpenPlanetClient:
-    def __init__(self, host='127.0.0.1', port=9000, nb_floats_to_unpack=11):
-        # Script attributes:
-        self.nb_floats_to_unpack = nb_floats_to_unpack
-        self._nb_bytes = self.nb_floats_to_unpack * 4
-        self._struct_str = '<' + 'f' * self.nb_floats_to_unpack
+    def __init__(self, host='127.0.0.1', port=9000, struct_str='<' + 'f' * 11):
+        self._struct_str = struct_str
+        self.nb_floats = self._struct_str.count('f')
+        self.nb_uint64 = self._struct_str.count('Q')
+        self._nb_bytes = self.nb_floats * 4 + self.nb_uint64 * 8
+
         self._host = host
         self._port = port
 
@@ -49,20 +50,26 @@ class TM2020OpenPlanetClient:
                 self.__data = data_used
                 self.__lock.release()
 
-    def retrieve_data(self, sleep_if_empty=0.1):
+    def retrieve_data(self, sleep_if_empty=0.1, timeout=10.0):
         """
         Retrieves the most recently received data
         Use this function to retrieve the most recently received data
         If block if nothing has been received so far
         """
         c = True
+        t_start = None
         while c:
             self.__lock.acquire()
             if self.__data is not None:
                 data = struct.unpack(self._struct_str, self.__data)
                 c = False
+                self.__data = None
             self.__lock.release()
             if c:
+                if t_start is None:
+                    t_start = time.time()
+                t_now = time.time()
+                assert t_now - t_start < timeout, f"OpenPlanet stopped sending data since more than {timeout}s."
                 time.sleep(sleep_if_empty)
         return data
 
