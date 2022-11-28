@@ -36,23 +36,7 @@ def shallow_copy(obj: T) -> T:
     return x
 
 
-# === collate, partition, etc ============================================================================================
-
-
-def data_to_cuda(data):
-    r"""Converts each tensor to cuda"""
-    elem_type = type(data)
-    if isinstance(data, torch.Tensor):
-        return data.to('cuda') if not data.is_cuda else data
-    elif isinstance(data, Mapping):
-        return {key: data_to_cuda(data[key]) for key in data}
-    elif isinstance(data, tuple) and hasattr(data, '_fields'):  # namedtuple
-        return elem_type(*(data_to_cuda(d) for d in data))
-    elif isinstance(data, Sequence):
-        return [data_to_cuda(d) for d in data]
-    else:
-        return data
-
+# === collate, partition, etc ==========================================================================================
 
 def collate(batch, device=None):
     """Turns a batch of nested structures with numpy arrays as leaves into into a single element of the same nested structure with batched torch tensors as leaves"""
@@ -74,21 +58,6 @@ def collate(batch, device=None):
         return type(elem)((key, collate(tuple(d[key] for d in batch), device)) for key in elem)
     else:
         return torch.from_numpy(np.array(batch)).to(device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
-
-
-def partition(x):
-    """Turns a nested structure with batched torch tensors as leaves into a batch of elements with the same nested structure and un-batched numpy arrays as leaves"""
-    if isinstance(x, torch.Tensor):
-        # return x.cpu()
-        return x.cpu().numpy()  # perhaps we should convert this to tuple for consistency?
-    elif isinstance(x, Mapping):
-        m = {k: partition(x[k]) for k in x}
-        numel = len(tuple(m.values())[0])
-        out = tuple(type(x)((key, value[i]) for key, value in m.items()) for i in range(numel))
-        return out
-    elif isinstance(x, Tuple):
-        return tuple(zip(*[partition(elem) for elem in x]))
-    raise TypeError()
 
 
 # === catched property =================================================================================================
@@ -233,17 +202,6 @@ def dump(obj, path):
 def load(path):
     with open(path, 'rb') as f:
         return pickle.load(f)
-
-
-def dumps_torch(obj):
-    with io.BytesIO() as f:
-        torch.save(obj, f)
-        return f.getvalue()
-
-
-def loads_torch(b: bytes):
-    with io.BytesIO(b) as f:
-        return torch.load(f)
 
 
 def save_json(d, path):

@@ -115,9 +115,6 @@ class TrainingOffline:
 
             for batch in self.memory:  # this samples a fixed number of batches
 
-                if cfg.SYNCHRONIZE_CUDA:
-                    torch.cuda.synchronize()
-
                 t_sample = time.time()
 
                 if self.total_updates % self.update_buffer_interval == 0:
@@ -130,9 +127,6 @@ class TrainingOffline:
                     logging.info(f"starting training")
 
                 stats_training_dict = self.agent.train(batch)
-
-                if cfg.SYNCHRONIZE_CUDA:
-                    torch.cuda.synchronize()
 
                 t_train = time.time()
 
@@ -148,9 +142,6 @@ class TrainingOffline:
                     # broadcast model weights
                     interface.broadcast_model(self.agent.get_actor())
                 self.check_ratio(interface)
-
-                if cfg.SYNCHRONIZE_CUDA:
-                    torch.cuda.synchronize()
 
                 t_sample_prev = time.time()
 

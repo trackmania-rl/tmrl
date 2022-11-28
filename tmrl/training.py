@@ -27,7 +27,7 @@ class TrainingAgent(ABC):
         Executes a training step.
 
         Args:
-            batch: tuple or batched torch.tensors (previous observation, action, reward, new observation, terminated, truncated)
+            batch: tuple or batched tensors (previous observation, action, reward, new observation, terminated, truncated)
 
         Returns:
             ret_dict: dictionary: a dictionary containing one entry per metric you wish to log (e.g. for wandb)

@@ -2,24 +2,20 @@
 
 
 # standard library imports
-from dataclasses import InitVar, dataclass
 
 # third-party imports
-import gym
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from math import floor, sqrt
-from torch.nn import Conv2d, Linear, Module, ModuleList, ReLU, Sequential
+from torch.nn import Conv2d, Module, ModuleList
 # import torchvision
 
 # local imports
-from tmrl.nn import TanhNormalLayer
 from tmrl.util import prod
-from tmrl.actor import ActorModule
-import logging
+from tmrl.actor import TorchActorModule
 
 
 # SUPPORTED ============================================================================================================
@@ -51,7 +47,7 @@ LOG_STD_MAX = 2
 LOG_STD_MIN = -20
 
 
-class SquashedGaussianMLPActor(ActorModule):
+class SquashedGaussianMLPActor(TorchActorModule):
     def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU):
         super().__init__(observation_space, action_space)
         dim_obs = sum(prod(s for s in space.shape) for space in observation_space)
@@ -386,7 +382,7 @@ def effnetv2_xl(**kwargs):
     return EffNetV2(cfgs, **kwargs)
 
 
-class SquashedGaussianEffNetActor(ActorModule):
+class SquashedGaussianEffNetActor(TorchActorModule):
     def __init__(self, observation_space, action_space):
         super().__init__(observation_space, action_space)
         dim_act = action_space.shape[0]
@@ -534,7 +530,7 @@ class VanillaCNN(Module):
         return x
 
 
-class SquashedGaussianVanillaCNNActor(ActorModule):
+class SquashedGaussianVanillaCNNActor(TorchActorModule):
     def __init__(self, observation_space, action_space):
         super().__init__(observation_space, action_space)
         dim_act = action_space.shape[0]
@@ -643,7 +639,7 @@ class VanillaCNNActorCritic(nn.Module):
 #         return x
 #
 #
-# class SquashedGaussianMobileNetActor(ActorModule):
+# class SquashedGaussianMobileNetActor(TorchActorModule):
 #     def __init__(self, observation_space, action_space):
 #         super().__init__(observation_space, action_space)
 #         dim_act = action_space.shape[0]

@@ -17,7 +17,7 @@ def save_replays(nb_replays=np.inf):
     rw = RolloutWorker(env_cls=partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": config}),
                        actor_module_cls=partial(cfg_obj.POLICY),
                        sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
-                       device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
+                       device='cuda' if cfg.CUDA_INFERENCE else 'cpu',
                        server_ip=cfg.SERVER_IP_FOR_WORKER,
                        model_path=cfg.MODEL_PATH_WORKER,
                        obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,

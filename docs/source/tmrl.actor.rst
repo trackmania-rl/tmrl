@@ -2,5 +2,5 @@ tmrl.actor module
 =================
 
 .. automodule:: tmrl.actor
-   :members: ActorModule
+   :members: ActorModule, TorchActorModule
    :show-inheritance:

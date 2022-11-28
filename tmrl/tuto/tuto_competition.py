@@ -11,25 +11,25 @@ trained policy. In TMRL, this is encapsulated in an ActorModule.
 Note: this tutorial describes implementing a TrainingAgent in TMRL.
 The TMRL framework is relevant if you want to implement RL approaches.
 If you plan to try non-RL approaches instead, this is also accepted:
-just use the Gym environment and do whatever you need,
+just use the competition Gym environment and do whatever you need,
 then, wrap your trained policy in an ActorModule, and submit :)
 """
 
-# Okay, first, let us import some useful stuff.
+# Okay folks, we will start by importing useful stuff.
+
 # The constants that are defined in config.json:
 import tmrl.config.config_constants as cfg
-# Higher-level partially instantiated classes that are fixed for the competition:
-# (in particular this includes the Gym environment)
-import tmrl.config.config_objects as cfg_obj  # higher-level constants that are fixed for the competition
-# The utility that is used in TMRL to partially instantiate classes:
+# High-level constants that are fixed for the competition:
+import tmrl.config.config_objects as cfg_obj
+# The utility that TMRL uses to partially instantiate classes:
 from tmrl.util import partial
-# The main TMRL components of a training pipeline:
+# The main TMRL classes:
 from tmrl.networking import Server, RolloutWorker, Trainer
 
-# The training object that we will customize with our own algorithm to replace the default SAC trainer:
+# The training class that we will customize with our own training algorithm:
 from tmrl.training_offline import TrainingOffline
 
-# External libraries:
+# And useful external libraries:
 import numpy as np
 
 
@@ -45,11 +45,11 @@ import numpy as np
 epochs = cfg.TMRL_CONFIG["MAX_EPOCHS"]
 
 # number of rounds per 'epoch':
-# training metrics are displayed in terminal at the end of each round
+# (training metrics are displayed in the terminal at the end of each round)
 rounds = cfg.TMRL_CONFIG["ROUNDS_PER_EPOCH"]
 
 # number of training steps per round:
-# (a training step is a call to the train() function that we will define later)
+# (a training step is a call to the train() function that we will define later in this tutorial)
 steps = cfg.TMRL_CONFIG["TRAINING_STEPS_PER_ROUND"]
 
 # minimum number of environment steps collected before training starts
@@ -67,7 +67,7 @@ update_model_interval = cfg.TMRL_CONFIG["UPDATE_MODEL_INTERVAL"]
 update_buffer_interval = cfg.TMRL_CONFIG["UPDATE_BUFFER_INTERVAL"]
 
 # training device (e.g., "cuda:0"):
-# if None, the device will be selected automatically
+# if None, the training device will be selected automatically
 device = None
 
 # maximum size of the replay buffer:
@@ -82,7 +82,7 @@ batch_size = cfg.TMRL_CONFIG["BATCH_SIZE"]
 # =====================================================================
 # You may want to change the following in advanced applications;
 # however, most competitors will not need to change this.
-# If interested, read the full TMRL tutorial.
+# If interested, read the full TMRL tutorial on GitHub.
 
 # base class of the replay memory:
 memory_base_cls = cfg_obj.MEM
@@ -103,7 +103,7 @@ dataset_path = cfg.DATASET_PATH
 # with the observations corresponding to their default values. The rule
 # about these history lengths is only here for simplicity. You are
 # allowed to hack this within your ActorModule implementation by, e.g.,
-# storing histories if you like.)
+# storing your own histories if you like.)
 
 # rtgym environment class (full TrackMania Gym environment):
 env_cls = cfg_obj.ENV_CLS
@@ -121,6 +121,7 @@ act_buf_len = cfg.ACT_BUF_LEN
 # Nothing to do here.
 # This is the memory class passed to the Trainer.
 # If you need a custom memory, change the relevant advanced parameters.
+# Custom memories are described in the full TMRL tutorial.
 
 memory_cls = partial(memory_base_cls,
                      memory_size=memory_size,
@@ -140,20 +141,26 @@ memory_cls = partial(memory_base_cls,
 # Alright, now for the fun part.
 # Our goal in this competition is to come up with the best trained
 # ActorModule for TrackMania 2020, where an 'ActorModule' is a policy.
-# In this tutorial, we present a deep RL-way of tackling this problem:
+# In this tutorial, we present a deep RL way of tackling this problem:
 # we implement our own deep neural network architecture (ActorModule),
-# and then we implement our own RL algorithm to train this module..
+# and then we implement our own RL algorithm to train this module.
 
 
-# We implement SAC and a hybrid CNN/MLP model.
+# We will implement SAC and a hybrid CNN/MLP model.
 # The following constants are from the Spinnup implementation of SAC
 # that we simply adapt in this tutorial.
 LOG_STD_MAX = 2
 LOG_STD_MIN = -20
 
 
+# Let us import this thing that we are supposed to implement.
 from tmrl.actor import ActorModule
+
+# Pytorch and math will be useful too:
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from math import floor
 
 
 # In the full version of the TrackMania 2020 environment, the
@@ -164,8 +171,19 @@ import torch
 # screenshots thanks to an MLP following our CNN layers.
 
 
-# Let us first define a simple MLP:
+# Here is the MLP:
 def mlp(sizes, activation, output_activation=nn.Identity):
+    """
+    A simple MLP.
+
+    Args:
+        sizes: list of integers representing the hidden size of each layer
+        activation: activation function of hidden layers
+        output_activation: activation function of the last layer
+
+    Returns:
+        Our MLP in the form of a Pytorch Sequential module
+    """
     layers = []
     for j in range(len(sizes) - 1):
         act = activation if j < len(sizes) - 2 else output_activation
@@ -190,27 +208,27 @@ def conv2d_out_dims(conv_layer, h_in, w_in):
 
 
 # Let us now define a module that will be the main building block of both our actor and critic:
-class VanillaCNN(Module):
+class VanillaCNN(nn.Module):
     def __init__(self, q_net):
         """
         Simple CNN model for SAC.
 
         Args:
-            q_net: bool - indicates whether the object is a critic network:
+            q_net (bool): indicates whether the object is a critic network
         """
         super(VanillaCNN, self).__init__()
 
         self.q_net = q_net
 
         # Convolutional layers processing screenshots:
-        self.h_out, self.w_out = 64, 64
-        self.conv1 = Conv2d(4, 64, 8, stride=2)
+        self.h_out, self.w_out = 64, 64  # We will feed grayscale images of 64 x 64 pixels to our model
+        self.conv1 = nn.Conv2d(4, 64, 8, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
-        self.conv2 = Conv2d(64, 64, 4, stride=2)
+        self.conv2 = nn.Conv2d(64, 64, 4, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)
-        self.conv3 = Conv2d(64, 128, 4, stride=2)
+        self.conv3 = nn.Conv2d(64, 128, 4, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv3, self.h_out, self.w_out)
-        self.conv4 = Conv2d(128, 128, 4, stride=2)
+        self.conv4 = nn.Conv2d(128, 128, 4, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv4, self.h_out, self.w_out)
         self.out_channels = self.conv4.out_channels
 
@@ -218,17 +236,29 @@ class VanillaCNN(Module):
         self.flat_features = self.out_channels * self.h_out * self.w_out
 
         # Dimensionality of the MLP input:
-
-        # (Note that when the module is the critic, the MLP is also fed the action, which is 3 floats in TrackMania)
+        # The MLP input will be formed of:
+        # - the flattened CNN output
+        # - the current speed, gear and RPM measurements (3 floats)
+        # - the 2 previous actions (2 x 3 floats), important because of the real-time nature of our controller
+        # - when the module is the critic, the selected action (3 floats)
         self.mlp_input_features = self.flat_features + 12 if self.q_net else self.flat_features + 9
 
         # MLP layers:
-        # (when using the model as a policy, we need to sample from a multivariate gaussian defined later in the code;
+        # (when using the model as a policy, we will sample from a multivariate gaussian defined later in the tutorial;
         # thus, the output dimensionality is  1 for the critic, and we will define the output layer of policies later)
         self.mlp_layers = [256, 256, 1] if self.q_net else [256, 256]
         self.mlp = mlp([self.mlp_input_features] + self.mlp_layers, nn.ReLU)
 
     def forward(self, x):
+        """
+        In Pytorch, the forward function is where our neural network computes its output from its input.
+
+        Args:
+            x (torch.Tensor): input tensor (i.e., the observation fed to our deep neural network)
+
+        Returns:
+            the output of our neural network in the form of a torch.Tensor
+        """
         if self.q_net:
             # The critic takes the current action act as additional input
             # act1 and act2 are the actions in the action buffer (see real-time RL):
@@ -237,63 +267,78 @@ class VanillaCNN(Module):
             # For the policy, we still need the action buffer in observations:
             speed, gear, rpm, images, act1, act2 = x
 
-        # CNN forward pass:
+        # Forward pass of our images in the CNN:
+        # (note that the competition environment outputs histories of 4 images,
+        # we will stack these images along the channel dimension of our input tensor)
         x = F.relu(self.conv1(images))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
         x = F.relu(self.conv4(x))
+
+        # Now we will flatten our output feature map.
+        # Let us double-check that our dimensions are what we expect them to be:
         flat_features = num_flat_features(x)
         assert flat_features == self.flat_features, f"x.shape:{x.shape}, flat_features:{flat_features}, self.out_channels:{self.out_channels}, self.h_out:{self.h_out}, self.w_out:{self.w_out}"
+        # All good, let us flatten our output feature map:
         x = x.view(-1, flat_features)
 
-        # MLP forward pass:
+        # Finally, we can feed the result along with our float values to the MLP:
         if self.q_net:
             x = torch.cat((speed, gear, rpm, x, act1, act2, act), -1)
         else:
             x = torch.cat((speed, gear, rpm, x, act1, act2), -1)
         x = self.mlp(x)
+
+        # And this gives us the output of our deep neural network :)
         return x
 
 
-# Let us now implement our actor, wrapped in the TMRL ActorModule interface.
-# Note: A trained ActorModule is all you need to submit to the competition.
+# We can now implement this TMRL ActorModule interface that we are supposed to submit for the competition.
+# Once trained, TMRL will save it in the TmrlData/weights folder.
 class SquashedGaussianVanillaCNNActor(ActorModule):
     """
-    ActorModule class wrapping our policy.
+    Our policy wrapped in the TMRL ActorModule class.
+
+    The only required method is ActorModule.act().
+    We also implement a forward() method for our training algorithm.
+    (Note: ActorModule is a subclass of torch.Module)  # FIXME change this useless thing
     """
     def __init__(self, observation_space, action_space):
         """
-        If you want to reimplement __init__, use the observation_space, action_space arguments.
-        You don't have to use them, they are only here for convenience in case you want them.
+        When implementing __init__, we need to take the observation_space, action_space arguments.
+        They are here for convenience in case we want them.
 
         Args:
             observation_space: observation space of the Gym environment
             action_space: action space of the Gym environment
         """
-        # And don't forget to call the superclass __init__:
+        # We must also call the superclass __init__:
         super().__init__(observation_space, action_space)
         dim_act = action_space.shape[0]  # dimensionality of actions
         act_limit = action_space.high[0]  # maximum amplitude of actions
-        # Our CNN+MLP module:
+        # Our hybrid CNN+MLP policy:
         self.net = VanillaCNN(q_net=False)
         # The policy output layer, which samples actions stochastically in a gaussian, with means...:
         self.mu_layer = nn.Linear(256, dim_act)
         # ... and log standard deviations:
         self.log_std_layer = nn.Linear(256, dim_act)
-        # We will squash this within the action space thanks to a tanh activation:
+        # We will squash this within the action space thanks to a tanh final activation:
         self.act_limit = act_limit
 
     def forward(self, obs, test=False):
         """
-        Forward pass in our policy.
+        Computes the output action of our policy from the input observation.
+
+        The whole point of deep RL will be to train our policy network such that is outputs relevant actions.
+        Training per-se will also rely on a critic network, but this is not part of the trained policy.
 
         Args:
             obs: the observation from the Gym environment
-            test: this will be True for test episodes and False for training episodes
+            test: this is True for test episodes (deployment) and False for training episodes
 
         Returns:
-            pi_action: the action sampled in the policy
-            logp_pi: the log probability of the action for SAC
+            the action sampled from our policy
+            the log probability of this action (this will be used for SAC)
         """
         # MLP:
         net_out = self.net(obs)

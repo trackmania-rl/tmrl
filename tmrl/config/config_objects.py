@@ -101,7 +101,7 @@ MEMORY = partial(MEM,
 if ALG_NAME == "SAC":
     AGENT = partial(
         SAC_Agent,
-        device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
+        device='cuda' if cfg.CUDA_TRAINING else 'cpu',
         model_cls=TRAIN_MODEL,
         lr_actor=ALG_CONFIG["LR_ACTOR"],
         lr_critic=ALG_CONFIG["LR_CRITIC"],
@@ -115,7 +115,7 @@ if ALG_NAME == "SAC":
 else:
     AGENT = partial(
         REDQ_Agent,
-        device='cuda' if cfg.PRAGMA_CUDA_TRAINING else 'cpu',
+        device='cuda' if cfg.CUDA_TRAINING else 'cpu',
         model_cls=TRAIN_MODEL,
         lr_actor=ALG_CONFIG["LR_ACTOR"],
         lr_critic=ALG_CONFIG["LR_CRITIC"],

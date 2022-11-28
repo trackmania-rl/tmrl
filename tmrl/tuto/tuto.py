@@ -6,19 +6,19 @@ import torch
 from torch.optim import Adam
 from copy import deepcopy
 
-from threading import Thread, Lock
+from threading import Thread
 
 from tmrl.networking import Server, RolloutWorker, Trainer
 from tmrl.util import partial, cached_property
 from tmrl.envs import GenericGymEnv
 
-from tmrl.actor import ActorModule
+from tmrl.actor import TorchActorModule
 from tmrl.util import prod
 
 import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TrainingOffline
 from tmrl.training import TrainingAgent
-from tmrl.nn import copy_shared, no_grad
+from tmrl.custom.utils.nn import copy_shared, no_grad
 
 
 CRC_DEBUG = False
@@ -160,7 +160,7 @@ def mlp(sizes, activation, output_activation=torch.nn.Identity):
     return torch.nn.Sequential(*layers)
 
 
-class MyActorModule(ActorModule):
+class MyActorModule(TorchActorModule):
     """
     Directly adapted from the Spinup implementation of SAC
     """

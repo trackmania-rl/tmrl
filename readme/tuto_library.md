@@ -256,7 +256,6 @@ class RolloutWorker:
             env_cls=None,  # class of the Gym environment
             actor_module_cls=None,  # class of a module containing the policy
             sample_compressor: callable = None,  # compressor for sending samples over the Internet
-            device="cpu",  # device on which the policy is running
             server_ip=None,  # ip of the central server
             max_samples_per_episode=np.inf,  # if an episode gets longer than this, it is reset
             model_path=cfg.MODEL_PATH_WORKER,  # path where a local copy of the policy will be stored
@@ -319,17 +318,18 @@ This history of actions is required to make the observation space Markov because
 The second argument is `actor_module_cls`.
 
 This expects a class that implements the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) interface.
-`ActorModule` is a pytorch neural network (i.e., a subclass of `torch.nn.Module`) that implements an extra `act()` method on top of the usual `forward()` method.
+When using pytorch, we can conveniently use `TorchActorModule` instead, which partially implements this interface.
+`TorchActorModule` is a pytorch neural network (i.e., a subclass of `torch.nn.Module`) that implements an extra `act()` method on top of the usual `forward()` method.
 The neural network is what will be trained by the Trainer (our policy), while the `act()` method is for the `RolloutWorker` to interact with this policy.
 
 On top of the `act()` method, subclasses of `ActorModule` must implement a `__init__()` method that takes at least two arguments: `observation_space` and `action_space`.
 This enables you to implement generic models as we will do now.
 
 Let us implement this module for our dummy drone environment.
-Here, we basically copy-paste the implementation of the SAC MLP actor from [OpenAI Spinup](https://github.com/openai/spinningup/blob/038665d62d569055401d91856abb287263096178/spinup/algos/pytorch/sac/core.py#L29) and adapt it to the `ActorModule` interface:
+Here, we basically copy-paste the implementation of the SAC MLP actor from [OpenAI Spinup](https://github.com/openai/spinningup/blob/038665d62d569055401d91856abb287263096178/spinup/algos/pytorch/sac/core.py#L29) and adapt it to the `TorchActorModule` interface:
 
 ```python
-from tmrl.actor import ActorModule
+from tmrl.actor import TorchActorModule
 from tmrl.util import prod
 import torch
 import torch.nn.functional as F
@@ -347,7 +347,7 @@ def mlp(sizes, activation, output_activation=torch.nn.Identity):
     return torch.nn.Sequential(*layers)
 
 
-class MyActorModule(ActorModule):
+class MyActorModule(TorchActorModule):
     """
     Directly adapted from the Spinup implementation of SAC
     """
@@ -1009,56 +1009,56 @@ Again, here, we simply adapt the SAC implementation from Spinup, but of course y
 
 ```python
 from tmrl.training import TrainingAgent
-from tmrl.nn import copy_shared, no_grad
+from tmrl.custom.utils.nn import copy_shared, no_grad
 from tmrl.util import cached_property
 from torch.optim import Adam
 from copy import deepcopy
 import itertools
 
-class MyTrainingAgent(TrainingAgent):
-    
-    model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
-    
-    def __init__(self,
-                 observation_space=None,
-                 action_space=None,
-                 device=None,
-                 model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
-                 gamma=0.99,  # discount factor
-                 polyak=0.995,  # exponential averaging factor for the target critic
-                 alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
-                 lr_actor=1e-3,  # learning rate for the actor
-                 lr_critic=1e-3,  # learning rate for the critic
-                 lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
-                 learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
-                 target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
-        super().__init__(observation_space=observation_space,
-                         action_space=action_space,
-                         device=device)
 
-        model = model_cls(observation_space, action_space)
-        self.model = model.to(device)
-        self.model_target = no_grad(deepcopy(self.model))
-        self.gamma = gamma
-        self.polyak = polyak
-        self.alpha = alpha
-        self.lr_actor = lr_actor
-        self.lr_critic = lr_critic
-        self.lr_entropy = lr_entropy
-        self.learn_entropy_coef=learn_entropy_coef
-        self.target_entropy = target_entropy
-        self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
-        self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
-        self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
-        if self.target_entropy is None:
-            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
-        else:
-            self.target_entropy = float(self.target_entropy)
-        if self.learn_entropy_coef:
-            self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
-            self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
-        else:
-            self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
+class MyTrainingAgent(TrainingAgent):
+  model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
+
+  def __init__(self,
+               observation_space=None,
+               action_space=None,
+               device=None,
+               model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
+               gamma=0.99,  # discount factor
+               polyak=0.995,  # exponential averaging factor for the target critic
+               alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
+               lr_actor=1e-3,  # learning rate for the actor
+               lr_critic=1e-3,  # learning rate for the critic
+               lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
+               learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
+               target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
+    super().__init__(observation_space=observation_space,
+                     action_space=action_space,
+                     device=device)
+
+    model = model_cls(observation_space, action_space)
+    self.model = model.to(device)
+    self.model_target = no_grad(deepcopy(self.model))
+    self.gamma = gamma
+    self.polyak = polyak
+    self.alpha = alpha
+    self.lr_actor = lr_actor
+    self.lr_critic = lr_critic
+    self.lr_entropy = lr_entropy
+    self.learn_entropy_coef = learn_entropy_coef
+    self.target_entropy = target_entropy
+    self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
+    self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
+    self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
+    if self.target_entropy is None:
+      self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+    else:
+      self.target_entropy = float(self.target_entropy)
+    if self.learn_entropy_coef:
+      self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
+      self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
+    else:
+      self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 ```
 
 The `get_actor()` method outputs the `ActorModule` to be broadcast to the `RolloutWorkers`:

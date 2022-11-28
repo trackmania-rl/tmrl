@@ -1,28 +1,22 @@
 # standard library imports
 import datetime
 import os
-import pickle
-import select
 import socket
 import time
 import atexit
-# import gc
 import json
 import shutil
 import tempfile
 from os.path import exists
-from copy import deepcopy
-from threading import Lock, Thread
 
 # third-party imports
 import numpy as np
-import torch
 from requests import get
 from tlspyo import Relay, Endpoint
 
 # local imports
 from tmrl.actor import ActorModule
-from tmrl.util import collate, dump, load, partial_to_dict
+from tmrl.util import dump, load, partial_to_dict
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
 
@@ -168,7 +162,7 @@ class TrainerInterface:
         model must be an ActorModule
         broadcasts the model's weights to all connected RolloutWorkers
         """
-        torch.save(model.state_dict(), self.model_path)
+        model.save(self.model_path)
         with open(self.model_path, 'rb') as f:
             weights = f.read()
         self.__endpoint.broadcast(weights, "workers")
@@ -432,12 +426,12 @@ class RolloutWorker:
         act_space = self.env.action_space
         self.model_path = model_path
         self.model_path_history = model_path_history
-        self.actor = actor_module_cls(observation_space=obs_space, action_space=act_space).to(device)
         self.device = device
+        self.actor = actor_module_cls(observation_space=obs_space, action_space=act_space).to_device(self.device)
         self.standalone = standalone
         if os.path.isfile(self.model_path):
             logging.debug(f"Loading model from {self.model_path}")
-            self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
+            self.actor = self.actor.load(self.model_path, device=self.device)
         else:
             logging.debug(f"No model found at {self.model_path}")
         self.buffer = Buffer()
@@ -470,7 +464,7 @@ class RolloutWorker:
 
     def act(self, obs, test=False):
         """
-        Converts inputs to torch tensors and converts outputs to numpy arrays.
+        Select an action based on observation `obs`
 
         Args:
             obs (nested structure): observation
@@ -481,9 +475,7 @@ class RolloutWorker:
         """
         # if self.obs_preprocessor is not None:
         #     obs = self.obs_preprocessor(obs)
-        obs = collate([obs], device=self.device)
-        with torch.no_grad():
-            action = self.actor.act(obs, test=test)
+        action = self.actor.act_(obs, test=test)
         return action
 
     def reset(self, collect_samples):
@@ -637,19 +629,6 @@ class RolloutWorker:
             # if self.crc_debug:
             #     break
 
-    def profile_step(self):
-        import torch.autograd.profiler as profiler
-        obs, info = self.reset(collect_samples=True)
-        use_cuda = True if self.device == 'cuda' else False
-        print_with_timestamp(f"use_cuda:{use_cuda}")
-        with profiler.profile(record_shapes=True, use_cuda=use_cuda) as prof:
-            obs = collate([obs], device=self.device)
-            with profiler.record_function("pytorch_profiler"):
-                with torch.no_grad():
-                    action_distribution = self.actor(obs)
-                    action = action_distribution.sample()
-        print_with_timestamp(prof.key_averages().table(row_limit=20, sort_by="cpu_time_total"))
-
     def run_env_benchmark(self, nb_steps, test=False):
         """
         Benchmarks the environment.
@@ -694,5 +673,5 @@ class RolloutWorker:
                         f.write(weights)
                     self._cur_hist_cpt = 0
                     print_with_timestamp("model weights saved in history")
-            self.actor.load_state_dict(torch.load(self.model_path, map_location=self.device))
+            self.actor = self.actor.load(self.model_path, device=self.device)
             print_with_timestamp("model weights have been updated")

@@ -26,7 +26,7 @@ def main(args):
         rw = RolloutWorker(env_cls=partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": config}),
                            actor_module_cls=cfg_obj.POLICY,
                            sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
-                           device='cuda' if cfg.PRAGMA_CUDA_INFERENCE else 'cpu',
+                           device='cuda' if cfg.CUDA_INFERENCE else 'cpu',
                            server_ip=cfg.SERVER_IP_FOR_WORKER,
                            max_samples_per_episode=cfg.RW_MAX_SAMPLES_PER_EPISODE,
                            model_path=cfg.MODEL_PATH_WORKER,

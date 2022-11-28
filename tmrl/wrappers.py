@@ -1,14 +1,9 @@
 # standard library imports
-from collections import deque
-from random import randint, randrange, sample
 from typing import Mapping, Sequence
 
 # third-party imports
 import gym
 import numpy as np
-from gym.spaces import Discrete, Tuple
-from gym.wrappers import TimeLimit
-import logging
 
 
 class AffineObservationWrapper(gym.ObservationWrapper):
@@ -43,8 +38,7 @@ class Float64ToFloat32(gym.ObservationWrapper):
 
 
 def deepmap(f, m):
-    """Apply functions to the leaves of a dictionary or list, depending type of the leaf value.
-    Example: deepmap({torch.Tensor: lambda t: t.detach()}, x)."""
+    """Apply functions to the leaves of a dictionary or list, depending type of the leaf value."""
     for cls in f:
         if isinstance(m, cls):
             return f[cls](m)

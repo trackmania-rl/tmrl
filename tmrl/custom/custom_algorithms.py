@@ -1,8 +1,7 @@
 # standard library imports
-import copy
 import itertools
 from copy import deepcopy
-from dataclasses import InitVar, dataclass
+from dataclasses import dataclass
 
 # third-party imports
 import numpy as np
@@ -11,7 +10,7 @@ from torch.optim import Adam
 
 # local imports
 import tmrl.custom.custom_models as core
-from tmrl.nn import copy_shared, no_grad
+from tmrl.custom.utils.nn import copy_shared, no_grad
 from tmrl.util import cached_property
 from tmrl.training import TrainingAgent
 import tmrl.config.config_constants as cfg
