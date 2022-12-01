@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import torch
 import pickle
 
-from tmrl.util import collate
+from tmrl.util import collate_torch
 
 
 __docformat__ = "google"
@@ -138,7 +138,7 @@ class TorchActorModule(ActorModule, torch.nn.Module, ABC):
         return self
 
     def act_(self, obs, test=False):
-        obs = collate([obs], device=self.device)
+        obs = collate_torch([obs], device=self.device)
         with torch.no_grad():
             action = self.act(obs, test=test)
         return action

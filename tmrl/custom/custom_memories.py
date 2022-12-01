@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 
 # local imports
-from tmrl.memory_dataloading import MemoryDataloading
+from tmrl.memory import TorchMemory
 
 # LOCAL BUFFER COMPRESSION ==============================
 
@@ -92,7 +92,7 @@ def replace_hist_before_eoe(hist, eoe_idx_in_hist):
 # SUPPORTED CUSTOM MEMORIES ============================================================================================
 
 
-class MemoryTM(MemoryDataloading):
+class MemoryTM(TorchMemory):
     def __init__(self,
                  memory_size=None,
                  batch_size=None,

@@ -4,15 +4,15 @@ import pickle
 import zlib
 from abc import ABC, abstractmethod
 from pathlib import Path
-from random import randint, random
+from random import randint
 import logging
 
 # third-party imports
 import numpy as np
-from torch.utils.data import DataLoader, Dataset, Sampler
+# from torch.utils.data import DataLoader, Dataset, Sampler
 
 # local imports
-from tmrl.util import collate
+from tmrl.util import collate_torch
 
 
 __docformat__ = "google"
@@ -31,34 +31,9 @@ def check_samples_crc(original_po, original_a, original_o, original_r, original_
     print("DEBUG: CRC check passed.")
 
 
-class MemoryBatchSampler(Sampler):
+class Memory(ABC):
     """
-    Iterator over nb_steps randomly sampled batches of size batch_size
-    """
-    def __init__(self, data_source, nb_steps, batch_size):
-        super().__init__(data_source)
-        self._dataset = data_source
-        self._nb_steps = nb_steps
-        self._batch_size = batch_size
-
-    def __len__(self):
-        return self._nb_steps
-
-    def __iter__(self):
-        i = 0
-        while i < self._nb_steps:
-            i += 1
-            yield (int(len(self._dataset) * random()) - 1 for _ in range(self._batch_size))  # faster than randint
-
-
-class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but partial doesn't work with Dataset
-    """
-    Interface for a simple replay buffer.
-
-    This class supports sampling and collating simple batches of prev_obs, new_act, new_obs, rew, terminated, truncated.
-
-    In case you need more advanced replay buffers, you can store whatever you need in the `info` dict and collate
-    batches manually in your TrainingAgent.
+    Interface implementing the replay buffer.
 
     .. note::
        When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
@@ -71,10 +46,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
                  memory_size=1000000,
                  batch_size=256,
                  dataset_path="",
-                 crc_debug=False,
-                 use_dataloader=False,
-                 num_workers=0,
-                 pin_memory=False):
+                 crc_debug=False):
         """
         Args:
             device (str): output tensors will be collated to this device
@@ -84,12 +56,8 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
             batch_size (int): batch size of the output tensors
             dataset_path (str): an offline dataset may be provided here to initialize the memory
             crc_debug (bool): False usually, True when using CRC debugging of the pipeline
-            use_dataloader (bool): Not yet supported
-            num_workers (int): Not yet supported
-            pin_memory: Not yet supported
         """
         self.nb_steps = nb_steps
-        self.use_dataloader = use_dataloader
         self.device = device
         self.batch_size = batch_size
         self.memory_size = memory_size
@@ -104,7 +72,7 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
 
         # init memory
         self.path = Path(dataset_path)
-        logging.debug(f"MemoryDataloading self.path:{self.path}")
+        logging.debug(f"Memory self.path:{self.path}")
         if os.path.isfile(self.path / 'data.pkl'):
             with open(self.path / 'data.pkl', 'rb') as f:
                 self.data = list(pickle.load(f))
@@ -116,17 +84,9 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
             # TODO: crop to memory_size
             logging.warning(f"the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
-        # init dataloader
-        self._batch_sampler = MemoryBatchSampler(data_source=self, nb_steps=nb_steps, batch_size=batch_size)
-        self._dataloader = DataLoader(dataset=self, batch_sampler=self._batch_sampler, num_workers=num_workers, pin_memory=pin_memory)
-
     def __iter__(self):
-        if not self.use_dataloader:
-            for _ in range(self.nb_steps):
-                yield self.sample()
-        else:
-            for batch in self._dataloader:
-                yield batch  # TODO: move this to self.device !!!
+        for _ in range(self.nb_steps):
+            yield self.sample()
 
     @abstractmethod
     def append_buffer(self, buffer):
@@ -164,6 +124,34 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def collate(self, batch, device):
+        """
+        Must collate `batch` onto `device`.
+
+        `batch` is a list of training samples.
+        The length of `batch` is `batch_size`.
+        Each training sample in the list is of the form `(prev_obs, new_act, rew, new_obs, terminated, truncated)`.
+        These samples must be collated into 6 tensors of batch dimension `batch_size`.
+        These tensors should be collated onto the device indicated by the `device` argument.
+        Then, your implementation must return a single tuple containing these 6 tensors.
+
+        Args:
+            batch (list): list of `(prev_obs, new_act, rew, new_obs, terminated, truncated)` tuples
+            device: device onto which the list needs to be collated into batches `batch_size`
+
+        Returns:
+            tuple of tensors `(prev_obs_tens, new_act_tens, rew_tens, new_obs_tens, terminated_tens, truncated_tens)`,
+                collated on device `device`, each of batch dimension `batch_size`
+        """
+        raise NotImplementedError
+
+    def sample(self):
+        indices = self.sample_indices()
+        batch = [self[idx] for idx in indices]
+        batch = self.collate(batch, self.device)
+        return batch
+
     def append(self, buffer):
         if len(buffer) > 0:
             self.stat_train_return = buffer.stat_train_return
@@ -186,11 +174,49 @@ class MemoryDataloading(ABC):  # FIXME: should be an instance of Dataset but par
     def sample_indices(self):
         return (randint(0, len(self) - 1) for _ in range(self.batch_size))
 
-    def sample(self, indices=None):
-        indices = self.sample_indices() if indices is None else indices
-        batch = [self[idx] for idx in indices]
-        batch = collate(batch, self.device)
-        return batch
+
+class TorchMemory(Memory, ABC):
+    """
+    Partial implementation of the `Memory` class collating samples into batched torch tensors.
+
+    .. note::
+       When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
+       Your `__init__` method needs to take at least all the arguments of the superclass.
+    """
+    def __init__(self,
+                 device,
+                 nb_steps,
+                 sample_preprocessor: callable = None,
+                 memory_size=1000000,
+                 batch_size=256,
+                 dataset_path="",
+                 crc_debug=False,
+                 use_dataloader=False,
+                 num_workers=0,
+                 pin_memory=False):
+        """
+        Args:
+            device (str): output tensors will be collated to this device
+            nb_steps (int): number of steps per round
+            sample_preprocessor (callable): can be used for data augmentation
+            memory_size (int): size of the circular buffer
+            batch_size (int): batch size of the output tensors
+            dataset_path (str): an offline dataset may be provided here to initialize the memory
+            crc_debug (bool): False usually, True when using CRC debugging of the pipeline
+            use_dataloader (bool): Not yet supported
+            num_workers (int): Not yet supported
+            pin_memory: Not yet supported
+        """
+        super().__init__(memory_size=memory_size,
+                         batch_size=batch_size,
+                         dataset_path=dataset_path,
+                         nb_steps=nb_steps,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
+
+    def collate(self, batch, device):
+        return collate_torch(batch, device)
 
 
 def load_and_print_pickle_file(path=r"C:\Users\Yann\Desktop\git\tmrl\data\data.pkl"):  # r"D:\data2020"

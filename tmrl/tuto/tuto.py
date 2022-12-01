@@ -16,7 +16,7 @@ from tmrl.actor import TorchActorModule
 from tmrl.util import prod
 
 import tmrl.config.config_constants as cfg
-from tmrl.training_offline import TrainingOffline
+from tmrl.training_offline import TorchTrainingOffline
 from tmrl.training import TrainingAgent
 from tmrl.custom.utils.nn import copy_shared, no_grad
 
@@ -295,12 +295,12 @@ env_cls = partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": my
 # env_cls = (observation_space, action_space)
 
 
-# MemoryDataloading:
+# Memory:
 
-from tmrl.memory_dataloading import MemoryDataloading
+from tmrl.memory import TorchMemory
 
 
-class MyMemoryDataloading(MemoryDataloading):
+class MyMemory(TorchMemory):
     def __init__(self,
                  act_buf_len=None,
                  device=None,
@@ -422,7 +422,7 @@ class MyMemoryDataloading(MemoryDataloading):
         return last_obs, new_act, rew, new_obs, terminated, truncated, info
 
 
-memory_cls = partial(MyMemoryDataloading,
+memory_cls = partial(MyMemory,
                      act_buf_len=my_config["act_buf_len"])
 
 
@@ -579,7 +579,7 @@ device = None
 # Trainer instance:
 
 training_cls = partial(
-    TrainingOffline,
+    TorchTrainingOffline,
     env_cls=env_cls,
     memory_cls=memory_cls,
     training_agent_cls=training_agent_cls,

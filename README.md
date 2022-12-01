@@ -453,7 +453,7 @@ These mechanics can be summarized as follows:
 You are welcome to contribute to the `tmrl` project.
 Please consider the following:
 - Further profiling and code optimization.
-- Find the cleanest way to support sequences in `MemoryDataloading` for RNN training.
+- Find the cleanest way to support sequences in `Memory` for RNN training.
 
 
 ## Authors:

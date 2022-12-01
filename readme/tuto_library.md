@@ -48,7 +48,7 @@ If you think an option to install `tmrl` without support for TrackMania should e
   - [Networking and files](#networking-and-files)
   - [Training class](#training-class)
     - [Dummy environment](#dummy-environment)
-    - [MemoryDataloading](#memory)
+    - [Memory](#memory)
     - [TrainingAgent](#training-agent)
     - [Training parameters](#training-parameters)
   - [Instantiate and run](#instantiate-and-run-the-trainer)
@@ -571,8 +571,8 @@ For the moment, let us just comment this line:
 In `tmrl`, RL training per-se happens in the `Trainer` entity.
 
 The `Trainer` connects to the `Server`, from which it receives compressed samples gathered from connected `RolloutWorkers`.
-These samples are stored (possibly in compressed format) in a memory object called `MemoryDataloading`.
-They are decompressed either when stored, or when sampled from the `MemoryDataloading`, depending on the user choice.
+These samples are stored (possibly in compressed format) in a memory object called `Memory`.
+They are decompressed either when stored, or when sampled from the `Memory`, depending on the user choice.
 The decompressed samples are then used by an object called `TrainingAgent` to optimize the policy weights, that the `Trainer` periodically sends back to the `Server` so they are broadcast to all connected `RolloutWorkers`.
 
 The prototype of the `Trainer` class is:
@@ -632,13 +632,15 @@ This expects a training class, possibly partially initialized.
 At the moment, `tmrl` supports one training class called [TrainingOffline](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/training_offline.py).
 This class is meant for off-policy asynchronous RL algorithms such as SAC.
 
-The `TrainingOffline` prototype is:
+When using PyTorch, the `TorchTrainingOffline` subclass further enables automatic selection of an available device.
+
+The `TorchTrainingOffline` prototype is:
 
 ```python
 @dataclass(eq=0)
-class TrainingOffline:
+class TorchTrainingOffline:
     env_cls: type = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces
-    memory_cls: type = MemoryDataloading  # replay memory
+    memory_cls: type = TorchMemory  # replay memory
     training_agent_cls: type = TrainingAgent  # training agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
     rounds: int = 50  # number of rounds per epoch, we generate statistics every round
@@ -653,7 +655,7 @@ class TrainingOffline:
     device: str = None  # device on which the model of the TrainingAgent will live (None for automatic)
 ```
 
-A `TrainingOffline` class instantiation requires other (possibly partially instantiated) classes as arguments: a dummy environment, a `MemoryDataloading`, and a `TrainingAgent`
+`TorchTrainingOffline` requires other (possibly partially instantiated) classes as arguments: a dummy environment, a `TorchMemory`, and a `TrainingAgent`
 
 #### Dummy environment:
 `env_cls`: Most of the time, the dummy environment class that you need to pass here is the same class as for the `RolloutWorker` Gym environment:
@@ -674,15 +676,15 @@ env_cls = (observation_space, action_space)
 #### Memory:
 
 `memory_cls` is the class of your replay buffer.
-This must be a subclass of `MemoryDataloading`.
+This must be a subclass of `TorchMemory`.
 
-The role of a `MemoryDataloading` object is to store and decompress samples received by the `Trainer` from the `Server`.
+The role of a `TorchMemory` object is to store and decompress samples received by the `Trainer` from the `Server`.
 
 
-`MemoryDataloading` has the following interface:
+`TorchMemory` has the following interface:
 
 ```python
-class MemoryDataloading(ABC):
+class TorchMemory(ABC):
     def __init__(self,
                  device,  # output tensors will be collated to this device
                  nb_steps,  # number of steps per round
@@ -728,7 +730,7 @@ You do not need to worry about `device` and `nb_steps`, as they will be set auto
 We will not do this in the tutorial, but you can find a no-op example [here](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/custom/custom_preprocessors.py#L41) (for syntax).
 This argument is also only to be passed to the superclass.
 
-`memory_size` is the maximum number of transitions that can be contained in your `MemoryDataloading` object.
+`memory_size` is the maximum number of transitions that can be contained in your `TorchMemory` object.
 When this size is exceeded, you will want to trim your memory in the `append_buffer()` method.
 The implementation of this trimming is left to your discretion.
 Pass this to the superclass.
@@ -744,14 +746,15 @@ Otherwise, `self.data` will be initialized with an empty list.
 We will not be using this option in this tutorial, though.
 Again, just pass to the superclass.
 
-Let us implement our own `MemoryDataloading`.
+Let us implement our own `TorchMemory`.
 
 ```python
-from tmrl.memory_dataloading import MemoryDataloading
+from tmrl.memory import TorchMemory
 
-class MyMemoryDataloading(MemoryDataloading):
-    
-    # (...)
+
+class MyMemory(TorchMemory):
+
+# (...)
 ```
 
 You can do whatever you want in the `__init__()` method as long as you initialize the superclass with its relevant arguments.
@@ -779,7 +782,7 @@ Thus, we will use the action buffer length as an additional argument to our cust
 ```
 
 
-In fact, the `MemoryDataloading` class leaves the whole storing and sampling procedures to your discretion.
+In fact, the `TorchMemory` class leaves the whole storing and sampling procedures to your discretion.
 This is because, when using `tmrl`, you may want to do exotic things such as storing samples on your hard drive (if they contain images for instance).
 If you have implemented a sample compressor for the `RolloutWorker` (as we have done earlier in this tutorial), you will also need to implement a decompression scheme.
 This decompression may happen either in `append_buffer()` (if you privilege sampling speed) or in `get_transition()` (if you privilege memory usage).
@@ -913,12 +916,12 @@ This is because at least the last computed action (`new_act`) must be in the act
 _Note 2: in our dummy RC drone environment, the action buffer is not reset on calls to `reset()` and thus we don't need to do anything special about it here.
 However, in other environments, this will not always be the case.
 If you want to be extra picky, you may need to take special care for rebuilding transitions that happened after a `terminated` or `truncated` signal is set to `True`.
-This is done in the `tmrl` implementation of [MemoryDataloading for TrackMania](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_memories.py)._
+This is done in the `tmrl` implementation of [TorchMemory for TrackMania](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_memories.py)._
 
 We now have our `memory_cls` argument:
 
 ```python
-memory_cls = partial(MyMemoryDataloading,
+memory_cls = partial(MyMemory,
                      act_buf_len=my_config["act_buf_len"])
 ```
 
@@ -1189,7 +1192,7 @@ If set to 500, training will start only after 500 environment steps are collecte
 start_training = 500
 ```
 
-`device` is the device on which training will take place (it is the `device` parameter that will be passed to `MemoryDataloading` and `TrainingAgent`).
+`device` is the device on which training will take place (it is the `device` parameter that will be passed to `TorchMemory` and `TrainingAgent`).
 If set to `None`, the training device will be selected automatically:
 
 ```python
@@ -1202,10 +1205,10 @@ In particular, `profiling` enables profiling training (but this doesn't work wel
 We finally have our training class:
 
 ```python
-from tmrl.training_offline import TrainingOffline
+from tmrl.training_offline import TorchTrainingOffline
 
 training_cls = partial(
-    TrainingOffline,
+    TorchTrainingOffline,
     env_cls=env_cls,
     memory_cls=memory_cls,
     training_agent_cls=training_agent_cls,
@@ -1257,7 +1260,7 @@ my_trainer.run_with_wandb(entity=my_wandb_entity,
 ```
 
 _(**WARNING**: when using `run_with_wandb`, make sure all the partially instantiated classes that are part of the `Trainer` have kwargs only, no args, otherwise you will get an error complaining about invalid keywords.
-When it does not make sense to have default values, just set the default values to `None` as done in, e.g., `MyMemoryDataloading`)_
+When it does not make sense to have default values, just set the default values to `None` as done in, e.g., `MyMemory`)_
 
 But as for the `RolloutWorker`, this would block the code here until all `epochs` are complete, which in itself would require the `RolloutWorker` to also be running.
 
@@ -1316,9 +1319,9 @@ The "CRC debugging" tool should **only** be used for debugging as it will comple
 
 In `crc_debug` mode, the `RolloutWorker` will store the full transition in the `info` dictionary of each sample.
 
-In `crc_debug` mode, your `MemoryDataloading` will convert each sampled transition into a python string, and compare this string with the one obtained from the transition in the `info` dictionary.
+In `crc_debug` mode, your `TorchMemory` will convert each sampled transition into a python string, and compare this string with the one obtained from the transition in the `info` dictionary.
 If something does not match, the program will stop and you will be shown what is mismatched.
 Otherwise, you will get a "CRC check passed" message printed in the terminal for each sample correctly rebuilt.
 
 We recommend using the `crc_debug` mode as a sanity check whenever you implement a compression/decompression pipeline.
-To activate this mode, set the `crc_debug` arguments to `True` for both your `RolloutWorker` and `MemoryDataloading` instances.
+To activate this mode, set the `crc_debug` arguments to `True` for both your `RolloutWorker` and `TorchMemory` instances.

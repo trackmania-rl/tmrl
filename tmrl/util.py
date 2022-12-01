@@ -10,12 +10,12 @@ import signal
 import subprocess
 import weakref
 from pathlib import Path
-from contextlib import contextmanager
-from dataclasses import Field, dataclass, fields, is_dataclass, make_dataclass
+# from contextlib import contextmanager
+# from dataclasses import Field, dataclass, fields, is_dataclass, make_dataclass
 from importlib import import_module
-from itertools import chain
+# from itertools import chain
 from typing import Any, Callable, Dict, Mapping, Sequence, Tuple, Type, TypeVar, Union
-from weakref import WeakKeyDictionary
+# from weakref import WeakKeyDictionary
 
 # third-party imports
 import numpy as np
@@ -38,7 +38,7 @@ def shallow_copy(obj: T) -> T:
 
 # === collate, partition, etc ==========================================================================================
 
-def collate(batch, device=None):
+def collate_torch(batch, device=None):
     """Turns a batch of nested structures with numpy arrays as leaves into into a single element of the same nested structure with batched torch tensors as leaves"""
     elem = batch[0]
     if isinstance(elem, torch.Tensor):
@@ -48,14 +48,14 @@ def collate(batch, device=None):
         else:
             return torch.stack([b.contiguous().to(device) for b in batch], 0)
     elif isinstance(elem, np.ndarray):
-        return collate(tuple(torch.from_numpy(b) for b in batch), device)
+        return collate_torch(tuple(torch.from_numpy(b) for b in batch), device)
     elif hasattr(elem, '__torch_tensor__'):
         return torch.stack([b.__torch_tensor__().to(device) for b in batch], 0)
     elif isinstance(elem, Sequence):
         transposed = zip(*batch)
-        return type(elem)(collate(samples, device) for samples in transposed)
+        return type(elem)(collate_torch(samples, device) for samples in transposed)
     elif isinstance(elem, Mapping):
-        return type(elem)((key, collate(tuple(d[key] for d in batch), device)) for key in elem)
+        return type(elem)((key, collate_torch(tuple(d[key] for d in batch), device)) for key in elem)
     else:
         return torch.from_numpy(np.array(batch)).to(device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
 

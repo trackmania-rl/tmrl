@@ -17,5 +17,5 @@ Module list
    tmrl.actor
    tmrl.training
    tmrl.training_offline
-   tmrl.memory_dataloading
+   tmrl.memory
    tmrl.envs

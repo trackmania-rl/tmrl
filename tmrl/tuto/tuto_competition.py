@@ -1,21 +1,23 @@
 """
-=======================================================================
+==============================================================================
 COMPETITION TUTORIAL #1: Custom model and RL algorithm
-=======================================================================
+==============================================================================
 
-In this tutorial, we customize the default TrackMania pipeline.
+In this tutorial, we will customize the default TrackMania pipeline.
 
-To submit an entry to the TMRL competition, we essentially need a
-trained policy. In TMRL, this is encapsulated in an ActorModule.
+Copy and adapt this script to implement your own algorithm/model in TrackMania.
 
-Note: this tutorial describes implementing a TrainingAgent in TMRL.
-The TMRL framework is relevant if you want to implement RL approaches.
+To submit an entry to the competition, we essentially need a trained policy.
+In TMRL, a policy is encapsulated in an ActorModule.
+
+Note: This tutorial describes implementing and running a TrainingAgent.
+This is relevant if you want to implement RL approaches.
 If you plan to try non-RL approaches instead, this is also accepted:
 just use the competition Gym environment and do whatever you need,
-then, wrap your trained policy in an ActorModule, and submit :)
+then, wrap your trained policy in an ActorModule, and submit your entry :)
 """
 
-# Okay folks, we will start by importing useful stuff.
+# Let us first import some useful stuff.
 
 # The constants that are defined in config.json:
 import tmrl.config.config_constants as cfg
@@ -23,15 +25,18 @@ import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
 # The utility that TMRL uses to partially instantiate classes:
 from tmrl.util import partial
-# The main TMRL classes:
-from tmrl.networking import Server, RolloutWorker, Trainer
+# The TMRL Trainer class, which encapsulates everything that is training-related:
+from tmrl.networking import Trainer
 
 # The training class that we will customize with our own training algorithm:
 from tmrl.training_offline import TrainingOffline
 
 # And useful external libraries:
 import numpy as np
+import os
 
+
+# Now, let us import the content of config.json.
 
 # =====================================================================
 # USEFUL PARAMETERS
@@ -39,42 +44,51 @@ import numpy as np
 # You can change these parameters here directly,
 # or you can change them in the config.json file.
 
-# maximum number of training 'epochs':
-# training is checkpointed at the end of each 'epoch'
-# this is also when training metrics can be logged to wandb
+# Maximum number of training 'epochs':
+# (training is checkpointed at the end of each 'epoch', this is also when training metrics can be logged to wandb)
 epochs = cfg.TMRL_CONFIG["MAX_EPOCHS"]
 
-# number of rounds per 'epoch':
+# Number of rounds per 'epoch':
 # (training metrics are displayed in the terminal at the end of each round)
 rounds = cfg.TMRL_CONFIG["ROUNDS_PER_EPOCH"]
 
-# number of training steps per round:
+# Number of training steps per round:
 # (a training step is a call to the train() function that we will define later in this tutorial)
 steps = cfg.TMRL_CONFIG["TRAINING_STEPS_PER_ROUND"]
 
-# minimum number of environment steps collected before training starts
+# Minimum number of environment steps collected before training starts:
 # (this is useful when you want to fill your replay buffer with samples from a baseline policy)
 start_training = cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"]
 
-# maximum training steps / env steps ratio:
+# Maximum training steps / env steps ratio:
 # (if training becomes faster than this ratio, it will be paused waiting for new samples from the environment)
 max_training_steps_per_env_step = cfg.TMRL_CONFIG["MAX_TRAINING_STEPS_PER_ENVIRONMENT_STEP"]
 
-# number of training steps between when the Trainer broadcasts policy updates:
+# Number of training steps between when the Trainer broadcasts policy updates:
 update_model_interval = cfg.TMRL_CONFIG["UPDATE_MODEL_INTERVAL"]
 
-# number of training steps between when the Trainer updates its replay buffer with the buffer of received samples:
+# Number of training steps between when the Trainer updates its replay buffer with the buffer of received samples:
 update_buffer_interval = cfg.TMRL_CONFIG["UPDATE_BUFFER_INTERVAL"]
 
-# training device (e.g., "cuda:0"):
-# if None, the training device will be selected automatically
+# Training device (e.g., "cuda:0"):
+# (if None, the training device will be selected automatically)
 device = None
 
-# maximum size of the replay buffer:
+# Maximum size of the replay buffer:
 memory_size = cfg.TMRL_CONFIG["MEMORY_SIZE"]
 
-# batch size for training:
+# Batch size for training:
 batch_size = cfg.TMRL_CONFIG["BATCH_SIZE"]
+
+# Wandb credentials:
+# (Change this with your own if you want to keep your training curves private)
+# (Also, please use your own credentials if you are going to log images and other huge stuff :) )
+wandb_run_id = "competition_tutorial"  # change this by a name of your choice for your run
+wandb_project = cfg.TMRL_CONFIG["WANDB_PROJECT"]  # name of the wandb project in which you run will appear
+wandb_entity = cfg.TMRL_CONFIG["WANDB_ENTITY"]  # wandb account
+wandb_key = cfg.TMRL_CONFIG["WANDB_KEY"]  # wandb API key
+
+os.environ['WANDB_API_KEY'] = wandb_key  # do not change this line (it sets your wandb API key as active)
 
 
 # =====================================================================
@@ -84,13 +98,13 @@ batch_size = cfg.TMRL_CONFIG["BATCH_SIZE"]
 # however, most competitors will not need to change this.
 # If interested, read the full TMRL tutorial on GitHub.
 
-# base class of the replay memory:
+# Base class of the replay memory:
 memory_base_cls = cfg_obj.MEM
 
-# sample preprocessor for data augmentation:
+# Sample preprocessor for data augmentation:
 sample_preprocessor = None
 
-# path from where an offline dataset can be loaded:
+# Path from where an offline dataset can be loaded:
 dataset_path = cfg.DATASET_PATH
 
 
@@ -103,15 +117,15 @@ dataset_path = cfg.DATASET_PATH
 # with the observations corresponding to their default values. The rule
 # about these history lengths is only here for simplicity. You are
 # allowed to hack this within your ActorModule implementation by, e.g.,
-# storing your own histories if you like.)
+# storing your own histories if you want.)
 
 # rtgym environment class (full TrackMania Gym environment):
 env_cls = cfg_obj.ENV_CLS
 
-# number of consecutive screenshots (this is part of observations):
+# Number of consecutive screenshots (this is part of observations):
 imgs_buf_len = cfg.IMG_HIST_LEN
 
-# number of actions in the action buffer (this is part of observations):
+# Number of actions in the action buffer (this is part of observations):
 act_buf_len = cfg.ACT_BUF_LEN
 
 
@@ -153,13 +167,16 @@ LOG_STD_MAX = 2
 LOG_STD_MIN = -20
 
 
-# Let us import this thing that we are supposed to implement.
-from tmrl.actor import ActorModule
+# Let us import this ActorModule that we are supposed to implement.
+# We will use PyTorch in this tutorial.
+# TMRL readily provides a PyTorch-specific subclass of ActorModule:
+from tmrl.actor import TorchActorModule
 
 # Pytorch and math will be useful too:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.distributions.normal import Normal
 from math import floor
 
 
@@ -174,7 +191,7 @@ from math import floor
 # Here is the MLP:
 def mlp(sizes, activation, output_activation=nn.Identity):
     """
-    A simple MLP.
+    A simple MLP (MultiLayer Perceptron).
 
     Args:
         sizes: list of integers representing the hidden size of each layer
@@ -191,7 +208,7 @@ def mlp(sizes, activation, output_activation=nn.Identity):
     return nn.Sequential(*layers)
 
 
-# This utility computes the dimensionality of CNN feature maps when flattened together:
+# The next utility computes the dimensionality of CNN feature maps when flattened together:
 def num_flat_features(x):
     size = x.size()[1:]  # dimension 0 is the batch dimension, so it is ignored
     num_features = 1
@@ -200,7 +217,7 @@ def num_flat_features(x):
     return num_features
 
 
-# This utility computes the dimensionality of the output in a 2D CNN layer:
+# The next utility computes the dimensionality of the output in a 2D CNN layer:
 def conv2d_out_dims(conv_layer, h_in, w_in):
     h_out = floor((h_in + 2 * conv_layer.padding[0] - conv_layer.dilation[0] * (conv_layer.kernel_size[0] - 1) - 1) / conv_layer.stride[0] + 1)
     w_out = floor((w_in + 2 * conv_layer.padding[1] - conv_layer.dilation[1] * (conv_layer.kernel_size[1] - 1) - 1) / conv_layer.stride[1] + 1)
@@ -211,10 +228,10 @@ def conv2d_out_dims(conv_layer, h_in, w_in):
 class VanillaCNN(nn.Module):
     def __init__(self, q_net):
         """
-        Simple CNN model for SAC.
+        Simple CNN (Convolutional Neural Network) model for SAC (Soft Actor-Critic).
 
         Args:
-            q_net (bool): indicates whether the object is a critic network
+            q_net (bool): indicates whether this neural net is a critic network
         """
         super(VanillaCNN, self).__init__()
 
@@ -260,11 +277,11 @@ class VanillaCNN(nn.Module):
             the output of our neural network in the form of a torch.Tensor
         """
         if self.q_net:
-            # The critic takes the current action act as additional input
+            # The critic takes the next action act as additional input
             # act1 and act2 are the actions in the action buffer (see real-time RL):
             speed, gear, rpm, images, act1, act2, act = x
         else:
-            # For the policy, we still need the action buffer in observations:
+            # For the policy, the next action is what we are computing, so we don't have it:
             speed, gear, rpm, images, act1, act2 = x
 
         # Forward pass of our images in the CNN:
@@ -278,11 +295,15 @@ class VanillaCNN(nn.Module):
         # Now we will flatten our output feature map.
         # Let us double-check that our dimensions are what we expect them to be:
         flat_features = num_flat_features(x)
-        assert flat_features == self.flat_features, f"x.shape:{x.shape}, flat_features:{flat_features}, self.out_channels:{self.out_channels}, self.h_out:{self.h_out}, self.w_out:{self.w_out}"
+        assert flat_features == self.flat_features, f"x.shape:{x.shape},\
+                                                    flat_features:{flat_features},\
+                                                    self.out_channels:{self.out_channels},\
+                                                    self.h_out:{self.h_out},\
+                                                    self.w_out:{self.w_out}"
         # All good, let us flatten our output feature map:
         x = x.view(-1, flat_features)
 
-        # Finally, we can feed the result along with our float values to the MLP:
+        # Finally, we can feed the result along our float values to the MLP:
         if self.q_net:
             x = torch.cat((speed, gear, rpm, x, act1, act2, act), -1)
         else:
@@ -293,27 +314,29 @@ class VanillaCNN(nn.Module):
         return x
 
 
-# We can now implement this TMRL ActorModule interface that we are supposed to submit for the competition.
-# Once trained, TMRL will save it in the TmrlData/weights folder.
-class SquashedGaussianVanillaCNNActor(ActorModule):
+# We can now implement the TMRL ActorModule interface that we are supposed to submit for this competition.
+# During training, TMRL will regularly save it in the TmrlData/weights folder.
+class SquashedGaussianVanillaCNNActor(TorchActorModule):
     """
     Our policy wrapped in the TMRL ActorModule class.
 
     The only required method is ActorModule.act().
     We also implement a forward() method for our training algorithm.
-    (Note: ActorModule is a subclass of torch.Module)  # FIXME change this useless thing
+
+    (Note: TorchActorModule is a subclass of ActorModule and torch.nn.Module)
     """
     def __init__(self, observation_space, action_space):
         """
         When implementing __init__, we need to take the observation_space, action_space arguments.
-        They are here for convenience in case we want them.
 
         Args:
             observation_space: observation space of the Gym environment
             action_space: action space of the Gym environment
         """
-        # We must also call the superclass __init__:
+        # We must call the superclass __init__:
         super().__init__(observation_space, action_space)
+
+        # And initialize the attributes that we will need:
         dim_act = action_space.shape[0]  # dimensionality of actions
         act_limit = action_space.high[0]  # maximum amplitude of actions
         # Our hybrid CNN+MLP policy:
@@ -325,77 +348,115 @@ class SquashedGaussianVanillaCNNActor(ActorModule):
         # We will squash this within the action space thanks to a tanh final activation:
         self.act_limit = act_limit
 
-    def forward(self, obs, test=False):
+    def forward(self, obs, test=False, compute_logprob=True):
         """
         Computes the output action of our policy from the input observation.
 
-        The whole point of deep RL will be to train our policy network such that is outputs relevant actions.
+        The whole point of deep RL is to train our policy network (actor) such that is outputs relevant actions.
         Training per-se will also rely on a critic network, but this is not part of the trained policy.
+        Thus, our ActorModule will only implement the actor.
 
         Args:
-            obs: the observation from the Gym environment
-            test: this is True for test episodes (deployment) and False for training episodes
+            obs: the observation from the Gym environment (when using TorchActorModule, this is a torch.Tensor)
+            test (bool): this is True for test episodes (deployment) and False for training episodes;
+                in SAC, this enables us to sample randomly during training and deterministically at test-time.
+            compute_logprob (bool): SAC will set this to True to retrieve log probabilities.
 
         Returns:
-            the action sampled from our policy
+            the action sampled from our policy from observation obs
             the log probability of this action (this will be used for SAC)
         """
-        # MLP:
+        # obs is our input observation.
+        # We feed it to our actor neural network, which will output an action.
+
+        # Let us feed it to our MLP:
         net_out = self.net(obs)
-        # means of the multivariate gaussian (action vector)
+        # Now, the means of our multivariate gaussian (i.e., Normal law) are:
         mu = self.mu_layer(net_out)
-        # standard deviations:
+        # And the corresponding standard deviations are:
         log_std = self.log_std_layer(net_out)
         log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
         std = torch.exp(log_std)
-        # action sampling
+        # We can now sample our action in the resulting multivariate gaussian (Normal) distribution:
         pi_distribution = Normal(mu, std)
         if test:
-            pi_action = mu
+            pi_action = mu  # at test time, our action is deterministic (it is just the means)
         else:
-            pi_action = pi_distribution.rsample()
-        # log probabilities:
-        logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-        logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
-        # squashing within the action space:
+            pi_action = pi_distribution.rsample()  # during training, it is sampled in the multivariate gaussian
+        # We retrieve the log probabilities of our multivariate gaussian as they will be useful for SAC:
+        if compute_logprob:
+            logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
+            # (the next line is a correction formula for TanH squashing, present in the Spinup implementation of SAC)
+            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
+        else:
+            logp_pi = None
+        # And we squash our action within the action space:
         pi_action = torch.tanh(pi_action)
         pi_action = self.act_limit * pi_action
+        # Finally, we remove the batch dimension:
         pi_action = pi_action.squeeze()
         return pi_action, logp_pi
 
+    # Now, the only method that all participants are required to implement is act()
+    # act() is the interface for TMRL to use your ActorModule as the policy it tests in TrackMania.
+    # For the evaluation, the "test" argument will be set to True.
     def act(self, obs, test=False):
         """
         Computes an action from an observation.
 
+        This method is the one all participants must implement.
+        It is the policy that TMRL will use in TrackMania to evaluate your submission.
+
         Args:
-            obs (object): the observation
-            test (bool): True at test time, False otherwise
+            obs (object): the input observation (when using TorchActorModule, this is a torch.Tensor)
+            test (bool): True at test-time (e.g., during evaluation...), False otherwise
 
         Returns:
-            act (numpy.array): the computed action
+            act (numpy.array): the computed action, in the form of a numpy array of 3 values between -1.0 and 1.0
         """
+        # Since we have already implemented our policy in the form of a neural network,
+        # act() is now pretty straightforward.
+        # We don't need to compute the log probabilities here (they will be for our SAC training algorithm).
+        # Also note that, when using TorchActorModule, TMRL calls act() in a torch.no_grad() context.
+        # Thus, you don't need to use "with torch.no_grad()" here.
+        # But let us do it anyway to be extra sure, for the people using ActorModule instead of TorchActorModule.
         with torch.no_grad():
-            a, _ = self.forward(obs, test, False)
+            a, _ = self.forward(obs=obs, test=test, compute_logprob=False)
             return a.numpy()
 
 
-# The critic module is straightforward:
+# The critic module for SAC is now super straightforward:
 class VanillaCNNQFunction(nn.Module):
     """
-    Critic module.
+    Critic module for SAC.
     """
     def __init__(self, observation_space, action_space):
         super().__init__()
-        self.net = VanillaCNN(q_net=True)
+        self.net = VanillaCNN(q_net=True)  # q_net is True for a critic module
 
     def forward(self, obs, act):
+        """
+        Estimates the action-value of the (obs, act) state-action pair.
+
+        In RL theory, the action-value is the expected sum of (gamma-discounted) future rewards
+        when observing obs, taking action act, and following the current policy ever after.
+
+        Args:
+            obs: current observation
+            act: tried next action
+
+        Returns:
+            The action-value of act in situation obs, as estimated by our critic network
+        """
+        # Since q_net is True, we append our action act to our observation obs.
+        # Note that obs is a tuple of batched tensors: respectively the history of 4 images, speed, etc.
         x = (*obs, act)
         q = self.net(x)
         return torch.squeeze(q, -1)
 
 
-# Finally, let us merge this together into an actor-critic module for training.
-# Classically, we use two parallel critics to alleviate the overestimation bias.
+# Finally, let us merge this together into an actor-critic torch.nn.module for training.
+# Classically, we use one actor and two parallel critics to alleviate the overestimation bias.
 class VanillaCNNActorCritic(nn.Module):
     """
     Actor-critic module for the SAC algorithm.
@@ -403,15 +464,11 @@ class VanillaCNNActorCritic(nn.Module):
     def __init__(self, observation_space, action_space):
         super().__init__()
 
-        # build policy and value functions
+        # Policy network (actor):
         self.actor = SquashedGaussianVanillaCNNActor(observation_space, action_space)
+        # Value networks (critics):
         self.q1 = VanillaCNNQFunction(observation_space, action_space)
         self.q2 = VanillaCNNQFunction(observation_space, action_space)
-
-    def act(self, obs, test=False):
-        with torch.no_grad():
-            a, _ = self.actor(obs, test, False)
-            return a.numpy()
 
 
 # =====================================================================
@@ -424,22 +481,38 @@ class VanillaCNNActorCritic(nn.Module):
 # Our VanillaCNNActorCritic will be used in the Trainer for training
 # this ActorModule. Let us now tackle the training algorithm per-se.
 # In TMRL, this is done by implementing a custom TrainingAgent.
+# Thus, let us import the TrainingAgent class:
+
+from tmrl.training import TrainingAgent
+
+# We will also use a couple utilities, and the Adam optimizer:
+
+from tmrl.custom.utils.nn import copy_shared, no_grad
+from tmrl.util import cached_property
+from copy import deepcopy
+import itertools
+from torch.optim import Adam
+
 
 # A TrainingAgent must implement two methods:
-# - train(batch): optimizes the model from a batch of RL samples
-# - get_actor(): outputs a copy of the current ActorModule
-# In this tutorial, we will implement the Soft Actor-Critic algorithm
-# by adapting the OpenAI Spinnup implementation to the TMRL library.
+# -> train(batch): optimizes the model from a batch of RL samples
+# -> get_actor(): outputs a copy of the current ActorModule
+# In this tutorial, we implement the Soft Actor-Critic algorithm
+# by adapting the OpenAI Spinup implementation.
+
 class SACTrainingAgent(TrainingAgent):
     """
-    Our custom training algorithm (SAC).
+    Our custom training algorithm (SAC in this tutorial).
 
-    Your implementation must at least pass these three arguments to the superclass.
+    Custom TrainingAgents implement two methods: train(batch) and get_actor().
+    The train method performs a training step.
+    The get_actor method retrieves your ActorModule to save it and send it to the RolloutWorkers.
 
-    Args:
-        observation_space (Gym.spaces.Space): observation space (here for your convenience)
-        action_space (Gym.spaces.Space): action space (here for your convenience)
-        device (str): torch device that should be used for training (e.g., `"cpu"` or `"cuda:0"`)
+    Your implementation must also pass three required arguments to the superclass:
+
+    - observation_space (Gym.spaces.Space): observation space (here for your convenience)
+    - action_space (Gym.spaces.Space): action space (here for your convenience)
+    - device (str): device that should be used for training (e.g., `"cpu"` or `"cuda:0"`)
     """
 
     # no-grad copy of the model used to send the Actor weights in get_actor():
@@ -449,15 +522,13 @@ class SACTrainingAgent(TrainingAgent):
                  observation_space=None,  # Gym observation space (required argument here for your convenience)
                  action_space=None,  # Gym action space (required argument here for your convenience)
                  device=None,  # Device our TrainingAgent should use for training (required argument)
-                 model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
-                 gamma=0.99,  # discount factor
-                 polyak=0.995,  # exponential averaging factor for the target critic
-                 alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
-                 lr_actor=1e-3,  # learning rate for the actor
-                 lr_critic=1e-3,  # learning rate for the critic
-                 lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
-                 learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
-                 target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
+                 model_cls=VanillaCNNActorCritic,  # An actor-critic module, encapsulating our ActorModule
+                 gamma=0.99,  # Discount factor
+                 polyak=0.995,  # Exponential averaging factor for the target critic
+                 alpha=0.2,  # Value of the entropy coefficient
+                 lr_actor=1e-3,  # Learning rate for the actor
+                 lr_critic=1e-3):  # Learning rate for the critic
+
         # required arguments passed to the superclass:
         super().__init__(observation_space=observation_space,
                          action_space=action_space,
@@ -471,25 +542,16 @@ class SACTrainingAgent(TrainingAgent):
         self.alpha = alpha
         self.lr_actor = lr_actor
         self.lr_critic = lr_critic
-        self.lr_entropy = lr_entropy
-        self.learn_entropy_coef=learn_entropy_coef
-        self.target_entropy = target_entropy
         self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
         self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
         self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
-        if self.target_entropy is None:
-            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
-        else:
-            self.target_entropy = float(self.target_entropy)
-        if self.learn_entropy_coef:
-            self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
-            self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
-        else:
-            self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
+        self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 
     def get_actor(self):
         """
-        Returns the current ActorModule.
+        Returns a copy of the current ActorModule.
+
+        We return a copy without gradients, as this is for sending to the RolloutWorkers.
 
         Returns:
             actor: ActorModule: updated actor module to forward to the worker(s)
@@ -498,7 +560,21 @@ class SACTrainingAgent(TrainingAgent):
 
     def train(self, batch):
         """
-        Executes a training iteration from batched tensors.
+        Executes a training iteration from batched training samples (batches of RL transitions).
+
+        A training sample is of the form (o, a, r, o2, d, t) where:
+        -> o is the initial observation of the transition
+        -> a is the selected action during the transition
+        -> r is the reward of the transition
+        -> o2 is the final observation of the transition
+        -> d is the "terminated" signal indicating whether o2 is a terminal state
+        -> t is the "truncated" signal indicating whether the episode has been truncated by a time-limit
+
+        Note that we will ignore the t signal for a clever reason.
+        When the episode is truncated due to a time limit, we do not want our model to believe that o2 is terminal.
+        Instead, we will make our model believe that the episode would normally have continued after this transition.
+        Because we use a discount factor, this does not result in an infinite value.
+        In our situation, the discount factor is what incentivizes the AI to run as fast as possible!
 
         Args:
             batch: (previous observation, action, reward, new observation, terminated signal, truncated signal)
@@ -506,70 +582,91 @@ class SACTrainingAgent(TrainingAgent):
         Returns:
             logs: Dictionary: a python dictionary of training metrics you wish to log on wandb
         """
+        # First, we decompose our batch into its relevant components, ignoring the "truncated" signal:
         o, a, r, o2, d, _ = batch
-        pi, logp_pi = self.model.actor(o)
-        loss_alpha = None
-        if self.learn_entropy_coef:
-            alpha_t = torch.exp(self.log_alpha.detach())
-            loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
-        else:
-            alpha_t = self.alpha_t
-        if loss_alpha is not None:
-            self.alpha_optimizer.zero_grad()
-            loss_alpha.backward()
-            self.alpha_optimizer.step()
+
+        # We sample an action in the current policy and retrieve its corresponding log probability:
+        pi, logp_pi = self.model.actor(obs=o, test=False, compute_logprob=True)
+
+        # We also compute our action-value estimates for the current transition:
         q1 = self.model.q1(o, a)
         q2 = self.model.q2(o, a)
+
+        # Now we compute our value target, for which we need to detach from gradients computation:
         with torch.no_grad():
             a2, logp_a2 = self.model.actor(o2)
             q1_pi_targ = self.model_target.q1(o2, a2)
             q2_pi_targ = self.model_target.q2(o2, a2)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
-            backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
+            backup = r + self.gamma * (1 - d) * (q_pi_targ - self.alpha_t * logp_a2)
+
+        # This gives us our critic loss, as the difference between the target and the estimate:
         loss_q1 = ((q1 - backup)**2).mean()
         loss_q2 = ((q2 - backup)**2).mean()
         loss_q = loss_q1 + loss_q2
+
+        # We can now take an optimization step to train our critics in the opposite direction of this loss' gradient:
         self.q_optimizer.zero_grad()
         loss_q.backward()
         self.q_optimizer.step()
+
+        # For the policy optimization step, we detach our critics from the gradient computation graph:
         for p in self.q_params:
             p.requires_grad = False
+
+        # We use the critics to estimate the value of the action we have sampled in the current policy:
         q1_pi = self.model.q1(o, pi)
         q2_pi = self.model.q2(o, pi)
         q_pi = torch.min(q1_pi, q2_pi)
-        loss_pi = (alpha_t * logp_pi - q_pi).mean()
+
+        # Our policy loss is now the opposite of this value estimate, augmented with the entropy of the current policy:
+        loss_pi = (self.alpha_t * logp_pi - q_pi).mean()
+
+        # Now we can train our policy in the opposite direction of this loss' gradient:
         self.pi_optimizer.zero_grad()
         loss_pi.backward()
         self.pi_optimizer.step()
+
+        # We attach the critics back into the gradient computation graph:
         for p in self.q_params:
             p.requires_grad = True
+
+        # Finally, we update our target model with a slowly moving exponential average:
         with torch.no_grad():
             for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
+
+        # TMRL enables us to log training metrics to wandb:
         ret_dict = dict(
             loss_actor=loss_pi.detach(),
             loss_critic=loss_q.detach(),
         )
-        if self.learn_entropy_coef:
-            ret_dict["loss_entropy_coef"] = loss_alpha.detach()
-            ret_dict["entropy_coef"] = alpha_t.item()
         return ret_dict
 
 
+# Great! We are almost done.
+# Now that our TrainingAgent class is defined, let us partially instantiate it.
+# SAC has a few hyperparameters that we will need to tune if we want it to work as expected.
+# The following have shown reasonable results in the past, using the full TrackMania environment.
+# Note however that training a policy with SAC in this environment is a matter of several days!
+
 training_agent_cls = partial(SACTrainingAgent,
-                             model_cls=MyActorCriticModule,
+                             model_cls=VanillaCNNActorCritic,
                              gamma=0.99,
                              polyak=0.995,
-                             alpha=0.2,
-                             lr_actor=1e-3,
-                             lr_critic=1e-3,
-                             lr_entropy=1e-3,
-                             learn_entropy_coef=True,
-                             target_entropy=None)
+                             alpha=0.02,
+                             lr_actor=0.000005,
+                             lr_critic=0.00003)
 
 
-# Trainer instance:
+# =====================================================================
+# TMRL TRAINER
+# =====================================================================
+# In the final step of this tutorial,
+# Everything bonds together,
+# In the essence of a magical
+# TMRL Trainer.
 
 training_cls = partial(
     TrainingOffline,
@@ -585,34 +682,50 @@ training_cls = partial(
     start_training=start_training,
     device=device)
 
+# What more is there to say?
 
 
+# =====================================================================
+# RUN YOUR TRAINING PIPELINE
+# =====================================================================
+# The Trainer that we have designed in this tutorial will work with
+# the default TMRL Server and RolloutWorker as long as your config.json
+# file is configured to run the Full "TM20FULL" environment.
 
+# You can configure the "TM20FULL" environment by following the
+# instruction on GitHub:
+# https://github.com/trackmania-rl/tmrl#full-environment
 
+# The TMRL default Server can be launched by executing:
+# python -m tmrl --server
 
+# The TMRL default RolloutWorker requires TrackMania to be set up as
+# described in the instructions on GitHub:
+# https://github.com/trackmania-rl/tmrl/blob/master/readme/get_started.md
+# You can run a default RolloutWorker with the following command:
+# python -m tmrl --worker
 
-
-
-
-
-
-
-
-
-training_agent_cls = None
-
-training_cls = partial(TrainingOffline,
-                       training_agent_cls=training_agent_cls,
-                       epochs=epochs,
-                       rounds=rounds,
-                       steps=steps,
-                       update_buffer_interval=update_buffer_interval,
-                       update_model_interval=update_model_interval,
-                       max_training_steps_per_env_step=max_training_steps_per_env_step,
-                       start_training=start_training,
-                       device=device,
-                       env_cls=env_cls,
-                       memory_cls=memory_cls)
+# Finally, execute our tutorial script to launch your custom Trainer :)
 
 if __name__ == "__main__":
     my_trainer = Trainer(training_cls=training_cls)
+    my_trainer.run_with_wandb(entity=wandb_entity,
+                              project=wandb_project,
+                              run_id=wandb_run_id)
+
+# You can launch these entities in any order, but we recommend server, then trainer, then worker.
+# If you are running everything on the same machine, it is likely that your trainer will consume all your resource,
+# resulting in your worker struggling to collect samples in a timely fashion.
+# If your worker crazily warns you about time-steps timing out, this is probably the issue.
+# The best way of using TMRL with TrackMania is to have your worker and trainer on separate machines.
+# The server can be run on either of these machines, or yet another machine that both can reach via network.
+# Achieving this is easy (and is the whole point of TMRL).
+# Just adapt config.json to your network configuration.
+# You will want to set the following in the config.json of all your machines:
+
+# "LOCALHOST_WORKER": false,
+# "LOCALHOST_TRAINER": false,
+# "PUBLIC_IP_SERVER": "<ip.of.the.server>",
+# "PORT": <port of the server (usually requires port forwarding on the Internet)>,
+
+# If you are doing this via the Internet, pleas first read the TMRL security instructions on GitHub.

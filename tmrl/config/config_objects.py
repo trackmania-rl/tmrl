@@ -6,7 +6,7 @@ import rtgym
 
 # local imports
 import tmrl.config.config_constants as cfg
-from tmrl.training_offline import TrainingOffline
+from tmrl.training_offline import TorchTrainingOffline
 from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TM2020InterfaceLidarProgress
 from tmrl.custom.custom_memories import MemoryTMFull, MemoryTMLidar, MemoryTMLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.custom_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs,obs_preprocessor_tm_lidar_progress_act_in_obs
@@ -145,7 +145,7 @@ ENV_CLS = partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": CO
 
 if cfg.PRAGMA_LIDAR:  # lidar
     TRAINER = partial(
-        TrainingOffline,
+        TorchTrainingOffline,
         env_cls=ENV_CLS,
         memory_cls=MEMORY,
         epochs=cfg.TMRL_CONFIG["MAX_EPOCHS"],
@@ -160,7 +160,7 @@ if cfg.PRAGMA_LIDAR:  # lidar
         start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"])  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
 else:  # images
     TRAINER = partial(
-        TrainingOffline,
+        TorchTrainingOffline,
         env_cls=ENV_CLS,
         memory_cls=MEMORY,
         epochs=cfg.TMRL_CONFIG["MAX_EPOCHS"],
