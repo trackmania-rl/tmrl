@@ -105,7 +105,7 @@ install_req = [
     'keyboard',
     'pyautogui',
     'pyinstrument',
-    'tlspyo>=0.2.1'
+    'tlspyo>=0.2.3'
 ]
 
 if platform.system() == "Windows":
