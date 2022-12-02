@@ -6,27 +6,6 @@ The `tmrl` competition is a fun way of benchmarking vision-based autonomous car 
 
 Competitors solve Real-Time Gym environments featuring snapshots from the real `TrackMania 2020` video game, with no insider access, to test their self-racing policies.
 
-## Leaderboard:
-
-### Iteration Alpha :hatching_chick:
-- _Observation space:_ 4 raw snapshots, speed, 2 previous actions (default)
-- _Action space:_ 3 continuous actions: gas, break, steer (default)
-- _Control frequency:_ 20 Hz (default)
-- _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
-
-|          Winners          |   Team   | Time - _mean (std)_ |                 Description                 |                                                                                                         Model                                                                                                          |                        Video                         |
-|:-------------------------:|:--------:|:-------------------:|:-------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------:|
-|      :dragon: :one:       | Baseline |        ? (?)        | SAC, CNN, Full environment, `tmrl` default  | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L537), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip) |                          -                           |
-|     :racehorse: :two:     | Baseline |   47.176 (0.769)    | SAC, MLP, LIDAR environment, `tmrl` default | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L54), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip)  | [video](https://www.youtube.com/watch?v=LN29DDlHp1U) |
-|     :leopard: :three:     |
-|      :tiger2: :four:      |
-|       :cat2: :five:       |
-|      :rabbit2: :six:      |
-| :dromedary_camel: :seven: |
-|     :turtle: :eight:      |
-|      :snail: :nine:       |
-| :palm_tree: :keycap_ten:  |
-
 ## Rules:
 
 ### Current iteration (Alpha)
