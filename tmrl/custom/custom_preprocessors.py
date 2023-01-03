@@ -9,7 +9,7 @@ import cv2
 
 def obs_preprocessor_tm_act_in_obs(obs):
     """
-    Preprocessor for TM2020 with images, converting images back to uint8
+    Preprocessor for TM2020 with images
     """
     grayscale_images = obs[3]
     grayscale_images = grayscale_images.astype(np.float32) / 256.0

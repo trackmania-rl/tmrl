@@ -15,38 +15,42 @@ To submit an entry to the competition, we essentially need a trained policy.
 In TMRL, a policy is encapsulated in a tmrl.actor.ActorModule.
 
 Note: This tutorial describes implementing and running a TrainingAgent.
-It is relevant if you want to implement RL approaches in TrackMania.
+It is relevant if you want to implement your own RL approaches in TrackMania.
 If you plan to try non-RL approaches instead, this is also accepted:
 just use the competition Gym Full environment and do whatever you need,
 then, wrap your trained policy in an ActorModule, and submit your entry :)
 """
 
-# Let us first import some useful stuff.
+# First, let us define a run name to use on wandb.ia.
+# Please change this name before running the script:
+WANDB_RUN_NAME = "tuto_competition_example_name"
+
+# Let us start our tutorial by importing some useful stuff.
 
 # The constants that are defined in config.json:
 import tmrl.config.config_constants as cfg
-# High-level constants that are fixed for the competition:
+# Useful partially instantiated classes:
 import tmrl.config.config_objects as cfg_obj
 # The utility that TMRL uses to partially instantiate classes:
 from tmrl.util import partial
-# The TMRL Trainer class, which encapsulates everything that is training-related:
-from tmrl.networking import Trainer
+# The TMRL three entities (i.e., the Trainer, the RolloutWorker and the central Server):
+from tmrl.networking import Trainer, RolloutWorker, Server
 
-# The training class that we will customize with our own training algorithm:
+# The training class that we will customize with our own training algorithm in this tutorial:
 from tmrl.training_offline import TrainingOffline
 
-# And useful external libraries:
+# And a couple useful external libraries:
 import numpy as np
 import os
 
 
-# Now, let us import the content of config.json.
+# Now, let us look into the content of config.json:
 
 # =====================================================================
 # USEFUL PARAMETERS
 # =====================================================================
 # You can change these parameters here directly,
-# or you can change them in the config.json file.
+# or you can change them in the TMRL config.json file (recommended).
 
 # Maximum number of training 'epochs':
 # (training is checkpointed at the end of each 'epoch', this is also when training metrics can be logged to wandb)
@@ -64,19 +68,19 @@ steps = cfg.TMRL_CONFIG["TRAINING_STEPS_PER_ROUND"]
 # (this is useful when you want to fill your replay buffer with samples from a baseline policy)
 start_training = cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"]
 
-# Maximum training steps / env steps ratio:
-# (if training becomes faster than this ratio, it will be paused waiting for new samples from the environment)
+# Maximum training steps / environment steps ratio:
+# (if training becomes faster than this ratio, it will be paused, waiting for new samples from the environment)
 max_training_steps_per_env_step = cfg.TMRL_CONFIG["MAX_TRAINING_STEPS_PER_ENVIRONMENT_STEP"]
 
-# Number of training steps between when the Trainer broadcasts policy updates:
+# Number of training steps performed between broadcasts of policy updates:
 update_model_interval = cfg.TMRL_CONFIG["UPDATE_MODEL_INTERVAL"]
 
-# Number of training steps between when the Trainer updates its replay buffer with the buffer of received samples:
+# Number of training steps performed between retrievals of received samples to put them in the replay buffer:
 update_buffer_interval = cfg.TMRL_CONFIG["UPDATE_BUFFER_INTERVAL"]
 
 # Training device (e.g., "cuda:0"):
 # (if None, the training device will be selected automatically)
-device = None
+device_trainer = None
 
 # Maximum size of the replay buffer:
 memory_size = cfg.TMRL_CONFIG["MEMORY_SIZE"]
@@ -86,14 +90,25 @@ batch_size = cfg.TMRL_CONFIG["BATCH_SIZE"]
 
 # Wandb credentials:
 # (Change this with your own if you want to keep your training curves private)
-# (Also, please use your own credentials if you are going to log images and other huge stuff :) )
-wandb_run_id = "competition_tutorial"  # change this by a name of your choice for your run
-wandb_project = cfg.TMRL_CONFIG["WANDB_PROJECT"]  # name of the wandb project in which you run will appear
+# (Also, please use your own wandb account if you are going to log huge stuff :) )
+
+wandb_run_id = WANDB_RUN_NAME  # change this by a name of your choice for your run
+wandb_project = cfg.TMRL_CONFIG["WANDB_PROJECT"]  # name of the wandb project in which your run will appear
 wandb_entity = cfg.TMRL_CONFIG["WANDB_ENTITY"]  # wandb account
 wandb_key = cfg.TMRL_CONFIG["WANDB_KEY"]  # wandb API key
 
-os.environ['WANDB_API_KEY'] = wandb_key  # do not change this line (it sets your wandb API key as active)
+os.environ['WANDB_API_KEY'] = wandb_key  # this line sets your wandb API key as the active key
 
+# Number of time-steps after which episodes collected by the worker are truncated:
+max_samples_per_episode = cfg.TMRL_CONFIG["RW_MAX_SAMPLES_PER_EPISODE"]
+
+# Networking parameters:
+# (In TMRL, networking is managed by tlspyo. The following are tlspyo parameters.)
+server_ip = cfg.PUBLIC_IP_SERVER  # IP of the machine running the Server
+server_port = cfg.PORT  # port used to communicate with this machine
+password = cfg.PASSWORD  # password that secures your communication
+security = cfg.SECURITY  # when training over the Internet, it is safer to change this to "TLS"
+# (please read the security instructions on GitHub)
 
 # =====================================================================
 # ADVANCED PARAMETERS
@@ -102,14 +117,21 @@ os.environ['WANDB_API_KEY'] = wandb_key  # do not change this line (it sets your
 # however, most competitors will not need to change this.
 # If interested, read the full TMRL tutorial on GitHub.
 
-# Base class of the replay memory:
+# Base class of the replay memory used by the trainer:
 memory_base_cls = cfg_obj.MEM
+
+# Sample compression scheme applied by the worker for this replay memory:
+sample_compressor = cfg_obj.SAMPLE_COMPRESSOR
 
 # Sample preprocessor for data augmentation:
 sample_preprocessor = None
 
-# Path from where an offline dataset can be loaded:
+# Path from where an offline dataset can be loaded to initialize the replay memory:
 dataset_path = cfg.DATASET_PATH
+
+# Preprocessor applied by the worker to the observations it collects:
+# (Note: if your script defines the name "obs_preprocessor", we will use your preprocessor instead of the default)
+obs_preprocessor = cfg_obj.OBS_PREPROCESSOR
 
 
 # =====================================================================
@@ -131,6 +153,9 @@ imgs_buf_len = cfg.IMG_HIST_LEN
 
 # Number of actions in the action buffer (this is part of observations):
 act_buf_len = cfg.ACT_BUF_LEN
+
+# Device used for inference on workers (change if you like but keep in mind that the competition evaluation is on CPU)
+device_worker = 'cpu'
 
 
 # =====================================================================
@@ -163,20 +188,20 @@ memory_cls = partial(memory_base_cls,
 # we implement our own deep neural network architecture (ActorModule),
 # and then we implement our own RL algorithm to train this module.
 
-
 # We will implement SAC and a hybrid CNN/MLP model.
-# The following constants are from the Spinnup implementation of SAC
-# that we simply adapt in this tutorial.
+
+# The following constants are from the Spinup implementation of SAC
+# that we simply copy/paste and adapt in this tutorial.
 LOG_STD_MAX = 2
 LOG_STD_MIN = -20
 
 
-# Let us import this ActorModule that we are supposed to implement.
+# Let us import the ActorModule that we are supposed to implement.
 # We will use PyTorch in this tutorial.
 # TMRL readily provides a PyTorch-specific subclass of ActorModule:
 from tmrl.actor import TorchActorModule
 
-# Pytorch and math will be useful too:
+# Plus a couple useful imports:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -262,7 +287,8 @@ class VanillaCNN(nn.Module):
         # - the current speed, gear and RPM measurements (3 floats)
         # - the 2 previous actions (2 x 3 floats), important because of the real-time nature of our controller
         # - when the module is the critic, the selected action (3 floats)
-        self.mlp_input_features = self.flat_features + 12 if self.q_net else self.flat_features + 9
+        float_features = 12 if self.q_net else 9
+        self.mlp_input_features = self.flat_features + float_features
 
         # MLP layers:
         # (when using the model as a policy, we will sample from a multivariate gaussian defined later in the tutorial;
@@ -281,16 +307,17 @@ class VanillaCNN(nn.Module):
             the output of our neural network in the form of a torch.Tensor
         """
         if self.q_net:
-            # The critic takes the next action act as additional input
-            # act1 and act2 are the actions in the action buffer (see real-time RL):
+            # The critic takes the next action (act) as additional input
+            # act1 and act2 are the actions in the action buffer (real-time RL):
             speed, gear, rpm, images, act1, act2, act = x
         else:
-            # For the policy, the next action is what we are computing, so we don't have it:
+            # For the policy, the next action (act) is what we are computing, so we don't have it:
             speed, gear, rpm, images, act1, act2 = x
 
         # Forward pass of our images in the CNN:
         # (note that the competition environment outputs histories of 4 images,
-        # we will stack these images along the channel dimension of our input tensor)
+        # plus, the default observation preprocessor transforms these into 64 x 64 greyscale,
+        # we will stack these greyscale images along the channel dimension of our input tensor)
         x = F.relu(self.conv1(images))
         x = F.relu(self.conv2(x))
         x = F.relu(self.conv3(x))
@@ -319,8 +346,37 @@ class VanillaCNN(nn.Module):
 
 
 # We can now implement the TMRL ActorModule interface that we are supposed to submit for this competition.
-# During training, TMRL will regularly save it in the TmrlData/weights folder.
-class SquashedGaussianVanillaCNNActor(TorchActorModule):
+
+# During training, TMRL will regularly save our trained ActorModule in the TmrlData/weights folder.
+# By default, this would be done using the torch (i.e., pickle) serializer.
+# However, while saving and loading your own pickle files is fine,
+# it is highly dangerous to load other people's pickled files.
+# Therefore, the competition submission does not accept pickled files.
+# Instead, we can submit our trained weights in the form of a human-readable JSON file.
+# The ActorModule interface defines save() and load() methods that we will override with our own JSON serializer.
+
+import json
+
+
+class TorchJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, torch.Tensor):
+            return obj.cpu().detach().numpy().tolist()
+        return json.JSONEncoder.default(self, obj)
+
+
+class TorchJSONDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, dct):
+        for key in dct.keys():
+            if isinstance(dct[key], list):
+                dct[key] = torch.Tensor(dct[key])
+        return dct
+
+
+class MyActorModule(TorchActorModule):
     """
     Our policy wrapped in the TMRL ActorModule class.
 
@@ -331,7 +387,7 @@ class SquashedGaussianVanillaCNNActor(TorchActorModule):
     """
     def __init__(self, observation_space, action_space):
         """
-        When implementing __init__, we need to take the observation_space, action_space arguments.
+        When implementing __init__, we need to take the observation_space and action_space arguments.
 
         Args:
             observation_space: observation space of the Gym environment
@@ -340,7 +396,7 @@ class SquashedGaussianVanillaCNNActor(TorchActorModule):
         # We must call the superclass __init__:
         super().__init__(observation_space, action_space)
 
-        # And initialize the attributes that we will need:
+        # And initialize our attributes:
         dim_act = action_space.shape[0]  # dimensionality of actions
         act_limit = action_space.high[0]  # maximum amplitude of actions
         # Our hybrid CNN+MLP policy:
@@ -352,6 +408,32 @@ class SquashedGaussianVanillaCNNActor(TorchActorModule):
         # We will squash this within the action space thanks to a tanh final activation:
         self.act_limit = act_limit
 
+    def save(self, path):
+        """
+        JSON-serialize a detached copy of the ActorModule and save it in path.
+
+        IMPORTANT: FOR THE COMPETITION, WE ONLY ACCEPT JSON AND PYTHON FILES.
+        IN PARTICULAR, WE *DO NOT* ACCEPT PICKLE FILES (such as output by torch.save()...).
+
+        All your submitted files must be human-readable, for everyone's safety.
+        Indeed, untrusted pickle files are an open door for hackers.
+
+        Args:
+            path: pathlib.Path: path to where the object will be stored.
+        """
+        with open(path, 'w') as json_file:
+            json.dump(self.state_dict(), json_file, cls=TorchJSONEncoder)
+        # torch.save(self.state_dict(), path)
+
+    def load(self, path, device):
+        self.device = device
+        with open(path, 'r') as json_file:
+            state_dict = json.load(json_file, cls=TorchJSONDecoder)
+        self.load_state_dict(state_dict)
+        self.to_device(device)
+        # self.load_state_dict(torch.load(path, map_location=self.device))
+        return self
+
     def forward(self, obs, test=False, compute_logprob=True):
         """
         Computes the output action of our policy from the input observation.
@@ -361,7 +443,7 @@ class SquashedGaussianVanillaCNNActor(TorchActorModule):
         Thus, our ActorModule will only implement the actor.
 
         Args:
-            obs: the observation from the Gym environment (when using TorchActorModule, this is a torch.Tensor)
+            obs: the observation from the Gym environment (when using TorchActorModule this is a torch.Tensor)
             test (bool): this is True for test episodes (deployment) and False for training episodes;
                 in SAC, this enables us to sample randomly during training and deterministically at test-time.
             compute_logprob (bool): SAC will set this to True to retrieve log probabilities.
@@ -469,7 +551,7 @@ class VanillaCNNActorCritic(nn.Module):
         super().__init__()
 
         # Policy network (actor):
-        self.actor = SquashedGaussianVanillaCNNActor(observation_space, action_space)
+        self.actor = MyActorModule(observation_space, action_space)
         # Value networks (critics):
         self.q1 = VanillaCNNQFunction(observation_space, action_space)
         self.q2 = VanillaCNNQFunction(observation_space, action_space)
@@ -485,7 +567,6 @@ class VanillaCNNActorCritic(nn.Module):
 # Our VanillaCNNActorCritic will be used in the Trainer for training
 # this ActorModule. Let us now tackle the training algorithm per-se.
 # In TMRL, this is done by implementing a custom TrainingAgent.
-# Thus, let us import the TrainingAgent class:
 
 from tmrl.training import TrainingAgent
 
@@ -667,10 +748,6 @@ training_agent_cls = partial(SACTrainingAgent,
 # =====================================================================
 # TMRL TRAINER
 # =====================================================================
-# In the final step of this tutorial,
-# Everything bonds together,
-# In the essence of a magical
-# TMRL Trainer.
 
 training_cls = partial(
     TrainingOffline,
@@ -684,52 +761,85 @@ training_cls = partial(
     update_model_interval=update_model_interval,
     max_training_steps_per_env_step=max_training_steps_per_env_step,
     start_training=start_training,
-    device=device)
-
-# What more is there to say?
+    device=device_trainer)
 
 
 # =====================================================================
 # RUN YOUR TRAINING PIPELINE
 # =====================================================================
-# The Trainer that we have designed in this tutorial will work with
-# the default TMRL Server and RolloutWorker as long as your config.json
-# file is configured to run the Full "TM20FULL" environment.
+# The training pipeline configured in this tutorial runs with the "TM20FULL" environment.
 
-# You can configure the "TM20FULL" environment by following the
-# instruction on GitHub:
+# You can configure the "TM20FULL" environment by following the instruction on GitHub:
 # https://github.com/trackmania-rl/tmrl#full-environment
 
-# The TMRL default Server can be launched by executing:
-# python -m tmrl --server
-
-# The TMRL default RolloutWorker requires TrackMania to be set up as
-# described in the instructions on GitHub:
-# https://github.com/trackmania-rl/tmrl/blob/master/readme/get_started.md
-# You can run a default RolloutWorker with the following command:
-# python -m tmrl --worker
-
-# Finally, execute our tutorial script to launch your custom Trainer :)
+# In TMRL, a training pipeline is made of
+# - one Trainer (encompassing the training algorithm that we have coded in this tutorial)
+# - one to several RolloutWorker(s) (encompassing our ActorModule and the Gym environment of the competition)
+# - one central Server (through which RolloutWorker(s) and Trainer communicate)
+# Let us instantiate these via an argument that we will pass when calling this script:
 
 if __name__ == "__main__":
-    my_trainer = Trainer(training_cls=training_cls)
-    my_trainer.run_with_wandb(entity=wandb_entity,
-                              project=wandb_project,
-                              run_id=wandb_run_id)
+    from argparse import ArgumentParser
 
-# You can launch these entities in any order, but we recommend server, then trainer, then worker.
-# If you are running everything on the same machine, it is likely that your trainer will consume all your resource,
+    parser = ArgumentParser()
+    parser.add_argument('--server', action='store_true', help='launches the server')
+    parser.add_argument('--trainer', action='store_true', help='launches the trainer')
+    parser.add_argument('--worker', action='store_true', help='launches a rollout worker')
+    parser.add_argument('--test', action='store_true', help='launches a rollout worker in standalone mode')
+    args = parser.parse_args()
+
+    if args.trainer:
+        my_trainer = Trainer(training_cls=training_cls,
+                             server_ip=server_ip,
+                             server_port=server_port,
+                             password=password,
+                             security=security)
+        my_trainer.run_with_wandb(entity=wandb_entity,
+                                  project=wandb_project,
+                                  run_id=wandb_run_id)
+    elif args.worker or args.test:
+        rw = RolloutWorker(env_cls=env_cls,
+                           actor_module_cls=MyActorModule,
+                           sample_compressor=sample_compressor,
+                           device=device_worker,
+                           server_ip=cfg.SERVER_IP_FOR_WORKER,
+                           server_port=server_port,
+                           password=password,
+                           security=security,
+                           max_samples_per_episode=max_samples_per_episode,
+                           obs_preprocessor=obs_preprocessor,
+                           standalone=args.test)
+        rw.run()
+    elif args.server:
+        import time
+        serv = Server(port=server_port,
+                      password=password,
+                      security=security)
+        while True:
+            time.sleep(1.0)
+
+# To launch the server, provided this script is named tuto_competition.py, execute:
+# python tuto_competition --server
+
+# Trainer:
+# python tuto_competition --trainer
+
+# And RolloutWorker(s):
+# python tuto_competition --worker
+
+# You can launch these in any order, but we recommend server, then trainer, then worker.
+# If you are running everything on the same machine, your trainer may consume all your resource,
 # resulting in your worker struggling to collect samples in a timely fashion.
 # If your worker crazily warns you about time-steps timing out, this is probably the issue.
-# The best way of using TMRL with TrackMania is to have your worker and trainer on separate machines.
-# The server can be run on either of these machines, or yet another machine that both can reach via network.
-# Achieving this is easy (and is the whole point of TMRL).
-# Just adapt config.json to your network configuration.
-# You will want to set the following in the config.json of all your machines:
+# The best way of using TMRL with TrackMania is to have your worker(s) and trainer on separate machines.
+# The server can run on either of these machines, or yet another machine that both can reach via network.
+# Achieving this is easy (and is also kind of the whole point of the TMRL framework).
+# Just adapt config.json (or this script) to your network configuration.
+# In particular, you will want to set the following in the config.json of all your machines:
 
 # "LOCALHOST_WORKER": false,
 # "LOCALHOST_TRAINER": false,
 # "PUBLIC_IP_SERVER": "<ip.of.the.server>",
-# "PORT": <port of the server (usually requires port forwarding on the Internet)>,
+# "PORT": <port of the server (usually requires port forwarding if accessed via the Internet)>,
 
-# If you are doing this via the Internet, pleas first read the TMRL security instructions on GitHub.
+# If you are training over the Internet, please read the security instructions on the TMRL GitHub page.

@@ -35,6 +35,12 @@ def print_with_timestamp(s):
     logging.info(sx + str(s))
 
 
+def print_ip():
+    public_ip = get('http://api.ipify.org').text
+    local_ip = socket.gethostbyname(socket.gethostname())
+    print_with_timestamp(f"public IP: {public_ip}, local IP: {local_ip}")
+
+
 # BUFFER: ===========================================
 
 
@@ -104,26 +110,37 @@ class Server:
     It buffers experiences sent by workers and periodically sends these to the trainer.
     It also receives the weights from the trainer and broadcasts these to the connected workers.
     """
-    def __init__(self):
-        public_ip = get('http://api.ipify.org').text
-        local_ip = socket.gethostbyname(socket.gethostname())
-
-        print_with_timestamp(f"INFO SERVER: local IP: {local_ip}")
-        print_with_timestamp(f"INFO SERVER: public IP: {public_ip}")
-
-        self.__relay = Relay(port=cfg.PORT,
-                             password=cfg.PASSWORD,
+    def __init__(self,
+                 port=cfg.PORT,
+                 password=cfg.PASSWORD,
+                 local_port=cfg.LOCAL_PORT_SERVER,
+                 header_size=cfg.HEADER_SIZE,
+                 security=cfg.SECURITY,
+                 keys_dir=cfg.CREDENTIALS_DIRECTORY,
+                 max_workers=cfg.NB_WORKERS):
+        """
+        Args:
+            port (int): tlspyo public port
+            password (str): tlspyo password
+            local_port (int): tlspyo local communication port
+            header_size (int): tlspyo header size (bytes)
+            security (str): tlspyo security type (None or "TLS")
+            keys_dir (str): tlspyo credentials directory
+            max_workers (int): max number of accepted workers
+        """
+        self.__relay = Relay(port=port,
+                             password=password,
                              accepted_groups={
                                  'trainers': {
                                      'max_count': 1,
                                      'max_consumables': None},
                                  'workers': {
-                                     'max_count': cfg.NB_WORKERS,
+                                     'max_count': max_workers,
                                      'max_consumables': None}},
-                             local_com_port=cfg.LOCAL_PORT_SERVER,
-                             header_size=cfg.HEADER_SIZE,
-                             security=cfg.SECURITY,
-                             keys_dir=cfg.CREDENTIALS_DIRECTORY)
+                             local_com_port=local_port,
+                             header_size=header_size,
+                             security=security,
+                             keys_dir=keys_dir)
 
 
 # TRAINER: ==========================================
@@ -135,24 +152,30 @@ class TrainerInterface:
     This connects to the server
     This receives samples batches and sends new weights
     """
-    def __init__(self, server_ip=None, model_path=cfg.MODEL_PATH_TRAINER):
+    def __init__(self,
+                 server_ip=None,
+                 server_port=cfg.PORT,
+                 password=cfg.PASSWORD,
+                 local_com_port=cfg.LOCAL_PORT_TRAINER,
+                 header_size=cfg.HEADER_SIZE,
+                 max_buf_len=cfg.BUFFER_SIZE,
+                 security=cfg.SECURITY,
+                 keys_dir=cfg.CREDENTIALS_DIRECTORY,
+                 hostname=cfg.HOSTNAME,
+                 model_path=cfg.MODEL_PATH_TRAINER):
         self.model_path = model_path
-        self.public_ip = get('http://api.ipify.org').text
-        self.local_ip = socket.gethostbyname(socket.gethostname())
         self.server_ip = server_ip if server_ip is not None else '127.0.0.1'
         self.__endpoint = Endpoint(ip_server=self.server_ip,
-                                   port=cfg.PORT,
-                                   password=cfg.PASSWORD,
+                                   port=server_port,
+                                   password=password,
                                    groups="trainers",
-                                   local_com_port=cfg.LOCAL_PORT_TRAINER,
-                                   header_size=cfg.HEADER_SIZE,
-                                   max_buf_len=cfg.BUFFER_SIZE,
-                                   security=cfg.SECURITY,
-                                   keys_dir=cfg.CREDENTIALS_DIRECTORY,
-                                   hostname=cfg.HOSTNAME)
+                                   local_com_port=local_com_port,
+                                   header_size=header_size,
+                                   max_buf_len=max_buf_len,
+                                   security=security,
+                                   keys_dir=keys_dir,
+                                   hostname=hostname)
 
-        print_with_timestamp(f"local IP: {self.local_ip}")
-        print_with_timestamp(f"public IP: {self.public_ip}")
         print_with_timestamp(f"server IP: {self.server_ip}")
 
         self.__endpoint.notify(groups={'trainers': -1})  # retrieve everything
@@ -314,6 +337,14 @@ class Trainer:
     def __init__(self,
                  training_cls=cfg_obj.TRAINER,
                  server_ip=cfg.SERVER_IP_FOR_TRAINER,
+                 server_port=cfg.PORT,
+                 password=cfg.PASSWORD,
+                 local_com_port=cfg.LOCAL_PORT_TRAINER,
+                 header_size=cfg.HEADER_SIZE,
+                 max_buf_len=cfg.BUFFER_SIZE,
+                 security=cfg.SECURITY,
+                 keys_dir=cfg.CREDENTIALS_DIRECTORY,
+                 hostname=cfg.HOSTNAME,
                  model_path=cfg.MODEL_PATH_TRAINER,
                  checkpoint_path=cfg.CHECKPOINT_PATH,
                  dump_run_instance_fn: callable = None,
@@ -323,6 +354,14 @@ class Trainer:
         Args:
             training_cls (type): training class (subclass of tmrl.training_offline.TrainingOffline)
             server_ip (str): ip of the central `Server`
+            server_port (int): public port of the central `Server`
+            password (str): password of the central `Server`
+            local_com_port (int): port used by `tlspyo` for local communication
+            header_size (int): number of bytes used for `tlspyo` headers
+            max_buf_len (int): maximum number of messages queued by `tlspyo`
+            security (str): `tlspyo security type` (None or "TLS")
+            keys_dir (str): custom credentials directory for `tlspyo` TLS security
+            hostname (str): custom TLS hostname
             model_path (str): path where a local copy of the model will be saved
             checkpoint_path: path where the `Trainer` will be checkpointed (`None` = no checkpointing)
             dump_run_instance_fn (callable): custom serializer (`None` = pickle.dump)
@@ -337,6 +376,14 @@ class Trainer:
         self.updater_fn = updater_fn
         self.training_cls = training_cls
         self.interface = TrainerInterface(server_ip=server_ip,
+                                          server_port=server_port,
+                                          password=password,
+                                          local_com_port=local_com_port,
+                                          header_size=header_size,
+                                          max_buf_len=max_buf_len,
+                                          security=security,
+                                          keys_dir=keys_dir,
+                                          hostname=hostname,
                                           model_path=model_path)
 
     def run(self):
@@ -395,14 +442,22 @@ class RolloutWorker:
             actor_module_cls,
             sample_compressor: callable = None,
             device="cpu",
-            server_ip=None,
             max_samples_per_episode=np.inf,
             model_path=cfg.MODEL_PATH_WORKER,
             obs_preprocessor: callable = None,
             crc_debug=False,
             model_path_history=cfg.MODEL_PATH_SAVE_HISTORY,
             model_history=cfg.MODEL_HISTORY,
-            standalone=False
+            standalone=False,
+            server_ip=None,
+            server_port=cfg.PORT,
+            password=cfg.PASSWORD,
+            local_port=cfg.LOCAL_PORT_WORKER,
+            header_size=cfg.HEADER_SIZE,
+            max_buf_len=cfg.BUFFER_SIZE,
+            security=cfg.SECURITY,
+            keys_dir=cfg.CREDENTIALS_DIRECTORY,
+            hostname=cfg.HOSTNAME
     ):
         """
         Args:
@@ -410,7 +465,6 @@ class RolloutWorker:
             actor_module_cls (type): class of the module containing the policy (subclass of tmrl.actor.ActorModule)
             sample_compressor (callable): compressor for sending samples over the Internet
             device (str): device on which the policy is running
-            server_ip (str): ip of the central server
             max_samples_per_episode (int): if an episode gets longer than this, it is reset
             model_path (str): path where a local copy of the policy will be stored
             obs_preprocessor (callable): utility for modifying observations retrieved from the environment
@@ -418,6 +472,15 @@ class RolloutWorker:
             model_path_history (str): (omit .pth) an history of policies can be stored here
             model_history (int): new policies are saved % model_history (0: not saved)
             standalone (bool): If True, the worker will not try to connect to a server
+            server_ip (str): ip of the central server
+            server_port (int): public port of the central server
+            password (str): tlspyo password
+            local_port (int): tlspyo local communication port
+            header_size (int): tlspyo header size (bytes)
+            max_buf_len (int): tlspyo max number of messages in buffer
+            security (str): tlspyo security type (None or "TLS")
+            keys_dir (str): tlspyo credentials directory
+            hostname (str): tlspyo hostname
         """
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = sample_compressor
@@ -440,25 +503,21 @@ class RolloutWorker:
         self.model_history = model_history
         self._cur_hist_cpt = 0
 
-        self.public_ip = get('http://api.ipify.org').text
-        self.local_ip = socket.gethostbyname(socket.gethostname())
         self.server_ip = server_ip if server_ip is not None else '127.0.0.1'
 
-        print_with_timestamp(f"local IP: {self.local_ip}")
-        print_with_timestamp(f"public IP: {self.public_ip}")
         print_with_timestamp(f"server IP: {self.server_ip}")
 
         if not self.standalone:
             self.__endpoint = Endpoint(ip_server=self.server_ip,
-                                       port=cfg.PORT,
-                                       password=cfg.PASSWORD,
+                                       port=server_port,
+                                       password=password,
                                        groups="workers",
-                                       local_com_port=cfg.LOCAL_PORT_WORKER,
-                                       header_size=cfg.HEADER_SIZE,
-                                       max_buf_len=cfg.BUFFER_SIZE,
-                                       security=cfg.SECURITY,
-                                       keys_dir=cfg.CREDENTIALS_DIRECTORY,
-                                       hostname=cfg.HOSTNAME)
+                                       local_com_port=local_port,
+                                       header_size=header_size,
+                                       max_buf_len=max_buf_len,
+                                       security=security,
+                                       keys_dir=keys_dir,
+                                       hostname=hostname)
         else:
             self.__endpoint = None
 

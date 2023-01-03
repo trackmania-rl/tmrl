@@ -9,8 +9,9 @@
 | [![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest) |
 
 
-`tmrl` is a distributed framework for training Deep Reinforcement Learning AIs in real-time applications.
-It is demonstrated on the TrackMania 2020 video game.
+`tmrl` is a fully-fledged distributed RL framework for robotics, designed to help you train Deep Reinforcement Learning AIs in real-time applications.
+
+`tmrl` comes with a readily implemented pipeline for the TrackMania 2020 video game.
 
 ![example](https://github.com/trackmania-rl/tmrl/releases/download/v0.2.0/video_lidar.gif)
 
@@ -25,6 +26,9 @@ It is demonstrated on the TrackMania 2020 video game.
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
 `tmrl` provides a Gym environment for TrackMania that is easy to use. Fast-track for you guys [here](#gym-environment).
+
+- :earth_americas: **Everyone:**\
+`tmrl` hosts the [TrackMania Roborace League](#trackmania-roborace-league), a vision-based AI competition where participants must design real-time self-racing AIs in the TrackMania video game.
 
 
 ## Quick links
@@ -58,32 +62,6 @@ It is demonstrated on the TrackMania 2020 video game.
   - [Sponsors](#sponsors)
 
 # TrackMania Roborace League
-
-_(First follow the [installation](#installation) and [getting started](#getting-started) instructions)_
-
-:checkered_flag: The `beta` iteration of the `TrackMania Roborace League` is now open! :checkered_flag:
-
-Instructions to participate are available [here](readme/competition.md).
-
-Plus, regardless of whether you want to participate, you will find that the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_competition.py) is a must if you wish to design your own advanced training pipeline in TrackMania :wink:
-
-## Leaderboard:
-
-### Iteration Beta :hatching_chick:
-- _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
-
-|          Winners          |   Team   | Time - _mean (std)_ |                 Description                 |                                                                                                         Model                                                                                                          |                        Video                         |
-|:-------------------------:|:--------:|:-------------------:|:-------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------:|
-|      :dragon: :one:       | Baseline |        ? (?)        | SAC, CNN, Full environment, `tmrl` default  | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L537), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip) |                          -                           |
-|     :racehorse: :two:     | Baseline |   47.176 (0.769)    | SAC, MLP, LIDAR environment, `tmrl` default | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L54), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip)  | [video](https://www.youtube.com/watch?v=LN29DDlHp1U) |
-|     :leopard: :three:     |
-|      :tiger2: :four:      |
-|       :cat2: :five:       |
-|      :rabbit2: :six:      |
-| :dromedary_camel: :seven: |
-|     :turtle: :eight:      |
-|      :snail: :nine:       |
-| :palm_tree: :keycap_ten:  |
 
 
 # The TMRL project
