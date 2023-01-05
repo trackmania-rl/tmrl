@@ -105,7 +105,8 @@ install_req = [
     'keyboard',
     'pyautogui',
     'pyinstrument',
-    'tlspyo>=0.2.3'
+    'tlspyo>=0.2.3',
+    'matplotlib'
 ]
 
 if platform.system() == "Windows":

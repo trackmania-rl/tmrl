@@ -5,41 +5,65 @@ COMPETITION TUTORIAL #1: Custom model and RL algorithm
 
 In this tutorial, we will customize the TrackMania training pipeline.
 
-This tutorial works with the TrackMania FULL Gym environment.
+The tutorial works with the TrackMania FULL Gym environment.
 Please refer to the README on GitHub to set up this environment in config.json:
 https://github.com/trackmania-rl/tmrl#full-environment
 
-Copy and adapt this script to implement your own algorithm/model in TrackMania.
-
-To submit an entry to the competition, we essentially need a trained policy.
-In TMRL, a policy is encapsulated in a tmrl.actor.ActorModule.
-
-Note: This tutorial describes implementing and running a TrainingAgent.
+Note: This tutorial describes implementing and running a TrainingAgent along with an ActorModule.
 It is relevant if you want to implement your own RL approaches in TrackMania.
 If you plan to try non-RL approaches instead, this is also accepted:
 just use the competition Gym Full environment and do whatever you need,
 then, wrap your trained policy in an ActorModule, and submit your entry :)
+
+Copy and adapt this script to implement your own algorithm/model in TrackMania.
+Then, use the script as follows:
+
+To launch the Server, provided the script is named tuto_competition.py, execute:
+python tuto_competition --server
+
+In another terminal, launch the Trainer:
+python tuto_competition --trainer
+
+And in yet another terminal, launch a RolloutWorker:
+python tuto_competition --worker
+
+You can launch these in any order, but we recommend server, then trainer, then worker.
+If you are running everything on the same machine, your trainer may consume all your resource,
+resulting in your worker struggling to collect samples in a timely fashion.
+If your worker crazily warns you about time-steps timing out, this is probably the issue.
+The best way of using TMRL with TrackMania is to have your worker(s) and trainer on separate machines.
+The server can run on either of these machines, or yet another machine that both can reach via network.
+Achieving this is easy (and is also kind of the whole point of the TMRL framework).
+Just adapt config.json (or this script) to your network configuration.
+In particular, you will want to set the following in the TMRL config.json file of all your machines:
+
+"LOCALHOST_WORKER": false,
+"LOCALHOST_TRAINER": false,
+"PUBLIC_IP_SERVER": "<ip.of.the.server>",
+"PORT": <port of the server (usually requires port forwarding if accessed via the Internet)>,
+
+If you are training over the Internet, please read the security instructions on the TMRL GitHub page.
 """
 
-# First, let us define a run name to use on wandb.ia.
-# Please change this name before running the script:
+# First, let us define a run name that will be used to identify our experiment on wandb.
+# Please change the name before running the script:
 WANDB_RUN_NAME = "tuto_competition_example_name"
 
 # Let us start our tutorial by importing some useful stuff.
 
 # The constants that are defined in config.json:
 import tmrl.config.config_constants as cfg
-# Useful partially instantiated classes:
+# Useful classes:
 import tmrl.config.config_objects as cfg_obj
 # The utility that TMRL uses to partially instantiate classes:
 from tmrl.util import partial
-# The TMRL three entities (i.e., the Trainer, the RolloutWorker and the central Server):
+# The TMRL three main entities (i.e., the Trainer, the RolloutWorker and the central Server):
 from tmrl.networking import Trainer, RolloutWorker, Server
 
 # The training class that we will customize with our own training algorithm in this tutorial:
 from tmrl.training_offline import TrainingOffline
 
-# And a couple useful external libraries:
+# And a couple external libraries:
 import numpy as np
 import os
 
@@ -79,8 +103,7 @@ update_model_interval = cfg.TMRL_CONFIG["UPDATE_MODEL_INTERVAL"]
 update_buffer_interval = cfg.TMRL_CONFIG["UPDATE_BUFFER_INTERVAL"]
 
 # Training device (e.g., "cuda:0"):
-# (if None, the training device will be selected automatically)
-device_trainer = None
+device_trainer = 'cuda' if cfg.CUDA_TRAINING else 'cpu'
 
 # Maximum size of the replay buffer:
 memory_size = cfg.TMRL_CONFIG["MEMORY_SIZE"]
@@ -104,7 +127,8 @@ max_samples_per_episode = cfg.TMRL_CONFIG["RW_MAX_SAMPLES_PER_EPISODE"]
 
 # Networking parameters:
 # (In TMRL, networking is managed by tlspyo. The following are tlspyo parameters.)
-server_ip = cfg.PUBLIC_IP_SERVER  # IP of the machine running the Server
+server_ip_for_trainer = cfg.SERVER_IP_FOR_TRAINER  # IP of the machine running the Server (trainer point of view)
+server_ip_for_worker = cfg.SERVER_IP_FOR_WORKER  # IP of the machine running the Server (worker point of view)
 server_port = cfg.PORT  # port used to communicate with this machine
 password = cfg.PASSWORD  # password that secures your communication
 security = cfg.SECURITY  # when training over the Internet, it is safer to change this to "TLS"
@@ -350,8 +374,8 @@ class VanillaCNN(nn.Module):
 # During training, TMRL will regularly save our trained ActorModule in the TmrlData/weights folder.
 # By default, this would be done using the torch (i.e., pickle) serializer.
 # However, while saving and loading your own pickle files is fine,
-# it is highly dangerous to load other people's pickled files.
-# Therefore, the competition submission does not accept pickled files.
+# it is highly dangerous to load other people's pickle files.
+# Therefore, the competition submission does not accept pickle files.
 # Instead, we can submit our trained weights in the form of a human-readable JSON file.
 # The ActorModule interface defines save() and load() methods that we will override with our own JSON serializer.
 
@@ -359,6 +383,9 @@ import json
 
 
 class TorchJSONEncoder(json.JSONEncoder):
+    """
+    Custom JSON encoder for torch tensors, used in the custom save() method of our ActorModule.
+    """
     def default(self, obj):
         if isinstance(obj, torch.Tensor):
             return obj.cpu().detach().numpy().tolist()
@@ -366,6 +393,9 @@ class TorchJSONEncoder(json.JSONEncoder):
 
 
 class TorchJSONDecoder(json.JSONDecoder):
+    """
+    Custom JSON decoder for torch tensors, used in the custom load() method of our ActorModule.
+    """
     def __init__(self, *args, **kwargs):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
@@ -618,9 +648,10 @@ class SACTrainingAgent(TrainingAgent):
         super().__init__(observation_space=observation_space,
                          action_space=action_space,
                          device=device)
+
         # custom stuff:
         model = model_cls(observation_space, action_space)
-        self.model = model.to(device)
+        self.model = model.to(self.device)
         self.model_target = no_grad(deepcopy(self.model))
         self.gamma = gamma
         self.polyak = polyak
@@ -790,7 +821,7 @@ if __name__ == "__main__":
 
     if args.trainer:
         my_trainer = Trainer(training_cls=training_cls,
-                             server_ip=server_ip,
+                             server_ip=server_ip_for_trainer,
                              server_port=server_port,
                              password=password,
                              security=security)
@@ -802,7 +833,7 @@ if __name__ == "__main__":
                            actor_module_cls=MyActorModule,
                            sample_compressor=sample_compressor,
                            device=device_worker,
-                           server_ip=cfg.SERVER_IP_FOR_WORKER,
+                           server_ip=server_ip_for_worker,
                            server_port=server_port,
                            password=password,
                            security=security,
@@ -817,29 +848,3 @@ if __name__ == "__main__":
                       security=security)
         while True:
             time.sleep(1.0)
-
-# To launch the server, provided this script is named tuto_competition.py, execute:
-# python tuto_competition --server
-
-# Trainer:
-# python tuto_competition --trainer
-
-# And RolloutWorker(s):
-# python tuto_competition --worker
-
-# You can launch these in any order, but we recommend server, then trainer, then worker.
-# If you are running everything on the same machine, your trainer may consume all your resource,
-# resulting in your worker struggling to collect samples in a timely fashion.
-# If your worker crazily warns you about time-steps timing out, this is probably the issue.
-# The best way of using TMRL with TrackMania is to have your worker(s) and trainer on separate machines.
-# The server can run on either of these machines, or yet another machine that both can reach via network.
-# Achieving this is easy (and is also kind of the whole point of the TMRL framework).
-# Just adapt config.json (or this script) to your network configuration.
-# In particular, you will want to set the following in the config.json of all your machines:
-
-# "LOCALHOST_WORKER": false,
-# "LOCALHOST_TRAINER": false,
-# "PUBLIC_IP_SERVER": "<ip.of.the.server>",
-# "PORT": <port of the server (usually requires port forwarding if accessed via the Internet)>,
-
-# If you are training over the Internet, please read the security instructions on the TMRL GitHub page.
