@@ -14,10 +14,10 @@ Regardless of whether you want to participate, you will also find that the [comp
 ### Iteration Beta :hatching_chick:
 - _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
 
-|          Winners          |   Team   | Time - _mean (std)_ |                 Description                 |                                                                                                         Model                                                                                                          |                        Video                         |
-|:-------------------------:|:--------:|:-------------------:|:-------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------:|
-|      :dragon: :one:       | Baseline |        ? (?)        | SAC, CNN, Full environment, `tmrl` default  | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L537), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip) |                          -                           |
-|     :racehorse: :two:     | Baseline |   47.176 (0.769)    | SAC, MLP, LIDAR environment, `tmrl` default | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L54), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip)  | [video](https://www.youtube.com/watch?v=LN29DDlHp1U) |
+|          Winners          |   Team   | Time - _mean (std)_ |                 Description                 |                                                                                                                                  Resources                                                                                                                                  |
+|:-------------------------:|:--------:|:-------------------:|:-------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      :dragon: :one:       | Baseline |        ? (?)        | SAC, CNN, Full environment, `tmrl` default  |                           [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L537), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip)                            |
+|     :racehorse: :two:     | Baseline |   47.176 (0.769)    | SAC, MLP, LIDAR environment, `tmrl` default | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L54), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip), [video](https://www.youtube.com/watch?v=LN29DDlHp1U) |
 |     :leopard: :three:     |
 |      :tiger2: :four:      |
 |       :cat2: :five:       |
@@ -61,7 +61,7 @@ If you wish to get creative and solve a problem that doesn't fit in the current 
 Use the [discussions](https://github.com/trackmania-rl/tmrl/discussions) section to propose your project.)_
 
 
-We evaluate your submission using the [TODO](#TODO) script.
+We evaluate your submission using our [evaluation script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/competition_eval.py).
 The `"SLEEP_TIME_AT_RESET"` entry in `config.json` (`C:\Users\YourUsername\TmrlData\config`) is set to 0.0 to avoid wasting time at the beginning of the episode (but we recommend leaving this to the default 1.5 for training).
 
 ## Tutorials:
