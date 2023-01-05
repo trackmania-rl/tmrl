@@ -1,6 +1,6 @@
 """
 This script is used to evaluate your submission to the TMRL competition.
-It assumes the script where you implemented your ActorModule is in the same folder and is named "tuto_competition.py".
+It assumes the script where you implemented your ActorModule is in the same folder and is named "custom_actor_module.py".
 It also assumes your ActorModule implementation is named "MyActorModule".
 When using this script, don't forget to set "SLEEP_TIME_AT_RESET" to 0.0 in config.json.
 """

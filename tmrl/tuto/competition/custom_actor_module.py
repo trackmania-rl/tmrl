@@ -18,14 +18,14 @@ then, wrap your trained policy in an ActorModule, and submit your entry :)
 Copy and adapt this script to implement your own algorithm/model in TrackMania.
 Then, use the script as follows:
 
-To launch the Server, provided the script is named tuto_competition.py, execute:
-python tuto_competition --server
+To launch the Server, provided the script is named custom_actor_module.py, execute:
+python custom_actor_module.py --server
 
 In another terminal, launch the Trainer:
-python tuto_competition --trainer
+python custom_actor_module.py --trainer
 
 And in yet another terminal, launch a RolloutWorker:
-python tuto_competition --worker
+python custom_actor_module.py --worker
 
 You can launch these in any order, but we recommend server, then trainer, then worker.
 If you are running everything on the same machine, your trainer may consume all your resource,
@@ -44,10 +44,6 @@ In particular, you will want to set the following in the TMRL config.json file o
 
 If you are training over the Internet, please read the security instructions on the TMRL GitHub page.
 """
-
-# First, let us define a run name that will be used to identify our experiment on wandb.
-# Please change the name before running the script:
-WANDB_RUN_NAME = "tuto_competition_example_name"
 
 # Let us start our tutorial by importing some useful stuff.
 
@@ -115,7 +111,7 @@ batch_size = cfg.TMRL_CONFIG["BATCH_SIZE"]
 # (Change this with your own if you want to keep your training curves private)
 # (Also, please use your own wandb account if you are going to log huge stuff :) )
 
-wandb_run_id = WANDB_RUN_NAME  # change this by a name of your choice for your run
+wandb_run_id = cfg.WANDB_RUN_ID  # change this by a name of your choice for your run
 wandb_project = cfg.TMRL_CONFIG["WANDB_PROJECT"]  # name of the wandb project in which your run will appear
 wandb_entity = cfg.TMRL_CONFIG["WANDB_ENTITY"]  # wandb account
 wandb_key = cfg.TMRL_CONFIG["WANDB_KEY"]  # wandb API key

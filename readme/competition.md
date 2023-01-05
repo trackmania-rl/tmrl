@@ -6,7 +6,7 @@ The `tmrl` competition is a fun way of benchmarking vision-based autonomous car 
 
 Competitors solve Real-Time Gym environments featuring snapshots from the real `TrackMania 2020` video game, with no insider access, to test their self-racing policies.
 
-Regardless of whether you want to participate, you will also find that the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_competition.py) is a must if you wish to design your own advanced training pipeline in TrackMania :wink:
+Regardless of whether you want to participate, you will also find that the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) is a must if you wish to design your own advanced training pipeline in TrackMania :wink:
 
 
 ## Leaderboard:
@@ -42,7 +42,7 @@ In this iteration, competitors race on the default `tmrl-test` track (plain road
 An entry to the competition simply needs to be a working implementation of the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) interface.
 How to implement this module is entirely up to you, it does not have to be a neural network, nor to be trained though RL.
 
-Nevertheless, we encourage deep RL approaches, and provide a fast-track [tutorial](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_competition.py) in this direction for your convenience.
+Nevertheless, we encourage deep RL approaches, and provide a fast-track [tutorial](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) in this direction for your convenience.
 
 :loudspeaker: **Hardware constraint**: your `ActorModule` needs to be lightweight enough to run at 20Hz on a Windows 11 machine with `i7-12700H` CPU and `RTX3080-Ti (laptop)` GPU in parallel to `TrackMania 2020`, as this is what we will be using to evaluate your submission.
 
@@ -65,7 +65,7 @@ We evaluate your submission using the [TODO](#TODO) script.
 The `"SLEEP_TIME_AT_RESET"` entry in `config.json` (`C:\Users\YourUsername\TmrlData\config`) is set to 0.0 to avoid wasting time at the beginning of the episode (but we recommend leaving this to the default 1.5 for training).
 
 ## Tutorials:
-The [competition tutorial #1 script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_competition.py) will help you quickly set up a custom RL training pipeline for the `Full` TrackMania Gym environment.
+The [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) will help you quickly set up a custom RL training pipeline for the `Full` TrackMania Gym environment.
 
 ## Submit an entry:
 An entry to the competition is a python script providing a working implementation of the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) interface (plus optional data files).
@@ -74,7 +74,7 @@ At the moment, you can create a discussion in the [discussions](https://github.c
 :warning: Importantly, note that, for everyone's safety, **we do not accept derivatives of pickle files** (which is typically what you get when using the serializers provided by deep learning frameworks).
 Instead, we do accept `json` files.
 In practice, this means you probably need to code your own deserializer as part of your `ActorModule.load` implementation.
-See the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_competition.py) for an example of how to do so with PyTorch.
+See the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) for an example of how to do so with PyTorch.
 
 ## Questions, suggestions:
 Questions and suggestions to improve the competition are welcome!
