@@ -192,7 +192,7 @@ sleep(1.0)  # just so we have time to focus the TM20 window after starting the s
 obs, info = env.reset()  # reset environment
 for _ in range(200):  # rtgym ensures this runs at 20Hz by default
     act = model(obs)  # compute action
-    obs, rew, terminated, truncated, info = env.step(act)  # apply action (rtgym ensures healthy time-steps)
+    obs, rew, terminated, truncated, info = env.step(act)  # step (rtgym ensures healthy time-steps)
     if terminated or truncated:
         break
 env.wait()  # rtgym-specific method to artificially 'pause' the environment when needed
