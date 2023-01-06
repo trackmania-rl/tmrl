@@ -129,12 +129,12 @@ An advanced tutorial toward implementing your own ad-hoc optimized training pipe
 
 Security-wise, `tmrl` is based on [tlspyo](https://github.com/MISTLab/tls-python-object).
 
-By default, `tmrl` transfers objects via TCP in order to work out-of-the-box.
+By default, `tmrl` transfers objects via non-encrypted TCP in order to work out-of-the-box.
 This is fine as long as you use `tmrl` on your own private network.
 
 HOWEVER, THIS IS A SECURITY BREACH IF YOU START USING `tmrl` ON A PUBLIC NETWORK.
 
-To use `tmrl` on a public network (for instance, on the Internet), it is important that you enable Transport Layer Security (TLS).
+To use `tmrl` on a public network (for instance, on the Internet), we recommend that you enable Transport Layer Security (TLS).
 To do so, follow these instructions on all your machines:
 
 - Open `config.json`;
@@ -143,6 +143,10 @@ To do so, follow these instructions on all your machines:
 - On the machine hosting your `Server`, generate a TLS key and certificate (follow the [tlspyo instructions](https://github.com/MISTLab/tls-python-object#tls-setup));
 - Copy your generated certificate on all other machines (either in the default tlspyo credentials directory or in a directory of your choice);
 - If you used your own directory in the previous step, replace the `"TLS_CREDENTIALS_DIRECTORY"` entry with its path.
+
+If for any reason you do not wish to use TLS (not recommended), you should still at least use a custom password in `config.json` when training over a public network.
+HOWEVER, DO NOT USE A PASSWORD THAT YOU USE FOR OTHER APPLICATIONS.
+This is because, without TLS encryption, this password will be readable in the packets sent by your machines over the network.
 
 # Autonomous driving in TrackMania
 
