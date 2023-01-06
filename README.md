@@ -35,7 +35,7 @@
 - [The TMRL Project](#the-tmrl-project)
   - [Introduction](#introduction)
     - [User features](#user-features-trackmania)
-    - [Developer features](#developer-features-real-time-applications)
+    - [Developer features](#developer-features-real-time-applications-in-python)
     - [TMRL in the media](#tmrl-in-the-media)
   - [Installation](readme/Install.md)
   - [Getting started](readme/get_started.md)
