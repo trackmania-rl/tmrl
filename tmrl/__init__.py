@@ -36,6 +36,6 @@ def get_environment():
     Default TMRL Gym environment for TrackMania 2020.
 
     Returns:
-        env (Gym.Env): An instance of the default TMRL Gym environment
+        Gym.Env: An instance of the default TMRL Gym environment
     """
     return GenericGymEnv(id="real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})

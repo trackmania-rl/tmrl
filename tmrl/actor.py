@@ -94,7 +94,7 @@ class ActorModule(ABC):
             test (bool): True at test time, False otherwise
 
         Returns:
-            act (numpy.array): the computed action
+            numpy.array: the computed action
         """
         raise NotImplementedError
 

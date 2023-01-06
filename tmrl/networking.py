@@ -551,8 +551,9 @@ class RolloutWorker:
             collect_samples (bool): if True, samples are buffered and sent to the `Server`
 
         Returns:
-            nested structure: observation retrieved from the environment
-            dict: information retrieved from the environment
+            Tuple:
+            (nested structure: observation retrieved from the environment,
+            dict: information retrieved from the environment)
         """
         obs = None
         act = self.env.default_action.astype(np.float32)
@@ -586,11 +587,12 @@ class RolloutWorker:
             last_step (bool): if True and `terminated` is False, `truncated` will be set to True
 
         Returns:
-            nested structure: new observation
-            float: new reward
-            bool: episode termination signal
-            bool: episode truncation signal
-            dict: information dictionary
+            Tuple:
+            (nested structure: new observation,
+            float: new reward,
+            bool: episode termination signal,
+            bool: episode truncation signal,
+            dict: information dictionary)
         """
         act = self.act(obs, test=test)
         new_obs, rew, terminated, truncated, info = self.env.step(act)
@@ -676,8 +678,8 @@ class RolloutWorker:
         For deployment, use the `run_episodes` method instead.
 
         Args:
-            test_episode_interval (int):
-            nb_episodes (int):
+            test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes
+            nb_episodes (int): maximum number of train episodes to collect
         """
         episode = 0
         while episode < nb_episodes:

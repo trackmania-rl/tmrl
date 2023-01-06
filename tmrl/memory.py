@@ -141,8 +141,9 @@ class Memory(ABC):
             device: device onto which the list needs to be collated into batches `batch_size`
 
         Returns:
-            tuple of tensors `(prev_obs_tens, new_act_tens, rew_tens, new_obs_tens, terminated_tens, truncated_tens)`,
-                collated on device `device`, each of batch dimension `batch_size`
+            Tuple of tensors:
+            (prev_obs_tens, new_act_tens, rew_tens, new_obs_tens, terminated_tens, truncated_tens)
+            collated on device `device`, each of batch dimension `batch_size`
         """
         raise NotImplementedError
 
