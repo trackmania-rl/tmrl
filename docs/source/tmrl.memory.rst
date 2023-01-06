@@ -1,5 +1,5 @@
-tmrl.memory\_dataloading module
-===============================
+tmrl.memory module
+==================
 
 .. automodule:: tmrl.memory
    :members: Memory, TorchMemory
