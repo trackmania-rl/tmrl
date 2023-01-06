@@ -108,7 +108,7 @@ The `Trainer` uses these samples to update the current policy, and periodically 
 
 The `Server` is thus the central communication point between entities and should be instantiated first.
 In the context of this tutorial, we will instantiate all 3 entities on the same machine, and thus they will communicate via the `localhost` address, which is `"127.0.0.1"`
-_(NB: the `Server` does not know that it listens to any incoming connection)_.
+_(NB: the `Server` does not know this, it listens to any incoming connection)_.
 
 Instantiating a `Server` object is straightforward:
 
@@ -118,8 +118,7 @@ from tmrl.networking import Server
 my_server = Server()
 ```
 
-In the current iteration of `tmrl`, as soon as the server is instantiated, it spawns two daemon threads that will run forever until the application is interrupted.
-These threads listen for incoming connections from the `Trainer` and the `RolloutWorkers`.
+As soon as the server is instantiated, it listens for incoming connections from the `Trainer` and the `RolloutWorkers`.
 
 ## Environment
 In RL, a task is often called an "environment".
@@ -500,7 +499,7 @@ import tmrl.config.config_constants as cfg
 my_run_name = "tutorial"
 weights_folder = cfg.WEIGHTS_FOLDER  # path to the weights folder
 
-model_path = str(weights_folder / (my_run_name + ".pth"))
+model_path = str(weights_folder / (my_run_name + ".tmod"))
 model_path_history = str(weights_folder / (my_run_name + "_"))
 ```
 
@@ -617,8 +616,8 @@ weights_folder = cfg.WEIGHTS_FOLDER  # path to the weights folder
 checkpoints_folder = cfg.CHECKPOINTS_FOLDER
 my_run_name = "tutorial"
 
-model_path = str(weights_folder / (my_run_name + "_t.pth"))
-checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.cpt"))
+model_path = str(weights_folder / (my_run_name + "_t.tmod"))
+checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.tcpt"))
 ```
 
 `dump_run_instance_fn` and `load_run_instance_fn` are for advanced serialization when your `Trainer` content cannot be pickled.

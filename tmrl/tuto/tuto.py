@@ -251,7 +251,7 @@ max_samples_per_episode = 1000
 my_run_name = "tutorial"
 weights_folder = cfg.WEIGHTS_FOLDER
 
-model_path = str(weights_folder / (my_run_name + ".pth"))
+model_path = str(weights_folder / (my_run_name + ".tmod"))
 model_path_history = str(weights_folder / (my_run_name + "_"))
 model_history = 10
 
@@ -284,8 +284,8 @@ weights_folder = cfg.WEIGHTS_FOLDER  # path to the weights folder
 checkpoints_folder = cfg.CHECKPOINTS_FOLDER
 my_run_name = "tutorial"
 
-model_path = str(weights_folder / (my_run_name + "_t.pth"))
-checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.cpt"))
+model_path = str(weights_folder / (my_run_name + "_t.tmod"))
+checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.tcpt"))
 
 # --- TrainingOffline ---
 

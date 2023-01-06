@@ -66,10 +66,10 @@ logging.debug(f" PATH_DATA:{PATH_DATA}")
 
 MODEL_HISTORY = TMRL_CONFIG["SAVE_MODEL_EVERY"]  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
 
-MODEL_PATH_WORKER = str(WEIGHTS_FOLDER / (RUN_NAME + ".pth"))
+MODEL_PATH_WORKER = str(WEIGHTS_FOLDER / (RUN_NAME + ".tmod"))
 MODEL_PATH_SAVE_HISTORY = str(WEIGHTS_FOLDER / (RUN_NAME + "_"))
-MODEL_PATH_TRAINER = str(WEIGHTS_FOLDER / (RUN_NAME + "_t.pth"))
-CHECKPOINT_PATH = str(CHECKPOINTS_FOLDER / RUN_NAME)
+MODEL_PATH_TRAINER = str(WEIGHTS_FOLDER / (RUN_NAME + "_t.tmod"))
+CHECKPOINT_PATH = str(CHECKPOINTS_FOLDER / (RUN_NAME + "_t.tcpt"))
 DATASET_PATH = str(DATASET_FOLDER)
 REWARD_PATH = str(REWARD_FOLDER / "reward.pkl")
 

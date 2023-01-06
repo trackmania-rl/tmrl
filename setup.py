@@ -63,8 +63,8 @@ if not TMRL_FOLDER.exists():
     RESOURCES_FOLDER = TMRL_FOLDER / "resources"
     copy2(RESOURCES_FOLDER / "config.json", CONFIG_FOLDER)
     copy2(RESOURCES_FOLDER / "reward.pkl", REWARD_FOLDER)
-    copy2(RESOURCES_FOLDER / "SAC_4_LIDAR_pretrained.pth", WEIGHTS_FOLDER)
-    copy2(RESOURCES_FOLDER / "SAC_4_imgs_pretrained.pth", WEIGHTS_FOLDER)
+    copy2(RESOURCES_FOLDER / "SAC_4_LIDAR_pretrained.tmod", WEIGHTS_FOLDER)
+    copy2(RESOURCES_FOLDER / "SAC_4_imgs_pretrained.tmod", WEIGHTS_FOLDER)
 
     # on Windows, look for OpenPlanet:
     if platform.system() == "Windows":

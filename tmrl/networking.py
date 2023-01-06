@@ -469,7 +469,7 @@ class RolloutWorker:
             model_path (str): path where a local copy of the policy will be stored
             obs_preprocessor (callable): utility for modifying observations retrieved from the environment
             crc_debug (bool): can be used for debugging the pipeline
-            model_path_history (str): (omit .pth) an history of policies can be stored here
+            model_path_history (str): (omit .tmod) an history of policies can be stored here
             model_history (int): new policies are saved % model_history (0: not saved)
             standalone (bool): If True, the worker will not try to connect to a server
             server_ip (str): ip of the central server
@@ -728,7 +728,7 @@ class RolloutWorker:
                 self._cur_hist_cpt += 1
                 if self._cur_hist_cpt == self.model_history:
                     x = datetime.datetime.now()
-                    with open(self.model_path_history + str(x.strftime("%d_%m_%Y_%H_%M_%S")) + ".pth", 'wb') as f:
+                    with open(self.model_path_history + str(x.strftime("%d_%m_%Y_%H_%M_%S")) + ".tmod", 'wb') as f:
                         f.write(weights)
                     self._cur_hist_cpt = 0
                     print_with_timestamp("model weights saved in history")
