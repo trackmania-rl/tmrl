@@ -463,24 +463,30 @@ class RolloutWorker:
         Args:
             env_cls (type): class of the Gym environment (subclass of tmrl.envs.GenericGymEnv)
             actor_module_cls (type): class of the module containing the policy (subclass of tmrl.actor.ActorModule)
-            sample_compressor (callable): compressor for sending samples over the Internet
+            sample_compressor (callable): compressor for sending samples over the Internet; \
+            when not `None`, `sample_compressor` must be a function that takes the following arguments: \
+            (prev_act, obs, rew, terminated, truncated, info), and that returns them (modified) in the same order: \
+            when not `None`, a `sample_compressor` works with a corresponding decompression scheme in the `Memory` class
             device (str): device on which the policy is running
             max_samples_per_episode (int): if an episode gets longer than this, it is reset
             model_path (str): path where a local copy of the policy will be stored
-            obs_preprocessor (callable): utility for modifying observations retrieved from the environment
-            crc_debug (bool): can be used for debugging the pipeline
-            model_path_history (str): (omit .tmod) an history of policies can be stored here
-            model_history (int): new policies are saved % model_history (0: not saved)
-            standalone (bool): If True, the worker will not try to connect to a server
+            obs_preprocessor (callable): utility for modifying observations retrieved from the environment; \
+            when not `None`, `obs_preprocessor` must be a function that takes an observation as input and outputs the \
+            modified observation
+            crc_debug (bool): useful for debugging custom pipelines; leave to False otherwise
+            model_path_history (str): (include the filename but omit .tmod) path to the saved history of policies; \
+            we recommend you leave this to the default
+            model_history (int): policies are saved every `model_history` new policies (0: not saved)
+            standalone (bool): if True, the worker will not try to connect to a server
             server_ip (str): ip of the central server
             server_port (int): public port of the central server
             password (str): tlspyo password
-            local_port (int): tlspyo local communication port
+            local_port (int): tlspyo local communication port; usually, leave this to the default
             header_size (int): tlspyo header size (bytes)
             max_buf_len (int): tlspyo max number of messages in buffer
             security (str): tlspyo security type (None or "TLS")
-            keys_dir (str): tlspyo credentials directory
-            hostname (str): tlspyo hostname
+            keys_dir (str): tlspyo credentials directory; usually, leave this to the default
+            hostname (str): tlspyo hostname; usually, leave this to the default
         """
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = sample_compressor
@@ -530,7 +536,7 @@ class RolloutWorker:
             test (bool): directly passed to the `act()` method of the `ActorModule`
 
         Returns:
-            action (numpy.array): action computed by the `ActorModule`
+            numpy.array: action computed by the `ActorModule`
         """
         # if self.obs_preprocessor is not None:
         #     obs = self.obs_preprocessor(obs)
@@ -545,8 +551,8 @@ class RolloutWorker:
             collect_samples (bool): if True, samples are buffered and sent to the `Server`
 
         Returns:
-            obs (nested structure): observation retrieved from the environment
-            info (dict): information retrieved from the environment
+            nested structure: observation retrieved from the environment
+            dict: information retrieved from the environment
         """
         obs = None
         act = self.env.default_action.astype(np.float32)
@@ -580,11 +586,11 @@ class RolloutWorker:
             last_step (bool): if True and `terminated` is False, `truncated` will be set to True
 
         Returns:
-            new_obs (nested structure): new observation
-            rew (float): new reward
-            terminated (bool): episode termination signal
-            truncated (bool): episode truncation signal
-            info (dict): information dictionary
+            nested structure: new observation
+            float: new reward
+            bool: episode termination signal
+            bool: episode truncation signal
+            dict: information dictionary
         """
         act = self.act(obs, test=test)
         new_obs, rew, terminated, truncated, info = self.env.step(act)
@@ -604,9 +610,9 @@ class RolloutWorker:
 
     def collect_train_episode(self, max_samples):
         """
-        Collects a maximum of n training transitions (from reset to terminated or truncated)
+        Collects a maximum of `max_samples` training transitions (from reset to terminated or truncated)
 
-        This method stores the episode and the train return in the local `Buffer` of the worker
+        This method stores the episode and the training return in the local `Buffer` of the worker
         for sending to the `Server`.
 
         Args:
@@ -641,7 +647,7 @@ class RolloutWorker:
 
     def run_episode(self, max_samples, train=False):
         """
-        Collects a maximum of n test transitions (from reset to terminated or truncated).
+        Collects a maximum of `max_samples` test transitions (from reset to terminated or truncated).
 
         Args:
             max_samples (int): At most `max_samples` samples are collected per episode.

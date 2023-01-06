@@ -30,7 +30,7 @@ class TrainingAgent(ABC):
             batch: tuple or batched tensors (previous observation, action, reward, new observation, terminated, truncated)
 
         Returns:
-            ret_dict: dictionary: a dictionary containing one entry per metric you wish to log (e.g. for wandb)
+            dict: a dictionary containing one entry per metric you wish to log (e.g. for wandb)
         """
         raise NotImplementedError
 
@@ -40,7 +40,7 @@ class TrainingAgent(ABC):
         Returns the current ActorModule to be broadcast to the RolloutWorkers.
 
         Returns:
-             actor: ActorModule: current actor to be broadcast
+             ActorModule: current actor to be broadcast
         """
         raise NotImplementedError
 

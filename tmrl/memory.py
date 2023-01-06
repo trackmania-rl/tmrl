@@ -104,7 +104,7 @@ class Memory(ABC):
         Must return the length of the memory.
 
         Returns:
-            length (int): the maximum `item` argument of `get_transition`
+            int: the maximum `item` argument of `get_transition`
 
         """
         raise NotImplementedError
@@ -120,7 +120,7 @@ class Memory(ABC):
             item (int): the index where to sample
 
         Returns:
-            sample (Tuple): (prev_obs, prev_act, rew, obs, terminated, truncated, info)
+            Tuple: (prev_obs, prev_act, rew, obs, terminated, truncated, info)
         """
         raise NotImplementedError
 

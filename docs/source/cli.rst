@@ -32,7 +32,7 @@ Ckeck that the TrackMania environment is working as expected:
 
    python -m tmrl --check-environment
 
-Benchmark the RollourWorker in TrackMania (requires `"benchmark":true` in `config.json`):
+Benchmark the RolloutWorker in TrackMania (requires `"benchmark":true` in `config.json`):
 
 .. code-block:: bash
 
