@@ -7,7 +7,7 @@ import json
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
 from tmrl.tools.record import record_reward_dist
-from tmrl.tools.check_environment import check_env_tm20lidar
+from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full
 from tmrl.envs import GenericGymEnv
 from tmrl.networking import Server, Trainer, RolloutWorker
 from tmrl.util import partial
@@ -57,8 +57,10 @@ def main(args):
     elif args.record_reward:
         record_reward_dist(path_reward=cfg.REWARD_PATH)
     elif args.check_env:
-        assert cfg.PRAGMA_LIDAR, "Not supported for this environment."
-        check_env_tm20lidar()
+        if cfg.PRAGMA_LIDAR:
+            check_env_tm20lidar()
+        else:
+            check_env_tm20full()
     else:
         raise ArgumentTypeError('Enter a valid argument')
 

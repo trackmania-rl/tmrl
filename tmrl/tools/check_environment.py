@@ -1,5 +1,6 @@
 # third-party imports
 import gym
+import cv2
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 
 # local imports
@@ -15,19 +16,46 @@ def check_env_tm20lidar():
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020InterfaceLidar
     env_config["wait_on_done"] = True
-    env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_failure": int(20 * 60), "record": False}
-    # env_config["time_step_duration"] = 0.5  # nominal duration of your time-step
-    # env_config["start_obs_capture"] = 0.4
+    env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_failure": int(20 * 60)}
     env = gym.make("real-time-gym-v0", config=env_config)
     o, i = env.reset()
     while True:
         o, r, d, t, i = env.step(None)
-        logging.info(f"r:{r}, d:{d}")
+        logging.info(f"r:{r}, d:{d}, t:{t}")
         if d or t:
             o, i = env.reset()
         img = window_interface.screenshot()[:, :, :3]
         lidar.lidar_20(img, True)
 
 
+def show_imgs(imgs):
+    imshape = imgs.shape
+    if len(imshape) == 3:  # grayscale
+        nb, h, w = imshape
+        concat = imgs.reshape((nb*h, w))
+        cv2.imshow("Environment", concat)
+        cv2.waitKey(1)
+
+
+def check_env_tm20full():
+    env_config = DEFAULT_CONFIG_DICT.copy()
+    env_config["interface"] = TM2020Interface
+    env_config["wait_on_done"] = True
+    env_config["interface_kwargs"] = {"gamepad": False, "min_nb_steps_before_failure": int(20 * 60)}
+    env = gym.make("real-time-gym-v0", config=env_config)
+    o, i = env.reset()
+    show_imgs(o[3])
+    logging.info(f"o:[{o[0].item():05.01f}, {o[1].item():03.01f}, {o[2].item():07.01f}, imgs({len(o[3])})]")
+    while True:
+        o, r, d, t, i = env.step(None)
+        show_imgs(o[3])
+        logging.info(f"r:{r:.2f}, d:{d}, t:{t}, o:[{o[0].item():05.01f}, {o[1].item():03.01f}, {o[2].item():07.01f}, imgs({len(o[3])})]")
+        if d or t:
+            o, i = env.reset()
+            show_imgs(o[3])
+            logging.info(f"o:[{o[0].item():05.01f}, {o[1].item():03.01f}, {o[2].item():07.01f}, imgs({len(o[3])})]")
+
+
 if __name__ == "__main__":
-    check_env_tm20lidar()
+    # check_env_tm20lidar()
+    check_env_tm20full()
