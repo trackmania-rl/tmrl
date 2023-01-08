@@ -94,7 +94,7 @@ class SquashedGaussianMLPActor(TorchActorModule):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.forward(obs, test, False)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 class MLPQFunction(nn.Module):
@@ -126,7 +126,7 @@ class MLPActorCritic(nn.Module):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 # REDQ MLP: =====================================================
@@ -153,7 +153,7 @@ class REDQMLPActorCritic(nn.Module):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 # CNNs: ================================================================================================================
@@ -437,7 +437,7 @@ class SquashedGaussianEffNetActor(TorchActorModule):
         size = sys.getsizeof(obs)
         with torch.no_grad():
             a, _ = self.forward(obs, test, False)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 class EffNetQFunction(nn.Module):
@@ -469,7 +469,7 @@ class EffNetActorCritic(nn.Module):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 # Vanilla CNN: =========================================================================================================
@@ -569,7 +569,7 @@ class SquashedGaussianVanillaCNNActor(TorchActorModule):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.forward(obs, test, False)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 class VanillaCNNQFunction(nn.Module):
@@ -595,174 +595,10 @@ class VanillaCNNActorCritic(nn.Module):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 # UNSUPPORTED ==========================================================================================================
-
-
-# MobileNet: ===========================================================================================================
-
-# class MobileNetV3(nn.Module):
-#     def __init__(self, q_net=False):
-#         super().__init__()
-#         # input 4 images not 1  so no rgb but 4 channels or 3*4 = 12
-#         self.q_net = q_net
-#         net = torchvision.models.mobilenet_v3_small(pretrained=True)
-#         net.features[0][0] = nn.Conv2d(4, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
-#         self.net_features = net.features
-#         self.net_avgpool = net.avgpool
-#         self.net_classifier = net.classifier
-#
-#         self.net_classifier[3] = nn.Linear(in_features=1024, out_features=256, bias=True)
-#         if self.q_net:
-#             self.net_classifier[0] = Linear(in_features=588, out_features=1024, bias=True)  # we add gear, speed, rpm, actions
-#             self.fcn_1 = nn.Linear(in_features=256, out_features=1, bias=True)
-#         else:
-#             self.net_classifier[0] = Linear(in_features=585, out_features=1024, bias=True)  # we add gear, speed, rpm
-#
-#     def forward(self, x):
-#         if self.q_net:
-#             speed, gear, rpm, images, act1, act2, act = x
-#         else:
-#             speed, gear, rpm, images, act1, act2 = x
-#
-#         x = self.net_features(images)
-#         x = self.net_avgpool(x)
-#         x = torch.flatten(x, start_dim=1)
-#
-#         if self.q_net:
-#             x = self.net_classifier(torch.cat((act, speed, gear, rpm, x, act1, act2), -1))
-#             x = self.fcn_1(x)
-#         else:
-#             x = self.net_classifier(torch.cat((speed, gear, rpm, x, act1, act2), -1))
-#         return x
-#
-#
-# class SquashedGaussianMobileNetActor(TorchActorModule):
-#     def __init__(self, observation_space, action_space):
-#         super().__init__(observation_space, action_space)
-#         dim_act = action_space.shape[0]
-#         act_limit = action_space.high[0]
-#         self.net = MobileNetV3()
-#         hidden_size = 256
-#         self.mu_layer = nn.Linear(hidden_size, dim_act)
-#         self.log_std_layer = nn.Linear(hidden_size, dim_act)
-#         self.act_limit = act_limit
-#
-#     def forward(self, obs, test=False, with_logprob=True):
-#         net_out = self.net(obs)
-#         mu = self.mu_layer(net_out)
-#         log_std = self.log_std_layer(net_out)
-#         log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
-#         std = torch.exp(log_std)
-#
-#         # Pre-squash distribution and sample
-#         pi_distribution = Normal(mu, std)
-#         if test:
-#             # Only used for evaluating policy at test time.
-#             pi_action = mu
-#         else:
-#             pi_action = pi_distribution.rsample()
-#
-#         if with_logprob:
-#             # Compute logprob from Gaussian, and then apply correction for Tanh squashing.
-#             # NOTE: The correction formula is a little bit magic. To get an understanding
-#             # of where it comes from, check out the original SAC paper (arXiv 1801.01290)
-#             # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
-#             # Try deriving it yourself as a (very difficult) exercise. :)
-#             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-#             logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
-#         else:
-#             logp_pi = None
-#
-#         pi_action = torch.tanh(pi_action)
-#         pi_action = self.act_limit * pi_action
-#
-#         pi_action = pi_action.squeeze()
-#
-#         return pi_action, logp_pi
-#
-#     def act(self, obs, test=False):
-#         with torch.no_grad():
-#             a, _ = self.forward(obs, test, False)
-#             return a.numpy()
-#
-#
-# class MobileNetQFunction(nn.Module):
-#     def __init__(self, obs_space, act_space):
-#         super().__init__()
-#         self.q = MobileNetV3(q_net=True)
-#
-#     def forward(self, obs, act):
-#         x = (*obs, act)
-#         q = self.q(x)
-#         return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
-#
-#
-# class MobileNetActorCritic(nn.Module):
-#     def __init__(self, observation_space, action_space):
-#         super().__init__()
-#         # build policy and value functions
-#         self.actor = SquashedGaussianMobileNetActor(observation_space, action_space)
-#         self.q1 = MobileNetQFunction(observation_space, action_space)
-#         self.q2 = MobileNetQFunction(observation_space, action_space)
-#
-#     def act(self, obs, test=False):
-#         with torch.no_grad():
-#             a, _ = self.actor(obs, test, False)
-#             return a.numpy()
-
-
-# Small CNN ============================================================================================================
-
-
-# class SmallCNN(Module):
-#     def __init__(self, h_in, w_in, channels_in):
-#         super(SmallCNN, self).__init__()
-#         self.h_out, self.w_out = h_in, w_in
-#
-#         self.conv1 = Conv2d(channels_in, 64, 8, stride=2)
-#         self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
-#         self.conv2 = Conv2d(64, 64, 4, stride=2)
-#         self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)
-#         self.conv3 = Conv2d(64, 128, 4, stride=2)
-#         self.h_out, self.w_out = conv2d_out_dims(self.conv3, self.h_out, self.w_out)
-#         self.conv4 = Conv2d(128, 128, 4, stride=2)
-#         self.h_out, self.w_out = conv2d_out_dims(self.conv4, self.h_out, self.w_out)
-#         self.out_channels = self.conv4.out_channels
-#         self.flat_features = self.out_channels * self.h_out * self.w_out
-#
-#         logging.debug(f" h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}")
-#
-#     def forward(self, x):  # TODO: Simon uses leaky relu instead of relu, see what works best
-#         # logging.debug(f" forward, shape x :{x.shape}")
-#         x = F.relu(self.conv1(x))
-#         x = F.relu(self.conv2(x))
-#         x = F.relu(self.conv3(x))
-#         x = F.relu(self.conv4(x))
-#         flat_features = num_flat_features(x)
-#         assert flat_features == self.flat_features, f"x.shape:{x.shape}, flat_features:{flat_features}, self.out_channels:{self.out_channels}, self.h_out:{self.h_out}, self.w_out:{self.w_out}"
-#         x = x.view(-1, flat_features)
-#         return x
-#
-#
-# class TinyCNN(Module):
-#     def __init__(self):
-#         super(TinyCNN, self).__init__()
-#         self.conv1 = Conv2d(in_channels=3, out_channels=8, kernel_size=(8, 8), stride=(1, 1), padding=0, dilation=(1, 1))
-#         self.conv2 = Conv2d(8, 16, (4, 4))
-#         self.conv3 = Conv2d(16, 32, (3, 3))
-#         self.conv4 = Conv2d(32, 64, (3, 3))
-#         self.fc1 = Linear(672, 253)
-#
-#     def forward(self, x):
-#         x = F.max_pool2d(F.relu(self.conv1(x)), (4, 4))
-#         x = F.max_pool2d(F.relu(self.conv2(x)), (4, 4))
-#         x = F.max_pool2d(F.relu(self.conv3(x)), (4, 4))
-#         x = x.view(-1, num_flat_features(x))
-#         x = F.relu(self.fc1(x))
-#         return x
 
 
 # RNN: ==========================================================
@@ -855,7 +691,7 @@ class SquashedGaussianRNNActor(nn.Module):
         obs_seq = tuple(o.view(1, *o.shape) for o in obs)  # artificially add sequence dimension
         with torch.no_grad():
             a, _ = self.forward(obs_seq=obs_seq, test=test, with_logprob=False, save_hidden=True)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 class RNNQFunction(nn.Module):

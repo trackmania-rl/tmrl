@@ -384,7 +384,7 @@ class MyActorModule(TorchActorModule):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.forward(obs, test, False)
-            return a.numpy()
+            return a.cpu().numpy()
 ```
 
 Now, the actor module can be partially instantiated:

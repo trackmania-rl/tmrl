@@ -534,7 +534,7 @@ class MyActorModule(TorchActorModule):
         # But let us do it anyway to be extra sure, for the people using ActorModule instead of TorchActorModule.
         with torch.no_grad():
             a, _ = self.forward(obs=obs, test=test, compute_logprob=False)
-            return a.numpy()
+            return a.cpu().numpy()
 
 
 # The critic module for SAC is now super straightforward:
