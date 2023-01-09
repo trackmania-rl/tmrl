@@ -472,7 +472,7 @@ class EffNetActorCritic(nn.Module):
             return a.cpu().numpy()
 
 
-# Vanilla CNN: =========================================================================================================
+# Vanilla CNN FOR GRAYSCALE IMAGES: ====================================================================================
 
 
 def num_flat_features(x):
@@ -596,6 +596,46 @@ class VanillaCNNActorCritic(nn.Module):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
             return a.cpu().numpy()
+
+
+# Vanilla CNN FOR COLOR IMAGES: ========================================================================================
+
+def remove_colors(images):
+    """
+    We remove colors so that we can simply use the same structure as the grayscale model.
+
+    The "color" default pipeline is mostly here for support, as our model effectively gets rid of 2 channels out of 3.
+    If you actually want to use colors, do not use the default pipeline.
+    Instead, you need to code a custom model that doesn't get rid of them.
+    """
+    images = images[:, :, :, :, 0]
+    return images
+
+
+class SquashedGaussianVanillaColorCNNActor(SquashedGaussianVanillaCNNActor):
+    def forward(self, obs, test=False, with_logprob=True):
+        speed, gear, rpm, images, act1, act2 = obs
+        images = remove_colors(images)
+        obs = (speed, gear, rpm, images, act1, act2)
+        return super().forward(obs, test=False, with_logprob=True)
+
+
+class VanillaColorCNNQFunction(VanillaCNNQFunction):
+    def forward(self, obs, act):
+        speed, gear, rpm, images, act1, act2 = obs
+        images = remove_colors(images)
+        obs = (speed, gear, rpm, images, act1, act2)
+        return super().forward(obs, act)
+
+
+class VanillaColorCNNActorCritic(VanillaCNNActorCritic):
+    def __init__(self, observation_space, action_space):
+        super().__init__(observation_space, action_space)
+
+        # build policy and value functions
+        self.actor = SquashedGaussianVanillaColorCNNActor(observation_space, action_space)
+        self.q1 = VanillaColorCNNQFunction(observation_space, action_space)
+        self.q2 = VanillaColorCNNQFunction(observation_space, action_space)
 
 
 # UNSUPPORTED ==========================================================================================================
@@ -760,33 +800,3 @@ class RNNActorCritic(nn.Module):
         self.actor = SquashedGaussianRNNActor(observation_space, action_space, rnn_size, rnn_len, mlp_sizes, activation)
         self.q1 = RNNQFunction(observation_space, action_space, rnn_size, rnn_len, mlp_sizes, activation)
         self.q2 = RNNQFunction(observation_space, action_space, rnn_size, rnn_len, mlp_sizes, activation)
-
-
-# CNN: ==========================================================
-
-
-# class DeepmindCNN(Module):
-#     def __init__(self, h_in, w_in, channels_in):
-#         super(DeepmindCNN, self).__init__()
-#         self.h_out, self.w_out = h_in, w_in
-#
-#         self.conv1 = Conv2d(in_channels=channels_in, out_channels=32, kernel_size=(8, 8), stride=4, padding=0, dilation=1, bias=True, padding_mode='zeros')
-#         self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
-#         self.conv2 = Conv2d(in_channels=32, out_channels=64, kernel_size=(4, 4), stride=2, padding=0, dilation=1, bias=True, padding_mode='zeros')
-#         self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)
-#         self.conv3 = Conv2d(in_channels=64, out_channels=64, kernel_size=(3, 3), stride=1, padding=0, dilation=1, bias=True, padding_mode='zeros')
-#         self.h_out, self.w_out = conv2d_out_dims(self.conv3, self.h_out, self.w_out)
-#         self.out_channels = self.conv3.out_channels
-#         self.flat_features = self.out_channels * self.h_out * self.w_out
-#
-#         logging.debug(f" h_in:{h_in}, w_in:{w_in}, h_out:{self.h_out}, w_out:{self.w_out}, flat_features:{self.flat_features}")
-#
-#     def forward(self, x):
-#         logging.debug(f" forward, shape x :{x.shape}")
-#         x = F.relu(self.conv1(x))
-#         x = F.relu(self.conv2(x))
-#         x = F.relu(self.conv3(x))
-#         flat_features = num_flat_features(x)
-#         assert flat_features == self.flat_features, f"x.shape:{x.shape}, flat_features:{flat_features}, self.out_channels:{self.out_channels}, self.h_out:{self.h_out}, self.w_out:{self.w_out}"
-#         x = x.view(-1, flat_features)
-#         return x

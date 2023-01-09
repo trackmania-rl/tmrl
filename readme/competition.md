@@ -1,6 +1,6 @@
 # TrackMania Roborace League
 
-:red_car: Welcome to the race! :checkered_flag:
+:checkered_flag: Welcome to the race! :checkered_flag:
 
 The `tmrl` competition is a fun way of benchmarking vision-based autonomous car racing approaches.
 
@@ -14,10 +14,10 @@ Regardless of whether you want to participate, you will also find that the [comp
 ### Iteration Beta :hatching_chick:
 - _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
 
-|          Winners          |   Team   | Time - _mean (std)_ |                 Description                 |                                                                                                                                  Resources                                                                                                                                  |
-|:-------------------------:|:--------:|:-------------------:|:-------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-|      :dragon: :one:       | Baseline |        ? (?)        | SAC, CNN, Full environment, `tmrl` default  |                           [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L537), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip)                            |
-|     :racehorse: :two:     | Baseline |   47.176 (0.769)    | SAC, MLP, LIDAR environment, `tmrl` default | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L54), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.3.0/resources.zip), [video](https://www.youtube.com/watch?v=LN29DDlHp1U) |
+|          Winners          |   Team   | Time - _mean (std)_ |                                  Description                                  |                                                                                                                                  Resources                                                                                                                                  |
+|:-------------------------:|:--------:|:-------------------:|:-----------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      :dragon: :one:       | Baseline |        ? (?)        | SAC, CNN, Full environment, camera 1 (canada skin), grayscale, `tmrl` default |                           [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L537), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.4.0/resources.zip)                            |
+|     :racehorse: :two:     | Baseline |   47.176 (0.769)    |                  SAC, MLP, LIDAR environment, `tmrl` default                  | [code](https://github.com/trackmania-rl/tmrl/blob/c61fc1ef48de0a68a0dc1a228ef6f4b8554c5798/tmrl/custom/custom_models.py#L54), [weights](https://github.com/trackmania-rl/tmrl/releases/download/v0.4.0/resources.zip), [video](https://www.youtube.com/watch?v=LN29DDlHp1U) |
 |     :leopard: :three:     |
 |      :tiger2: :four:      |
 |       :cat2: :five:       |
@@ -36,7 +36,7 @@ The `tmrl` competition is an open research initiative, currently in its first it
 In this iteration, competitors race on the default `tmrl-test` track (plain road) by solving the `Full` version of the [TrackMania 2020 Gym environment](https://github.com/trackmania-rl/tmrl#gym-environment) (the `LIDAR` version is also accepted).
 
 - The `action space` is the default TrackMania 2020 continuous action space (3 floats between -1.0 and 1.0).
-- The `observation space` is a history of 4 raw snapshots along with the speed, gear, rpm and 2 previous actions. The choice of camera is up to you as long as you use one of the default.
+- The `observation space` is a history of 4 raw snapshots along with the speed, gear, rpm and 2 previous actions. The choice of camera is up to you as long as you use one of the default. You are also allowed to use colors if you wish (set the `"IMG_GRAYSCALE"` entry to `false` in `config.json`).
 - The `control frequency` is 20 Hz.
 
 An entry to the competition simply needs to be a working implementation of the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) interface.
@@ -68,17 +68,22 @@ The `"SLEEP_TIME_AT_RESET"` entry in `config.json` (`C:\Users\YourUsername\TmrlD
 The [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) will help you quickly set up a custom RL training pipeline for the `Full` TrackMania Gym environment.
 
 ## Submit an entry:
-An entry to the competition is a python script providing a working implementation of the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) interface (plus optional data files).
-At the moment, you can create a discussion in the [discussions](https://github.com/trackmania-rl/tmrl/discussions) section to submit your entry.
+An entry to the competition comprises:
+- a python script providing a working implementation of the [ActorModule](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/actor.py) interface,
+- the `config.json` file you used for the environment config (please remove all personal information),
+- optional **human-readable** data files (typically a `json` file).
+- a name for your team, and all the supporting information you wish to provide (description, video, repo...)
 
-:warning: Importantly, note that, for everyone's safety, **we do not accept derivatives of pickle files** (which is typically what you get when using the serializers provided by deep learning frameworks).
+Please create a dedicated discussion in the [discussions](https://github.com/trackmania-rl/tmrl/discussions) section to submit your entry, and attach your files to the first post.
+
+:warning: Importantly, note that, for everyone's safety, **we do not accept derivatives of pickle data files** (which is typically what you get when using the serializers provided by deep learning frameworks).
 Instead, we do accept `json` files.
 In practice, this means you probably need to code your own deserializer as part of your `ActorModule.load` implementation.
 See the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) for an example of how to do so with PyTorch.
 
 ## Questions, suggestions:
 Questions and suggestions to improve the competition are welcome!
-Feel free to use [discussions](https://github.com/trackmania-rl/tmrl/discussions) for this purpose.
+Feel free to use the [discussions](https://github.com/trackmania-rl/tmrl/discussions) section for this purpose.
 
 
 ## Join the organization team:

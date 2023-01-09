@@ -152,11 +152,10 @@ This is because, without TLS encryption, this password will be readable in the p
 
 ## TrackMania Roborace League
 
-We host the `TrackMania Roborace League`, a fun way of benchmarking self-racing approaches in the TrackMania2020 video game.
+We host the [TrackMania Roborace League](readme/competition.md), a fun way of benchmarking self-racing approaches in the TrackMania2020 video game.
+Follow the link for information about the competition, including the current leaderboard and instructions to participate.
 
 Regardless of whether they want to compete or not, ML developers will find the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) useful for creating advanced training pipelines in TrackMania.
-
-Information about the competition can be found at [this link](readme/competition.md), including the current leaderboard and instructions to participate.
 
 ## TrackMania Gym environment
 In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
@@ -215,6 +214,7 @@ This works on any track, using any (sensible) camera configuration.
     "WINDOW_HEIGHT": 128,  // height of the game window and screenshots (min: 128)
     "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
     "IMG_HIST_LEN": 4,  // length of the history of images in observations (set to 1 for RNNs)
+    "IMG_GRAYSCALE": true,  // true for grayscale images, false for color images
     "RTGYM_CONFIG": {
       "time_step_duration": 0.05,  // duration of a time step
       "start_obs_capture": 0.04,  // duration before an observation is captured
