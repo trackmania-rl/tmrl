@@ -69,7 +69,7 @@ import os
 # =====================================================================
 # USEFUL PARAMETERS
 # =====================================================================
-# You can change these parameters here directly,
+# You can change these parameters here directly (not recommended),
 # or you can change them in the TMRL config.json file (recommended).
 
 # Maximum number of training 'epochs':
@@ -130,12 +130,15 @@ password = cfg.PASSWORD  # password that secures your communication
 security = cfg.SECURITY  # when training over the Internet, it is safer to change this to "TLS"
 # (please read the security instructions on GitHub)
 
+
 # =====================================================================
 # ADVANCED PARAMETERS
 # =====================================================================
 # You may want to change the following in advanced applications;
 # however, most competitors will not need to change this.
 # If interested, read the full TMRL tutorial on GitHub.
+# These parameters are to change here directly (if you want).
+# (Note: The tutorial may stop working if you change these)
 
 # Base class of the replay memory used by the trainer:
 memory_base_cls = cfg_obj.MEM
@@ -158,24 +161,40 @@ obs_preprocessor = cfg_obj.OBS_PREPROCESSOR
 # COMPETITION FIXED PARAMETERS
 # =====================================================================
 # Competitors CANNOT change the following parameters.
-# (Note: For models such as RNNs, you don't need to use imgs_buf_len
-# and act_buf_len, but your ActorModule implementation needs to work
-# with the observations corresponding to their default values. The rule
-# about these history lengths is only here for simplicity. You are
-# allowed to hack this within your ActorModule implementation by, e.g.,
-# storing your own histories if you want.)
 
 # rtgym environment class (full TrackMania Gym environment):
 env_cls = cfg_obj.ENV_CLS
 
-# Number of consecutive screenshots (this is part of observations):
+# Device used for inference on workers (change if you like but keep in mind that the competition evaluation is on CPU)
+device_worker = 'cpu'
+
+
+# =====================================================================
+# ENVIRONMENT PARAMETERS
+# =====================================================================
+# You are allowed to customize these environment parameters.
+# Do not change these here though, customize them in config.json.
+# Your environment configuration must be part of your submission,
+# e.g., the "ENV" entry of your config.json file.
+
+# Dimensions of the TrackMania window:
+window_width = cfg.WINDOW_WIDTH  # must be between 256 and 958
+window_height = cfg.WINDOW_HEIGHT  # must be between 128 and 488
+
+# Dimensions of the actual images in observations:
+img_width = cfg.IMG_WIDTH
+img_height = cfg.IMG_HEIGHT
+
+# Whether you are using grayscale (default) or color images:
+# (Note: The tutorial will stop working if you use colors)
+img_grayscale = cfg.GRAYSCALE
+
+# Number of consecutive screenshots in each observation:
 imgs_buf_len = cfg.IMG_HIST_LEN
 
 # Number of actions in the action buffer (this is part of observations):
+# (Note: The tutorial will stop working if you change this)
 act_buf_len = cfg.ACT_BUF_LEN
-
-# Device used for inference on workers (change if you like but keep in mind that the competition evaluation is on CPU)
-device_worker = 'cpu'
 
 
 # =====================================================================
@@ -287,8 +306,9 @@ class VanillaCNN(nn.Module):
         self.q_net = q_net
 
         # Convolutional layers processing screenshots:
-        self.h_out, self.w_out = 64, 64  # We will feed grayscale images of 64 x 64 pixels to our model
-        self.conv1 = nn.Conv2d(4, 64, 8, stride=2)
+        # The default config.json gives 4 grayscale images of 64 x 64 pixels
+        self.h_out, self.w_out = img_height, img_width
+        self.conv1 = nn.Conv2d(imgs_buf_len, 64, 8, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
         self.conv2 = nn.Conv2d(64, 64, 4, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)
@@ -335,8 +355,8 @@ class VanillaCNN(nn.Module):
             speed, gear, rpm, images, act1, act2 = x
 
         # Forward pass of our images in the CNN:
-        # (note that the competition environment outputs histories of 4 images,
-        # plus, the default observation preprocessor transforms these into 64 x 64 greyscale,
+        # (note that the competition environment outputs histories of 4 images
+        # and the default config outputs these as 64 x 64 greyscale,
         # we will stack these greyscale images along the channel dimension of our input tensor)
         x = F.relu(self.conv1(images))
         x = F.relu(self.conv2(x))

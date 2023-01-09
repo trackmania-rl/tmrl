@@ -16,6 +16,7 @@ from torch.nn import Conv2d, Module, ModuleList
 # local imports
 from tmrl.util import prod
 from tmrl.actor import TorchActorModule
+import tmrl.config.config_constants as cfg
 
 
 # SUPPORTED ============================================================================================================
@@ -493,9 +494,10 @@ class VanillaCNN(Module):
     def __init__(self, q_net):
         super(VanillaCNN, self).__init__()
         self.q_net = q_net
-        self.h_out, self.w_out = 64, 64
+        self.h_out, self.w_out = cfg.IMG_HEIGHT, cfg.IMG_WIDTH
+        hist = cfg.IMG_HIST_LEN
 
-        self.conv1 = Conv2d(4, 64, 8, stride=2)
+        self.conv1 = Conv2d(hist, 64, 8, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
         self.conv2 = Conv2d(64, 64, 4, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)

@@ -33,7 +33,7 @@ NB_OBS_FORWARD = 500  # this allows (and rewards) 50m cuts
 
 class TM2020Interface(RealTimeGymInterface):
     """
-    This is the API needed for the algorithm to control Trackmania2020
+    This is the API needed for the algorithm to control TrackMania 2020
     """
     def __init__(self,
                  img_hist_len: int = 4,
@@ -45,7 +45,17 @@ class TM2020Interface(RealTimeGymInterface):
                  finish_reward=cfg.REWARD_END_OF_TRACK,
                  constant_penalty=cfg.CONSTANT_PENALTY):
         """
+        Base rtgym interface for TrackMania 2020 (Full environment)
+
         Args:
+            img_hist_len: int: history of images that are part of observations
+            gamepad: bool: whether to use a virtual gamepad for control
+            min_nb_steps_before_failure: int: episode is done if not receiving reward during this nb of timesteps
+            save_replay: bool: whether to save TrackMania replays
+            grayscale: bool: whether to output grayscale images or color images
+            resize_to: Tuple[int, int]: resize output images to this (width, height)
+            finish_reward: float: reward when passing the finish line
+            constant_penalty: float: constant reward given at each time-step
         """
         self.last_time = None
         self.img_hist_len = img_hist_len
@@ -115,7 +125,7 @@ class TM2020Interface(RealTimeGymInterface):
 
     def grab_data_and_img(self):
         img = self.window_interface.screenshot()[:, :, :3]  # BGR ordering
-        if self.resize_to is not None:
+        if self.resize_to is not None:  # cv2.resize takes dim as (width, height)
             img = cv2.resize(img, self.resize_to)
         if self.grayscale:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -215,13 +225,13 @@ class TM2020Interface(RealTimeGymInterface):
         gear = spaces.Box(low=0.0, high=6, shape=(1, ))
         rpm = spaces.Box(low=0.0, high=np.inf, shape=(1, ))
         if self.resize_to is not None:
-            h, w = self.resize_to
+            w, h = self.resize_to
         else:
-            h, w = cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH
+            w, h = cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH
         if self.grayscale:
-            img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, h, w))
+            img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, h, w))  # cv2 grayscale images are (h, w)
         else:
-            img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, h, w, 3))
+            img = spaces.Box(low=0.0, high=255.0, shape=(self.img_hist_len, h, w, 3))  # cv2 images are (h, w, c)
         return spaces.Tuple((speed, gear, rpm, img))
 
     def get_action_space(self):

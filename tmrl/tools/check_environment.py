@@ -7,6 +7,7 @@ from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar
 from tmrl.custom.utils.window import WindowInterface
 from tmrl.custom.utils.tools import Lidar
+import tmrl.config.config_constants as cfg
 import logging
 
 
@@ -35,13 +36,21 @@ def show_imgs(imgs):
         concat = imgs.reshape((nb*h, w))
         cv2.imshow("Environment", concat)
         cv2.waitKey(1)
+    elif len(imshape) == 4:  # color
+        nb, h, w, c = imshape
+        concat = imgs.reshape((nb*h, w, c))
+        cv2.imshow("Environment", concat)
+        cv2.waitKey(1)
 
 
 def check_env_tm20full():
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020Interface
     env_config["wait_on_done"] = True
-    env_config["interface_kwargs"] = {"gamepad": False, "min_nb_steps_before_failure": int(20 * 60)}
+    env_config["interface_kwargs"] = {"gamepad": False,
+                                      "min_nb_steps_before_failure": int(20 * 60),
+                                      "grayscale": cfg.GRAYSCALE,
+                                      "resize_to": (cfg.IMG_WIDTH, cfg.IMG_HEIGHT)}
     env = gym.make("real-time-gym-v0", config=env_config)
     o, i = env.reset()
     show_imgs(o[3])

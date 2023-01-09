@@ -45,7 +45,11 @@ if cfg.PRAGMA_LIDAR:
     else:
         INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
 else:
-    INT = partial(TM2020Interface, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD, grayscale=cfg.GRAYSCALE)
+    INT = partial(TM2020Interface,
+                  img_hist_len=cfg.IMG_HIST_LEN,
+                  gamepad=cfg.PRAGMA_GAMEPAD,
+                  grayscale=cfg.GRAYSCALE,
+                  resize_to=(cfg.IMG_WIDTH, cfg.IMG_HEIGHT))
 
 CONFIG_DICT = rtgym.DEFAULT_CONFIG_DICT.copy()
 CONFIG_DICT["interface"] = INT
