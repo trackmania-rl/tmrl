@@ -13,7 +13,7 @@ The full script of the tutorial is available [here](https://github.com/trackmani
 
 
 **Note: some modules can be implemented independently.
-If you are here because you wish to implement your own training algorithm in TrackMania, all you need to do is implement a [TrainingAgent](#training-agent) and adapt the default `Trainer` [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py).**
+If you are here because you wish to implement your own training algorithm in TrackMania, you should read the [competition tutorial](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) instead.**
 
 ## Installation:
 
