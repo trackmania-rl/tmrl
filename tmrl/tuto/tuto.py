@@ -23,10 +23,19 @@ from tmrl.custom.utils.nn import copy_shared, no_grad
 
 CRC_DEBUG = False
 
+# === Networking parameters ============================================================================================
+
+security = None
+password = cfg.PASSWORD
+
+server_ip = "127.0.0.1"
+server_port = 6666
+
+
 # === Server ===========================================================================================================
 
 if __name__ == "__main__":
-    my_server = Server()
+    my_server = Server(security=security, password=password, port=server_port)
 
 
 # === Environment ======================================================================================================
@@ -242,7 +251,6 @@ device = "cpu"
 
 # Networking
 
-server_ip = "127.0.0.1"
 max_samples_per_episode = 1000
 
 
@@ -265,6 +273,8 @@ if __name__ == "__main__":
         sample_compressor=sample_compressor,
         device=device,
         server_ip=server_ip,
+        server_port=server_port,
+        password=password,
         max_samples_per_episode=max_samples_per_episode,
         model_path=model_path,
         model_path_history=model_path_history,
@@ -277,8 +287,6 @@ if __name__ == "__main__":
 # === Trainer ==========================================================================================================
 
 # --- Networking and files ---
-
-server_ip = "127.0.0.1"
 
 weights_folder = cfg.WEIGHTS_FOLDER  # path to the weights folder
 checkpoints_folder = cfg.CHECKPOINTS_FOLDER
@@ -596,6 +604,8 @@ if __name__ == "__main__":
     my_trainer = Trainer(
         training_cls=training_cls,
         server_ip=server_ip,
+        server_port=server_port,
+        password=password,
         model_path=model_path,
         checkpoint_path=checkpoints_path)  # None for not saving training checkpoints
 

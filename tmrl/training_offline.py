@@ -7,11 +7,9 @@ import torch
 from pandas import DataFrame
 
 # local imports
-import tmrl.config.config_constants as cfg
 from tmrl.util import pandas_dict
 
 import logging
-# import pybullet_envs
 
 
 __docformat__ = "google"

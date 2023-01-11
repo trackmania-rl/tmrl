@@ -210,10 +210,12 @@ This works on any track, using any (sensible) camera configuration.
 {
   "ENV": {
     "RTGYM_INTERFACE": "TM20FULL",  // TrackMania 2020 with full screenshots
-    "WINDOW_WIDTH": 256,  // width of the game window and screenshots (min: 256)
-    "WINDOW_HEIGHT": 128,  // height of the game window and screenshots (min: 128)
+    "WINDOW_WIDTH": 256,  // width of the game window (min: 256)
+    "WINDOW_HEIGHT": 128,  // height of the game window (min: 128)
     "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
     "IMG_HIST_LEN": 4,  // length of the history of images in observations (set to 1 for RNNs)
+    "IMG_WIDTH": 64,  // actual (resized) width of the images in observations
+    "IMG_HEIGHT": 64,  // actual (resized) height of the images in observations
     "IMG_GRAYSCALE": true,  // true for grayscale images, false for color images
     "RTGYM_CONFIG": {
       "time_step_duration": 0.05,  // duration of a time step

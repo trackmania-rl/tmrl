@@ -33,6 +33,7 @@ If you think an option to install `tmrl` without support for TrackMania should e
 - [Tools](#tools)
   - [partial() method](#partial-method)
   - [Constants](#constants)
+- [Security](#network-and-internet-security)
 - [Server](#server) 
 - [Environment](#environment)
 - [RolloutWorker](#rollout-workers)
@@ -95,6 +96,35 @@ print(f"Run name: {cfg.RUN_NAME}")
 _(NB: read the code for finding available constants)_
 
 
+## Network and Internet security
+
+In the context of this tutorial, everything will happen on localhost and thus Internet security is not really a concern.
+In real applications though, you may want to have several `tmrl` entities communicating over the Internet.
+
+Security-wise, `tmrl` is based on [tlspyo](https://github.com/MISTLab/tls-python-object).
+This enables authentication and encryption of your communications via a TLS key, that you first need to generate if you wish to use this option (see the `tlspyo` documentation for doing so in a couple easy steps).
+
+For your safety, please carefully consider using this feature when training over a public network, as this is to protect you against possible attacks from malicious users.
+
+In the context of this tutorial, we will not enable this feature as we suppose our local network to be safe.
+Instead, we will just rely on the weak password security that is always enabled in `tmrl`:
+
+```python
+security = None  # change this to "TLS" for TLS encryption (requires a TLS key)
+password = "A Secure Password"  # change this to a random password
+```
+
+_(NB: When training over a public network, you should use both a secure password and TLS encryption.
+Please read the `tlspyo` security instructions to understand why this is important.)_
+
+In this tutorial, we will use our localhost IP (i,e, `127.0.0.1`) and port `6666` for communication between our `tmrl` entities.
+In an Internet application, you would adapt these to your network setup:
+
+```python
+server_ip = "127.0.0.1"  # IP of the machine where we will run our TMRL Server
+server_port = 6666  # port through which our Server will be accessible
+```
+
 
 ## Server
 
@@ -115,7 +145,15 @@ Instantiating a `Server` object is straightforward:
 ```python
 from tmrl.networking import Server
 
-my_server = Server()
+# tmrl Server
+
+# (NB: When you omit arguments,
+# tmrl retrieves the default in your config.json file.
+# Read the documentation of each class for more info.)
+
+my_server = Server(security=security,
+                   password=password,
+                   port=server_port)
 ```
 
 As soon as the server is instantiated, it listens for incoming connections from the `Trainer` and the `RolloutWorkers`.
@@ -256,6 +294,8 @@ class RolloutWorker:
             actor_module_cls=None,  # class of a module containing the policy
             sample_compressor: callable = None,  # compressor for sending samples over the Internet
             server_ip=None,  # ip of the central server
+            server_port=cfg.PORT,  # port of the server
+            password=cfg.PASSWORD,  # password of the server
             max_samples_per_episode=np.inf,  # if an episode gets longer than this, it is reset
             model_path=cfg.MODEL_PATH_WORKER,  # path where a local copy of the policy will be stored
             obs_preprocessor: callable = None,  # utility for modifying observations returned by the environment
@@ -459,17 +499,12 @@ device = "cpu"
 
 `RolloutWorkers` behave as Internet clients, and must therefore know the IP address of the `Server` to be able to communicate.
 Typically, the `Server` lives on a machine to which you can forward ports behind your router.
-Default ports to forward are `55556` (for `RolloutWorkers`) and `55555` (for the `Trainer`). If these ports are not available for you, you can change them in the `config.json` file.
 
-It is of course possible to work locally by hosting the `Server`, `RolloutWorkers`, and `Trainer` on localhost.
-This is done by setting the `Server` IP as the localhost IP, i.e., `"127.0.0.1"`:
-
-```python
-server_ip = "127.0.0.1"
-```
+Nevertheless, it is of course possible to work locally by hosting the `Server`, `RolloutWorkers`, and `Trainer` on localhost.
+This is done by setting the `Server` IP as the localhost IP, i.e., `"127.0.0.1"`, which we did.
+_(NB: We have set the values for `server_ip` and `server_port` earlier in this tutorial.)_
 
 In the current iteration of `tmrl`, samples are gathered locally in a buffer by the `RolloutWorker` and are sent to the `Server` only at the end of an episode.
-
 In case your Gym environment is never `terminated` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
 For instance, let us say we don't want an episode to last more than 1000 time-steps:
 
@@ -539,6 +574,8 @@ my_worker = RolloutWorker(
     sample_compressor=sample_compressor,
     device=device,
     server_ip=server_ip,
+    server_port=server_port,
+    password=password,
     max_samples_per_episode=max_samples_per_episode,
     model_path=model_path,
     model_path_history=model_path_history,
@@ -584,6 +621,8 @@ class Trainer:
     def __init__(self,
                  training_cls=cfg_obj.TRAINER,
                  server_ip=cfg.SERVER_IP_FOR_TRAINER,
+                 server_port=cfg.PORT,
+                 password=cfg.PASSWORD,
                  model_path=cfg.MODEL_PATH_TRAINER,
                  checkpoint_path=cfg.CHECKPOINT_PATH,
                  dump_run_instance_fn: callable = None,
@@ -593,13 +632,11 @@ class Trainer:
 ### Networking and files
 
 `server_ip` is the public IP address of the `Server`.
-Since both the `Trainer` and `RolloutWorker` will run on the same machine as the `Server` in this tutorial, the `server_ip` will also be localhost here, i.e., `"127.0.0.1"`:
+Since both the `Trainer` and `RolloutWorker` will run on the same machine as the `Server` in this tutorial, the `server_ip` will also be localhost here, i.e., `"127.0.0.1"`.
+The `server_port` and the `password` are still valid for our `Trainer`.
 
-```python
-server_ip = "127.0.0.1"
-```
-
-`model_path` is similar to the one of the `RolloutWorker`. The trainer will keep a local copy of its model that acts as a saving file.
+`model_path` is similar to the one of the `RolloutWorker`.
+The trainer will keep a local copy of its model that acts as a saving file.
 
 `checkpoints_path` is similar, but this will save the whole `training_cls` instance (including the replay buffer).
 If set to `None`, training will not be checkpointed.
@@ -1231,6 +1268,8 @@ from tmrl.networking import Trainer
 my_trainer = Trainer(
     training_cls=training_cls,
     server_ip=server_ip,
+    server_port=server_port,
+    password=password,
     model_path=model_path,
     checkpoint_path=checkpoints_path)  # None for not saving training checkpoints
 ```

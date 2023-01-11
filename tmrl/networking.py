@@ -124,7 +124,7 @@ class Server:
             password (str): tlspyo password
             local_port (int): tlspyo local communication port
             header_size (int): tlspyo header size (bytes)
-            security (str): tlspyo security type (None or "TLS")
+            security (Union[str, None]): tlspyo security type (None or "TLS")
             keys_dir (str): tlspyo credentials directory
             max_workers (int): max number of accepted workers
         """
