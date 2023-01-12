@@ -130,9 +130,11 @@ Therefore, we have some margin here, in particular regarding the policy.
 
 ### Build a reward function:
 
-_(Instructions for TrackMania 2020 using LIDAR)_
+_(Instructions for TrackMania 2020)_
 
-- Build or select a track with only plain road (The LIDAR is computed from the black pixels on the borders).
+- Build or select a track.
+  - It can be any track when using the `Full` environment (the `Full` environment outputs screenshots that your model needs to deal with)
+  - It must feature only plain road if using the `LIDAR` environemt (The LIDAR is computed from the black pixels on the borders).
 - Record a reward for this track:
   - Execute:
   ```shell
@@ -145,7 +147,7 @@ _(Instructions for TrackMania 2020 using LIDAR)_
   ```shell
   python -m tmrl --check-environment
   ```
-  - Control the car manually. You should see the LIDAR and rewards.
+  - Control the car manually. You should see the screenshots/LIDAR and rewards.
   - Press `CTRL + C` to exit.
 
 ### Train:
