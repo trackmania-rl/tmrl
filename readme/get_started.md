@@ -50,7 +50,7 @@ You can test our pre-trained AIs directly in TrackMania by following these steps
 - For best performance, use the `Canadian flag` skin, because this is what we trained with.
 
 The trackmania window should now look like this
-_(note: it will be downscaled then starting the worker)_:
+_(note: it will be downscaled when starting the worker)_:
 
 ![screenshot2](https://github.com/trackmania-rl/tmrl/releases/download/v0.4.0/full_environment.png)
 
