@@ -191,10 +191,7 @@ class TorchMemory(Memory, ABC):
                  memory_size=1000000,
                  batch_size=256,
                  dataset_path="",
-                 crc_debug=False,
-                 use_dataloader=False,
-                 num_workers=0,
-                 pin_memory=False):
+                 crc_debug=False):
         """
         Args:
             device (str): output tensors will be collated to this device
@@ -204,9 +201,6 @@ class TorchMemory(Memory, ABC):
             batch_size (int): batch size of the output tensors
             dataset_path (str): an offline dataset may be provided here to initialize the memory
             crc_debug (bool): False usually, True when using CRC debugging of the pipeline
-            use_dataloader (bool): Not yet supported
-            num_workers (int): Not yet supported
-            pin_memory: Not yet supported
         """
         super().__init__(memory_size=memory_size,
                          batch_size=batch_size,

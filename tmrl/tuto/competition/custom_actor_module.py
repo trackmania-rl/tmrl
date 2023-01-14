@@ -212,9 +212,7 @@ memory_cls = partial(memory_base_cls,
                      dataset_path=cfg.DATASET_PATH,
                      imgs_obs=imgs_buf_len,
                      act_buf_len=act_buf_len,
-                     crc_debug=False,
-                     use_dataloader=False,
-                     pin_memory=False)
+                     crc_debug=False)
 
 
 # =====================================================================

@@ -221,7 +221,7 @@ def my_sample_compressor(prev_act, obs, rew, terminated, truncated, info):
 
     This function creates the sample that will actually be stored in local buffers for networking.
     This is to compress the sample before sending it over the Internet/local network.
-    Buffers of such samples will be given as input to the append() method of the dataloading memory.
+    Buffers of such samples will be given as input to the append() method of the memory.
     When you implement such compressor, you must implement a corresponding decompressor.
     This decompressor is the append() or get_transition() method of the memory.
 

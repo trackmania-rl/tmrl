@@ -58,7 +58,6 @@ def update_memory(run_instance):
     if run_instance.steps != steps \
             or run_instance.memory.batch_size != batch_size \
             or run_instance.memory.memory_size != memory_size:
-        assert not run_instance.memory.use_dataloader, "Dataloaders not implemented in this checkpoint updater."
         from tmrl.memory import TorchMemoryBatchSampler
         run_instance.steps = steps
         run_instance.memory.nb_steps = steps

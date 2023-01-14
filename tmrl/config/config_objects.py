@@ -97,9 +97,7 @@ MEMORY = partial(MEM,
                  dataset_path=cfg.DATASET_PATH,
                  imgs_obs=cfg.IMG_HIST_LEN,
                  act_buf_len=cfg.ACT_BUF_LEN,
-                 crc_debug=cfg.CRC_DEBUG,
-                 use_dataloader=False,
-                 pin_memory=False)
+                 crc_debug=cfg.CRC_DEBUG)
 
 # ALGORITHM: ===================================================
 
