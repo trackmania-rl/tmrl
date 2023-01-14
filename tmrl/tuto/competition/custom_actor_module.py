@@ -472,6 +472,18 @@ class MyActorModule(TorchActorModule):
         # torch.save(self.state_dict(), path)
 
     def load(self, path, device):
+        """
+        Load the parameters of your trained ActorModule from a JSON file.
+
+        Adapt this method to your submission so that we can load your trained ActorModule.
+
+        Args:
+            path: pathlib.Path: full path of the JSON file
+            device: str: device on which the ActorModule should live (e.g., "cpu")
+
+        Returns:
+            The loaded ActorModule instance
+        """
         self.device = device
         with open(path, 'r') as json_file:
             state_dict = json.load(json_file, cls=TorchJSONDecoder)
@@ -484,7 +496,7 @@ class MyActorModule(TorchActorModule):
         """
         Computes the output action of our policy from the input observation.
 
-        The whole point of deep RL is to train our policy network (actor) such that is outputs relevant actions.
+        The whole point of deep RL is to train our policy network (actor) such that it outputs relevant actions.
         Training per-se will also rely on a critic network, but this is not part of the trained policy.
         Thus, our ActorModule will only implement the actor.
 

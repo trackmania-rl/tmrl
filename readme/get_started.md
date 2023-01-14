@@ -21,35 +21,7 @@ You can test our pre-trained AIs directly in TrackMania by following these steps
 - Bring the TrackMania window to the top-left corner of the screen. On Windows10, it should automatically fit to a quarter of the screen _(NB: the window will automatically snap to the top-left corner and get sized properly when you start the AI)_.
 - Hide the ghost by pressing the `g` key.
 
-#### If you want to test the pre-train AI for LIDARs:
-- Replace/ensure the following entries in `TmrlData\config\config.json`:
-```json
-  "RUN_NAME": "SAC_4_LIDAR_pretrained"
-```
-```json
-  "ENV": {
-    "RTGYM_INTERFACE": "TM20LIDAR",
-    "WINDOW_WIDTH": 958,
-    "WINDOW_HEIGHT": 488,
-    "SLEEP_TIME_AT_RESET": 1.5,
-    "IMG_HIST_LEN": 4,
-    "RTGYM_CONFIG": {
-      "time_step_duration": 0.05,
-      "start_obs_capture": 0.04,
-      "time_step_timeout_factor": 1.0,
-      "act_buf_len": 2,
-      "benchmark": false,
-      "wait_on_done": true
-    }
-  }
-```
-- Enter the cockpit view by hitting the `3` key (the car must be hidden, press several times if the cockpit is visible).
-
-The trackmania window should now look like this:
-
-![screenshot1](img/screenshot1.PNG)
-
-#### If you want to test the pre-train AI for raw screenshots:
+#### If you want to test the pre-trained AI for raw screenshots (default):
 - Replace/ensure the following entries in `TmrlData\config\config.json`:
 ```json
   "RUN_NAME": "SAC_4_imgs_pretrained"
@@ -76,6 +48,39 @@ The trackmania window should now look like this:
 ```
 - Use the default camera by hitting the `1` key (the car must be visible).
 - For best performance, use the `Canadian flag` skin, because this is what we trained with.
+
+The trackmania window should now look like this
+_(note: it will be downscaled then starting the worker)_:
+
+![screenshot2](https://github.com/trackmania-rl/tmrl/releases/download/v0.4.0/full_environment.png)
+
+#### If you want to test the pre-trained AI for LIDARs:
+- Replace/ensure the following entries in `TmrlData\config\config.json`:
+```json
+  "RUN_NAME": "SAC_4_LIDAR_pretrained"
+```
+```json
+  "ENV": {
+    "RTGYM_INTERFACE": "TM20LIDAR",
+    "WINDOW_WIDTH": 958,
+    "WINDOW_HEIGHT": 488,
+    "SLEEP_TIME_AT_RESET": 1.5,
+    "IMG_HIST_LEN": 4,
+    "RTGYM_CONFIG": {
+      "time_step_duration": 0.05,
+      "start_obs_capture": 0.04,
+      "time_step_timeout_factor": 1.0,
+      "act_buf_len": 2,
+      "benchmark": false,
+      "wait_on_done": true
+    }
+  }
+```
+- Enter the cockpit view by hitting the `3` key (the car must be hidden, press several times if the cockpit is visible).
+
+The trackmania window should now look like this:
+
+![screenshot1](img/screenshot1.PNG)
 
 #### Then:
 - Open a terminal and put it where it does not overlap with the trackmania window.
@@ -170,10 +175,10 @@ _(Note: you may want to run these commands on separate computers instead, for in
 During training, make sure you don't see too many 'timestep timeouts' in the worker terminal.
 If you do, this means that your GPU is not powerful enough, and you should use remote training instead of localhost training (see `TmrlData\config\config.json`).
 
-Don't forget to tune training hyperparameters in `config.json` (the default should work for the LIDAR environment).
+Don't forget to tune training hyperparameters in `config.json` (the default should work for the `Full` environment).
 
 With carefully chosen hyperparameters, an RTX3080 on a distant machine as trainer and one local machine as worker/server, it takes approximatively 5 hours for the car to understand how to take a turn correctly in the LIDAR environment.
-And it takes more like 5 days in the raw screenshots environment! :wink:
+And it takes more like 2 days in the raw screenshots environment! :wink:
 
 _(Note: you can exit these processes by pressing `CTRL + C` in each terminal)_
 
