@@ -108,7 +108,7 @@ In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implemen
 and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring python object over the Internet in a secure fashion.
 
 ### TMRL in the media:
-- In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 30s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gym environment that we used for the show is available [here](#lidar-with-track-progress).
+- In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gym environment that we used for the show is available [here](#lidar-with-track-progress).
 
 ## Installation
 
@@ -230,7 +230,8 @@ This works on any track, using any (sensible) camera configuration.
 ```
 Note that human players can see or hear the features provided by this environment: we provide no "cheat" that would render the approach non-transferable to the real world.
 In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py) to build your own custom environment for TrackMania.
-Of course, custom environments will not be accepted for the competition :wink:
+
+The `Full` environment is used in the official [TMRL competition](https://github.com/trackmania-rl/tmrl/blob/master/readme/competition.md), and custom environments are featured in the "off" competition :wink:
 
 ### LIDAR environment:
 In this version of the environment, screenshots are reduced to 19-beam LIDARs to be processed with, e.g., an MLP.

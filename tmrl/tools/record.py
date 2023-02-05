@@ -20,31 +20,19 @@ def record_reward_dist(path_reward=PATH_REWARD):
     positions = []
     client = TM2020OpenPlanetClient()
     path = path_reward
-    time_step = 0.01
-    max_error = time_step * 1.0
 
     is_recording = False
-    t1 = time.time()
     while True:
-        t2 = time.time()
-        if t2 - t1 >= time_step + max_error:
-            logging.warning(f" more than time_step + max_error ({time_step + max_error}) passed between two time-steps ({t2 - t1}), updating t1.")
-            t1 = time.time()
-            # break
-        while not t2 - t1 >= time_step:
-            t2 = time.time()
-        t1 = t1 + time_step
-
         if keyboard.is_pressed('e'):
             logging.info(f"start recording")
             is_recording = True
         if is_recording:
-            data = client.retrieve_data()
+            data = client.retrieve_data(sleep_if_empty=0.01)  # we need many points to build a smooth curve
             terminated = bool(data[8])
             if keyboard.is_pressed('q') or terminated:
-                logging.info(f"Smoothing, get fixed dist and saving pickle file...")
+                logging.info(f"Computing reward function checkpoints from captured positions...")
+                logging.info(f"Initial number of captured positions: {len(positions)}")
                 positions = np.array(positions)
-                logging.info(f"position init {len(positions)}")
 
                 final_positions = [positions[0]]
                 dist_between_points = 0.1
@@ -55,25 +43,33 @@ def record_reward_dist(path_reward=PATH_REWARD):
                     pt2 = positions[j]
                     pt, dst = line(pt1, pt2, move_by)
                     if pt is not None:  # a point was created
-                        final_positions.append(pt)
+                        final_positions.append(pt)  # add the point to the list
                         move_by = dist_between_points
                         pt1 = pt
                     else:  # we passed pt2 without creating a new point
                         pt1 = pt2
                         j += 1
-                        move_by = dst
+                        move_by = dst  # remaining distance
 
                 final_positions = np.array(final_positions)
-                logging.info(f"position fin {len(final_positions)}")
+                logging.info(f"Final number of checkpoints in the reward function: {len(final_positions)}")
 
                 pickle.dump(final_positions, open(path, "wb"))
                 logging.info(f"All done")
                 return
             else:
                 positions.append([data[2], data[3], data[4]])
+        else:
+            time.sleep(0.05)  # waiting for user to press E
 
 
 def line(pt1, pt2, dist):
+    """
+    Creates a point between pt1 and pt2, at distance dist from pt1.
+
+    If dist is too large, returns None and the remaining distance (> 0.0).
+    Else, returns the point and 0.0 as remaining distance.
+    """
     vec = pt2 - pt1
     norm = np.linalg.norm(vec)
     if norm < dist:

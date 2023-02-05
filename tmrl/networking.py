@@ -523,7 +523,8 @@ class RolloutWorker:
                                        max_buf_len=max_buf_len,
                                        security=security,
                                        keys_dir=keys_dir,
-                                       hostname=hostname)
+                                       hostname=hostname,
+                                       deserializer_mode="synchronous")
         else:
             self.__endpoint = None
 

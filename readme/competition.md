@@ -9,10 +9,17 @@ Competitors solve Real-Time Gym environments featuring snapshots from the real `
 Regardless of whether you want to participate, you will also find that the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) is a must if you wish to design your own advanced training pipeline in TrackMania :wink:
 
 
-## Leaderboard:
+## Leaderboards:
 
-### Iteration Beta :hatching_chick:
+### Official competition, iteration Beta :hatching_chick:
+
+_Note: The superhuman target on the `tmrl-test.Map.Gbx` benchmark is currently about 32s, held by [Gwen](#https://www.youtube.com/watch?v=c1xq7iJ3f9E)._
+
+In the official `tmrl` competition, participants solve tracks with the real-world-like `Full` environment:
+they only have access to real-time camera images (screenshots) along with usual car metrics (speed, gear, RPM).
+
 - _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
+- _Environment:_ `Full` environment, 20FPS (see [rules](#rules) for details.)
 
 |          Winners          |   Team   | Time - _mean (std)_ |                                  Description                                  |                                                                                                                                  Resources                                                                                                                                  |
 |:-------------------------:|:--------:|:-------------------:|:-----------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
@@ -26,6 +33,35 @@ Regardless of whether you want to participate, you will also find that the [comp
 |     :turtle: :eight:      |
 |      :snail: :nine:       |
 | :palm_tree: :keycap_ten:  |
+
+
+### Freestyle "off" competition :unicorn:
+
+The `Full` environment of the official `tmrl` competition is designed for real-world car applicability.
+
+TrackMania being a video game, it is nevertheless possible to directly access much more, potentially unrealistic low-level game information via, e.g., the OpenPlanet API, and even to pause the simulation for computations.
+
+In this section, we feature results from participants who solved the `tmrl-test.Map.Gbx` benchmark with their own custom environments.
+These submissions are typically not as realistic in the context of real-world robotics, but they can target, e.g., the video game industry.
+
+- _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
+- _Environment:_ Custom environments
+
+|          Winners          |      Team      | Time - _mean (std)_ | Description | Resources |
+|:-------------------------:|:--------------:|:-------------------:|:-----------:|:---------:|
+|      :dragon: :one:       |
+|     :racehorse: :two:     |
+|     :leopard: :three:     |
+|      :tiger2: :four:      |
+|       :cat2: :five:       |
+|      :rabbit2: :six:      |
+| :dromedary_camel: :seven: |
+|     :turtle: :eight:      |
+|      :snail: :nine:       |
+| :palm_tree: :keycap_ten:  |
+
+If you wish to participate in the "off" competition, please create a thread in the [discussions](https://github.com/trackmania-rl/tmrl/discussions) section, describing your project.
+We choose whether to accept your entry based on reproducibility and novelty.
 
 
 ## Rules:
@@ -88,5 +124,5 @@ Feel free to use the [discussions](https://github.com/trackmania-rl/tmrl/discuss
 
 ## Join the organization team:
 
-We are looking for volunteers to help us "officialize" and popularize the `tmrl` competition, find sponsors for prizes, and perhaps make this into an ML/robotics conference competition.
+We are looking for volunteers to help us "officialize" and popularize the `tmrl` competition, find sponsors for prizes, and make this into an ML/robotics conference competition.
 Please reach us if interested!

@@ -50,11 +50,11 @@ class TM2020OpenPlanetClient:
                 self.__data = data_used
                 self.__lock.release()
 
-    def retrieve_data(self, sleep_if_empty=0.1, timeout=10.0):
+    def retrieve_data(self, sleep_if_empty=0.01, timeout=10.0):
         """
         Retrieves the most recently received data
         Use this function to retrieve the most recently received data
-        If block if nothing has been received so far
+        This blocks if nothing has been received so far
         """
         c = True
         t_start = None
