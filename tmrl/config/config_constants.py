@@ -43,7 +43,7 @@ PRAGMA_PROGRESS = RTGYM_INTERFACE.endswith("LIDARPROGRESS")
 if PRAGMA_PROGRESS:
     PRAGMA_LIDAR = True
 LIDAR_BLACK_THRESHOLD = [55, 55, 55]  # [88, 88, 88] for tiny road, [55, 55, 55] FOR BASIC ROAD
-REWARD_END_OF_TRACK = 200  # bonus reward at the end of the track
+REWARD_END_OF_TRACK = 100  # bonus reward at the end of the track
 CONSTANT_PENALTY = 0  # should be <= 0 : added to the reward at each time step
 SLEEP_TIME_AT_RESET = ENV_CONFIG["SLEEP_TIME_AT_RESET"]  # 1.5 to start in a Markov state with the lidar
 IMG_HIST_LEN = ENV_CONFIG["IMG_HIST_LEN"]  # 4 without RNN, 1 with RNN
