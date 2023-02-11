@@ -217,7 +217,13 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             debug_logp_a2=logp_a2.detach().mean(),
             debug_q_pi=q_pi.detach().mean(),
             debug_q_pi_targ=q_pi_targ.detach().mean(),
-
+            debug_backup=backup.detach().mean(),
+            debug_q1=q1.detach().mean(),
+            debug_q2=q2.detach().mean(),
+            debug_diff_q1=(q1 - backup).detach().mean(),
+            debug_diff_q2=(q2 - backup).detach().mean(),
+            debug_r=r.detach().mean(),
+            debug_d=d.detach().mean(),
         )
 
         if self.learn_entropy_coef:
