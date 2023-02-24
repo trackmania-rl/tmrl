@@ -47,9 +47,9 @@ These submissions are typically not as realistic in the context of real-world ro
 - _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
 - _Environment:_ Custom environments
 
-|          Winners          |      Team      | Time - _mean (std)_ | Description | Resources |
-|:-------------------------:|:--------------:|:-------------------:|:-----------:|:---------:|
-|      :dragon: :one:       |
+|          Winners          |       Team       | Time - _mean (std)_ |                                       Description                                        |                                                                                                                              Resources                                                                                                                               |
+|:-------------------------:|:----------------:|:-------------------:|:----------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      :dragon: :one:       | Laurens Neinders |   38.737 (0.398)    | SAC, based on Sophy ([discussion](https://github.com/trackmania-rl/tmrl/discussions/37)) | [video](https://www.youtube.com/watch?v=SSabAy9nDeU), [repo](https://github.com/LaurensNeinders/tmrl-trackmap), [paper](https://github.com/trackmania-rl/tmrl/files/10795395/Paper.pdf), [replays](https://github.com/trackmania-rl/tmrl/files/10829233/Replays.zip) |
 |     :racehorse: :two:     |
 |     :leopard: :three:     |
 |      :tiger2: :four:      |
