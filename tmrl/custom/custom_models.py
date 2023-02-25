@@ -46,6 +46,7 @@ def count_vars(module):
 
 LOG_STD_MAX = 2
 LOG_STD_MIN = -20
+EPSILON = 1e-7
 
 
 class SquashedGaussianMLPActor(TorchActorModule):
@@ -556,8 +557,31 @@ class SquashedGaussianVanillaCNNActor(TorchActorModule):
             pi_action = pi_distribution.rsample()
 
         if with_logprob:
+            """
+            NB: SB3:
+            
+             def log_prob(self, actions: th.Tensor, gaussian_actions: Optional[th.Tensor] = None) -> th.Tensor:
+                # Inverse tanh
+                # Naive implementation (not stable): 0.5 * torch.log((1 + x) / (1 - x))
+                # We use numpy to avoid numerical instability
+                if gaussian_actions is None:
+                    # It will be clipped to avoid NaN when inversing tanh
+                    gaussian_actions = TanhBijector.inverse(actions)
+        
+                # Log likelihood for a Gaussian distribution
+                log_prob = super().log_prob(gaussian_actions)
+                # Squash correction (from original SAC implementation)
+                # this comes from the fact that tanh is bijective and differentiable
+                log_prob -= th.sum(th.log(1 - actions**2 + self.epsilon), dim=1)
+                return log_prob
+            
+            """
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
+            # NB: this is from Spinup:
+            # logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)  # FIXME?
+            # Whereas SB3 does this:
+            logp_pi -= torch.sum(torch.log(1 - torch.tanh(pi_action) ** 2 + EPSILON), dim=1)  # TODO: double check
+            # log_prob -= th.sum(th.log(1 - actions**2 + self.epsilon), dim=1)
         else:
             logp_pi = None
 

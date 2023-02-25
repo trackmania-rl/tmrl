@@ -214,21 +214,32 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             loss_critic=loss_q.detach(),
             # debug:
             debug_log_pi=logp_pi.detach().mean(),
+            debug_log_pi_std=logp_pi.detach().std(),
             debug_logp_a2=logp_a2.detach().mean(),
+            debug_logp_a2_std=logp_a2.detach().std(),
             debug_q_pi=q_pi.detach().mean(),
+            debug_q_pi_std=q_pi.detach().std(),
             debug_q_pi_targ=q_pi_targ.detach().mean(),
+            debug_q_pi_targ_std=q_pi_targ.detach().std(),
             debug_backup=backup.detach().mean(),
+            debug_backup_std=backup.detach().std(),
             debug_q1=q1.detach().mean(),
+            debug_q1_std=q1.detach().std(),
             debug_q2=q2.detach().mean(),
+            debug_q2_std=q2.detach().std(),
             debug_diff_q1=(q1 - backup).detach().mean(),
+            debug_diff_q1_std=(q1 - backup).detach().std(),
             debug_diff_q2=(q2 - backup).detach().mean(),
+            debug_diff_q2_std=(q2 - backup).detach().std(),
             debug_r=r.detach().mean(),
+            debug_r_std=r.detach().std(),
             debug_d=d.detach().mean(),
+            debug_d_std=d.detach().std(),
         )
 
         if self.learn_entropy_coef:
             ret_dict["loss_entropy_coef"] = loss_alpha.detach()
-            ret_dict["entropy_coef"] = alpha_t.item()
+        ret_dict["entropy_coef"] = alpha_t.item()  # FIXME: indent
 
         if debug_model_now:
             wandb.log(
