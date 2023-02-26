@@ -235,7 +235,19 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             debug_r_std=r.detach().std(),
             debug_d=d.detach().mean(),
             debug_d_std=d.detach().std(),
-        )
+            debug_a_0=a[:, 0].detach().mean(),
+            debug_a_0_std=a[:, 0].detach().std(),
+            debug_a_1=a[:, 1].detach().mean(),
+            debug_a_1_std=a[:, 1].detach().std(),
+            debug_a_2=a[:, 2].detach().mean(),
+            debug_a_2_std=a[:, 2].detach().std(),
+            debug_a2_0=a2[:, 0].detach().mean(),
+            debug_a2_0_std=a2[:, 0].detach().std(),
+            debug_a2_1=a2[:, 1].detach().mean(),
+            debug_a2_1_std=a2[:, 1].detach().std(),
+            debug_a2_2=a2[:, 2].detach().mean(),
+            debug_a2_2_std=a2[:, 2].detach().std(),
+        )  # FIXME: remove debug info
 
         if self.learn_entropy_coef:
             ret_dict["loss_entropy_coef"] = loss_alpha.detach()
