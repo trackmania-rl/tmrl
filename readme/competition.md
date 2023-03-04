@@ -47,9 +47,9 @@ These submissions are typically not as realistic in the context of real-world ro
 - _Track:_ `tmrl-test.Map.Gbx` (provided in `C:\Users\YourUsername\TmrlData\resources`.)
 - _Environment:_ Custom environments
 
-|          Winners          |      Team      | Time - _mean (std)_ | Description | Resources |
-|:-------------------------:|:--------------:|:-------------------:|:-----------:|:---------:|
-|      :dragon: :one:       |
+|          Winners          |       Team       | Time - _mean (std)_ |                                       Description                                        |                                                                                                                              Resources                                                                                                                               |
+|:-------------------------:|:----------------:|:-------------------:|:----------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      :dragon: :one:       | Laurens Neinders |   38.737 (0.398)    | SAC, based on Sophy ([discussion](https://github.com/trackmania-rl/tmrl/discussions/37)) | [video](https://www.youtube.com/watch?v=SSabAy9nDeU), [repo](https://github.com/LaurensNeinders/tmrl-trackmap), [paper](https://github.com/trackmania-rl/tmrl/files/10795395/Paper.pdf), [replays](https://github.com/trackmania-rl/tmrl/files/10829233/Replays.zip) |
 |     :racehorse: :two:     |
 |     :leopard: :three:     |
 |      :tiger2: :four:      |
@@ -69,7 +69,7 @@ We choose whether to accept your entry based on reproducibility and novelty.
 ### Current iteration (Beta)
 The `tmrl` competition is an open research initiative, currently in its first iteration :hatching_chick:
 
-In this iteration, competitors race on the default `tmrl-test` track (plain road) by solving the `Full` version of the [TrackMania 2020 Gym environment](https://github.com/trackmania-rl/tmrl#gym-environment) (the `LIDAR` version is also accepted).
+In this iteration, competitors race on the `tmrl-test` track (plain road) by solving the `Full` version of the [TrackMania 2020 Gym environment](https://github.com/trackmania-rl/tmrl#gym-environment) (the `LIDAR` version is also accepted).
 
 - The `action space` is the default TrackMania 2020 continuous action space (3 floats between -1.0 and 1.0).
 - The `observation space` is a history of 4 raw snapshots along with the speed, gear, rpm and 2 previous actions. The choice of camera is up to you as long as you use one of the default. You are allowed to use colors if you wish (set the `"IMG_GRAYSCALE"` entry to `false` in `config.json`). You may also customize the actual image dimensions (`"IMG_WIDTH"` and `"IMG_HEIGHT"`), and the game window dimensions (`"WINDOW_WIDTH"` and `"WINDOW_HEIGHT"`) if you need to. However, the window dimensions must remain between `(256, 128)` and `(958, 488)` (dimensions greater than `(958, 488)` are **not** allowed).
@@ -84,7 +84,7 @@ Nevertheless, we encourage deep RL approaches, and provide a fast-track [tutoria
 
 ### Evaluation and leaderboard:
 For this first iteration of the competition, we take any submitted entry, at any time, and we evaluate it over 10 runs (see how to submit an entry in the [next section](#submit-an-entry)).
-If the **mean** time achieved by your policy on the `tmrl_test` track over those 10 runs is amongst the current 10 best entries, your entry will appear in the [leaderboard](https://github.com/trackmania-rl/tmrl).
+If the **mean** time achieved by your policy on the `tmrl_test` track over those 10 runs is amongst the current 10 best entries, your entry will appear in the leaderboard.
 
 :loudspeaker: _**CAUTION**: if the car crashes (i.e., the episode auto-resets due to failure of moving forward), we don't count the episode but we add a penalty of 10 seconds to the next episode.
 After 3 crashes the submission is eliminated._
