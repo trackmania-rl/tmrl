@@ -13,7 +13,7 @@ if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
 
 
-RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.4.0/resources.zip"
+RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.4.2/resources.zip"
 
 
 def url_retrieve(url: str, outfile: Path, overwrite: bool = False):
@@ -75,8 +75,8 @@ if not TMRL_FOLDER.exists():
             try:
                 OP_SCRIPTS_FOLDER = OPENPLANET_FOLDER / "Scripts"
                 OP_SCRIPTS_FOLDER.mkdir(parents=True, exist_ok=True)
-                TM20_SCRIPT_FILE = RESOURCES_FOLDER / 'Scripts' / 'Plugin_GrabData_0_1.as'
-                TM20_SCRIPT_FILE_SIG = RESOURCES_FOLDER / 'Scripts' / 'Plugin_GrabData_0_1.as.sig'
+                TM20_SCRIPT_FILE = RESOURCES_FOLDER / 'Scripts' / 'Plugin_GrabData_0_2.as'
+                TM20_SCRIPT_FILE_SIG = RESOURCES_FOLDER / 'Scripts' / 'Plugin_GrabData_0_2.as.sig'
                 copy2(TM20_SCRIPT_FILE, OP_SCRIPTS_FOLDER)
                 copy2(TM20_SCRIPT_FILE_SIG, OP_SCRIPTS_FOLDER)
             except Exception as e:
@@ -128,7 +128,7 @@ setup(
     long_description_content_type='text/markdown',
     keywords='reinforcement learning, robot learning, trackmania, self driving, roborace',
     url='https://github.com/trackmania-rl/tmrl',
-    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.4.1.tar.gz',
+    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.4.2.tar.gz',
     author='Yann Bouteiller, Edouard Geze',
     author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
     license='MIT',
