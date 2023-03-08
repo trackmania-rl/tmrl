@@ -209,45 +209,93 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
-        ret_dict = dict(
-            loss_actor=loss_pi.detach(),
-            loss_critic=loss_q.detach(),
-            # debug:
-            debug_log_pi=logp_pi.detach().mean(),
-            debug_log_pi_std=logp_pi.detach().std(),
-            debug_logp_a2=logp_a2.detach().mean(),
-            debug_logp_a2_std=logp_a2.detach().std(),
-            debug_q_pi=q_pi.detach().mean(),
-            debug_q_pi_std=q_pi.detach().std(),
-            debug_q_pi_targ=q_pi_targ.detach().mean(),
-            debug_q_pi_targ_std=q_pi_targ.detach().std(),
-            debug_backup=backup.detach().mean(),
-            debug_backup_std=backup.detach().std(),
-            debug_q1=q1.detach().mean(),
-            debug_q1_std=q1.detach().std(),
-            debug_q2=q2.detach().mean(),
-            debug_q2_std=q2.detach().std(),
-            debug_diff_q1=(q1 - backup).detach().mean(),
-            debug_diff_q1_std=(q1 - backup).detach().std(),
-            debug_diff_q2=(q2 - backup).detach().mean(),
-            debug_diff_q2_std=(q2 - backup).detach().std(),
-            debug_r=r.detach().mean(),
-            debug_r_std=r.detach().std(),
-            debug_d=d.detach().mean(),
-            debug_d_std=d.detach().std(),
-            debug_a_0=a[:, 0].detach().mean(),
-            debug_a_0_std=a[:, 0].detach().std(),
-            debug_a_1=a[:, 1].detach().mean(),
-            debug_a_1_std=a[:, 1].detach().std(),
-            debug_a_2=a[:, 2].detach().mean(),
-            debug_a_2_std=a[:, 2].detach().std(),
-            debug_a2_0=a2[:, 0].detach().mean(),
-            debug_a2_0_std=a2[:, 0].detach().std(),
-            debug_a2_1=a2[:, 1].detach().mean(),
-            debug_a2_1_std=a2[:, 1].detach().std(),
-            debug_a2_2=a2[:, 2].detach().mean(),
-            debug_a2_2_std=a2[:, 2].detach().std(),
-        )  # FIXME: remove debug info
+        # FIXME: remove debug info
+        with torch.no_grad():
+            q1_o2_a2 = self.model.q1(o2, a2)
+            q2_o2_a2 = self.model.q2(o2, a2)
+            q1_targ_pi = self.model_target.q1(o, pi)
+            q2_targ_pi = self.model_target.q2(o, pi)
+            q1_targ_a = self.model_target.q1(o, a)
+            q2_targ_a = self.model_target.q2(o, a)
+
+            diff_q1pt_qpt = (q1_pi_targ - q_pi_targ).deatch()
+            diff_q2pt_qpt = (q2_pi_targ - q_pi_targ).deatch()
+            diff_q1_q1t_a2 = (q1_o2_a2 - q1_pi_targ).detach()
+            diff_q2_q2t_a2 = (q2_o2_a2 - q2_pi_targ).detach()
+            diff_q1_q1t_pi = (q1_pi - q1_targ_pi).detach()
+            diff_q2_q2t_pi = (q2_pi - q2_targ_pi).detach()
+            diff_q1_q1t_a = (q1 - q1_targ_a).detach()
+            diff_q2_q2t_a = (q2 - q2_targ_a).detach()
+            diff_q1_backup = (q1 - backup).detach()
+            diff_q2_backup = (q2 - backup).detach()
+            diff_q1_backup_r = (q1 - backup + r)
+            diff_q2_backup_r = (q2 - backup + r)
+
+            ret_dict = dict(
+                loss_actor=loss_pi.detach(),
+                loss_critic=loss_q.detach(),
+                # debug:
+                debug_log_pi=logp_pi.detach().mean(),
+                debug_log_pi_std=logp_pi.detach().std(),
+                debug_logp_a2=logp_a2.detach().mean(),
+                debug_logp_a2_std=logp_a2.detach().std(),
+                debug_q_a1=q_pi.detach().mean(),
+                debug_q_a1_std=q_pi.detach().std(),
+                debug_q_a1_targ=q_pi_targ.detach().mean(),
+                debug_q_a1_targ_std=q_pi_targ.detach().std(),
+                debug_backup=backup.detach().mean(),
+                debug_backup_std=backup.detach().std(),
+                debug_q1=q1.detach().mean(),
+                debug_q1_std=q1.detach().std(),
+                debug_q2=q2.detach().mean(),
+                debug_q2_std=q2.detach().std(),
+                debug_diff_q1=diff_q1_backup.mean(),
+                debug_diff_q1_std=diff_q1_backup.std(),
+                debug_diff_q2=diff_q2_backup.mean(),
+                debug_diff_q2_std=diff_q2_backup.std(),
+                debug_diff_r_q1=diff_q1_backup_r.mean(),
+                debug_diff_r_q1_std=diff_q1_backup_r.std(),
+                debug_diff_r_q2=diff_q2_backup_r.mean(),
+                debug_diff_r_q2_std=diff_q2_backup_r.std(),
+                debug_diff_q1pt_qpt=diff_q1pt_qpt.mean(),
+                debug_diff_q2pt_qpt=diff_q2pt_qpt.mean(),
+                debug_diff_q1_q1t_a2=diff_q1_q1t_a2.mean(),
+                debug_diff_q2_q2t_a2=diff_q2_q2t_a2.mean(),
+                debug_diff_q1_q1t_pi=diff_q1_q1t_pi.mean(),
+                debug_diff_q2_q2t_pi=diff_q2_q2t_pi.mean(),
+                debug_diff_q1_q1t_a=diff_q1_q1t_a.mean(),
+                debug_diff_q2_q2t_a=diff_q2_q2t_a.mean(),
+                debug_diff_q1pt_qpt_std=diff_q1pt_qpt.std(),
+                debug_diff_q2pt_qpt_std=diff_q2pt_qpt.std(),
+                debug_diff_q1_q1t_a2_std=diff_q1_q1t_a2.std(),
+                debug_diff_q2_q2t_a2_std=diff_q2_q2t_a2.std(),
+                debug_diff_q1_q1t_pi_std=diff_q1_q1t_pi.std(),
+                debug_diff_q2_q2t_pi_std=diff_q2_q2t_pi.std(),
+                debug_diff_q1_q1t_a_std=diff_q1_q1t_a.std(),
+                debug_diff_q2_q2t_a_std=diff_q2_q2t_a.std(),
+                debug_r=r.detach().mean(),
+                debug_r_std=r.detach().std(),
+                debug_d=d.detach().mean(),
+                debug_d_std=d.detach().std(),
+                debug_a_0=a[:, 0].detach().mean(),
+                debug_a_0_std=a[:, 0].detach().std(),
+                debug_a_1=a[:, 1].detach().mean(),
+                debug_a_1_std=a[:, 1].detach().std(),
+                debug_a_2=a[:, 2].detach().mean(),
+                debug_a_2_std=a[:, 2].detach().std(),
+                debug_a1_0=pi[:, 0].detach().mean(),
+                debug_a1_0_std=pi[:, 0].detach().std(),
+                debug_a1_1=pi[:, 1].detach().mean(),
+                debug_a1_1_std=pi[:, 1].detach().std(),
+                debug_a1_2=pi[:, 2].detach().mean(),
+                debug_a1_2_std=pi[:, 2].detach().std(),
+                debug_a2_0=a2[:, 0].detach().mean(),
+                debug_a2_0_std=a2[:, 0].detach().std(),
+                debug_a2_1=a2[:, 1].detach().mean(),
+                debug_a2_1_std=a2[:, 1].detach().std(),
+                debug_a2_2=a2[:, 2].detach().mean(),
+                debug_a2_2_std=a2[:, 2].detach().std(),
+            )  # FIXME: remove debug info
 
         if self.learn_entropy_coef:
             ret_dict["loss_entropy_coef"] = loss_alpha.detach()
