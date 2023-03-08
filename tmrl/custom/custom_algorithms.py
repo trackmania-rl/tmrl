@@ -218,8 +218,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             q1_targ_a = self.model_target.q1(o, a)
             q2_targ_a = self.model_target.q2(o, a)
 
-            diff_q1pt_qpt = (q1_pi_targ - q_pi_targ).deatch()
-            diff_q2pt_qpt = (q2_pi_targ - q_pi_targ).deatch()
+            diff_q1pt_qpt = (q1_pi_targ - q_pi_targ).detach()
+            diff_q2pt_qpt = (q2_pi_targ - q_pi_targ).detach()
             diff_q1_q1t_a2 = (q1_o2_a2 - q1_pi_targ).detach()
             diff_q2_q2t_a2 = (q2_o2_a2 - q2_pi_targ).detach()
             diff_q1_q1t_pi = (q1_pi - q1_targ_pi).detach()
@@ -228,8 +228,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             diff_q2_q2t_a = (q2 - q2_targ_a).detach()
             diff_q1_backup = (q1 - backup).detach()
             diff_q2_backup = (q2 - backup).detach()
-            diff_q1_backup_r = (q1 - backup + r)
-            diff_q2_backup_r = (q2 - backup + r)
+            diff_q1_backup_r = (q1 - backup + r).detach()
+            diff_q2_backup_r = (q2 - backup + r).detach()
 
             ret_dict = dict(
                 loss_actor=loss_pi.detach(),
