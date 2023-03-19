@@ -69,7 +69,7 @@
 
 `tmrl` is a python framework designed to help you train Artificial Intelligences (AIs) through deep Reinforcement Learning (RL), for your own robots or real-time video games.
 
-_Note: In RL, an AI is called a policy._
+_Note: In the context of RL, an AI is called a policy._
 
 ### User features (TrackMania):
 * **Training algorithms:**
@@ -476,7 +476,7 @@ Please consider the following:
 - Further profiling and code optimization.
 - Find the cleanest way to support sequences in `Memory` for RNN training.
 
-You can discuss contribution projects in the [discussion]()
+You can discuss contribution projects in the [discussions section](https://github.com/trackmania-rl/tmrl/discussions)
 
 
 # Authors:
