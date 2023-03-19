@@ -17,7 +17,7 @@ _(Note for ML developers: in case you are not interested in using support for Tr
 
 The following instructions are for installing `tmrl` with support for the TrackMania 2020 video game.
 
-You will first need to install [TrackMania 2020](https://www.trackmania.com/) (obviously), and also a small community-supported utility called [Openplanet for TrackMania](https://openplanet.nl/) (the Gym environment needs this utility to compute the reward).
+You will first need to install [TrackMania 2020](https://www.trackmania.com/) (obviously), and also a small community-supported utility called [Openplanet for TrackMania](https://openplanet.nl/) (the Gymnasium environment needs this utility to compute the reward).
 
 
 ### Install TrackMania 2020:

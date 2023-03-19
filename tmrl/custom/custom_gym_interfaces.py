@@ -8,7 +8,7 @@ from collections import deque
 
 # third-party imports
 import cv2
-import gym.spaces as spaces
+import gymnasium.spaces as spaces
 import numpy as np
 
 

@@ -13,8 +13,8 @@ class TrainingAgent(ABC):
                  device):
         """
         Args:
-            observation_space (Gym.spaces.Space): observation space (here for your convenience)
-            action_space (Gym.spaces.Space): action space (here for your convenience)
+            observation_space (gymnasium.spaces.Space): observation space (here for your convenience)
+            action_space (gymnasium.spaces.Space): action space (here for your convenience)
             device (str): device that should be used for training
         """
         self.observation_space = observation_space

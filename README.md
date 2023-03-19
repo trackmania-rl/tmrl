@@ -25,7 +25,7 @@
 `tmrl` is a python library designed to facilitate the implementation of deep RL applications in real-time settings such as robots and video games. Full tutorial [here](readme/tuto_library.md) and documentation [here](https://tmrl.readthedocs.io/en/latest/).
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
-`tmrl` provides a Gym environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gym-environment).
+`tmrl` provides a Gymnasium environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gymnasium-environment).
 
 - :earth_americas: **Everyone:**\
 `tmrl` hosts the [TrackMania Roborace League](readme/competition.md), a vision-based AI competition where participants design real-time self-racing AIs in the TrackMania video game.
@@ -44,7 +44,7 @@
   - [Security (important)](#security)
 - [TrackMania applications](#autonomous-driving-in-trackmania)
   - [TrackMania Roborace League](readme/competition.md)
-  - [TrackMania Gym environment](#trackmania-gym-environment)
+  - [TrackMania Gymnasium environment](#trackmania-gymnasium-environment)
     - [LIDAR environment](#lidar-environment)
     - [Full environment](#full-environment)
   - [TrackMania training details](#trackmania-training-details)
@@ -93,8 +93,8 @@ These models learn the physics from histories or observations equally spaced in 
 `tmrl` is a complete framework designed to help you successfully implement deep RL in your [real-time applications](#real-time-gym-framework) (e.g., robots...).
 A complete tutorial toward doing this is provided [here](readme/tuto_library.md).
 
-* **TrackMania Gym environment:**
-`tmrl` comes with a real-time Gym environment for the TrackMania2020 video game, based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gym-environment).
+* **TrackMania Gymnasium environment:**
+`tmrl` comes with a real-time Gymnasium environment for the TrackMania2020 video game, based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gymnasium-environment).
 
 * **Distributed training:**
 `tmrl` is based on a single-server / multiple-clients architecture.
@@ -157,7 +157,7 @@ Follow the link for information about the competition, including the current lea
 
 Regardless of whether they want to compete or not, ML developers will find the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) useful for creating advanced training pipelines in TrackMania.
 
-## TrackMania Gym environment
+## TrackMania Gymnasium environment
 In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
 
 _(NB: the game needs to be set up as described in the [getting started](readme/get_started.md) instructions)_

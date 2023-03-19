@@ -106,7 +106,7 @@ def partial_to_dict(p: functools.partial, version="3"):
     """
     Only for wandb.
 
-    This function has become lenient to work with new versions of Gym.
+    This function has become lenient to work with Gymnasium.
     """
     assert not p.args, "So far only keyword arguments are supported, here"
     fields = {k: v.default for k, v in inspect.signature(p.func).parameters.items()}

@@ -3,8 +3,8 @@ import random
 import time
 
 # third-party imports
-import gym
-from gym import spaces
+import gymnasium
+from gymnasium import spaces
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 
 # local imports
@@ -25,7 +25,7 @@ def benchmark():
     env_config["running_average_factor"] = 0.05
     env_config["wait_on_done"] = True
     env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_failure": int(20 * 60)}
-    env = gym.make("real-time-gym-v0", config=env_config)
+    env = gymnasium.make("real-time-gym-v1", config=env_config)
 
     t_d = time.time()
     o, i = env.reset()

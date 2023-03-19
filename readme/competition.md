@@ -69,7 +69,7 @@ We choose whether to accept your entry based on reproducibility and novelty.
 ### Current iteration (Beta)
 The `tmrl` competition is an open research initiative, currently in its first iteration :hatching_chick:
 
-In this iteration, competitors race on the `tmrl-test` track (plain road) by solving the `Full` version of the [TrackMania 2020 Gym environment](https://github.com/trackmania-rl/tmrl#gym-environment) (the `LIDAR` version is also accepted).
+In this iteration, competitors race on the `tmrl-test` track (plain road) by solving the `Full` version of the [TrackMania 2020 Gym environment](https://github.com/trackmania-rl/tmrl#trackmania-gymnasium-environment) (the `LIDAR` version is also accepted).
 
 - The `action space` is the default TrackMania 2020 continuous action space (3 floats between -1.0 and 1.0).
 - The `observation space` is a history of 4 raw snapshots along with the speed, gear, rpm and 2 previous actions. The choice of camera is up to you as long as you use one of the default. You are allowed to use colors if you wish (set the `"IMG_GRAYSCALE"` entry to `false` in `config.json`). You may also customize the actual image dimensions (`"IMG_WIDTH"` and `"IMG_HEIGHT"`), and the game window dimensions (`"WINDOW_WIDTH"` and `"WINDOW_HEIGHT"`) if you need to. However, the window dimensions must remain between `(256, 128)` and `(958, 488)` (dimensions greater than `(958, 488)` are **not** allowed).

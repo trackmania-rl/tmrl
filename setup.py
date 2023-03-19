@@ -101,21 +101,17 @@ if not TMRL_FOLDER.exists():
 install_req = [
     'numpy',
     'torch',
-    'imageio',
-    'imageio-ffmpeg',
     'pandas',
-    'gym>=0.26.0',
-    'rtgym>=0.7',
+    'gymnasium',
+    'rtgym>=0.8',
     'pyyaml',
     'wandb',
     'requests',
     'opencv-python',
-    'scikit-image',
     'keyboard',
     'pyautogui',
     'pyinstrument',
-    'tlspyo>=0.2.5',
-    'matplotlib'
+    'tlspyo>=0.2.5'
 ]
 
 if platform.system() == "Windows":
@@ -131,7 +127,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name='tmrl',
-    version='0.4.2',
+    version='0.5.0',
     description='Network-based framework for real-time robot learning',
     long_description=README,
     long_description_content_type='text/markdown',

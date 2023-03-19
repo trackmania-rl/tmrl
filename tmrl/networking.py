@@ -461,7 +461,7 @@ class RolloutWorker:
     ):
         """
         Args:
-            env_cls (type): class of the Gym environment (subclass of tmrl.envs.GenericGymEnv)
+            env_cls (type): class of the Gymnasium environment (subclass of tmrl.envs.GenericGymEnv)
             actor_module_cls (type): class of the module containing the policy (subclass of tmrl.actor.ActorModule)
             sample_compressor (callable): compressor for sending samples over the Internet; \
             when not `None`, `sample_compressor` must be a function that takes the following arguments: \

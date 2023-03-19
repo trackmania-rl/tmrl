@@ -20,8 +20,8 @@ class ActorModule(ABC):
     def __init__(self, observation_space, action_space):
         """
         Args:
-            observation_space (Gym.spaces.Space): observation space (here for your convenience)
-            action_space (Gym.spaces.Space): action space (here for your convenience)
+            observation_space (gymnasium.spaces.Space): observation space (here for your convenience)
+            action_space (gymnasium.spaces.Space): action space (here for your convenience)
         """
         self.observation_space = observation_space
         self.action_space = action_space
@@ -121,8 +121,8 @@ class TorchActorModule(ActorModule, torch.nn.Module, ABC):
     def __init__(self, observation_space, action_space, device="cpu"):
         """
         Args:
-            observation_space (Gym.spaces.Space): observation space (here for your convenience)
-            action_space (Gym.spaces.Space): action space (here for your convenience)
+            observation_space (gymnasium.spaces.Space): observation space (here for your convenience)
+            action_space (gymnasium.spaces.Space): action space (here for your convenience)
             device: device where your model should live and where observations for `act` will be collated
         """
         super().__init__(observation_space, action_space)  # ActorModule

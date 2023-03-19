@@ -16,7 +16,7 @@ from tmrl.tuto.competition.custom_actor_module import MyActorModule  # change th
 # rtgym environment class (full TrackMania2020 Gym environment with replays enabled):
 config = cfg_obj.CONFIG_DICT
 config['interface_kwargs'] = {'save_replay': True}
-env_cls = partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": config})
+env_cls = partial(GenericGymEnv, id="real-time-gym-v1", gym_kwargs={"config": config})
 
 # Device used for inference on workers (change if you like but keep in mind that the competition evaluation is on CPU)
 device_worker = 'cpu'

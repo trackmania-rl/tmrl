@@ -5,14 +5,14 @@ COMPETITION TUTORIAL #1: Custom model and RL algorithm
 
 In this tutorial, we will customize the TrackMania training pipeline.
 
-The tutorial works with the TrackMania FULL Gym environment.
+The tutorial works with the TrackMania FULL Gymnasium environment.
 Please refer to the README on GitHub to set up this environment in config.json:
 https://github.com/trackmania-rl/tmrl#full-environment
 
 Note: This tutorial describes implementing and running a TrainingAgent along with an ActorModule.
 It is relevant if you want to implement your own RL approaches in TrackMania.
 If you plan to try non-RL approaches instead, this is also accepted:
-just use the competition Gym Full environment and do whatever you need,
+just use the competition Gymnasium Full environment and do whatever you need,
 then, wrap your trained policy in an ActorModule, and submit your entry :)
 
 Copy and adapt this script to implement your own algorithm/model in TrackMania.
