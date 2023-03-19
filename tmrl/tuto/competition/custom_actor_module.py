@@ -162,7 +162,7 @@ obs_preprocessor = cfg_obj.OBS_PREPROCESSOR
 # =====================================================================
 # Competitors CANNOT change the following parameters.
 
-# rtgym environment class (full TrackMania Gym environment):
+# rtgym environment class (full TrackMania Gymnasium environment):
 env_cls = cfg_obj.ENV_CLS
 
 # Device used for inference on workers (change if you like but keep in mind that the competition evaluation is on CPU)
@@ -434,8 +434,8 @@ class MyActorModule(TorchActorModule):
         When implementing __init__, we need to take the observation_space and action_space arguments.
 
         Args:
-            observation_space: observation space of the Gym environment
-            action_space: action space of the Gym environment
+            observation_space: observation space of the Gymnasium environment
+            action_space: action space of the Gymnasium environment
         """
         # We must call the superclass __init__:
         super().__init__(observation_space, action_space)
@@ -499,7 +499,7 @@ class MyActorModule(TorchActorModule):
         Thus, our ActorModule will only implement the actor.
 
         Args:
-            obs: the observation from the Gym environment (when using TorchActorModule this is a torch.Tensor)
+            obs: the observation from the Gymnasium environment (when using TorchActorModule this is a torch.Tensor)
             test (bool): this is True for test episodes (deployment) and False for training episodes;
                 in SAC, this enables us to sample randomly during training and deterministically at test-time.
             compute_logprob (bool): SAC will set this to True to retrieve log probabilities.
@@ -651,8 +651,8 @@ class SACTrainingAgent(TrainingAgent):
 
     Your implementation must also pass three required arguments to the superclass:
 
-    - observation_space (Gym.spaces.Space): observation space (here for your convenience)
-    - action_space (Gym.spaces.Space): action space (here for your convenience)
+    - observation_space (gymnasium.spaces.Space): observation space (here for your convenience)
+    - action_space (gymnasium.spaces.Space): action space (here for your convenience)
     - device (str): device that should be used for training (e.g., `"cpu"` or `"cuda:0"`)
     """
 
@@ -660,8 +660,8 @@ class SACTrainingAgent(TrainingAgent):
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
     def __init__(self,
-                 observation_space=None,  # Gym observation space (required argument here for your convenience)
-                 action_space=None,  # Gym action space (required argument here for your convenience)
+                 observation_space=None,  # Gymnasium observation space (required argument here for your convenience)
+                 action_space=None,  # Gymnasium action space (required argument here for your convenience)
                  device=None,  # Device our TrainingAgent should use for training (required argument)
                  model_cls=VanillaCNNActorCritic,  # An actor-critic module, encapsulating our ActorModule
                  gamma=0.99,  # Discount factor
@@ -831,7 +831,7 @@ training_cls = partial(
 
 # In TMRL, a training pipeline is made of
 # - one Trainer (encompassing the training algorithm that we have coded in this tutorial)
-# - one to several RolloutWorker(s) (encompassing our ActorModule and the Gym environment of the competition)
+# - one to several RolloutWorker(s) (encompassing our ActorModule and the Gymnasium environment of the competition)
 # - one central Server (through which RolloutWorker(s) and Trainer communicate)
 # Let us instantiate these via an argument that we will pass when calling this script:
 

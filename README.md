@@ -103,12 +103,12 @@ Find out more [here](#remote-training-architecture).
 
 * **External libraries:**
 This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
-In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications,
+In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gymnasium environments in real-time applications,
 [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers,
 and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring python object over the Internet in a secure fashion.
 
 ### TMRL in the media:
-- In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gym environment that we used for the show is available [here](#lidar-with-track-progress).
+- In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gymnasium environment that we used for the show is available [here](#lidar-with-track-progress).
 
 ## Installation
 
@@ -182,7 +182,7 @@ def model(obs):
     steer = min(max(steer, -1.0), 1.0)
     return np.array([1.0, 0.0, steer])
 
-# Let us retrieve the TMRL Gym environment.
+# Let us retrieve the TMRL Gymnasium environment.
 # The environment you get from get_environment() depends on the content of config.json
 env = get_environment()
 
