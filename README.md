@@ -25,7 +25,7 @@
 `tmrl` is a python library designed to facilitate the implementation of deep RL applications in real-time settings such as robots and video games. Full tutorial [here](readme/tuto_library.md) and documentation [here](https://tmrl.readthedocs.io/en/latest/).
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
-`tmrl` provides a Gym environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gym-environment).
+`tmrl` provides a Gymnasium environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gymnasium-environment).
 
 - :earth_americas: **Everyone:**\
 `tmrl` hosts the [TrackMania Roborace League](readme/competition.md), a vision-based AI competition where participants design real-time self-racing AIs in the TrackMania video game.
@@ -44,7 +44,7 @@
   - [Security (important)](#security)
 - [TrackMania applications](#autonomous-driving-in-trackmania)
   - [TrackMania Roborace League](readme/competition.md)
-  - [TrackMania Gym environment](#trackmania-gym-environment)
+  - [TrackMania Gymnasium environment](#trackmania-gymnasium-environment)
     - [LIDAR environment](#lidar-environment)
     - [Full environment](#full-environment)
   - [TrackMania training details](#trackmania-training-details)
@@ -69,7 +69,7 @@
 
 `tmrl` is a python framework designed to help you train Artificial Intelligences (AIs) through deep Reinforcement Learning (RL), for your own robots or real-time video games.
 
-_Note: In RL, an AI is called a policy._
+_Note: In the context of RL, an AI is called a policy._
 
 ### User features (TrackMania):
 * **Training algorithms:**
@@ -93,8 +93,8 @@ These models learn the physics from histories or observations equally spaced in 
 `tmrl` is a complete framework designed to help you successfully implement deep RL in your [real-time applications](#real-time-gym-framework) (e.g., robots...).
 A complete tutorial toward doing this is provided [here](readme/tuto_library.md).
 
-* **TrackMania Gym environment:**
-`tmrl` comes with a real-time Gym environment for the TrackMania2020 video game, based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gym-environment).
+* **TrackMania Gymnasium environment:**
+`tmrl` comes with a real-time Gymnasium environment for the TrackMania2020 video game, based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gymnasium-environment).
 
 * **Distributed training:**
 `tmrl` is based on a single-server / multiple-clients architecture.
@@ -103,12 +103,12 @@ Find out more [here](#remote-training-architecture).
 
 * **External libraries:**
 This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
-In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gym environments in real-time applications,
+In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gymnasium environments in real-time applications,
 [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers,
 and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring python object over the Internet in a secure fashion.
 
 ### TMRL in the media:
-- In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gym environment that we used for the show is available [here](#lidar-with-track-progress).
+- In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gymnasium environment that we used for the show is available [here](#lidar-with-track-progress).
 
 ## Installation
 
@@ -157,7 +157,7 @@ Follow the link for information about the competition, including the current lea
 
 Regardless of whether they want to compete or not, ML developers will find the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) useful for creating advanced training pipelines in TrackMania.
 
-## TrackMania Gym environment
+## TrackMania Gymnasium environment
 In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
 
 _(NB: the game needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
@@ -182,7 +182,7 @@ def model(obs):
     steer = min(max(steer, -1.0), 1.0)
     return np.array([1.0, 0.0, steer])
 
-# Let us retrieve the TMRL Gym environment.
+# Let us retrieve the TMRL Gymnasium environment.
 # The environment you get from get_environment() depends on the content of config.json
 env = get_environment()
 
@@ -476,7 +476,7 @@ Please consider the following:
 - Further profiling and code optimization.
 - Find the cleanest way to support sequences in `Memory` for RNN training.
 
-You can discuss contribution projects in the [discussion]()
+You can discuss contribution projects in the [discussions section](https://github.com/trackmania-rl/tmrl/discussions)
 
 
 # Authors:

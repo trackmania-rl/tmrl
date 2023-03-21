@@ -2,23 +2,23 @@
 from typing import Mapping, Sequence
 
 # third-party imports
-import gym
+import gymnasium
 import numpy as np
 
 
-class AffineObservationWrapper(gym.ObservationWrapper):
+class AffineObservationWrapper(gymnasium.ObservationWrapper):
     def __init__(self, env, shift, scale):
         super().__init__(env)
-        assert isinstance(env.observation_space, gym.spaces.Box)
+        assert isinstance(env.observation_space, gymnasium.spaces.Box)
         self.shift = shift
         self.scale = scale
-        self.observation_space = gym.spaces.Box(self.observation(env.observation_space.low), self.observation(env.observation_space.high), dtype=env.observation_space.dtype)
+        self.observation_space = gymnasium.spaces.Box(self.observation(env.observation_space.low), self.observation(env.observation_space.high), dtype=env.observation_space.dtype)
 
     def observation(self, obs):
         return (obs + self.shift) * self.scale
 
 
-class Float64ToFloat32(gym.ObservationWrapper):
+class Float64ToFloat32(gymnasium.ObservationWrapper):
     """Converts np.float64 arrays in the observations to np.float32 arrays."""
 
     # TODO: change observation/action spaces to correct dtype

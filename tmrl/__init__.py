@@ -33,9 +33,9 @@ from tmrl.config.config_objects import CONFIG_DICT
 
 def get_environment():
     """
-    Default TMRL Gym environment for TrackMania 2020.
+    Default TMRL Gymnasium environment for TrackMania 2020.
 
     Returns:
-        Gym.Env: An instance of the default TMRL Gym environment
+        gymnasium.Env: An instance of the default TMRL Gymnasium environment
     """
-    return GenericGymEnv(id="real-time-gym-v0", gym_kwargs={"config": CONFIG_DICT})
+    return GenericGymEnv(id="real-time-gym-v1", gym_kwargs={"config": CONFIG_DICT})

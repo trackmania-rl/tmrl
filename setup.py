@@ -73,16 +73,25 @@ if not TMRL_FOLDER.exists():
         if OPENPLANET_FOLDER.exists():
             # copy the OpenPlanet script:
             try:
-                OP_SCRIPTS_FOLDER = OPENPLANET_FOLDER / "Scripts"
-                OP_SCRIPTS_FOLDER.mkdir(parents=True, exist_ok=True)
-                TM20_SCRIPT_FILE = RESOURCES_FOLDER / 'Scripts' / 'Plugin_GrabData_0_2.as'
-                TM20_SCRIPT_FILE_SIG = RESOURCES_FOLDER / 'Scripts' / 'Plugin_GrabData_0_2.as.sig'
-                copy2(TM20_SCRIPT_FILE, OP_SCRIPTS_FOLDER)
-                copy2(TM20_SCRIPT_FILE_SIG, OP_SCRIPTS_FOLDER)
+                # remove old script if found
+                OP_SCRIPTS_FOLDER = OPENPLANET_FOLDER / 'Scripts'
+                if OP_SCRIPTS_FOLDER.exists():
+                    to_remove = [OP_SCRIPTS_FOLDER / 'Plugin_GrabData_0_1.as',
+                                 OP_SCRIPTS_FOLDER / 'Plugin_GrabData_0_1.as.sig',
+                                 OP_SCRIPTS_FOLDER / 'Plugin_GrabData_0_2.as',
+                                 OP_SCRIPTS_FOLDER / 'Plugin_GrabData_0_2.as.sig']
+                    for old_file in to_remove:
+                        if old_file.exists():
+                            old_file.unlink()
+                # copy new plugin
+                OP_PLUGINS_FOLDER = OPENPLANET_FOLDER / 'Plugins'
+                OP_PLUGINS_FOLDER.mkdir(parents=True, exist_ok=True)
+                TM20_PLUGIN = RESOURCES_FOLDER / 'Plugins' / 'TMRL_GrabData.op'
+                copy2(TM20_PLUGIN, OP_PLUGINS_FOLDER)
             except Exception as e:
                 print(
-                    f"An exception was caught when trying to copy the OpenPlanet script and signature automatically. \
-                    Please copy these files manually for TrackMania 2020 support. The caught exception was: {str(e)}.")
+                    f"An exception was caught when trying to copy the OpenPlanet plugin automatically. \
+                    Please copy the plugin manually for TrackMania 2020 support. The caught exception was: {str(e)}.")
         else:
             # warn the user that OpenPlanet couldn't be found:
             print(f"The OpenPlanet folder was not found at {OPENPLANET_FOLDER}. \
@@ -92,21 +101,17 @@ if not TMRL_FOLDER.exists():
 install_req = [
     'numpy',
     'torch',
-    'imageio',
-    'imageio-ffmpeg',
     'pandas',
-    'gym>=0.26.0',
-    'rtgym>=0.7',
+    'gymnasium',
+    'rtgym>=0.8',
     'pyyaml',
     'wandb',
     'requests',
     'opencv-python',
-    'scikit-image',
     'keyboard',
     'pyautogui',
     'pyinstrument',
-    'tlspyo>=0.2.5',
-    'matplotlib'
+    'tlspyo>=0.2.5'
 ]
 
 if platform.system() == "Windows":
@@ -122,7 +127,7 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name='tmrl',
-    version='0.4.2',
+    version='0.5.0',
     description='Network-based framework for real-time robot learning',
     long_description=README,
     long_description_content_type='text/markdown',

@@ -162,7 +162,7 @@ As soon as the server is instantiated, it listens for incoming connections from 
 In RL, a task is often called an "environment".
 `tmrl` is meant for asynchronous remote training of real-time applications such as robots.
 Thus, we use [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (`rtgym`) to wrap our robots and video games into a Gym environment.
-You can also probably use other environments as long as they are registered as Gym environments and have a relevant substitute for the `default_action` attribute.
+You can also probably use other environments as long as they are registered as Gymnasium environments and have a relevant substitute for the `default_action` attribute.
 
 To build your own environment (e.g., an environment for your own robot or video game), follow the [rtgym tutorial](https://github.com/yannbouteiller/rtgym#tutorial).
 If you need inspiration, you can find our `rtgym` interfaces for TrackMania in [custom_gym_interfaces.py](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py).
@@ -173,7 +173,7 @@ _(NB: you need `opencv-python` installed)_
 
 ```python
 from rtgym import RealTimeGymInterface, DEFAULT_CONFIG_DICT, DummyRCDrone
-import gym.spaces as spaces
+import gymnasium.spaces as spaces
 import numpy as np
 import cv2
 from threading import Thread
@@ -276,7 +276,7 @@ my_config["benchmark_polyak"] = 0.2
 
 ## Rollout workers
 
-Now that we have our robot encapsulated in a Gym environment, we will create an RL actor.
+Now that we have our robot encapsulated in a Gymnasium environment, we will create an RL actor.
 In `tmrl`, this is done within a `RolloutWorker` object.
 
 One to several `RolloutWorkers` can coexist in `tmrl`, each one typically encapsulating a robot, or, in the case of a video game, an instance of the game
@@ -290,7 +290,7 @@ import tmrl.config.config_constants as cfg  # constants from the config.json fil
 class RolloutWorker:
     def __init__(
             self,
-            env_cls=None,  # class of the Gym environment
+            env_cls=None,  # class of the Gymnasium environment
             actor_module_cls=None,  # class of a module containing the policy
             sample_compressor: callable = None,  # compressor for sending samples over the Internet
             server_ip=None,  # ip of the central server
@@ -315,8 +315,8 @@ In this tutorial, we will implement a similar `RolloutWorker` for our dummy dron
 
 The first argument of our `RolloutWorker` is `env_cls`.
 
-This expects a Gym environment class, which can be partially instantiated with `partial()`.
-Furthermore, this Gym environment needs to be wrapped in the `GenericGymEnv` wrapper (which by default just changes float64 to float32 in observations).
+This expects a Gymnasium environment class, which can be partially instantiated with `partial()`.
+Furthermore, this Gymnasium environment needs to be wrapped in the `GenericGymEnv` wrapper (which by default just changes float64 to float32 in observations).
 
 With our dummy drone environment, this translates to:
 
@@ -324,7 +324,7 @@ With our dummy drone environment, this translates to:
 from tmrl.util import partial
 from tmrl.envs import GenericGymEnv
 
-env_cls=partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": my_config})
+env_cls=partial(GenericGymEnv, id="real-time-gym-v1", gym_kwargs={"config": my_config})
 ```
 
 We can create a dummy environment to retrieve the action and observation spaces:
@@ -505,7 +505,7 @@ This is done by setting the `Server` IP as the localhost IP, i.e., `"127.0.0.1"`
 _(NB: We have set the values for `server_ip` and `server_port` earlier in this tutorial.)_
 
 In the current iteration of `tmrl`, samples are gathered locally in a buffer by the `RolloutWorker` and are sent to the `Server` only at the end of an episode.
-In case your Gym environment is never `terminated` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
+In case your Gymnasium environment is never `terminated` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
 For instance, let us say we don't want an episode to last more than 1000 time-steps:
 
 _(Note 1: This is for the sake of illustration, in fact, this cannot happen in our RC drone environment)_
@@ -694,13 +694,13 @@ class TorchTrainingOffline:
 `TorchTrainingOffline` requires other (possibly partially instantiated) classes as arguments: a dummy environment, a `TorchMemory`, and a `TrainingAgent`
 
 #### Dummy environment:
-`env_cls`: Most of the time, the dummy environment class that you need to pass here is the same class as for the `RolloutWorker` Gym environment:
+`env_cls`: Most of the time, the dummy environment class that you need to pass here is the same class as for the `RolloutWorker` Gymnasium environment:
 
 ```python
 from tmrl.util import partial
 from tmrl.envs import GenericGymEnv
 
-env_cls = partial(GenericGymEnv, id="real-time-gym-v0", gym_kwargs={"config": my_config})
+env_cls = partial(GenericGymEnv, id="real-time-gym-v1", gym_kwargs={"config": my_config})
 ```
 This dummy environment will only be used by the `Trainer` to retrieve the observation and action spaces (`reset()` will not be called).
 Alternatively, you can pass this information as a Tuple:
@@ -750,7 +750,7 @@ class TorchMemory(ABC):
         """
         Outputs a decompressed RL transition.
         
-        This transition is the same as the output by the Gym environment (after observation preprocessing).
+        This transition is the same as the output by the Gymnasium environment (after observation preprocessing).
         
         Args:
             item: int: indices of the transition that the Trainer wants to sample
@@ -826,7 +826,7 @@ In this tutorial, we will privilege memory usage and thus we will implement our 
 The `append_buffer()` method will simply store the compressed sample components in `self.data`.
 
 `append_buffer()` is passed a [buffer](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/networking.py#L198) object that contains a list of compressed `(act, new_obs, rew, terminated, truncated, info)` samples in its `memory` attribute.
-`act` is the action that was sent to the `step()` method of the Gym environment to yield `new_obs`, `rew`, `terminated`, `truncated`, and `info`.
+`act` is the action that was sent to the `step()` method of the Gymnasium environment to yield `new_obs`, `rew`, `terminated`, `truncated`, and `info`.
 Here, we decompose our samples in their relevant components, append these components to the `self.data` list, and clip `self.data` when `self.memory_size` is exceeded:
 
 ```python
@@ -904,7 +904,7 @@ Finally, if we have enough samples, we need to remove the length of the action b
 Furthermore, the `get_transition()` method outputs a full RL transition, which includes the previous observation. Thus, we must subtract 1 to get the number of full transitions that we can actually output.
 
 Alright, let us finally implement `get_transition()`, where we have chosen sample decompression would happen.
-This method outputs full transitions as if they were output by the Gym environment
+This method outputs full transitions as if they were output by the Gymnasium environment
 (after observation preprocessing if used):
 
 ```python

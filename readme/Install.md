@@ -15,8 +15,9 @@ conda install pywin32
 
 _(Note for ML developers: in case you are not interested in using support for TrackMania, you can simply [install tmrl](#install-tmrl))._
 
-We provide installation instructions for `tmrl` using the TrackMania 2020 video game.
-You will first need to install [TrackMania 2020](https://www.trackmania.com/) (obviously), and also a small community-supported utility called [Openplanet for TrackMania](https://openplanet.nl/) (the Gym environment needs this utility to compute the reward).
+The following instructions are for installing `tmrl` with support for the TrackMania 2020 video game.
+
+You will first need to install [TrackMania 2020](https://www.trackmania.com/) (obviously), and also a small community-supported utility called [Openplanet for TrackMania](https://openplanet.nl/) (the Gymnasium environment needs this utility to compute the reward).
 
 
 ### Install TrackMania 2020:
@@ -58,8 +59,8 @@ There, you will find that `tmrl` has created a folder named `TmrlData`.
 _On the computer(s) running TrackMania_, OpenPlanet should also have created a folder named `OpenplanetNext` there.
 (If `OpenplanetNext` is not there, launch Trackmania after installing Openplanet, and it should be created automatically).
 
-Open the `OpenplanetNext\Scripts` folder and double-check that `pip` has copied a `.as` and a `.as.sig` files there.
-If not, navigate to `TmrlData\resources`, copy the `Scripts` folder, and paste it in the `OpenplanetNext` folder.
+Open the `OpenplanetNext\Plugins` folder and double-check that `pip` has copied `TMRL_GrabData.op` there.
+If not, navigate to `TmrlData\resources`, copy the `Plugins` folder, and paste it in the `OpenplanetNext` folder.
 
 _(NB: when pip-uninstalling `tmrl`, the `TmrlData` folder is not deleted.)_
 
@@ -94,6 +95,6 @@ You can delete the content of all folders (but not the folders themselves) whene
 
 ### (Optional) Check that everything works:
 
-Launch TrackMania 2020, launch a track, then press `f3` to open the Openplanet menu, open the logs by clicking `OpenPlanet > Log`, and in the OpenPlanet menu click `Developer > (Re)load plugin > plugin_grab_data_0 (TMRL grab data)`.
-You should see a message like "waiting for incomming connection" appear in the logs.
+Launch TrackMania 2020, launch a track, then press `f3` to open the OpenPlanet menu, open the logs by clicking `OpenPlanet > Log`, and in the OpenPlanet menu click `Developer > (Re)load plugin > TMRL Grab Data`.
+You should see a message like "waiting for incoming connection" appear in the logs.
 Press `f3` again to close the menu.
