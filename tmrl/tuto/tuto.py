@@ -75,7 +75,7 @@ class DummyRCDroneInterface(RealTimeGymInterface):
         vel_y = control[1]
         self.rc_drone.send_control(vel_x, vel_y)
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         if not self.initialized:
             self.rc_drone = DummyRCDrone()
             self.rendering_thread.start()
@@ -102,7 +102,7 @@ class DummyRCDroneInterface(RealTimeGymInterface):
         return obs, rew, terminated, info
 
     def wait(self):
-        self.send_control(self.get_default_action())
+        pass
 
     def render(self):
         image = self.blank_image.copy()

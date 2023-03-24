@@ -149,7 +149,7 @@ class TM2020Interface(RealTimeGymInterface):
         time_sleep = max(0, cfg.SLEEP_TIME_AT_RESET - 0.1) if self.gamepad else cfg.SLEEP_TIME_AT_RESET
         time.sleep(time_sleep)  # must be long enough for image to be refreshed
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         """
         obs must be a list of numpy arrays
         """
@@ -268,7 +268,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         self.lidar = Lidar(self.window_interface.screenshot())
         self.initialized = True
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         """
         obs must be a list of numpy arrays
         """
@@ -316,7 +316,7 @@ class TM2020InterfaceLidar(TM2020Interface):
 
 class TM2020InterfaceLidarProgress(TM2020InterfaceLidar):
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         """
         obs must be a list of numpy arrays
         """
