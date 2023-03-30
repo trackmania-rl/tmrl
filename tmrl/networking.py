@@ -714,7 +714,7 @@ class RolloutWorker:
         for _ in range(nb_steps):
             obs, rew, terminated, truncated, info = self.step(obs=obs, test=test, collect_samples=False)
             if terminated or truncated:
-                obs, info = self.reset(collect_samples=False)
+                break
         print_with_timestamp(f"Benchmark results:\n{self.env.benchmarks()}")
 
     def send_and_clear_buffer(self):
