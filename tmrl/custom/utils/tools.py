@@ -74,6 +74,18 @@ class TM2020OpenPlanetClient:
         return data
 
 
+def save_ghost(host='127.0.0.1', port=10000):
+    """
+    Saves the current ghost
+
+    Args:
+        host (str): IP address of the ghost-saving server
+        port (int): Port of the ghost-saving server
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((host, port))
+
+
 def armin(tab):
     nz = np.nonzero(tab)[0]
     if len(nz) != 0:

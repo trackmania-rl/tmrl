@@ -20,9 +20,8 @@ import tmrl.config.config_constants as cfg
 from tmrl.custom.utils.compute_reward import RewardFunction
 from tmrl.custom.utils.control_gamepad import control_gamepad, gamepad_reset, gamepad_close_finish_pop_up_tm20
 from tmrl.custom.utils.control_keyboard import apply_control, keyres
-from tmrl.custom.utils.control_mouse import mouse_close_finish_pop_up_tm20, mouse_save_replay_tm20
 from tmrl.custom.utils.window import WindowInterface
-from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient
+from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, save_ghost
 
 # Globals ==============================================================================================================
 
@@ -39,7 +38,7 @@ class TM2020Interface(RealTimeGymInterface):
                  img_hist_len: int = 4,
                  gamepad: bool = False,
                  min_nb_steps_before_failure: int = int(3.5 * 20),
-                 save_replay: bool = False,
+                 save_replays: bool = False,
                  grayscale: bool = True,
                  resize_to=(64, 64),
                  finish_reward=cfg.REWARD_END_OF_TRACK,
@@ -51,7 +50,7 @@ class TM2020Interface(RealTimeGymInterface):
             img_hist_len: int: history of images that are part of observations
             gamepad: bool: whether to use a virtual gamepad for control
             min_nb_steps_before_failure: int: episode is done if not receiving reward during this nb of timesteps
-            save_replay: bool: whether to save TrackMania replays
+            save_replays: bool: whether to save TrackMania replays on successful episodes
             grayscale: bool: whether to output grayscale images or color images
             resize_to: Tuple[int, int]: resize output images to this (width, height)
             finish_reward: float: reward when passing the finish line
@@ -68,7 +67,7 @@ class TM2020Interface(RealTimeGymInterface):
         self.window_interface = None
         self.small_window = None
         self.min_nb_steps_before_failure = min_nb_steps_before_failure
-        self.save_replay = save_replay
+        self.save_replays = save_replays
         self.grayscale = grayscale
         self.resize_to = resize_to
         self.finish_reward = finish_reward
@@ -183,6 +182,9 @@ class TM2020Interface(RealTimeGymInterface):
         The agent stays 'paused', waiting in position
         """
         self.send_control(self.get_default_action())
+        if self.save_replays:
+            save_ghost()
+            time.sleep(1.0)
         self.reset_race()
         time.sleep(0.5)
         self.close_finish_pop_up_tm20()
@@ -211,8 +213,6 @@ class TM2020Interface(RealTimeGymInterface):
         if end_of_track:
             terminated = True
             rew += self.finish_reward
-            if self.save_replay:
-                mouse_save_replay_tm20(True)
         rew += self.constant_penalty
         rew = np.float32(rew)
         return obs, rew, terminated, info
@@ -248,8 +248,8 @@ class TM2020Interface(RealTimeGymInterface):
 
 
 class TM2020InterfaceLidar(TM2020Interface):
-    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_failure=int(20 * 3.5), save_replay: bool = False):
-        super().__init__(img_hist_len, gamepad, min_nb_steps_before_failure, save_replay)
+    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_failure=int(20 * 3.5), save_replays: bool = False):
+        super().__init__(img_hist_len, gamepad, min_nb_steps_before_failure, save_replays)
         self.window_interface = None
         self.lidar = None
 
@@ -296,8 +296,6 @@ class TM2020InterfaceLidar(TM2020Interface):
         if end_of_track:
             rew += self.finish_reward
             terminated = True
-            if self.save_replay:
-                mouse_save_replay_tm20()
         rew += self.constant_penalty
         rew = np.float32(rew)
         return obs, rew, terminated, info
@@ -346,8 +344,6 @@ class TM2020InterfaceLidarProgress(TM2020InterfaceLidar):
         if end_of_track:
             rew += self.finish_reward
             terminated = True
-            if self.save_replay:
-                mouse_save_replay_tm20()
         rew += self.constant_penalty
         rew = np.float32(rew)
         return obs, rew, terminated, info

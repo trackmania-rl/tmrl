@@ -60,7 +60,7 @@ CRC_DEBUG = False  # Only for checking the consistency of the custom networking 
 CRC_DEBUG_SAMPLES = 100  # Number of samples collected in CRC_DEBUG mode
 PROFILE_TRAINER = False  # Will profile each epoch in the Trainer when True
 SYNCHRONIZE_CUDA = False  # Set to True for profiling, False otherwise
-DEBUG_MODEL = TMRL_CONFIG["DEBUG_MODEL_EVERY"] if "DEBUG_MODEL_EVERY" in TMRL_CONFIG.keys() else -1
+DEBUG_MODE = TMRL_CONFIG["DEBUG_MODE"] if "DEBUG_MODE" in TMRL_CONFIG.keys() else False
 
 # FILE SYSTEM: =================================================
 
