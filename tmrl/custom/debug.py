@@ -30,8 +30,7 @@ idd = get_window_id("Trackmania")
 process = subprocess.run(['xdotool', 'windowfocus', '--sync', str(idd)])
 PressKey("BackSpace")
 
-bm1 = """
-
+bm = """
 Benchmark results: {
     'time_step_duration': (0.22514559314409327, 0.008692089945998844), 
     'step_duration': (0.2751401724524714, 0.07006031395717925), 
@@ -40,4 +39,25 @@ Benchmark results: {
      'send_control_duration': (0.08928152505781214, 0.007451150760484988), 
      'retrieve_obs_duration': (0.09540154837552751, 0.008232732436606514)}
 
+"""
+
+bm_keep_subprocess_keyboard = """
+Benchmark results: {
+    'time_step_duration': (0.15354773895583038, 0.016629589172827586), 
+    'step_duration': (0.19206764717221708, 0.061893720061812936), 
+    'join_duration': (0.14247429636640316, 0.013867819675223159), 
+    'inference_duration': (0.011041010890373626, 0.005939322227647531), 
+    'send_control_duration': (0.014110501980710514, 0.004081570974755862), 
+    'retrieve_obs_duration': (0.09773869628339768, 0.012970609134003951)}
+
+"""
+
+bm_keep_subprocess_key_and_window = """
+Benchmark results: {
+    'time_step_duration': (0.16681785549876077, 0.008217274240123045), 
+    'step_duration': (0.21011762722454164, 0.05762962195712655), 
+    'join_duration': (0.1591899113494648, 0.008075190485904842), 
+    'inference_duration': (0.006796422589816213, 0.004286819304396542), 
+    'send_control_duration': (0.012834630227483561, 0.0047150885035849325), 
+    'retrieve_obs_duration': (0.11290274933746194, 0.006878478572403898)}
 """

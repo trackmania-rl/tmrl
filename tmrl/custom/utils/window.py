@@ -98,19 +98,28 @@ elif platform.system() == "Linux":
             self.window_name = window_name
             self.window_id = get_window_id(window_name)
 
+            self.process = None
+
             self.logger = logging.getLogger("WindowInterface")
             setup_logger(self.logger)
             # log_all_windows()
 
+        def execute_command(self, c):
+            if self.process is None or self.process.poll() is not None:
+                self.logger.debug("(re-)create process")
+                self.process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.process.stdin.write(c.encode())
+            self.process.stdin.flush()
+
         # @todo: make sure it is the correct format
         def screenshot(self):
             try:
-                result = subprocess.run(['import', '-window', self.window_id, 'png:-'],
-                                        capture_output=True, check=True)
-                image = Image.open(io.BytesIO(result.stdout))
-                # image.show()
-                img = np.asarray(image)
-                img.shape = (cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH, 3)
+                result = subprocess.run(['import', '-window', self.window_id, 'png:-'], capture_output=True)
+                img = np.array(Image.open(io.BytesIO(result.stdout)))
+                # Image.open(io.BytesIO(result.stdout)).show()
+                # img = np.asarray(image)
+                # self.logger.debug(img.mode)
+                # img.shape = (cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH, 3)
 
                 # self.logger.debug(img.size)
                 return img
@@ -122,18 +131,21 @@ elif platform.system() == "Linux":
 
             try:
                 # debug
-                result = subprocess.run(['xdotool', 'windowfocus', str(self.window_id)])
-                result = subprocess.run(['xdotool', 'getdisplaygeometry'], check=True, capture_output=True, text=True)
-                self.logger.debug(f"screen size: {str(result.stdout)}")
+                c_focus = f"xdotool windowfocus {self.window_id}\n"
+                self.execute_command(c_focus)
 
                 # move
                 self.logger.debug(f"move window {str(self.window_name)}")
-                result = subprocess.run(['xdotool', 'windowmove', str(self.window_id), str(x), str(y)],
-                                        check=True)
+                c_move = f"xdotool windowmove {str(self.window_id)} {str(x)} {str(y)}\n"
+                self.execute_command(c_move)
+                #esult = subprocess.run(['xdotool', 'windowmove', str(self.window_id), str(x), str(y)], check=True)
+                
                 # resize
                 self.logger.debug(f"resize window {str(self.window_name)}")
-                result = subprocess.run(['xdotool', 'windowsize', str(self.window_id), str(w), str(h)],
-                                        check=True)
+                c_resize = f"xdotool windowsize {str(self.window_id)} {str(w)} {str(h)}\n"
+                self.execute_command(c_resize)
+                #result = subprocess.run(['xdotool', 'windowsize', str(self.window_id), str(w), str(h)], check=True)
+                
                 # instead of using xdotool --sync, which doesn't return
                 self.logger.debug(f"success, let me nap 2s to make sure everything computed")
                 time.sleep(1)
