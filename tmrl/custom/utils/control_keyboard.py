@@ -112,16 +112,32 @@ elif platform.system() == "Linux":
     logger = logging.getLogger("Keyboard")
     setup_logger(logger)
 
+    process = None
+
+    def execute_command(c):
+        global process
+        if process is None or process.poll() is not None:
+            logger.debug("(re-)create process")
+            process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE)
+        process.stdin.write(c.encode())
+        process.stdin.flush()
+
     def PressKey(key):
-        process = subprocess.run(['xdotool', 'keydown', str(key)])
+        c = f"xdotool keydown {str(key)}\n"
+        execute_command(c)
+        # process = subprocess.run(['xdotool', 'keydown', str(key)])
 
     def ReleaseKey(key):
-        process = subprocess.run(['xdotool', 'keyup', str(key)])
+        c = f"xdotool keyup {str(key)}\n"
+        execute_command(c)
+        # process = subprocess.run(['xdotool', 'keyup', str(key)])
 
 
     def apply_control(action, window_id):  # move_fast
 
-        process = subprocess.run(['xdotool', 'windowfocus', '--sync', str(window_id)])
+        #process = subprocess.run(['xdotool', 'windowfocus', str(window_id)])
+        c_focus = f"xdotool windowfocus {str(window_id)}"
+        execute_command(c_focus)
 
         if 'f' in action:
             PressKey(KEY_UP)
