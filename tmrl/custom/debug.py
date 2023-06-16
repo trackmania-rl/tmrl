@@ -1,0 +1,43 @@
+import subprocess
+from PIL import Image
+import io
+
+
+def get_window_id(name):
+        try:
+            result = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '.'],
+                                    capture_output=True, text=True, check=True)
+            window_ids = result.stdout.strip().split('\n')
+            for window_id in window_ids:
+                result = subprocess.run(['xdotool', 'getwindowname', window_id],
+                                        capture_output=True, text=True, check=True)
+                if result.stdout.strip() == name:
+                    return window_id
+
+            raise NoSuchWindowException(name)
+
+        except subprocess.CalledProcessError as e:
+            raise e
+
+def PressKey(key):
+    process = subprocess.run(['xdotool', 'keydown', str(key)])
+
+def ReleaseKey(key):
+    process = subprocess.run(['xdotool', 'keyup', str(key)])
+
+idd = get_window_id("Trackmania")
+
+process = subprocess.run(['xdotool', 'windowfocus', '--sync', str(idd)])
+PressKey("BackSpace")
+
+bm1 = """
+
+Benchmark results: {
+    'time_step_duration': (0.22514559314409327, 0.008692089945998844), 
+    'step_duration': (0.2751401724524714, 0.07006031395717925), 
+    'join_duration': (0.21352377943647918, 0.009823450445597409), 
+    'inference_duration': (0.010572301306467649, 0.00817803021794876),
+     'send_control_duration': (0.08928152505781214, 0.007451150760484988), 
+     'retrieve_obs_duration': (0.09540154837552751, 0.008232732436606514)}
+
+"""

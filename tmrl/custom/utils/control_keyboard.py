@@ -8,6 +8,7 @@ import time
 from tmrl.custom.utils.control_mouse import (mouse_change_name_replay_tm20,
                                              mouse_close_replay_window_tm20,
                                              mouse_save_replay_tm20)
+from tmrl.logger import setup_logger
 
 if platform.system() == "Windows":
     # standard library imports
@@ -83,6 +84,65 @@ if platform.system() == "Windows":
     def keyres():
         PressKey(DEL)
         ReleaseKey(DEL)
+
+    def keysavereplay():  # TODO: debug
+        PressKey(R)
+        time.sleep(0.1)
+        ReleaseKey(R)
+        time.sleep(1.0)
+        mouse_change_name_replay_tm20()
+        time.sleep(1.0)
+        keyboard.write(str(time.time_ns()))
+        time.sleep(1.0)
+        mouse_save_replay_tm20()
+        time.sleep(1.0)
+        mouse_close_replay_window_tm20()
+        time.sleep(1.0)
+
+elif platform.system() == "Linux":
+    import subprocess
+    import logging
+
+    KEY_UP = "Up"
+    KEY_DOWN = "Down"
+    KEY_RIGHT = "Right"
+    KEY_LEFT = "Left"
+    KEY_BACKSPACE = "BackSpace"
+    
+    logger = logging.getLogger("Keyboard")
+    setup_logger(logger)
+
+    def PressKey(key):
+        process = subprocess.run(['xdotool', 'keydown', str(key)])
+
+    def ReleaseKey(key):
+        process = subprocess.run(['xdotool', 'keyup', str(key)])
+
+
+    def apply_control(action, window_id):  # move_fast
+
+        process = subprocess.run(['xdotool', 'windowfocus', '--sync', str(window_id)])
+
+        if 'f' in action:
+            PressKey(KEY_UP)
+        else:
+            ReleaseKey(KEY_UP)
+        if 'b' in action:
+            PressKey(KEY_DOWN)
+        else:
+            ReleaseKey(KEY_DOWN)
+        if 'l' in action:
+            PressKey(KEY_LEFT)
+        else:
+            ReleaseKey(KEY_LEFT)
+        if 'r' in action:
+            PressKey(KEY_RIGHT)
+        else:
+            ReleaseKey(KEY_RIGHT)
+
+    def keyres():
+        PressKey(KEY_BACKSPACE)
+        ReleaseKey(KEY_BACKSPACE)
 
     def keysavereplay():  # TODO: debug
         PressKey(R)

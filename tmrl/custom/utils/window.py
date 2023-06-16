@@ -1,12 +1,13 @@
+import logging
 import platform
+import tmrl.config.config_constants as cfg
+import numpy as np
 
 if platform.system() == "Windows":
 
-    import numpy as np
     import win32gui
     import win32ui
     import win32con
-    import tmrl.config.config_constants as cfg
 
 
     class WindowInterface:
@@ -76,13 +77,115 @@ if platform.system() == "Windows":
         pro.stop()
         pro.print(show_all=True)
 
-else:  # dummy import on Linux for uninitialized environments
-    class WindowInterface:
+elif platform.system() == "Linux":
+    import subprocess
+    from PIL import Image
+    import io
+    import logging
+    from tmrl.logger import setup_logger
+    import time
+
+    logging.getLogger("PIL.PngImagePlugin").setLevel(logging.CRITICAL)
+
+
+    class NoSuchWindowException(Exception):
+        """thrown if a named window can't be found"""
         pass
+
+
+    class WindowInterface:
+        def __init__(self, window_name="Trackmania"):
+            self.window_name = window_name
+            self.window_id = get_window_id(window_name)
+
+            self.logger = logging.getLogger("WindowInterface")
+            setup_logger(self.logger)
+            # log_all_windows()
+
+        # @todo: make sure it is the correct format
+        def screenshot(self):
+            try:
+                result = subprocess.run(['import', '-window', self.window_id, 'png:-'],
+                                        capture_output=True, check=True)
+                image = Image.open(io.BytesIO(result.stdout))
+                # image.show()
+                img = np.asarray(image)
+                img.shape = (cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH, 3)
+
+                # self.logger.debug(img.size)
+                return img
+            except subprocess.CalledProcessError as e:
+                self.logger.error(f"failed to capture screenshot of window_id '{self.window_id}'")
+
+        def move_and_resize(self, x=10, y=10, w=cfg.WINDOW_WIDTH, h=cfg.WINDOW_HEIGHT):
+            self.logger.info(f"prepare {self.window_name} to {w}x{h} @ {x}, {y}")
+
+            try:
+                # debug
+                result = subprocess.run(['xdotool', 'windowfocus', str(self.window_id)])
+                result = subprocess.run(['xdotool', 'getdisplaygeometry'], check=True, capture_output=True, text=True)
+                self.logger.debug(f"screen size: {str(result.stdout)}")
+
+                # move
+                self.logger.debug(f"move window {str(self.window_name)}")
+                result = subprocess.run(['xdotool', 'windowmove', str(self.window_id), str(x), str(y)],
+                                        check=True)
+                # resize
+                self.logger.debug(f"resize window {str(self.window_name)}")
+                result = subprocess.run(['xdotool', 'windowsize', str(self.window_id), str(w), str(h)],
+                                        check=True)
+                # instead of using xdotool --sync, which doesn't return
+                self.logger.debug(f"success, let me nap 2s to make sure everything computed")
+                time.sleep(1)
+
+            except subprocess.CalledProcessError as e:
+                self.logger.error(f"failed to resize window_id '{self.window_id}'")
+                raise e
+
+        def get_window_id(self):
+            return self.window_id
+
+
+    logger_wi = logging.getLogger("WindowInterfaceL")
+    setup_logger(logger_wi)
+
+
+    def get_window_id(name):
+        try:
+            result = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '.'],
+                                    capture_output=True, text=True, check=True)
+            window_ids = result.stdout.strip().split('\n')
+            for window_id in window_ids:
+                result = subprocess.run(['xdotool', 'getwindowname', window_id],
+                                        capture_output=True, text=True, check=True)
+                if result.stdout.strip() == name:
+                    logger_wi.info(f"detected window {name}, id={window_id}")
+                    return window_id
+
+            logger_wi.error(f"failed to find window '{name}'")
+            raise NoSuchWindowException(name)
+
+        except subprocess.CalledProcessError as e:
+            logger_wi.error(f"process error searching for window '{name}")
+            raise e
+
+
+    # debug
+    def log_all_windows():
+        try:
+            result = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '.'],
+                                    capture_output=True, text=True, check=True)
+            window_ids = result.stdout.strip().split('\n')
+            for window_id in window_ids:
+                result = subprocess.run(['xdotool', 'getwindowname', window_id], capture_output=True, text=True,
+                                        check=True)
+                logger_wi.debug(f"found window: {window_id} - {result.stdout.strip()}")
+        except subprocess.CalledProcessError as e:
+            logger_wi.error(f"failed to log windows: {e}")
+
 
     def profile_screenshot():
         pass
-
 
 if __name__ == "__main__":
     profile_screenshot()

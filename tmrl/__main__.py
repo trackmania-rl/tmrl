@@ -1,6 +1,9 @@
+import logging
+from tmrl.logger import setup_logger
+import tmrl.logger
+
 import time
 from argparse import ArgumentParser, ArgumentTypeError
-import logging
 import json
 
 # local imports
@@ -38,7 +41,7 @@ def main(args):
         elif args.benchmark:
             rw.run_env_benchmark(nb_steps=1000, test=False)
         else:
-            rw.run_episodes(10000)
+            rw.run_episodes(10000, nb_episodes=1)
     elif args.trainer:
         trainer = Trainer(training_cls=cfg_obj.TRAINER,
                           server_ip=cfg.SERVER_IP_FOR_TRAINER,
@@ -72,11 +75,22 @@ if __name__ == "__main__":
     parser.add_argument('--worker', action='store_true', help='launches a rollout worker')
     parser.add_argument('--test', action='store_true', help='runs inference without training')
     parser.add_argument('--benchmark', action='store_true', help='runs a benchmark of the environment')
-    parser.add_argument('--record-reward', dest='record_reward', action='store_true', help='utility to record a reward function in TM20')
-    parser.add_argument('--check-environment', dest='check_env', action='store_true', help='utility to check the environment')
-    parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
-    parser.add_argument('-d', '--config', type=json.loads, default={}, help='dictionary containing configuration options (modifiers) for the rtgym environment')
+    parser.add_argument('--record-reward', dest='record_reward', action='store_true',
+                        help='utility to record a reward function in TM20')
+    parser.add_argument('--check-environment', dest='check_env', action='store_true',
+                        help='utility to check the environment')
+    parser.add_argument('--no-wandb', dest='no_wandb', action='store_true',
+                        help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
+    parser.add_argument('-d', '--config', type=json.loads, default={},
+                        help='dictionary containing configuration options (modifiers) for the rtgym environment')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose logging')             
     arguments = parser.parse_args()
-    logging.info(arguments)
+
+    if arguments.verbose:
+        tmrl.logger.LOG_LEVEL = logging.DEBUG
+
+    logger = logging.getLogger()
+    setup_logger(logger)
+    logger.info(arguments)
 
     main(arguments)
