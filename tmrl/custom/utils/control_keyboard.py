@@ -135,7 +135,9 @@ elif platform.system() == "Linux":
 
     def apply_control(action, window_id):  # move_fast
 
-        process = subprocess.run(['xdotool', 'windowfocus', '--sync', str(window_id)])
+        #process = subprocess.run(['xdotool', 'windowfocus', str(window_id)])
+        c_focus = f"xdotool windowfocus {str(window_id)}"
+        execute_command(c_focus)
 
         if 'f' in action:
             PressKey(KEY_UP)
