@@ -1,15 +1,17 @@
+import json
+import logging
 import time
 from argparse import ArgumentParser, ArgumentTypeError
-import logging
-import json
 
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl.tools.record import record_reward_dist
-from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full
+import tmrl.logger
 from tmrl.envs import GenericGymEnv
+from tmrl.logger import setup_logger
 from tmrl.networking import Server, Trainer, RolloutWorker
+from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full
+from tmrl.tools.record import record_reward_dist
 from tmrl.util import partial
 
 
@@ -76,7 +78,14 @@ if __name__ == "__main__":
     parser.add_argument('--check-environment', dest='check_env', action='store_true', help='utility to check the environment')
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
     parser.add_argument('-d', '--config', type=json.loads, default={}, help='dictionary containing configuration options (modifiers) for the rtgym environment')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose logging')
     arguments = parser.parse_args()
-    logging.info(arguments)
+
+    if arguments.verbose:
+        tmrl.logger.LOG_LEVEL = logging.DEBUG
+
+    logger = logging.getLogger()
+    setup_logger(logger)
+    logger.info(arguments)
 
     main(arguments)

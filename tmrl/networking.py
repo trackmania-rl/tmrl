@@ -163,6 +163,7 @@ class TrainerInterface:
                  keys_dir=cfg.CREDENTIALS_DIRECTORY,
                  hostname=cfg.HOSTNAME,
                  model_path=cfg.MODEL_PATH_TRAINER):
+
         self.model_path = model_path
         self.server_ip = server_ip if server_ip is not None else '127.0.0.1'
         self.__endpoint = Endpoint(ip_server=self.server_ip,
@@ -200,8 +201,6 @@ class TrainerInterface:
             res += buf
         self.__endpoint.notify(groups={'trainers': -1})  # retrieve everything
         return res
-
-
 def log_environment_variables():
     """
     add certain relevant environment variables to our config
