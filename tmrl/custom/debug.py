@@ -25,10 +25,6 @@ def PressKey(key):
 def ReleaseKey(key):
     process = subprocess.run(['xdotool', 'keyup', str(key)])
 
-idd = get_window_id("Trackmania")
-
-process = subprocess.run(['xdotool', 'windowfocus', '--sync', str(idd)])
-PressKey("BackSpace")
 
 bm = """
 Benchmark results: {
@@ -61,3 +57,14 @@ Benchmark results: {
     'send_control_duration': (0.012834630227483561, 0.0047150885035849325), 
     'retrieve_obs_duration': (0.11290274933746194, 0.006878478572403898)}
 """
+
+import pickle as pkl
+import cv2
+
+with open("screenshot.pkl", "rb") as f:
+    snap = pkl.load(f)
+with open("screenshot-2.pkl", "rb") as f:
+    snap2 = pkl.load(f)
+cv2.imshow("mine", snap2[..., ::-1])
+cv2.imshow("og", snap)
+cv2.waitKey(0)
