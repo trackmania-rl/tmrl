@@ -84,6 +84,7 @@ elif platform.system() == "Linux":
     import logging
     from tmrl.logger import setup_logger
     import time
+    from fastgrab import screenshot
 
     logging.getLogger("PIL.PngImagePlugin").setLevel(logging.CRITICAL)
 
@@ -98,6 +99,13 @@ elif platform.system() == "Linux":
             self.window_name = window_name
             self.window_id = get_window_id(window_name)
 
+            self.w = None
+            self.h = None
+            self.x = None
+            self.y = None
+            self.x_offset = 0
+            self.y_offset = 36
+
             self.process = None
 
             self.logger = logging.getLogger("WindowInterface")
@@ -111,22 +119,20 @@ elif platform.system() == "Linux":
             self.process.stdin.write(c.encode())
             self.process.stdin.flush()
 
-        # @todo: make sure it is the correct format
         def screenshot(self):
             try:
-                result = subprocess.run(['import', '-window', self.window_id, 'png:-'], capture_output=True)
-                img = np.array(Image.open(io.BytesIO(result.stdout)))
-                # Image.open(io.BytesIO(result.stdout)).show()
-                # img = np.asarray(image)
-                # self.logger.debug(img.mode)
-                # img.shape = (cfg.WINDOW_HEIGHT, cfg.WINDOW_WIDTH, 3)
+                x0 = self.x + self.x_offset
+                y0 = self.y + self.y_offset
 
-                # self.logger.debug(img.size)
+                grab = screenshot.Screenshot()
+                img = grab.capture(bbox=(x0, y0, self.w, self.h))[:, :, ::-1]
+
                 return img
+
             except subprocess.CalledProcessError as e:
                 self.logger.error(f"failed to capture screenshot of window_id '{self.window_id}'")
 
-        def move_and_resize(self, x=10, y=10, w=cfg.WINDOW_WIDTH, h=cfg.WINDOW_HEIGHT):
+        def move_and_resize(self, x=0, y=0, w=cfg.WINDOW_WIDTH, h=cfg.WINDOW_HEIGHT):
             self.logger.info(f"prepare {self.window_name} to {w}x{h} @ {x}, {y}")
 
             try:
@@ -146,6 +152,11 @@ elif platform.system() == "Linux":
                 self.execute_command(c_resize)
                 #result = subprocess.run(['xdotool', 'windowsize', str(self.window_id), str(w), str(h)], check=True)
                 
+                self.w = w
+                self.h = h
+                self.x = x
+                self.y = y
+
                 # instead of using xdotool --sync, which doesn't return
                 self.logger.debug(f"success, let me nap 2s to make sure everything computed")
                 time.sleep(1)

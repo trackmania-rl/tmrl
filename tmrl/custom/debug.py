@@ -58,6 +58,16 @@ Benchmark results: {
     'retrieve_obs_duration': (0.11290274933746194, 0.006878478572403898)}
 """
 
+fastgrab = """
+Benchmark results: {
+    'time_step_duration': (0.14827908812224735, 0.1336945110614223), 
+    'step_duration': (0.18120053465668437, 0.1604169372230872), 
+    'join_duration': (0.13991464355588537, 0.1324539854255244), 
+    'inference_duration': (0.008203293623905846, 0.004363008820144707), 
+    'send_control_duration': (0.09092402059010338, 0.12944497874166097), 
+    'retrieve_obs_duration': (0.014340658290903087, 0.005588891917952524)}
+"""
+
 import pickle as pkl
 import cv2
 
