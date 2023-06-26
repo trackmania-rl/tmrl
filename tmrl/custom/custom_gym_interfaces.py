@@ -124,7 +124,7 @@ class TM2020InterfaceLinux(RealTimeGymInterface):
         if self.resize_to is not None:  # cv2.resize takes dim as (width, height)
             img = cv2.resize(img, self.resize_to)
         if self.grayscale:
-            img.show()
+            print(img.shape)
             quit()
 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
