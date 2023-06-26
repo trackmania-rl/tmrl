@@ -10,7 +10,7 @@ import json
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
 from tmrl.tools.record import record_reward_dist
-from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full
+from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full, check_headless_rw
 from tmrl.envs import GenericGymEnv
 from tmrl.networking import Server, Trainer, RolloutWorker
 from tmrl.util import partial
@@ -37,7 +37,7 @@ def main(args):
                            crc_debug=cfg.CRC_DEBUG,
                            standalone=args.test)
         if args.worker:
-            rw.run()
+            rw.run(nb_episodes=1)
         elif args.benchmark:
             rw.run_env_benchmark(nb_steps=1000, test=False)
         else:
@@ -64,6 +64,8 @@ def main(args):
             check_env_tm20lidar()
         else:
             check_env_tm20full()
+    elif args.check_headless_rw:
+        check_headless_rw()
     else:
         raise ArgumentTypeError('Enter a valid argument')
 
@@ -79,6 +81,8 @@ if __name__ == "__main__":
                         help='utility to record a reward function in TM20')
     parser.add_argument('--check-environment', dest='check_env', action='store_true',
                         help='utility to check the environment')
+    parser.add_argument('--check-rolloutworker-headless', dest='check_headless_rw', action='store_true',
+                        help='utility to check the rolloutworker on a headless server')
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true',
                         help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
     parser.add_argument('-d', '--config', type=json.loads, default={},
