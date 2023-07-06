@@ -67,12 +67,14 @@ edges = cv2.Canny(mask, 100, 256)
 
 # Find contours of the edges
 contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+contours = [cv2.boundingRect(contour) for contour in contours]
+contours = [c for c in contours if (c[3] > 15 and c[3] < 32)]
+print(f"\tfound {len(contours)} top-bars")
 if len(contours) != 1:
-    print("WARNING: found more than one top-bar")
     print("WARNING: might need manual user adjustment of ubisoft connect screen")
 
 for contour in contours:
-    x, y, w, h = cv2.boundingRect(contour)
+    x, y, w, h = contour
     print(f"\tfound bar at ({x}, {y}) with width {w} and height {h}")
     print("\tdouble tap bar")
     subprocess.run(['xdotool', 'mousemove', str(x + 5), str(y + 5)])
