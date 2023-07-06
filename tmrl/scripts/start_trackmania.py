@@ -32,13 +32,10 @@ subprocess.run(['xdotool', 'mousemove', '300', '100'])
 subprocess.run(['xdotool', 'click', '1'])
 time.sleep(1)
 
-print("start ubisoft connect ... waited for", end=" ")
+print("starting ubisoft connect in < 60s...")
 subprocess.run(['xdotool', 'mousemove', '250', '600'])
 subprocess.run(['xdotool', 'click', '1'])
-for i in range(90):
-    time.sleep(1)
-    if i % 10 == 0:
-        print(f"{i}s, ", end="")
+time.sleep(60)
 print("ubisoft connect should have opened up by now")
 
 # Find the window ID for the window with name "ubisoft connect"
