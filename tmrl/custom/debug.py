@@ -1,7 +1,10 @@
 import subprocess
 from PIL import Image
 import io
-
+from fastgrab import screenshot
+import cv2
+import time
+import numpy as np
 
 def get_window_id(name):
         try:
@@ -68,13 +71,53 @@ Benchmark results: {
     'retrieve_obs_duration': (0.014340658290903087, 0.005588891917952524)}
 """
 
-import pickle as pkl
-import cv2
 
-with open("screenshot.pkl", "rb") as f:
-    snap = pkl.load(f)
-with open("screenshot-2.pkl", "rb") as f:
-    snap2 = pkl.load(f)
-cv2.imshow("mine", snap2[..., ::-1])
-cv2.imshow("og", snap)
-cv2.waitKey(0)
+
+# Define the range for valid RGB values
+bgr_bounds = [
+    [24, 32],
+    [20, 27],
+    [15, 23]]
+lower_range = np.array([24, 20, 15], dtype=np.uint8)
+upper_range = np.array([32, 27, 23], dtype=np.uint8)
+
+# take screenshot
+grab = screenshot.Screenshot()
+img = grab.capture()[:, :, :-1][:, :, :3]
+
+# Create a mask for pixels outside the range
+mask = cv2.inRange(img, lower_range, upper_range)
+
+# Set pixels outside the range to white (255)
+img = cv2.bitwise_and(img, img, mask=mask)
+img[np.where(mask == 0)] = 255
+
+cv2.imwrite("masked.png", img)
+
+# Apply Canny edge detection
+edges = cv2.Canny(img, 50, 100)
+
+# Find contours of the edges
+contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+# Find horizontal edges
+horizontal_edges = []
+for contour in contours:
+    x, y, w, h = cv2.boundingRect(contour)
+    if h > w:  # Filter out non-horizontal edges
+        horizontal_edges.append((x, y, w, h))
+
+# Print the locations of horizontal edges
+for edge in horizontal_edges:
+    x, y, w, h = edge
+    print(f"Horizontal edge at ({x}, {y}) with width {w} and height {h}")
+
+# Display the edges on the image
+cv2.imwrite("edges.png", edges)
+    
+
+                
+
+
+print(img.shape)
+
