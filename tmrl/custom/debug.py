@@ -79,7 +79,7 @@ bgr_bounds = [
     [20, 27],
     [15, 23]]
 lower_range = np.array([24, 20, 15], dtype=np.uint8)
-upper_range = np.array([32, 27, 23], dtype=np.uint8)
+upper_range = np.array([26, 22, 17], dtype=np.uint8)
 
 # take screenshot
 grab = screenshot.Screenshot()
