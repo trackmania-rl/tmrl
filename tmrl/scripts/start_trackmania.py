@@ -1,6 +1,8 @@
 import subprocess
 import time
 from fastgrab import screenshot
+import numpy as np
+import cv2
 
 # Find the window ID for the window with name "Lutris"
 print("find lutris window ...")
