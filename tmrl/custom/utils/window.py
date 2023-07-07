@@ -95,7 +95,7 @@ elif platform.system() == "Linux":
 
 
     class WindowInterface:
-        def __init__(self, window_name="Trackmania"):
+        def __init__(self, window_name):
             self.window_name = window_name
             self.window_id = get_window_id(window_name)
 
@@ -104,7 +104,7 @@ elif platform.system() == "Linux":
             self.x = None
             self.y = None
             self.x_offset = 0
-            self.y_offset = 0
+            self.y_offset = 36
 
             self.process = None
 
