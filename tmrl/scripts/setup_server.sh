@@ -29,8 +29,13 @@ tmux kill-session -t lutris
 tmux kill-session -t vnc-server
 tmux kill-session -t xvfb-server
 
-echo "CLEANUP SUCCESSFUL; START SETUP"
+echo "CLEANUP SUCCESSFUL; STARTING SETUP"
 
 tmux new-session -d -s xvfb-server "Xvfb :$display_number -ac -screen 0 ${display_width}x${display_height}x24"
+echo "Started xvfb-server session"
+
 tmux new-session -d -s vnc-server "x11vnc -rfbport $vnc_local_port -display :$display_number -localhost"
+echo "Started vnc-server session"
+
 tmux new-session -d -s lutris 'lutris'
+echo "Started lutris session"
