@@ -27,7 +27,7 @@ def save_screen(name):
     print(f"SCREENHOT {SCREENSHOT_COUNTER} - {name}.png")
     file_path = os.path.join(SCREENSHOT_DIR, f"{SCREENSHOT_COUNTER}-{name}.png")
     img = grab.capture()[:, :, :-1][:, :, :3]
-    cv2.imwrite(f"{name}.png", img)
+    cv2.imwrite(file_path, img)
     SCREENSHOT_COUNTER += 1
     time.sleep(1)
 
