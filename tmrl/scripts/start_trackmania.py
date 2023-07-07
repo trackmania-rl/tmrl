@@ -83,7 +83,7 @@ def start_trackmania(t_connect=60):
     print("start trackmania ...")
     subprocess.run(['xdotool', 'mousemove', '200', '400'])
     subprocess.run(['xdotool', 'click', '1'])
-    time.sleep(30)
+    time.sleep(60)
 
     # skip the intro of trackmania
     subprocess.run(['xdotool', 'key', 'Return'])
@@ -239,7 +239,41 @@ def adjust_display():
     time.sleep(0.6)
     subprocess.run(['xdotool', 'key', 'Escape'])
 
+    # move back to start
+    subprocess.run(['xdotool', 'key', 'Up'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Up'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Up'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Up'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Up'])
+    time.sleep(0.6)
+
+def start_train_track():
+    subprocess.run(['xdotool', 'key', 'Down'])
+    subprocess.run(['xdotool', 'key', 'Down'])
+    subprocess.run(['xdotool', 'key', 'Return'])
+    subprocess.run(['xdotool', 'key', 'Return'])
+    subprocess.run(['xdotool', 'key', 'Right'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Return'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Return'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Return'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Right'])
+    time.sleep(0.6)
+    subprocess.run(['xdotool', 'key', 'Return'])
+    time.sleep(30)
+    subprocess.run(['xdotool', 'mousemove', '10', '190'])
+    subprocess.run(['xdotool', 'click', '1'])
+    time.sleep(20)
+
+
 if __name__ == "__main__":
     start_trackmania()
     adjust_display()
-
+    start_train_track()
