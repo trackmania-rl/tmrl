@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ~/tmrl
+
 echo "Starting tmrl-server..."
 tmux new-session -d -s tmrl-server "python -m tmrl --server"
 sleep 2
