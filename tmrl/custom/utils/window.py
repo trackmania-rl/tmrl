@@ -104,7 +104,7 @@ elif platform.system() == "Linux":
             self.x = None
             self.y = None
             self.x_offset = 0
-            self.y_offset = 36
+            self.y_offset = 0
 
             self.process = None
 
