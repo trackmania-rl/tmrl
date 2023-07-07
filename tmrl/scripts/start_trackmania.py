@@ -8,7 +8,7 @@ import os
 # set environmental variable
 os.environ['DISPLAY'] = ':98'
 
-def start_trackmania():
+def start_trackmania(t_connect=60):
     # Find the window ID for the window with name "Lutris"
     print("find lutris window ...")
     proc = subprocess.Popen(['xdotool', 'search', '--onlyvisible', '--name', 'Lutris'], stdout=subprocess.PIPE)
@@ -35,10 +35,10 @@ def start_trackmania():
     time.sleep(1)
 
     # Start ubisoft connect and let it start-up
-    print("starting ubisoft connect, wait 60s...")
+    print(f"starting ubisoft connect, wait {t_connect}s...")
     subprocess.run(['xdotool', 'mousemove', '250', '600'])
     subprocess.run(['xdotool', 'click', '1'])
-    time.sleep(60)
+    time.sleep(t_connect)
     print("\tubisoft connect should have opened up by now")
 
     # ubispoft window is not always at the same spot and moving window in virtual desktop doesnt work
@@ -87,7 +87,8 @@ def start_trackmania():
 
     # skip the intro of trackmania
     subprocess.run(['xdotool', 'key', 'Return'])
-    time.sleep(10)
+    print(f"connecting to trackmania servers, wait {t_connect}s...")
+    time.sleep(t_connect)
 
 def adjust_display():
     # change the display settings to have small screen
