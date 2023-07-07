@@ -23,8 +23,9 @@ os.makedirs(SCREENSHOT_DIR)
 
 def save_screen(name):
     global SCREENSHOT_COUNTER
+    global SCREENSHOT_DIR
     print(f"SCREENHOT {SCREENSHOT_COUNTER} - {name}.png")
-    file_path = os.path.join(run_dir, f"{SCREENSHOT_COUNTER}-{name}.png")
+    file_path = os.path.join(SCREENSHOT_DIR, f"{SCREENSHOT_COUNTER}-{name}.png")
     img = grab.capture()[:, :, :-1][:, :, :3]
     cv2.imwrite(f"{name}.png", img)
     SCREENSHOT_COUNTER += 1
