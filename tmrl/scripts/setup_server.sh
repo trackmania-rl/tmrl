@@ -23,13 +23,7 @@ done
 
 export DISPLAY=:$display_number
 
-sudo pkill Xvfb
-sudo fuser -k $vnc_local_port/tcp
-tmux kill-session -t lutris
-tmux kill-session -t vnc-server
-tmux kill-session -t xvfb-server
-
-echo "CLEANUP SUCCESSFUL; STARTING SETUP"
+echo "STARTING SETUP"
 
 tmux new-session -d -s xvfb-server "Xvfb :$display_number -ac -screen 0 ${display_width}x${display_height}x24"
 echo "Started xvfb-server session"

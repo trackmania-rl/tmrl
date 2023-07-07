@@ -335,6 +335,7 @@ def start_train_track():
     subprocess.run(['xdotool', 'click', '1'])
     time.sleep(10)
     save_screen("trackmania_track_ready")
+    subprocess.run(['xdotool', 'key', 'G'])
 
 
 if __name__ == "__main__":
