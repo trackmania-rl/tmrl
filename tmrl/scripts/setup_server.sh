@@ -5,17 +5,8 @@ display_height=600
 display_number=98
 vnc_local_port=5566
 
-while getopts "w:h:n:p:" opt; do
+while getopts "p:" opt; do
   case $opt in
-    w)
-      display_width=$OPTARG
-      ;;
-    h)
-      display_height=$OPTARG
-      ;;
-    n)
-      display_number=$OPTARG
-      ;;
     p)
       vnc_local_port=$OPTARG
       ;;
