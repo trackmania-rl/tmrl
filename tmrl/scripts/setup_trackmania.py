@@ -22,6 +22,7 @@ os.makedirs(SCREENSHOT_DIR)
 
 
 def save_screen(name):
+    global SCREENSHOT_COUNTER
     print(f"SCREENHOT {SCREENSHOT_COUNTER} - {name}.png")
     file_path = os.path.join(run_dir, f"{SCREENSHOT_COUNTER}-{name}.png")
     img = grab.capture()[:, :, :-1][:, :, :3]
@@ -318,12 +319,12 @@ def start_train_track():
     time.sleep(0.6)
     save_screen("trackmania_start_train_track_7")
     subprocess.run(['xdotool', 'key', 'Return'])
-    time.sleep(30)
+    time.sleep(10)
     print("start train track ...")
     save_screen("trackmania_run_track")
     subprocess.run(['xdotool', 'mousemove', '10', '190'])
     subprocess.run(['xdotool', 'click', '1'])
-    time.sleep(20)
+    time.sleep(10)
     save_screen("trackmania_track_ready")
 
 
