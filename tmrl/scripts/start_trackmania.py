@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 
 # set environmental variable
-subprocess.run(['export', 'DISPLAY=:98'])
+os.environ['DISPLAY'] = ':98'
 
 # Find the window ID for the window with name "Lutris"
 print("find lutris window ...")
