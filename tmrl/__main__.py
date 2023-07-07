@@ -5,6 +5,7 @@ import tmrl.logger
 import time
 from argparse import ArgumentParser, ArgumentTypeError
 import json
+import os
 
 # local imports
 import tmrl.config.config_constants as cfg
@@ -22,6 +23,7 @@ def main(args):
         while True:
             time.sleep(1.0)
     elif args.worker or args.test or args.benchmark:
+        os.environ['DISPLAY'] = ':98' # todo: add to dict
         config = cfg_obj.CONFIG_DICT
         config_modifiers = args.config
         for k, v in config_modifiers.items():
@@ -37,7 +39,7 @@ def main(args):
                            crc_debug=cfg.CRC_DEBUG,
                            standalone=args.test)
         if args.worker:
-            rw.run(nb_episodes=1)
+            rw.run()
         elif args.benchmark:
             rw.run_env_benchmark(nb_steps=1000, test=False)
         else:

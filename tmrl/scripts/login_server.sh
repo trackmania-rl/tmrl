@@ -2,6 +2,8 @@
 
 username="kpius"
 servername="ee-tik-vm050.ethz.ch"
+vnc_local_port=9999
+vnc_server_port=42420
 
 while getopts ":u:s:" opt; do
   case $opt in
@@ -24,5 +26,5 @@ done
 
 shift $((OPTIND - 1))
 
-ssh -L 9999:localhost:5566 "$username@$servername"
+ssh -L "$vnc_local_port":localhost:"$vnc_server_port" "$username@$servername"
 
