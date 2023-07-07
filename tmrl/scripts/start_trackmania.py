@@ -4,6 +4,9 @@ from fastgrab import screenshot
 import numpy as np
 import cv2
 
+# set environmental variable
+subprocess.run(['export', 'DISPLAY=:98'])
+
 # Find the window ID for the window with name "Lutris"
 print("find lutris window ...")
 proc = subprocess.Popen(['xdotool', 'search', '--onlyvisible', '--name', 'Lutris'], stdout=subprocess.PIPE)
