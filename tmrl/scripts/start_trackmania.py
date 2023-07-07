@@ -3,6 +3,7 @@ import time
 from fastgrab import screenshot
 import numpy as np
 import cv2
+import os
 
 # set environmental variable
 os.environ['DISPLAY'] = ':98'
