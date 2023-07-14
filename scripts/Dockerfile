@@ -4,7 +4,10 @@ MAINTAINER Pius
 
 RUN apt-get update
 
-RUN apt-get install -y sudo wget curl vim
+RUN apt-get install -y sudo
+RUN apt-get install -y wget
+RUN apt-get install -y curl
+RUN apt-get install -y vim
 RUN apt-get install -y xvfb
 RUN apt-get install -y x11vnc
 RUN apt-get install -y tmux
@@ -36,10 +39,17 @@ ADD start_server.sh /home/vncuser/start_server.sh
 ADD setup_environment.sh /home/vncuser/setup_environment.sh
 ADD reset_environment.sh /home/vncuser/reset_environment.sh
 ADD install_trackmania.py /home/vncuser/install_trackmania.py
+
 RUN chmod +x home/vncuser/start_server.sh
 RUN chmod +x home/vncuser/setup_environment.sh
 RUN chmod +x home/vncuser/reset_environment.sh
 RUN chmod +x home/vncuser/install_trackmania.py
+
+ADD lutris-patch /home/vncuser/lutris-patch
+RUN mv -f /home/vncuser/lutris-patch/prefix.py /usr/lib/python3/dist-packages/lutris/util/wine/prefix.py
+RUN mv -f /home/vncuser/lutris-patch/extract.py /usr/lib/python3/dist-packages/lutris/util/extract.py
+RUN mv -f /home/vncuser/lutris-patch/commands.py /usr/lib/python3/dist-packages/lutris/installer/commands.py
+RUN mv -f /home/vncuser/lutris-patch/startup.py /usr/lib/python3/dist-packages/lutris/startup.py 
 
 USER vncuser
 ENV HOME /home/vncuser
