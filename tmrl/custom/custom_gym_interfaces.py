@@ -28,7 +28,6 @@ from tmrl.logger import setup_logger
 
 NB_OBS_FORWARD = 500  # this allows (and rewards) 50m cuts
 
-
 # Interface for Trackmania 2020 ========================================================================================
 
 class TM2020InterfaceLinux(RealTimeGymInterface):
@@ -235,7 +234,6 @@ class TM2020Interface(RealTimeGymInterface):
     """
     This is the API needed for the algorithm to control TrackMania 2020
     """
-
     def __init__(self,
                  img_hist_len: int = 4,
                  gamepad: bool = False,
@@ -423,9 +421,9 @@ class TM2020Interface(RealTimeGymInterface):
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        gear = spaces.Box(low=0.0, high=6, shape=(1,))
-        rpm = spaces.Box(low=0.0, high=np.inf, shape=(1,))
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
+        gear = spaces.Box(low=0.0, high=6, shape=(1, ))
+        rpm = spaces.Box(low=0.0, high=np.inf, shape=(1, ))
         if self.resize_to is not None:
             w, h = self.resize_to
         else:
@@ -440,7 +438,7 @@ class TM2020Interface(RealTimeGymInterface):
         """
         must return a Box
         """
-        return spaces.Box(low=-1.0, high=1.0, shape=(3,))
+        return spaces.Box(low=-1.0, high=1.0, shape=(3, ))
 
     def get_default_action(self):
         """
@@ -450,8 +448,8 @@ class TM2020Interface(RealTimeGymInterface):
 
 
 class TM2020InterfaceLidar(TM2020Interface):
-    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_failure=int(20 * 3.5),
-                 save_replays: bool = False):
+    def __init__(self, img_hist_len=1, gamepad=False,
+                 min_nb_steps_before_failure=int(20 * 3.5), save_replays: bool = False):
         super().__init__(img_hist_len, gamepad, min_nb_steps_before_failure, save_replays)
         self.window_interface = None
         self.lidar = None
@@ -507,7 +505,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
         imgs = spaces.Box(low=0.0, high=np.inf, shape=(
             self.img_hist_len,
             19,
@@ -555,8 +553,8 @@ class TM2020InterfaceLidarProgress(TM2020InterfaceLidar):
         """
         must be a Tuple
         """
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
-        progress = spaces.Box(low=0.0, high=1.0, shape=(1,))
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
+        progress = spaces.Box(low=0.0, high=1.0, shape=(1, ))
         imgs = spaces.Box(low=0.0, high=np.inf, shape=(
             self.img_hist_len,
             19,

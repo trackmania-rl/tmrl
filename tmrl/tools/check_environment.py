@@ -2,19 +2,12 @@
 import gymnasium
 import cv2
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
-import os
-from PIL import Image
-from tmrl.networking import RolloutWorker
-from tmrl.util import partial
-from tmrl.envs import GenericGymEnv
-import numpy as np
 
 # local imports
-from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TM2020InterfaceLinux
+from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar
 from tmrl.custom.utils.window import WindowInterface
 from tmrl.custom.utils.tools import Lidar
 import tmrl.config.config_constants as cfg
-import tmrl.config.config_objects as cfg_obj
 import logging
 
 
@@ -40,14 +33,15 @@ def show_imgs(imgs):
     imshape = imgs.shape
     if len(imshape) == 3:  # grayscale
         nb, h, w = imshape
-        concat = imgs.reshape((nb * h, w))
+        concat = imgs.reshape((nb*h, w))
         cv2.imshow("Environment", concat)
         cv2.waitKey(1)
     elif len(imshape) == 4:  # color
         nb, h, w, c = imshape
-        concat = imgs.reshape((nb * h, w, c))
+        concat = imgs.reshape((nb*h, w, c))
         cv2.imshow("Environment", concat)
         cv2.waitKey(1)
+
 
 def check_env_tm20full():
     env_config = DEFAULT_CONFIG_DICT.copy()
@@ -64,8 +58,7 @@ def check_env_tm20full():
     while True:
         o, r, d, t, i = env.step(None)
         show_imgs(o[3])
-        logging.info(
-            f"r:{r:.2f}, d:{d}, t:{t}, o:[{o[0].item():05.01f}, {o[1].item():03.01f}, {o[2].item():07.01f}, imgs({len(o[3])})]")
+        logging.info(f"r:{r:.2f}, d:{d}, t:{t}, o:[{o[0].item():05.01f}, {o[1].item():03.01f}, {o[2].item():07.01f}, imgs({len(o[3])})]")
         if d or t:
             o, i = env.reset()
             show_imgs(o[3])

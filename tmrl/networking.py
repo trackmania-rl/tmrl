@@ -499,10 +499,10 @@ class RolloutWorker:
         self.actor = actor_module_cls(observation_space=obs_space, action_space=act_space).to_device(self.device)
         self.standalone = standalone
         if os.path.isfile(self.model_path):
-            logging.info(f"Loading model from {self.model_path}")
+            logging.debug(f"Loading model from {self.model_path}")
             self.actor = self.actor.load(self.model_path, device=self.device)
         else:
-            logging.info(f"No model found at {self.model_path}")
+            logging.debug(f"No model found at {self.model_path}")
         self.buffer = Buffer()
         self.max_samples_per_episode = max_samples_per_episode
         self.crc_debug = crc_debug
