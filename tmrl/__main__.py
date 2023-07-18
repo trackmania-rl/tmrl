@@ -76,7 +76,6 @@ if __name__ == "__main__":
     parser.add_argument('--benchmark', action='store_true', help='runs a benchmark of the environment')
     parser.add_argument('--record-reward', dest='record_reward', action='store_true', help='utility to record a reward function in TM20')
     parser.add_argument('--check-environment', dest='check_env', action='store_true', help='utility to check the environment')
-    parser.add_argument('--check-rolloutworker-headless', dest='check_headless_rw', action='store_true', help='utility to check the rolloutworker on a headless server')
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
     parser.add_argument('-d', '--config', type=json.loads, default={}, help='dictionary containing configuration options (modifiers) for the rtgym environment')
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose logging')
