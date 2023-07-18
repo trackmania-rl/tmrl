@@ -54,12 +54,15 @@ else:
                       gamepad=cfg.PRAGMA_GAMEPAD,
                       grayscale=cfg.GRAYSCALE,
                       resize_to=(cfg.IMG_WIDTH, cfg.IMG_HEIGHT))
-    if platform.system() == "Linux":
+    elif platform.system() == "Linux":
         INT = partial(TM2020InterfaceLinux,
                       img_hist_len=cfg.IMG_HIST_LEN,
                       gamepad=False,
                       grayscale=cfg.GRAYSCALE,
                       resize_to=(cfg.IMG_WIDTH, cfg.IMG_HEIGHT))
+    else:
+        print(f"platform {platform.system()} not supported")
+        quit()
 
 CONFIG_DICT = rtgym.DEFAULT_CONFIG_DICT.copy()
 CONFIG_DICT["interface"] = INT

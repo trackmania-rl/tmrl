@@ -1,19 +1,17 @@
+import json
 import logging
-from tmrl.logger import setup_logger
-import tmrl.logger
-
 import time
 from argparse import ArgumentParser, ArgumentTypeError
-import json
-import os
 
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl.tools.record import record_reward_dist
-from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full, check_headless_rw
+import tmrl.logger
 from tmrl.envs import GenericGymEnv
+from tmrl.logger import setup_logger
 from tmrl.networking import Server, Trainer, RolloutWorker
+from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full
+from tmrl.tools.record import record_reward_dist
 from tmrl.util import partial
 
 
@@ -23,7 +21,6 @@ def main(args):
         while True:
             time.sleep(1.0)
     elif args.worker or args.test or args.benchmark:
-        os.environ['DISPLAY'] = ':98' # todo: add to dict
         config = cfg_obj.CONFIG_DICT
         config_modifiers = args.config
         for k, v in config_modifiers.items():
@@ -66,8 +63,6 @@ def main(args):
             check_env_tm20lidar()
         else:
             check_env_tm20full()
-    elif args.check_headless_rw:
-        check_headless_rw()
     else:
         raise ArgumentTypeError('Enter a valid argument')
 
@@ -79,17 +74,12 @@ if __name__ == "__main__":
     parser.add_argument('--worker', action='store_true', help='launches a rollout worker')
     parser.add_argument('--test', action='store_true', help='runs inference without training')
     parser.add_argument('--benchmark', action='store_true', help='runs a benchmark of the environment')
-    parser.add_argument('--record-reward', dest='record_reward', action='store_true',
-                        help='utility to record a reward function in TM20')
-    parser.add_argument('--check-environment', dest='check_env', action='store_true',
-                        help='utility to check the environment')
-    parser.add_argument('--check-rolloutworker-headless', dest='check_headless_rw', action='store_true',
-                        help='utility to check the rolloutworker on a headless server')
-    parser.add_argument('--no-wandb', dest='no_wandb', action='store_true',
-                        help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
-    parser.add_argument('-d', '--config', type=json.loads, default={},
-                        help='dictionary containing configuration options (modifiers) for the rtgym environment')
-    parser.add_argument('-v', '--verbose', action='store_true', help='verbose logging')             
+    parser.add_argument('--record-reward', dest='record_reward', action='store_true', help='utility to record a reward function in TM20')
+    parser.add_argument('--check-environment', dest='check_env', action='store_true', help='utility to check the environment')
+    parser.add_argument('--check-rolloutworker-headless', dest='check_headless_rw', action='store_true', help='utility to check the rolloutworker on a headless server')
+    parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
+    parser.add_argument('-d', '--config', type=json.loads, default={}, help='dictionary containing configuration options (modifiers) for the rtgym environment')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose logging')
     arguments = parser.parse_args()
 
     if arguments.verbose:

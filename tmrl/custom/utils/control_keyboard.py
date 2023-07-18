@@ -125,17 +125,12 @@ elif platform.system() == "Linux":
     def PressKey(key):
         c = f"xdotool keydown {str(key)}\n"
         execute_command(c)
-        # process = subprocess.run(['xdotool', 'keydown', str(key)])
 
     def ReleaseKey(key):
         c = f"xdotool keyup {str(key)}\n"
         execute_command(c)
-        # process = subprocess.run(['xdotool', 'keyup', str(key)])
-
 
     def apply_control(action, window_id):  # move_fast
-
-        #process = subprocess.run(['xdotool', 'windowfocus', str(window_id)])
         c_focus = f"xdotool windowfocus {str(window_id)}"
         execute_command(c_focus)
 
@@ -160,19 +155,8 @@ elif platform.system() == "Linux":
         PressKey(KEY_BACKSPACE)
         ReleaseKey(KEY_BACKSPACE)
 
-    def keysavereplay():  # TODO: debug
-        PressKey(R)
-        time.sleep(0.1)
-        ReleaseKey(R)
-        time.sleep(1.0)
-        mouse_change_name_replay_tm20()
-        time.sleep(1.0)
-        keyboard.write(str(time.time_ns()))
-        time.sleep(1.0)
-        mouse_save_replay_tm20()
-        time.sleep(1.0)
-        mouse_close_replay_window_tm20()
-        time.sleep(1.0)
+    def keysavereplay():  # TODO: implement
+        pass
 
 else:
 

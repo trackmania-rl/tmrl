@@ -1,7 +1,8 @@
-import logging
 import platform
-import tmrl.config.config_constants as cfg
+
 import numpy as np
+
+import tmrl.config.config_constants as cfg
 
 if platform.system() == "Windows":
 
@@ -79,14 +80,12 @@ if platform.system() == "Windows":
 
 elif platform.system() == "Linux":
     import subprocess
-    from PIL import Image
-    import io
     import logging
     from tmrl.logger import setup_logger
     import time
     from fastgrab import screenshot
 
-    logging.getLogger("PIL.PngImagePlugin").setLevel(logging.CRITICAL)
+    logging.getLogger("PIL.PngImagePlugin").setLevel(logging.CRITICAL)  # stop spamming
 
 
     class NoSuchWindowException(Exception):
@@ -115,7 +114,8 @@ elif platform.system() == "Linux":
         def execute_command(self, c):
             if self.process is None or self.process.poll() is not None:
                 self.logger.debug("(re-)create process")
-                self.process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                self.process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                                stderr=subprocess.PIPE)
             self.process.stdin.write(c.encode())
             self.process.stdin.flush()
 
@@ -144,14 +144,12 @@ elif platform.system() == "Linux":
                 self.logger.debug(f"move window {str(self.window_name)}")
                 c_move = f"xdotool windowmove {str(self.window_id)} {str(x)} {str(y)}\n"
                 self.execute_command(c_move)
-                #esult = subprocess.run(['xdotool', 'windowmove', str(self.window_id), str(x), str(y)], check=True)
-                
+
                 # resize
                 self.logger.debug(f"resize window {str(self.window_name)}")
                 c_resize = f"xdotool windowsize {str(self.window_id)} {str(w)} {str(h)}\n"
                 self.execute_command(c_resize)
-                #result = subprocess.run(['xdotool', 'windowsize', str(self.window_id), str(w), str(h)], check=True)
-                
+
                 self.w = w
                 self.h = h
                 self.x = x

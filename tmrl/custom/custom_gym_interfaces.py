@@ -33,7 +33,7 @@ NB_OBS_FORWARD = 500  # this allows (and rewards) 50m cuts
 
 class TM2020InterfaceLinux(RealTimeGymInterface):
     """
-    This is the API needed for the algorithm to control TrackMania 2020
+    This is the API needed for the algorithm to control TrackMania 2020 on a Linux machine
     """
 
     def __init__(self,
@@ -67,12 +67,12 @@ class TM2020InterfaceLinux(RealTimeGymInterface):
         self.img = None
         self.reward_function = None
         self.client = None
-        self.gamepad = gamepad
+        self.gamepad = False
         self.j = None
         self.window_interface = None
         self.small_window = None
         self.min_nb_steps_before_failure = min_nb_steps_before_failure
-        self.save_replays = save_replays
+        self.save_replays = False  # not yet implemented
         self.grayscale = grayscale
         self.resize_to = resize_to
         self.finish_reward = finish_reward
@@ -139,8 +139,7 @@ class TM2020InterfaceLinux(RealTimeGymInterface):
             self.initialize()
         self.send_control(self.get_default_action())
         self.reset_race()
-        time_sleep = max(0, cfg.SLEEP_TIME_AT_RESET - 0.1) if self.gamepad else cfg.SLEEP_TIME_AT_RESET
-        time.sleep(time_sleep)  # must be long enough for image to be refreshed
+        time.sleep(max(0, cfg.SLEEP_TIME_AT_RESET - 0.1))  # must be long enough for image to be refreshed
 
     def reset(self, seed=None, options=None):
         """
@@ -164,21 +163,12 @@ class TM2020InterfaceLinux(RealTimeGymInterface):
         self.reward_function.reset()
         return obs, {}
 
-    def close_finish_pop_up_tm20(self):
-        if self.gamepad:
-            gamepad_close_finish_pop_up_tm20(self.j)
-        else:
-            mouse_close_finish_pop_up_tm20(small_window=self.small_window)
-
     def wait(self):
         """
         Non-blocking function
         The agent stays 'paused', waiting in position
         """
         self.send_control(self.get_default_action())
-        if self.save_replays:
-            save_ghost()
-            time.sleep(1.0)
         self.reset_race()
         time.sleep(0.5)
 
