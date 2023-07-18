@@ -19,7 +19,6 @@ from tmrl.actor import ActorModule
 from tmrl.util import dump, load, partial_to_dict
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl.logger import setup_logger
 
 import logging
 

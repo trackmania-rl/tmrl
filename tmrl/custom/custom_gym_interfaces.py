@@ -448,8 +448,7 @@ class TM2020Interface(RealTimeGymInterface):
 
 
 class TM2020InterfaceLidar(TM2020Interface):
-    def __init__(self, img_hist_len=1, gamepad=False,
-                 min_nb_steps_before_failure=int(20 * 3.5), save_replays: bool = False):
+    def __init__(self, img_hist_len=1, gamepad=False, min_nb_steps_before_failure=int(20 * 3.5), save_replays: bool = False):
         super().__init__(img_hist_len, gamepad, min_nb_steps_before_failure, save_replays)
         self.window_interface = None
         self.lidar = None
@@ -554,7 +553,7 @@ class TM2020InterfaceLidarProgress(TM2020InterfaceLidar):
         must be a Tuple
         """
         speed = spaces.Box(low=0.0, high=1000.0, shape=(1, ))
-        progress = spaces.Box(low=0.0, high=1.0, shape=(1, ))
+        progress = spaces.Box(low=0.0, high=1.0, shape=(1,))
         imgs = spaces.Box(low=0.0, high=np.inf, shape=(
             self.img_hist_len,
             19,
