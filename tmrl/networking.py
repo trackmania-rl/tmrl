@@ -201,6 +201,8 @@ class TrainerInterface:
             res += buf
         self.__endpoint.notify(groups={'trainers': -1})  # retrieve everything
         return res
+
+
 def log_environment_variables():
     """
     add certain relevant environment variables to our config

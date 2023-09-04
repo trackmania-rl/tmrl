@@ -108,15 +108,18 @@ install_req = [
     'wandb',
     'requests',
     'opencv-python',
-    'keyboard',
     'pyautogui',
     'pyinstrument',
-    'tlspyo>=0.2.5'
+    'tlspyo>=0.2.5',
 ]
 
 if platform.system() == "Windows":
     install_req.append('pywin32>=303')
     install_req.append('vgamepad')
+
+elif platform.system() == "Linux":
+    install_req.append('fasgrab')
+    install_req.append('vgamepad>=0.1.0')
 
 # The directory containing this file
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -127,13 +130,13 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name='tmrl',
-    version='0.5.2',
+    version='0.6.0',
     description='Network-based framework for real-time robot learning',
     long_description=README,
     long_description_content_type='text/markdown',
     keywords='reinforcement learning, robot learning, trackmania, self driving, roborace',
     url='https://github.com/trackmania-rl/tmrl',
-    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.5.2.tar.gz',
+    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.6.0.tar.gz',
     author='Yann Bouteiller, Edouard Geze',
     author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
     license='MIT',

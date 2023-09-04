@@ -4,6 +4,7 @@ import numpy as np
 
 import tmrl.config.config_constants as cfg
 
+
 if platform.system() == "Windows":
 
     import win32gui
@@ -12,7 +13,7 @@ if platform.system() == "Windows":
 
 
     class WindowInterface:
-        def __init__(self, window_name="Trackmania"):
+        def __init__(self, window_name):
             self.window_name = window_name
 
             hwnd = win32gui.FindWindow(None, self.window_name)
@@ -68,17 +69,8 @@ if platform.system() == "Windows":
             win32gui.MoveWindow(hwnd, x, y, w, h, True)
 
 
-    def profile_screenshot():
-        from pyinstrument import Profiler
-        pro = Profiler()
-        window_interface = WindowInterface("Trackmania")
-        pro.start()
-        for _ in range(5000):
-            snap = window_interface.screenshot()
-        pro.stop()
-        pro.print(show_all=True)
-
 elif platform.system() == "Linux":
+
     import subprocess
     import logging
     from tmrl.logger import setup_logger
@@ -86,6 +78,26 @@ elif platform.system() == "Linux":
     from fastgrab import screenshot
 
     logging.getLogger("PIL.PngImagePlugin").setLevel(logging.CRITICAL)  # stop spamming
+
+
+    def get_window_id(name):
+        try:
+            result = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '.'],
+                                    capture_output=True, text=True, check=True)
+            window_ids = result.stdout.strip().split('\n')
+            for window_id in window_ids:
+                result = subprocess.run(['xdotool', 'getwindowname', window_id],
+                                        capture_output=True, text=True, check=True)
+                if result.stdout.strip() == name:
+                    logger_wi.info(f"detected window {name}, id={window_id}")
+                    return window_id
+
+            logger_wi.error(f"failed to find window '{name}'")
+            raise NoSuchWindowException(name)
+
+        except subprocess.CalledProcessError as e:
+            logger_wi.error(f"process error searching for window '{name}")
+            raise e
 
 
     class NoSuchWindowException(Exception):
@@ -109,7 +121,6 @@ elif platform.system() == "Linux":
 
             self.logger = logging.getLogger("WindowInterface")
             setup_logger(self.logger)
-            # log_all_windows()
 
         def execute_command(self, c):
             if self.process is None or self.process.poll() is not None:
@@ -171,42 +182,16 @@ elif platform.system() == "Linux":
     setup_logger(logger_wi)
 
 
-    def get_window_id(name):
-        try:
-            result = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '.'],
-                                    capture_output=True, text=True, check=True)
-            window_ids = result.stdout.strip().split('\n')
-            for window_id in window_ids:
-                result = subprocess.run(['xdotool', 'getwindowname', window_id],
-                                        capture_output=True, text=True, check=True)
-                if result.stdout.strip() == name:
-                    logger_wi.info(f"detected window {name}, id={window_id}")
-                    return window_id
+def profile_screenshot():
+    from pyinstrument import Profiler
+    pro = Profiler()
+    window_interface = WindowInterface("Trackmania")
+    pro.start()
+    for _ in range(5000):
+        snap = window_interface.screenshot()
+    pro.stop()
+    pro.print(show_all=True)
 
-            logger_wi.error(f"failed to find window '{name}'")
-            raise NoSuchWindowException(name)
-
-        except subprocess.CalledProcessError as e:
-            logger_wi.error(f"process error searching for window '{name}")
-            raise e
-
-
-    # debug
-    def log_all_windows():
-        try:
-            result = subprocess.run(['xdotool', 'search', '--onlyvisible', '--name', '.'],
-                                    capture_output=True, text=True, check=True)
-            window_ids = result.stdout.strip().split('\n')
-            for window_id in window_ids:
-                result = subprocess.run(['xdotool', 'getwindowname', window_id], capture_output=True, text=True,
-                                        check=True)
-                logger_wi.debug(f"found window: {window_id} - {result.stdout.strip()}")
-        except subprocess.CalledProcessError as e:
-            logger_wi.error(f"failed to log windows: {e}")
-
-
-    def profile_screenshot():
-        pass
 
 if __name__ == "__main__":
     profile_screenshot()

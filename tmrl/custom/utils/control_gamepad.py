@@ -1,7 +1,7 @@
 # standard library imports
 import platform
 
-if platform.system() == "Windows":
+if platform.system() in ("Windows", "Linux"):
 
     import time
 

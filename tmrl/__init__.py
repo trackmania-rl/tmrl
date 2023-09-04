@@ -20,7 +20,7 @@ if platform.system() == "Windows":
             import win32con
         except ImportError as e2:
             logging.error(f"tmrl could not fix pywin32 on your system. The following exceptions were raised:\
-            \n=== Exception 1 ===\nstr(e1)\n=== Exception 2 ===\nstr(e2)\
+            \n=== Exception 1 ===\n{str(e1)}\n=== Exception 2 ===\n{str(e2)}\
             \nPlease install pywin32 manually.")
             raise RuntimeError("Please install pywin32 manually: https://github.com/mhammond/pywin32")
 
