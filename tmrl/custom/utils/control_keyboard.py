@@ -7,7 +7,6 @@ import platform
 from tmrl.custom.utils.control_mouse import (mouse_change_name_replay_tm20,
                                              mouse_close_replay_window_tm20,
                                              mouse_save_replay_tm20)
-from tmrl.logger import setup_logger
 
 if platform.system() == "Windows":
     # standard library imports
@@ -91,16 +90,13 @@ elif platform.system() == "Linux":
     KEY_RIGHT = "Right"
     KEY_LEFT = "Left"
     KEY_BACKSPACE = "BackSpace"
-    
-    logger = logging.getLogger("Keyboard")
-    setup_logger(logger)
 
     process = None
 
     def execute_command(c):
         global process
         if process is None or process.poll() is not None:
-            logger.debug("(re-)create process")
+            logging.debug("(re-)create process")
             process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE)
         process.stdin.write(c.encode())
         process.stdin.flush()

@@ -53,19 +53,16 @@ if platform.system() == "Windows":
 
 else:
 
-    def mouse_close_finish_pop_up_tm20():
+    def mouse_close_finish_pop_up_tm20(small_window=False):
         pass
 
-    def mouse_change_name_replay_tm20():
+    def mouse_change_name_replay_tm20(small_window=False):
         pass
 
-    def mouse_save_replay_tm20():
+    def mouse_save_replay_tm20(small_window=False):
         pass
 
-    def mouse_close_replay_window_tm20():
-        pass
-
-    def mouse_save_replay_tm20():
+    def mouse_close_replay_window_tm20(small_window=False):
         pass
 
 

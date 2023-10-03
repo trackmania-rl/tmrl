@@ -1,3 +1,5 @@
+import logging
+
 import platform
 
 import numpy as np
@@ -72,12 +74,8 @@ if platform.system() == "Windows":
 elif platform.system() == "Linux":
 
     import subprocess
-    import logging
-    from tmrl.logger import setup_logger
     import time
-    from fastgrab import screenshot
-
-    logging.getLogger("PIL.PngImagePlugin").setLevel(logging.CRITICAL)  # stop spamming
+    import mss
 
 
     def get_window_id(name):
@@ -89,14 +87,50 @@ elif platform.system() == "Linux":
                 result = subprocess.run(['xdotool', 'getwindowname', window_id],
                                         capture_output=True, text=True, check=True)
                 if result.stdout.strip() == name:
-                    logger_wi.info(f"detected window {name}, id={window_id}")
+                    logging.debug(f"detected window {name}, id={window_id}")
                     return window_id
 
-            logger_wi.error(f"failed to find window '{name}'")
+            logging.error(f"failed to find window '{name}'")
             raise NoSuchWindowException(name)
 
         except subprocess.CalledProcessError as e:
-            logger_wi.error(f"process error searching for window '{name}")
+            logging.error(f"process error searching for window '{name}")
+            raise NoSuchWindowException(name)
+
+
+    def get_window_geometry(name):
+        """
+        FIXME: xdotool doesn't agree with MSS, so we use hardcoded offsets instead for now
+        """
+        try:
+            result = subprocess.run(['xdotool', 'search', '--name', name, 'getwindowgeometry', '--shell'],
+                                    capture_output=True, text=True, check=True)
+            elements = result.stdout.strip().split('\n')
+            res_id = None
+            res_x = None
+            res_y = None
+            res_w = None
+            res_h = None
+            for elt in elements:
+                low_elt = elt.lower()
+                if low_elt.startswith("window="):
+                    res_id = elt[7:]
+                elif low_elt.startswith("x="):
+                    res_x = int(elt[2:])
+                elif low_elt.startswith("y="):
+                    res_y = int(elt[2:])
+                elif low_elt.startswith("width="):
+                    res_w = int(elt[6:])
+                elif low_elt.startswith("height="):
+                    res_h = int(elt[7:])
+
+            if None in (res_id, res_x, res_y, res_w, res_h):
+                raise GeometrySearchException(f"Found None in window '{name}' geometry: {(res_id, res_x, res_y, res_w, res_h)}")
+
+            return res_id, res_x, res_y, res_w, res_h
+
+        except subprocess.CalledProcessError as e:
+            logging.error(f"process error searching for {name} window geometry")
             raise e
 
 
@@ -105,26 +139,37 @@ elif platform.system() == "Linux":
         pass
 
 
+    class GeometrySearchException(Exception):
+        """thrown if geometry search fails"""
+        pass
+
+
     class WindowInterface:
         def __init__(self, window_name):
+            self.sct = mss.mss()
+
             self.window_name = window_name
-            self.window_id = get_window_id(window_name)
+            try:
+                self.window_id = get_window_id(window_name)
+            except NoSuchWindowException as e:
+                logging.error(f"get_window_id failed, is xdotool correctly installed? {str(e)}")
+                self.window_id = None
 
             self.w = None
             self.h = None
             self.x = None
             self.y = None
-            self.x_offset = 0
-            self.y_offset = 0
+            self.x_offset = cfg.LINUX_X_OFFSET
+            self.y_offset = cfg.LINUX_Y_OFFSET
 
             self.process = None
 
-            self.logger = logging.getLogger("WindowInterface")
-            setup_logger(self.logger)
+        def __del__(self):
+            pass
+            self.sct.close()
 
         def execute_command(self, c):
             if self.process is None or self.process.poll() is not None:
-                self.logger.debug("(re-)create process")
                 self.process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                                 stderr=subprocess.PIPE)
             self.process.stdin.write(c.encode())
@@ -132,19 +177,16 @@ elif platform.system() == "Linux":
 
         def screenshot(self):
             try:
-                x0 = self.x + self.x_offset
-                y0 = self.y + self.y_offset
-
-                grab = screenshot.Screenshot()
-                img = grab.capture(bbox=(x0, y0, self.w, self.h))[:, :, ::-1]
-
+                monitor = {"top": self.x + self.x_offset, "left": self.y + self.y_offset, "width": self.w, "height": self.h}
+                img = np.array(self.sct.grab(monitor))
                 return img
 
             except subprocess.CalledProcessError as e:
-                self.logger.error(f"failed to capture screenshot of window_id '{self.window_id}'")
+                logging.error(f"failed to capture screenshot")
+                raise e
 
         def move_and_resize(self, x=0, y=0, w=cfg.WINDOW_WIDTH, h=cfg.WINDOW_HEIGHT):
-            self.logger.info(f"prepare {self.window_name} to {w}x{h} @ {x}, {y}")
+            logging.debug(f"prepare {self.window_name} to {w}x{h} @ {x}, {y}")
 
             try:
                 # debug
@@ -152,12 +194,12 @@ elif platform.system() == "Linux":
                 self.execute_command(c_focus)
 
                 # move
-                self.logger.debug(f"move window {str(self.window_name)}")
+                logging.debug(f"move window {str(self.window_name)}")
                 c_move = f"xdotool windowmove {str(self.window_id)} {str(x)} {str(y)}\n"
                 self.execute_command(c_move)
 
                 # resize
-                self.logger.debug(f"resize window {str(self.window_name)}")
+                logging.debug(f"resize window {str(self.window_name)}")
                 c_resize = f"xdotool windowsize {str(self.window_id)} {str(w)} {str(h)}\n"
                 self.execute_command(c_resize)
 
@@ -167,19 +209,30 @@ elif platform.system() == "Linux":
                 self.y = y
 
                 # instead of using xdotool --sync, which doesn't return
-                self.logger.debug(f"success, let me nap 2s to make sure everything computed")
+                logging.debug(f"success, let me nap 1s to make sure everything computed")
                 time.sleep(1)
 
+                # # retrieve actual position of the window and set offsets
+                # geo_id, geo_x, geo_y, geo_w, geo_h = get_window_geometry(self.window_name)
+                #
+                # if geo_id != self.window_id:
+                #     raise GeometrySearchException(f"wrong geo_id: {geo_id} != {self.window_id}")
+                # if geo_w != self.w:
+                #     raise GeometrySearchException(f"wrong geo_w: {geo_w} != {self.w}")
+                # if geo_h != self.h:
+                #     raise GeometrySearchException(f"wrong geo_h: {geo_h} != {self.h}")
+                #
+                # self.x_offset = geo_x - self.x
+                # self.y_offset = geo_y - self.y
+
             except subprocess.CalledProcessError as e:
-                self.logger.error(f"failed to resize window_id '{self.window_id}'")
-                raise e
+                logging.error(f"failed to resize window_id '{self.window_id}'")
 
-        def get_window_id(self):
-            return self.window_id
+            except NoSuchWindowException as e:
+                logging.error(f"failed to find window: {str(e)}")
 
-
-    logger_wi = logging.getLogger("WindowInterfaceL")
-    setup_logger(logger_wi)
+            # except GeometrySearchException as e:
+            #     logging.error(f"failed to retrieve window geometry: {str(e)}")
 
 
 def profile_screenshot():

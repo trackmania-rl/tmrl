@@ -113,12 +113,12 @@ install_req = [
     'tlspyo>=0.2.5',
 ]
 
+# Dependencies for the TrackMania pipeline
 if platform.system() == "Windows":
     install_req.append('pywin32>=303')
     install_req.append('vgamepad')
-
 elif platform.system() == "Linux":
-    install_req.append('fasgrab')
+    install_req.append('mss')
     install_req.append('vgamepad>=0.1.0')
 
 # The directory containing this file

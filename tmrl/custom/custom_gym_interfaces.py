@@ -21,7 +21,6 @@ from tmrl.custom.utils.control_mouse import mouse_close_finish_pop_up_tm20
 from tmrl.custom.utils.control_keyboard import apply_control, keyres
 from tmrl.custom.utils.window import WindowInterface
 from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, save_ghost
-from tmrl.logger import setup_logger
 
 # Globals ==============================================================================================================
 
@@ -36,7 +35,7 @@ class TM2020Interface(RealTimeGymInterface):
     """
     def __init__(self,
                  img_hist_len: int = 4,
-                 gamepad: bool = False,
+                 gamepad: bool = True,
                  min_nb_steps_before_failure: int = int(3.5 * 20),
                  save_replays: bool = False,
                  grayscale: bool = True,
@@ -56,8 +55,6 @@ class TM2020Interface(RealTimeGymInterface):
             finish_reward: float: reward when passing the finish line
             constant_penalty: float: constant reward given at each time-step
         """
-        self.logger = logging.getLogger("TM20Interface")
-        setup_logger(self.logger)
         self.last_time = None
         self.img_hist_len = img_hist_len
         self.img_hist = None

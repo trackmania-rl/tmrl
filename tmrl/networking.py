@@ -558,7 +558,7 @@ class RolloutWorker:
             dict: information retrieved from the environment)
         """
         obs = None
-        act = self.env.default_action.astype(np.float32)
+        act = self.env.unwrapped.default_action.astype(np.float32)
         new_obs, info = self.env.reset()
         if self.obs_preprocessor is not None:
             new_obs = self.obs_preprocessor(new_obs)
