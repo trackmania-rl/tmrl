@@ -29,7 +29,7 @@ def check_env_tm20lidar():
         lidar.lidar_20(img, True)
 
 
-def show_imgs(imgs, scale=4.0):
+def show_imgs(imgs, scale=IMG_SCALE_CHECK_ENV):
     imshape = imgs.shape
     if len(imshape) == 3:  # grayscale
         nb, h, w = imshape
@@ -41,7 +41,9 @@ def show_imgs(imgs, scale=4.0):
     elif len(imshape) == 4:  # color
         nb, h, w, c = imshape
         concat = imgs.reshape((nb*h, w, c))
-        cv2.imshow("Environment", concat)
+        width = int(concat.shape[1] * scale)
+        height = int(concat.shape[0] * scale)
+        cv2.imshow("Environment", cv2.resize(concat, (width, height), interpolation=cv2.INTER_NEAREST))
         cv2.waitKey(1)
 
 
