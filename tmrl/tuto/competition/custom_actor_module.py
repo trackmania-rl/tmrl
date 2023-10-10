@@ -781,8 +781,8 @@ class SACTrainingAgent(TrainingAgent):
 
         # TMRL enables us to log training metrics to wandb:
         ret_dict = dict(
-            loss_actor=loss_pi.detach(),
-            loss_critic=loss_q.detach(),
+            loss_actor=loss_pi.detach().item(),
+            loss_critic=loss_q.detach().item(),
         )
         return ret_dict
 

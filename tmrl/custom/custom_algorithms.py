@@ -157,8 +157,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
             if not cfg.DEBUG_MODE:
                 ret_dict = dict(
-                    loss_actor=loss_pi.detach(),
-                    loss_critic=loss_q.detach(),
+                    loss_actor=loss_pi.detach().item(),
+                    loss_critic=loss_q.detach().item(),
                 )
             else:
                 q1_o2_a2 = self.model.q1(o2, a2)
@@ -182,8 +182,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
                 diff_q2_backup_r = (q2 - backup + r).detach()
 
                 ret_dict = dict(
-                    loss_actor=loss_pi.detach(),
-                    loss_critic=loss_q.detach(),
+                    loss_actor=loss_pi.detach().item(),
+                    loss_critic=loss_q.detach().item(),
                     # debug:
                     debug_log_pi=logp_pi.detach().mean(),
                     debug_log_pi_std=logp_pi.detach().std(),
@@ -248,7 +248,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
                 )
 
         if self.learn_entropy_coef:
-            ret_dict["loss_entropy_coef"] = loss_alpha.detach()
+            ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
             ret_dict["entropy_coef"] = alpha_t.item()
 
         return ret_dict
@@ -375,12 +375,12 @@ class REDQSACAgent(TrainingAgent):
         if update_policy:
             self.loss_pi = loss_pi.detach()
         ret_dict = dict(
-            loss_actor=self.loss_pi,
-            loss_critic=loss_q.detach(),
+            loss_actor=self.loss_pi.detach().item(),
+            loss_critic=loss_q.detach().item(),
         )
 
         if self.learn_entropy_coef:
-            ret_dict["loss_entropy_coef"] = loss_alpha.detach()
+            ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
             ret_dict["entropy_coef"] = alpha_t.item()
 
         return ret_dict

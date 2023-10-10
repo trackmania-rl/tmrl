@@ -551,11 +551,11 @@ class MyTrainingAgent(TrainingAgent):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
         ret_dict = dict(
-            loss_actor=loss_pi.detach(),
-            loss_critic=loss_q.detach(),
+            loss_actor=loss_pi.detach().item(),
+            loss_critic=loss_q.detach().item(),
         )
         if self.learn_entropy_coef:
-            ret_dict["loss_entropy_coef"] = loss_alpha.detach()
+            ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
             ret_dict["entropy_coef"] = alpha_t.item()
         return ret_dict
 

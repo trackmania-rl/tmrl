@@ -41,7 +41,7 @@ def copy_shared(model_a):
     for key in sda:
         a, b = sda[key], sdb[key]
         b.data = a.data  # strangely this will not make a.data and b.data the same object but their underlying data_ptr will be the same
-        assert b.storage().data_ptr() == a.storage().data_ptr()
+        assert b.untyped_storage().data_ptr() == a.untyped_storage().data_ptr()
     return model_b
 
 

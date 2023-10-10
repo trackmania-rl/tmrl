@@ -100,7 +100,7 @@ if not TMRL_FOLDER.exists():
 
 install_req = [
     'numpy',
-    'torch',
+    'torch>=2.0.0',
     'pandas',
     'gymnasium',
     'rtgym>=0.9',
@@ -111,7 +111,8 @@ install_req = [
     'keyboard',
     'pyautogui',
     'pyinstrument',
-    'tlspyo>=0.2.5'
+    'tlspyo>=0.2.5',
+    'chardet'  # requests dependency
 ]
 
 if platform.system() == "Windows":
@@ -127,13 +128,13 @@ with open(os.path.join(HERE, "README.md")) as fid:
 
 setup(
     name='tmrl',
-    version='0.5.2',
+    version='0.5.3',
     description='Network-based framework for real-time robot learning',
     long_description=README,
     long_description_content_type='text/markdown',
     keywords='reinforcement learning, robot learning, trackmania, self driving, roborace',
     url='https://github.com/trackmania-rl/tmrl',
-    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.5.2.tar.gz',
+    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.5.3.tar.gz',
     author='Yann Bouteiller, Edouard Geze',
     author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
     license='MIT',
