@@ -18,7 +18,7 @@ def check_env_tm20lidar():
     env_config["interface"] = TM2020InterfaceLidar
     env_config["wait_on_done"] = True
     env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_failure": int(20 * 60)}
-    env = gymnasium.make("real-time-gym-v1", config=env_config)
+    env = gymnasium.make(cfg.RTGYM_VERSION, config=env_config)
     o, i = env.reset()
     while True:
         o, r, d, t, i = env.step(None)
@@ -29,7 +29,7 @@ def check_env_tm20lidar():
         lidar.lidar_20(img, True)
 
 
-def show_imgs(imgs, scale=IMG_SCALE_CHECK_ENV):
+def show_imgs(imgs, scale=cfg.IMG_SCALE_CHECK_ENV):
     imshape = imgs.shape
     if len(imshape) == 3:  # grayscale
         nb, h, w = imshape
@@ -55,7 +55,7 @@ def check_env_tm20full():
                                       "min_nb_steps_before_failure": int(20 * 60),
                                       "grayscale": cfg.GRAYSCALE,
                                       "resize_to": (cfg.IMG_WIDTH, cfg.IMG_HEIGHT)}
-    env = gymnasium.make("real-time-gym-v1", config=env_config)
+    env = gymnasium.make(cfg.RTGYM_VERSION, config=env_config)
     o, i = env.reset()
     show_imgs(o[3])
     logging.info(f"o:[{o[0].item():05.01f}, {o[1].item():03.01f}, {o[2].item():07.01f}, imgs({len(o[3])})]")

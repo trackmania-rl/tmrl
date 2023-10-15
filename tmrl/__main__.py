@@ -23,7 +23,7 @@ def main(args):
         config_modifiers = args.config
         for k, v in config_modifiers.items():
             config[k] = v
-        rw = RolloutWorker(env_cls=partial(GenericGymEnv, id="real-time-gym-v1", gym_kwargs={"config": config}),
+        rw = RolloutWorker(env_cls=partial(GenericGymEnv, id=cfg.RTGYM_VERSION, gym_kwargs={"config": config}),
                            actor_module_cls=cfg_obj.POLICY,
                            sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.CUDA_INFERENCE else 'cpu',

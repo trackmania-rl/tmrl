@@ -3,7 +3,11 @@ import os
 from pathlib import Path
 import logging
 import json
+import platform
 
+
+SYSTEM = platform.system()
+RTGYM_VERSION = "real-time-gym-v1" if SYSTEM == "Windows" else "real-time-gym-ts-v1"
 
 TMRL_FOLDER = Path.home() / "TmrlData"
 CHECKPOINTS_FOLDER = TMRL_FOLDER / "checkpoints"

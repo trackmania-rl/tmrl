@@ -14,7 +14,7 @@ from tmrl.util import partial
 def save_replays(nb_replays=np.inf):
     config = cfg_obj.CONFIG_DICT
     config['interface_kwargs'] = {'save_replays': True}
-    rw = RolloutWorker(env_cls=partial(GenericGymEnv, id="real-time-gym-v1", gym_kwargs={"config": config}),
+    rw = RolloutWorker(env_cls=partial(GenericGymEnv, id=cfg.RTGYM_VERSION, gym_kwargs={"config": config}),
                        actor_module_cls=partial(cfg_obj.POLICY),
                        sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
                        device='cuda' if cfg.CUDA_INFERENCE else 'cpu',

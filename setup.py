@@ -100,10 +100,10 @@ if not TMRL_FOLDER.exists():
 
 install_req = [
     'numpy',
-    'torch',
+    'torch>=2.0',
     'pandas',
     'gymnasium',
-    'rtgym>=0.9',
+    'rtgym>=0.13',
     'pyyaml',
     'wandb',
     'requests',
