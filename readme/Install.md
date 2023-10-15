@@ -1,5 +1,5 @@
 # Prerequisites
-* Windows / Linux (Windows required if running TrackMania)
+* Windows / Linux
 * Python >= 3.7
 * A recent NVIDIA GPU (required only on the training computer if you plan to train your own AI)
 
@@ -13,19 +13,18 @@ conda install pywin32
 
 # Installation
 
-_(Note for ML developers: in case you are not interested in using support for TrackMania, you can simply [install tmrl](#install-tmrl))._
+_(**Note for ML developers:** in case you are not interested in using support for TrackMania, you can simply [install the tmrl library](#install-tmrl))._
 
 The following instructions are for installing `tmrl` with support for the TrackMania 2020 video game.
 
 You will first need to install [TrackMania 2020](https://www.trackmania.com/) (obviously), and also a small community-supported utility called [Openplanet for TrackMania](https://openplanet.nl/) (the Gymnasium environment needs this utility to compute the reward).
 
-
-### Install TrackMania 2020:
+### Windows users - Install TrackMania 2020:
 _(Required only on the computer(s) running TrackMania)_
 
 To install the free version of TM20, you can follow the instructions on their [official website](https://www.trackmania.com/) .
 
-### Install Openplanet:
+### Windows users - Install Openplanet:
 _(Required only on the computer(s) running TrackMania)_
 
 Make sure you have the `Visual C++ runtime` installed or OpenPlanet will not work.
@@ -35,7 +34,11 @@ Then, install [Openplanet for TrackMania](https://openplanet.nl/).
 
 During the installation, Windows may complain that OpenPlanet has no valid certificate (this is a small non-commercial tool not signed by any company). In such case, you will have to hit the link for "more info", and then click "install anyway".
 
+### Linux users:
+_(Windows users can skip this section)_
 
+Since version `6.0.0`, we support the full TrackMania 2020 pipeline on Linux, including our `gymnasium` environment.
+Because Ubisoft Nadeo does not officially support Linux, we wrote a [Linux tutorial](install_linux.md) to help you set up TrackMania and OpenPlanet on your machine.
 
 ### Install TMRL:
 
@@ -44,7 +47,6 @@ To install the `tmrl` python library, open your favorite terminal and run:
 ```shell
 pip install tmrl
 ```
-
 #### Additional information for Windows / Trackmania 2020:
 
 If running on Windows, during the installation, a driver will be installed to emulate a virtual gamepad.

@@ -3,7 +3,11 @@ import os
 from pathlib import Path
 import logging
 import json
+import platform
 
+
+SYSTEM = platform.system()
+RTGYM_VERSION = "real-time-gym-v1" if SYSTEM == "Windows" else "real-time-gym-ts-v1"
 
 TMRL_FOLDER = Path.home() / "TmrlData"
 CHECKPOINTS_FOLDER = TMRL_FOLDER / "checkpoints"
@@ -53,6 +57,9 @@ WINDOW_HEIGHT = ENV_CONFIG["WINDOW_HEIGHT"]
 GRAYSCALE = ENV_CONFIG["IMG_GRAYSCALE"] if "IMG_GRAYSCALE" in ENV_CONFIG else False
 IMG_WIDTH = ENV_CONFIG["IMG_WIDTH"] if "IMG_WIDTH" in ENV_CONFIG else 64
 IMG_HEIGHT = ENV_CONFIG["IMG_HEIGHT"] if "IMG_HEIGHT" in ENV_CONFIG else 64
+LINUX_X_OFFSET = ENV_CONFIG["LINUX_X_OFFSET"] if "LINUX_X_OFFSET" in ENV_CONFIG else 64
+LINUX_Y_OFFSET = ENV_CONFIG["LINUX_Y_OFFSET"] if "LINUX_Y_OFFSET" in ENV_CONFIG else 70
+IMG_SCALE_CHECK_ENV = ENV_CONFIG["IMG_SCALE_CHECK_ENV"] if "IMG_SCALE_CHECK_ENV" in ENV_CONFIG else 1.0
 
 # DEBUGGING AND BENCHMARKING: ===================================
 

@@ -163,6 +163,7 @@ class TrainerInterface:
                  keys_dir=cfg.CREDENTIALS_DIRECTORY,
                  hostname=cfg.HOSTNAME,
                  model_path=cfg.MODEL_PATH_TRAINER):
+
         self.model_path = model_path
         self.server_ip = server_ip if server_ip is not None else '127.0.0.1'
         self.__endpoint = Endpoint(ip_server=self.server_ip,
@@ -557,7 +558,7 @@ class RolloutWorker:
             dict: information retrieved from the environment)
         """
         obs = None
-        act = self.env.default_action.astype(np.float32)
+        act = self.env.unwrapped.default_action.astype(np.float32)
         new_obs, info = self.env.reset()
         if self.obs_preprocessor is not None:
             new_obs = self.obs_preprocessor(new_obs)

@@ -1,7 +1,6 @@
 # rtgym interfaces for Trackmania
 
 # standard library imports
-import platform
 import logging
 import time
 from collections import deque
@@ -10,7 +9,6 @@ from collections import deque
 import cv2
 import gymnasium.spaces as spaces
 import numpy as np
-
 
 # third-party imports
 from rtgym import RealTimeGymInterface
@@ -28,8 +26,8 @@ from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, save_ghost
 
 NB_OBS_FORWARD = 500  # this allows (and rewards) 50m cuts
 
-# Interface for Trackmania 2020 ========================================================================================
 
+# Interface for Trackmania 2020 ========================================================================================
 
 class TM2020Interface(RealTimeGymInterface):
     """
@@ -37,7 +35,7 @@ class TM2020Interface(RealTimeGymInterface):
     """
     def __init__(self,
                  img_hist_len: int = 4,
-                 gamepad: bool = False,
+                 gamepad: bool = True,
                  min_nb_steps_before_failure: int = int(3.5 * 20),
                  save_replays: bool = False,
                  grayscale: bool = True,
@@ -78,7 +76,6 @@ class TM2020Interface(RealTimeGymInterface):
 
     def initialize_common(self):
         if self.gamepad:
-            assert platform.system() == "Windows", "Sorry, Only Windows is supported for gamepad control"
             import vgamepad as vg
             self.j = vg.VX360Gamepad()
             logging.debug(" virtual joystick in use")

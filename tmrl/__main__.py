@@ -1,15 +1,15 @@
+import json
+import logging
 import time
 from argparse import ArgumentParser, ArgumentTypeError
-import logging
-import json
 
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl.tools.record import record_reward_dist
-from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full
 from tmrl.envs import GenericGymEnv
 from tmrl.networking import Server, Trainer, RolloutWorker
+from tmrl.tools.check_environment import check_env_tm20lidar, check_env_tm20full
+from tmrl.tools.record import record_reward_dist
 from tmrl.util import partial
 
 
@@ -23,7 +23,7 @@ def main(args):
         config_modifiers = args.config
         for k, v in config_modifiers.items():
             config[k] = v
-        rw = RolloutWorker(env_cls=partial(GenericGymEnv, id="real-time-gym-v1", gym_kwargs={"config": config}),
+        rw = RolloutWorker(env_cls=partial(GenericGymEnv, id=cfg.RTGYM_VERSION, gym_kwargs={"config": config}),
                            actor_module_cls=cfg_obj.POLICY,
                            sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
                            device='cuda' if cfg.CUDA_INFERENCE else 'cpu',
@@ -77,6 +77,5 @@ if __name__ == "__main__":
     parser.add_argument('--no-wandb', dest='no_wandb', action='store_true', help='(use with --trainer) if you do not want to log results on Weights and Biases, use this option')
     parser.add_argument('-d', '--config', type=json.loads, default={}, help='dictionary containing configuration options (modifiers) for the rtgym environment')
     arguments = parser.parse_args()
-    logging.info(arguments)
 
     main(arguments)
