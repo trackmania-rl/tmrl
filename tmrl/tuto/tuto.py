@@ -1,7 +1,5 @@
-from rtgym import RealTimeGymInterface, DEFAULT_CONFIG_DICT, DummyRCDrone
-import gymnasium.spaces as spaces
+import random
 import numpy as np
-import cv2
 import torch
 from torch.optim import Adam
 from copy import deepcopy
@@ -19,6 +17,8 @@ import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TorchTrainingOffline
 from tmrl.training import TrainingAgent
 from tmrl.custom.utils.nn import copy_shared, no_grad
+
+from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
 
 
 CRC_DEBUG = False
@@ -42,99 +42,7 @@ if __name__ == "__main__":
 
 # rtgym interface:
 
-class DummyRCDroneInterface(RealTimeGymInterface):
-
-    def __init__(self):
-        self.rc_drone = None
-        self.target = np.array([0.0, 0.0], dtype=np.float32)
-        self.initialized = False
-        self.blank_image = np.ones((500, 500, 3), dtype=np.uint8) * 255
-        self.rendering_thread = Thread(target=self._rendering_thread, args=(), kwargs={}, daemon=True)
-
-    def _rendering_thread(self):
-        from time import sleep
-        while True:
-            sleep(0.1)
-            self.render()
-
-    def get_observation_space(self):
-        pos_x_space = spaces.Box(low=-1.0, high=1.0, shape=(1,))
-        pos_y_space = spaces.Box(low=-1.0, high=1.0, shape=(1,))
-        tar_x_space = spaces.Box(low=-0.5, high=0.5, shape=(1,))
-        tar_y_space = spaces.Box(low=-0.5, high=0.5, shape=(1,))
-        return spaces.Tuple((pos_x_space, pos_y_space, tar_x_space, tar_y_space))
-
-    def get_action_space(self):
-        return spaces.Box(low=-2.0, high=2.0, shape=(2,))
-
-    def get_default_action(self):
-        return np.array([0.0, 0.0], dtype='float32')
-
-    def send_control(self, control):
-        vel_x = control[0]
-        vel_y = control[1]
-        self.rc_drone.send_control(vel_x, vel_y)
-
-    def reset(self, seed=None, options=None):
-        if not self.initialized:
-            self.rc_drone = DummyRCDrone()
-            self.rendering_thread.start()
-            self.initialized = True
-        pos_x, pos_y = self.rc_drone.get_observation()
-        self.target[0] = np.random.uniform(-0.5, 0.5)
-        self.target[1] = np.random.uniform(-0.5, 0.5)
-        return [np.array([pos_x], dtype='float32'),
-                np.array([pos_y], dtype='float32'),
-                np.array([self.target[0]], dtype='float32'),
-                np.array([self.target[1]], dtype='float32')], {}
-
-    def get_obs_rew_terminated_info(self):
-        pos_x, pos_y = self.rc_drone.get_observation()
-        tar_x = self.target[0]
-        tar_y = self.target[1]
-        obs = [np.array([pos_x], dtype='float32'),
-               np.array([pos_y], dtype='float32'),
-               np.array([tar_x], dtype='float32'),
-               np.array([tar_y], dtype='float32')]
-        rew = -np.linalg.norm(np.array([pos_x, pos_y], dtype=np.float32) - self.target)
-        terminated = rew > -0.01
-        info = {}
-        return obs, rew, terminated, info
-
-    def wait(self):
-        pass
-
-    def render(self):
-        image = self.blank_image.copy()
-        pos_x, pos_y = self.rc_drone.get_observation()
-        image = cv2.circle(img=image,
-                           center=(int(pos_x * 200) + 250, int(pos_y * 200) + 250),
-                           radius=10,
-                           color=(255, 0, 0),
-                           thickness=1)
-        image = cv2.circle(img=image,
-                           center=(int(self.target[0] * 200) + 250, int(self.target[1] * 200) + 250),
-                           radius=5,
-                           color=(0, 0, 255),
-                           thickness=-1)
-        cv2.imshow("Dummy RC drone", image)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            return
-
-
-# rtgym configuration dictionary:
-
-my_config = DEFAULT_CONFIG_DICT.copy()
-my_config["interface"] = DummyRCDroneInterface
-my_config["time_step_duration"] = 0.05
-my_config["start_obs_capture"] = 0.05
-my_config["time_step_timeout_factor"] = 1.0
-my_config["ep_max_length"] = 100
-my_config["act_buf_len"] = 4
-my_config["reset_act_buf"] = False
-my_config["benchmark"] = True
-my_config["benchmark_polyak"] = 0.2
-
+my_config = DUMMY_RC_DRONE_CONFIG
 
 # Environment class:
 
@@ -308,6 +216,16 @@ env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config":
 from tmrl.memory import TorchMemory
 
 
+def last_true_in_list(li):
+    """
+    Returns the index of the last True element in list li, or None.
+    """
+    for i in reversed(range(len(li))):
+        if li[i]:
+            return i
+    return None
+
+
 class MyMemory(TorchMemory):
     def __init__(self,
                  act_buf_len=None,
@@ -344,6 +262,7 @@ class MyMemory(TorchMemory):
         list_terminated = [b[3] for b in buffer.memory]
         list_truncated = [b[4] for b in buffer.memory]
         list_info = [b[5] for b in buffer.memory]
+        list_done = [b[3] or b[4] for b in buffer.memory]
 
         # append to self.data in some arbitrary way:
 
@@ -357,6 +276,7 @@ class MyMemory(TorchMemory):
             self.data[6] += list_terminated
             self.data[7] += list_info
             self.data[8] += list_truncated
+            self.data[9] += list_done
         else:
             self.data.append(list_action)
             self.data.append(list_x_position)
@@ -367,6 +287,7 @@ class MyMemory(TorchMemory):
             self.data.append(list_terminated)
             self.data.append(list_info)
             self.data.append(list_truncated)
+            self.data.append(list_done)
 
         # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
 
@@ -381,6 +302,7 @@ class MyMemory(TorchMemory):
             self.data[6] = self.data[6][to_trim:]
             self.data[7] = self.data[7][to_trim:]
             self.data[8] = self.data[8][to_trim:]
+            self.data[9] = self.data[9][to_trim:]
 
     def __len__(self):
         if len(self.data) == 0:
@@ -398,34 +320,79 @@ class MyMemory(TorchMemory):
         Returns:
             full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
         """
-        idx_last = item + self.act_buf_len - 1  # index of previous observation
-        idx_now = item + self.act_buf_len  # index of new observation
+        while True:  # this enables modifying item in edge cases
 
-        # rebuild the action buffer of both observations:
-        actions = self.data[0][item:(item + self.act_buf_len + 1)]
-        last_act_buf = actions[:-1]  # action buffer of previous observation
-        new_act_buf = actions[1:]  # action buffer of new observation
+            # if item corresponds to a transition from a terminal state to a reset state
+            if self.data[9][item + self.act_buf_len - 1]:
+                # this wouldn't make sense in RL, so we replace item by a neighbour transition
+                if item == 0:  # if first item of the buffer
+                    item += 1
+                elif item == self.__len__() - 1:  # if last item of the buffer
+                    item -= 1
+                elif random.random() < 0.5:  # otherwise, sample randomly
+                    item += 1
+                else:
+                    item -= 1
 
-        # rebuild the previous observation:
-        last_obs = (self.data[1][idx_last],  # x position
-                    self.data[2][idx_last],  # y position
-                    self.data[3][idx_last],  # x target
-                    self.data[4][idx_last],  # y target
-                    *last_act_buf)  # action buffer
+            idx_last = item + self.act_buf_len - 1  # index of previous observation
+            idx_now = item + self.act_buf_len  # index of new observation
 
-        # rebuild the new observation:
-        new_obs = (self.data[1][idx_now],  # x position
-                   self.data[2][idx_now],  # y position
-                   self.data[3][idx_now],  # x target
-                   self.data[4][idx_now],  # y target
-                   *new_act_buf)  # action buffer
+            # rebuild the action buffer of both observations:
+            actions = self.data[0][item:(item + self.act_buf_len + 1)]
+            last_act_buf = actions[:-1]  # action buffer of previous observation
+            new_act_buf = actions[1:]  # action buffer of new observation
 
-        # other components of the transition:
-        new_act = self.data[0][idx_now]  # action
-        rew = np.float32(self.data[5][idx_now])  # reward
-        terminated = self.data[6][idx_now]  # terminated signal
-        truncated = self.data[8][idx_now]  # truncated signal
-        info = self.data[7][idx_now]  # info dictionary
+            # correct the action buffer when it goes over a reset transition:
+            # (NB: we have eliminated the case where the transition *is* the reset transition)
+            eoe = last_true_in_list(self.data[9][item:(item + self.act_buf_len)])  # the last one is not important
+            if eoe is not None:
+                # either one or both action buffers are passing over a reset transition
+                if eoe < self.act_buf_len - 1:
+                    # last_act_buf is concerned
+                    if item == 0:
+                        # we have a problem: the previous action has been discarded; we cannot recover the buffer
+                        # in this edge case, we randomly sample another item
+                        item = random.randint(1, self.__len__())
+                        continue
+                    last_act_buf_eoe = eoe
+                    # replace everything before last_act_buf_eoe by the previous action
+                    prev_act = self.data[0][item - 1]
+                    for idx in range(last_act_buf_eoe + 1):
+                        act_tmp = last_act_buf[idx]
+                        last_act_buf[idx] = prev_act
+                        prev_act = act_tmp
+                if eoe > 0:
+                    # new_act_buf is concerned
+                    new_act_buf_eoe = eoe - 1
+                    # replace everything before new_act_buf_eoe by the previous action
+                    prev_act = self.data[0][item]
+                    for idx in range(new_act_buf_eoe + 1):
+                        act_tmp = new_act_buf[idx]
+                        new_act_buf[idx] = prev_act
+                        prev_act = act_tmp
+
+            # rebuild the previous observation:
+            last_obs = (self.data[1][idx_last],  # x position
+                        self.data[2][idx_last],  # y position
+                        self.data[3][idx_last],  # x target
+                        self.data[4][idx_last],  # y target
+                        *last_act_buf)  # action buffer
+
+            # rebuild the new observation:
+            new_obs = (self.data[1][idx_now],  # x position
+                       self.data[2][idx_now],  # y position
+                       self.data[3][idx_now],  # x target
+                       self.data[4][idx_now],  # y target
+                       *new_act_buf)  # action buffer
+
+            # other components of the transition:
+            new_act = self.data[0][idx_now]  # action
+            rew = np.float32(self.data[5][idx_now])  # reward
+            terminated = self.data[6][idx_now]  # terminated signal
+            truncated = self.data[8][idx_now]  # truncated signal
+            info = self.data[7][idx_now]  # info dictionary
+
+            break
 
         return last_obs, new_act, rew, new_obs, terminated, truncated, info
 

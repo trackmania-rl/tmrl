@@ -79,8 +79,6 @@ class RewardFunction:
                 if min_dist > self.max_dist_from_traj:
                     best_index = self.cur_idx  # if so, consider we didn't move
 
-                # print(f"DEBUG: min_dist={min_dist:.3f}, pos:[{pos[0].item():.3f}, {pos[1].item():.3f}, {pos[2].item():.3f}] / [{self.data[best_index][0].item():.3f}, {self.data[best_index][1].item():.3f}, {self.data[best_index][2].item():.3f}], index:{best_index}")
-
                 break  # we found the best index and can break the while loop
 
         # The reward is then proportional to the number of passed indexes (i.e., track distance):

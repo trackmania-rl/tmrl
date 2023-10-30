@@ -140,7 +140,7 @@ def update_run_instance(run_instance, training_cls):
 
         if target_entropy is None:  # automatic entropy coefficient
             action_space = run_instance.agent.action_space
-            run_instance.agent.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+            run_instance.agent.target_entropy = -np.prod(action_space.shape)  # .astype(np.float32)
         else:
             run_instance.agent.target_entropy = float(target_entropy)
         logging.info(f"Target entropy: {run_instance.agent.target_entropy}.")

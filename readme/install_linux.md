@@ -1,28 +1,19 @@
 # TrackMania 2020 pipeline on Linux
 
-Since version `6.0.0`, the example `tmrl` pipeline for TrackMania 2020 is experimentally supported on Linux, including the `gymnasium` environment (previously supported for Windows only).
+Since version `0.6.0`, the example `tmrl` pipeline for TrackMania 2020 is experimentally supported on Linux, including the `gymnasium` environment.
 
 Note that Ubisoft Nadeo does not officially support Linux.
-Thus, installing TrackMania 2020 and OpenPlanet on Linux is quite involved.
+Thus, installing TrackMania 2020 and OpenPlanet on Linux is somewhat involved.
 
 We believe the most future-proof way of doing this is via Steam.
-Therefore, in this document, we detail how you can use Steam to set up TrackMania 2020 and OpenPlanet on Linux (you can use another method such as pure Wine if you feel confident with that).
+Therefore, in this document, we detail how you can use Steam to set up TrackMania 2020 and OpenPlanet on Linux (you can use another method such as Lutris if you are very confident with that).
 
-Furthermore, you will need to grant yourself access to `uinput` so that `vgamepad` can control your game, and install `xdootool` so that the environment can move and resize the Trackmania window.
-
-Please bear in mind that Ubisoft Connect or Steam may break the following instructions at any point in time.
-Although we support the `tmrl` TrackMania 2020 pipeline once TrackMania 2020 and OpenPlanet are properly installed on your system, we cannot provide direct support for the installation per-se if these instructions do not work on your machine.
-Should it be the case, please feel free to seek support from the community on the [discussions](https://github.com/trackmania-rl/tmrl/discussions) section.
-
-Hopefully TrackMania gets officially supported on Linux by Valve someday :pray:
+Furthermore, you will need to grant yourself access to `uinput` so `vgamepad` can control the game, and install `xdotool` so the environment can move and resize the Trackmania window.
 
 ## TrackMania 2020 installation (Steam)
-We believe Steam is the most reliable way of running TrackMania on Linux.
-
-Sadly, this is not yet officially supported by Valve, but at the moment of writing this guide it does work smoothly with Proton Experimental and some fiddling:
 
 - Install Steam
-  - If you are using Debian (Ubuntu...), you can do this in a terminal with `sudo apt-get install steam`
+  - If you are using Debian/Ubuntu, you can do this in a terminal with `sudo apt-get install steam`
 - Launch Steam.
   - You can do this by executing the `steam` command in a terminal
 - Connect to your Steam account (or create one).
@@ -31,8 +22,8 @@ Sadly, this is not yet officially supported by Valve, but at the moment of writi
 - Navigate to `Store` and search for `Trackmania` in the search bar. Add the game to your library, navigate to `Library`, select `Trackmania`, and install.
 - If you don't already have one, create an account on the [Ubisoft website](https://www.ubisoft.com/).
 - Open a terminal and run `sudo apt-get install winetricks`
-- Run `protontricks --gui` (it should have been installed by Steam, otherwise install it `sudo apt-get install protontricks`)
-- **Note the number next to TrackMania. This is the number of your TrackMania prefix.**
+- Run `protontricks --gui` (it should have been installed by Steam, otherwise install it with `sudo apt-get install protontricks`)
+- **Write down the number next to TrackMania. This is the number of your TrackMania prefix.**
 - Select TrackMania and press OK.
 - Select `Install an application` and press OK.
 - Scroll down, select UPlay, press OK and install. Close protontricks when this is done.
@@ -45,12 +36,13 @@ Sadly, this is not yet officially supported by Valve, but at the moment of writi
 - Select `Run winecfg` and press OK
 - Navigate to the `Drives` tab, check `Show dot files` and click `Apply`
 - Close the utility, and press `Cancel` several times to exit protontricks.
-- Download [OpenPlanet for Trackmania](https://openplanet.dev/download).
-- Open a terminal where you downloaded the installer, and execute `protontricks-launch <installer_name.exe>` (replace `<installer_name>` with the name of your downloaded OpenPlanet installer).
+- Download the latest version of [OpenPlanet for Trackmania](https://openplanet.dev/download).
+- Open a terminal where you downloaded the installer, and execute `protontricks-launch <installer_name.exe>` (replace `<installer_name.exe>` with the name of your downloaded OpenPlanet installer).
 - Select Trackmania, and proceed.
-- When the installer asks you where it should install Trackmania, select the file where Trackmania is installed. On Steam, it is something like `/home/username/.steam/steam/steamapps/common/Trackmania`.
+- When the installer asks you where it should install OpenPlanet for Trackmania, select the file where Trackmania is installed. On Steam, it is something like `/home/username/.steam/steam/steamapps/common/Trackmania`.
 - Complete the installation and launch Trackmania from Steam. OpenPlanet should now work properly.
 
+**Note: You need to redo these steps (starting from the OpenPlanet download) after each automatic update of TrackMania, otherwise the game will fail to launch.**
 
 ## Grant yourself access to `uinput`
 The `tmrl` `gymnasium` environment for TrackMania 2020 uses the `vgamepad` library to control the game.
@@ -72,7 +64,7 @@ KERNEL=="uinput", TAG+="uaccess"
 Save by pressing `CTRL+o`, `ENTER`, and exit `nano` by pressing `CTRL+x`
 
 ## Install `xdotool`
-For instance if you are on Debian:
+For instance if you are on Debian/Ubuntu:
 ```bash
 sudo apt-get install xdotool
 ```
@@ -82,6 +74,8 @@ Open a terminal and run:
 ```bash
 pip3 install tmrl
 ```
+This installs the `tmrl` library in your active python environment and creates a `TmrlData` folder in your home directory.
+
 Navigate to your TrackMania Proton folder:
 
 _(NB: replace the `xxxxxxx` with the number of your TrackMania prefix, seen for instance in `protontricks --gui` next to Trackmania)_
@@ -99,8 +93,6 @@ cp ~/TmrlData/resources/tmrl-test.Map.Gbx Documents/Trackmania/Maps/My Maps/.
 ```
 
 ## Set up `tmrl`
-
-Because Linux 
 
 
 ### Configure/manage TMRL:

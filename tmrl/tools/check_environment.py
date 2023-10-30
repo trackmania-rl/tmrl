@@ -17,7 +17,7 @@ def check_env_tm20lidar():
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020InterfaceLidar
     env_config["wait_on_done"] = True
-    env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False, "min_nb_steps_before_failure": int(20 * 60)}
+    env_config["interface_kwargs"] = {"img_hist_len": 1, "gamepad": False}
     env = gymnasium.make(cfg.RTGYM_VERSION, config=env_config)
     o, i = env.reset()
     while True:
@@ -52,7 +52,6 @@ def check_env_tm20full():
     env_config["interface"] = TM2020Interface
     env_config["wait_on_done"] = True
     env_config["interface_kwargs"] = {"gamepad": False,
-                                      "min_nb_steps_before_failure": int(20 * 60),
                                       "grayscale": cfg.GRAYSCALE,
                                       "resize_to": (cfg.IMG_WIDTH, cfg.IMG_HEIGHT)}
     env = gymnasium.make(cfg.RTGYM_VERSION, config=env_config)

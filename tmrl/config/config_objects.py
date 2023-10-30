@@ -114,7 +114,13 @@ if ALG_NAME == "SAC":
         polyak=ALG_CONFIG["POLYAK"],
         learn_entropy_coef=ALG_CONFIG["LEARN_ENTROPY_COEF"],  # False for SAC v2 with no temperature autotuning
         target_entropy=ALG_CONFIG["TARGET_ENTROPY"],  # None for automatic
-        alpha=ALG_CONFIG["ALPHA"]  # inverse of reward scale
+        alpha=ALG_CONFIG["ALPHA"],  # inverse of reward scale
+        optimizer_actor=ALG_CONFIG["OPTIMIZER_ACTOR"],
+        optimizer_critic=ALG_CONFIG["OPTIMIZER_CRITIC"],
+        betas_actor=ALG_CONFIG["BETAS_ACTOR"] if "BETAS_ACTOR" in ALG_CONFIG else None,
+        betas_critic=ALG_CONFIG["BETAS_CRITIC"] if "BETAS_CRITIC" in ALG_CONFIG else None,
+        l2_actor=ALG_CONFIG["L2_ACTOR"] if "L2_ACTOR" in ALG_CONFIG else None,
+        l2_critic=ALG_CONFIG["L2_CRITIC"] if "L2_CRITIC" in ALG_CONFIG else None
     )
 else:
     AGENT = partial(

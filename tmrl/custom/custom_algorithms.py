@@ -6,12 +6,12 @@ from dataclasses import dataclass
 # third-party imports
 import numpy as np
 import torch
-from torch.optim import Adam
+from torch.optim import Adam, AdamW, SGD
 
 # local imports
 import tmrl.custom.custom_models as core
 from tmrl.custom.utils.nn import copy_shared, no_grad
-from tmrl.util import cached_property
+from tmrl.util import cached_property, partial
 from tmrl.training import TrainingAgent
 import tmrl.config.config_constants as cfg
 
@@ -35,6 +35,12 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
     lr_entropy: float = 1e-3  # entropy autotuning (SAC v2)
     learn_entropy_coef: bool = True  # if True, SAC v2 is used, else, SAC v1 is used
     target_entropy: float = None  # if None, the target entropy for SAC v2 is set automatically
+    optimizer_actor: str = "adam"  # one of ["adam", "adamw", "sgd"]
+    optimizer_critic: str = "adam"  # one of ["adam", "adamw", "sgd"]
+    betas_actor: tuple = None  # for Adam and AdamW
+    betas_critic: tuple = None  # for Adam and AdamW
+    l2_actor: float = None  # weight decay
+    l2_critic: float = None  # weight decay
 
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
@@ -46,12 +52,45 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
 
-        # Set up optimizers for policy and q-function
-        self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
-        self.q_optimizer = Adam(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), lr=self.lr_critic)
+        # Set up optimizers for policy and q-function:
 
-        if self.target_entropy is None:  # automatic entropy coefficient
-            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+        self.optimizer_actor = self.optimizer_actor.lower()
+        self.optimizer_critic = self.optimizer_critic.lower()
+        if self.optimizer_actor not in ["adam", "adamw", "sgd"]:
+            logging.warning(f"actor optimizer {self.optimizer_actor} is not valid, defaulting to sgd")
+        if self.optimizer_critic not in ["adam", "adamw", "sgd"]:
+            logging.warning(f"critic optimizer {self.optimizer_critic} is not valid, defaulting to sgd")
+        if self.optimizer_actor == "adam":
+            pi_optimizer_cls = Adam
+        elif self.optimizer_actor == "adamw":
+            pi_optimizer_cls = AdamW
+        else:
+            pi_optimizer_cls = SGD
+        pi_optimizer_kwargs = {"lr": self.lr_actor}
+        if self.optimizer_actor in ["adam, adamw"] and self.betas_actor is not None:
+            pi_optimizer_kwargs["betas"] = tuple(self.betas_actor)
+        if self.l2_actor is not None:
+            pi_optimizer_kwargs["weight_decay"] = self.l2_actor
+
+        if self.optimizer_critic == "adam":
+            q_optimizer_cls = Adam
+        elif self.optimizer_critic == "adamw":
+            q_optimizer_cls = AdamW
+        else:
+            q_optimizer_cls = SGD
+        q_optimizer_kwargs = {"lr": self.lr_critic}
+        if self.optimizer_critic in ["adam, adamw"] and self.betas_critic is not None:
+            q_optimizer_kwargs["betas"] = tuple(self.betas_critic)
+        if self.l2_critic is not None:
+            q_optimizer_kwargs["weight_decay"] = self.l2_critic
+
+        self.pi_optimizer = pi_optimizer_cls(self.model.actor.parameters(), **pi_optimizer_kwargs)
+        self.q_optimizer = q_optimizer_cls(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), **q_optimizer_kwargs)
+
+        # entropy coefficient:
+
+        if self.target_entropy is None:
+            self.target_entropy = -np.prod(action_space.shape)  # .astype(np.float32)
         else:
             self.target_entropy = float(self.target_entropy)
 
@@ -185,66 +224,66 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
                     loss_actor=loss_pi.detach().item(),
                     loss_critic=loss_q.detach().item(),
                     # debug:
-                    debug_log_pi=logp_pi.detach().mean(),
-                    debug_log_pi_std=logp_pi.detach().std(),
-                    debug_logp_a2=logp_a2.detach().mean(),
-                    debug_logp_a2_std=logp_a2.detach().std(),
-                    debug_q_a1=q_pi.detach().mean(),
-                    debug_q_a1_std=q_pi.detach().std(),
-                    debug_q_a1_targ=q_pi_targ.detach().mean(),
-                    debug_q_a1_targ_std=q_pi_targ.detach().std(),
-                    debug_backup=backup.detach().mean(),
-                    debug_backup_std=backup.detach().std(),
-                    debug_q1=q1.detach().mean(),
-                    debug_q1_std=q1.detach().std(),
-                    debug_q2=q2.detach().mean(),
-                    debug_q2_std=q2.detach().std(),
-                    debug_diff_q1=diff_q1_backup.mean(),
-                    debug_diff_q1_std=diff_q1_backup.std(),
-                    debug_diff_q2=diff_q2_backup.mean(),
-                    debug_diff_q2_std=diff_q2_backup.std(),
-                    debug_diff_r_q1=diff_q1_backup_r.mean(),
-                    debug_diff_r_q1_std=diff_q1_backup_r.std(),
-                    debug_diff_r_q2=diff_q2_backup_r.mean(),
-                    debug_diff_r_q2_std=diff_q2_backup_r.std(),
-                    debug_diff_q1pt_qpt=diff_q1pt_qpt.mean(),
-                    debug_diff_q2pt_qpt=diff_q2pt_qpt.mean(),
-                    debug_diff_q1_q1t_a2=diff_q1_q1t_a2.mean(),
-                    debug_diff_q2_q2t_a2=diff_q2_q2t_a2.mean(),
-                    debug_diff_q1_q1t_pi=diff_q1_q1t_pi.mean(),
-                    debug_diff_q2_q2t_pi=diff_q2_q2t_pi.mean(),
-                    debug_diff_q1_q1t_a=diff_q1_q1t_a.mean(),
-                    debug_diff_q2_q2t_a=diff_q2_q2t_a.mean(),
-                    debug_diff_q1pt_qpt_std=diff_q1pt_qpt.std(),
-                    debug_diff_q2pt_qpt_std=diff_q2pt_qpt.std(),
-                    debug_diff_q1_q1t_a2_std=diff_q1_q1t_a2.std(),
-                    debug_diff_q2_q2t_a2_std=diff_q2_q2t_a2.std(),
-                    debug_diff_q1_q1t_pi_std=diff_q1_q1t_pi.std(),
-                    debug_diff_q2_q2t_pi_std=diff_q2_q2t_pi.std(),
-                    debug_diff_q1_q1t_a_std=diff_q1_q1t_a.std(),
-                    debug_diff_q2_q2t_a_std=diff_q2_q2t_a.std(),
-                    debug_r=r.detach().mean(),
-                    debug_r_std=r.detach().std(),
-                    debug_d=d.detach().mean(),
-                    debug_d_std=d.detach().std(),
-                    debug_a_0=a[:, 0].detach().mean(),
-                    debug_a_0_std=a[:, 0].detach().std(),
-                    debug_a_1=a[:, 1].detach().mean(),
-                    debug_a_1_std=a[:, 1].detach().std(),
-                    debug_a_2=a[:, 2].detach().mean(),
-                    debug_a_2_std=a[:, 2].detach().std(),
-                    debug_a1_0=pi[:, 0].detach().mean(),
-                    debug_a1_0_std=pi[:, 0].detach().std(),
-                    debug_a1_1=pi[:, 1].detach().mean(),
-                    debug_a1_1_std=pi[:, 1].detach().std(),
-                    debug_a1_2=pi[:, 2].detach().mean(),
-                    debug_a1_2_std=pi[:, 2].detach().std(),
-                    debug_a2_0=a2[:, 0].detach().mean(),
-                    debug_a2_0_std=a2[:, 0].detach().std(),
-                    debug_a2_1=a2[:, 1].detach().mean(),
-                    debug_a2_1_std=a2[:, 1].detach().std(),
-                    debug_a2_2=a2[:, 2].detach().mean(),
-                    debug_a2_2_std=a2[:, 2].detach().std(),
+                    debug_log_pi=logp_pi.detach().mean().item(),
+                    debug_log_pi_std=logp_pi.detach().std().item(),
+                    debug_logp_a2=logp_a2.detach().mean().item(),
+                    debug_logp_a2_std=logp_a2.detach().std().item(),
+                    debug_q_a1=q_pi.detach().mean().item(),
+                    debug_q_a1_std=q_pi.detach().std().item(),
+                    debug_q_a1_targ=q_pi_targ.detach().mean().item(),
+                    debug_q_a1_targ_std=q_pi_targ.detach().std().item(),
+                    debug_backup=backup.detach().mean().item(),
+                    debug_backup_std=backup.detach().std().item(),
+                    debug_q1=q1.detach().mean().item(),
+                    debug_q1_std=q1.detach().std().item(),
+                    debug_q2=q2.detach().mean().item(),
+                    debug_q2_std=q2.detach().std().item(),
+                    debug_diff_q1=diff_q1_backup.mean().item(),
+                    debug_diff_q1_std=diff_q1_backup.std().item(),
+                    debug_diff_q2=diff_q2_backup.mean().item(),
+                    debug_diff_q2_std=diff_q2_backup.std().item(),
+                    debug_diff_r_q1=diff_q1_backup_r.mean().item(),
+                    debug_diff_r_q1_std=diff_q1_backup_r.std().item(),
+                    debug_diff_r_q2=diff_q2_backup_r.mean().item(),
+                    debug_diff_r_q2_std=diff_q2_backup_r.std().item(),
+                    debug_diff_q1pt_qpt=diff_q1pt_qpt.mean().item(),
+                    debug_diff_q2pt_qpt=diff_q2pt_qpt.mean().item(),
+                    debug_diff_q1_q1t_a2=diff_q1_q1t_a2.mean().item(),
+                    debug_diff_q2_q2t_a2=diff_q2_q2t_a2.mean().item(),
+                    debug_diff_q1_q1t_pi=diff_q1_q1t_pi.mean().item(),
+                    debug_diff_q2_q2t_pi=diff_q2_q2t_pi.mean().item(),
+                    debug_diff_q1_q1t_a=diff_q1_q1t_a.mean().item(),
+                    debug_diff_q2_q2t_a=diff_q2_q2t_a.mean().item(),
+                    debug_diff_q1pt_qpt_std=diff_q1pt_qpt.std().item(),
+                    debug_diff_q2pt_qpt_std=diff_q2pt_qpt.std().item(),
+                    debug_diff_q1_q1t_a2_std=diff_q1_q1t_a2.std().item(),
+                    debug_diff_q2_q2t_a2_std=diff_q2_q2t_a2.std().item(),
+                    debug_diff_q1_q1t_pi_std=diff_q1_q1t_pi.std().item(),
+                    debug_diff_q2_q2t_pi_std=diff_q2_q2t_pi.std().item(),
+                    debug_diff_q1_q1t_a_std=diff_q1_q1t_a.std().item(),
+                    debug_diff_q2_q2t_a_std=diff_q2_q2t_a.std().item(),
+                    debug_r=r.detach().mean().item(),
+                    debug_r_std=r.detach().std().item(),
+                    debug_d=d.detach().mean().item(),
+                    debug_d_std=d.detach().std().item(),
+                    debug_a_0=a[:, 0].detach().mean().item(),
+                    debug_a_0_std=a[:, 0].detach().std().item(),
+                    debug_a_1=a[:, 1].detach().mean().item(),
+                    debug_a_1_std=a[:, 1].detach().std().item(),
+                    debug_a_2=a[:, 2].detach().mean().item(),
+                    debug_a_2_std=a[:, 2].detach().std().item(),
+                    debug_a1_0=pi[:, 0].detach().mean().item(),
+                    debug_a1_0_std=pi[:, 0].detach().std().item(),
+                    debug_a1_1=pi[:, 1].detach().mean().item(),
+                    debug_a1_1_std=pi[:, 1].detach().std().item(),
+                    debug_a1_2=pi[:, 2].detach().mean().item(),
+                    debug_a1_2_std=pi[:, 2].detach().std().item(),
+                    debug_a2_0=a2[:, 0].detach().mean().item(),
+                    debug_a2_0_std=a2[:, 0].detach().std().item(),
+                    debug_a2_1=a2[:, 1].detach().mean().item(),
+                    debug_a2_1_std=a2[:, 1].detach().std().item(),
+                    debug_a2_2=a2[:, 2].detach().mean().item(),
+                    debug_a2_2_std=a2[:, 2].detach().std().item(),
                 )
 
         if self.learn_entropy_coef:
@@ -291,7 +330,7 @@ class REDQSACAgent(TrainingAgent):
         self.i_update = 0  # for UTD ratio
 
         if self.target_entropy is None:  # automatic entropy coefficient
-            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+            self.target_entropy = -np.prod(action_space.shape)  # .astype(np.float32)
         else:
             self.target_entropy = float(self.target_entropy)
 

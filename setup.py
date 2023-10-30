@@ -10,10 +10,10 @@ import urllib.error
 import socket
 
 if sys.version_info < (3, 7):
-    sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
+    sys.exit('Sorry, Python < 3.7 is not supported.')
 
 
-RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.4.2/resources.zip"
+RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.6.0/resources.zip"
 
 
 def url_retrieve(url: str, outfile: Path, overwrite: bool = False):
@@ -111,7 +111,8 @@ install_req = [
     'pyautogui',
     'pyinstrument',
     'tlspyo>=0.2.5',
-    'chardet'  # requests dependency
+    'chardet',  # requests dependency
+    'packaging'
 ]
 
 # Dependencies for the TrackMania pipeline
@@ -122,11 +123,10 @@ elif platform.system() == "Linux":
     install_req.append('mss')
     install_req.append('vgamepad>=0.1.0')
 
-# The directory containing this file
+# Short readme for PyPI
 HERE = os.path.abspath(os.path.dirname(__file__))
-
-# The text of the README file
-with open(os.path.join(HERE, "README.md")) as fid:
+README_FOLDER = os.path.join(HERE, "readme")
+with open(os.path.join(HERE, "pypi.md")) as fid:
     README = fid.read()
 
 setup(

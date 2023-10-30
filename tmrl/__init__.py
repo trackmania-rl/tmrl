@@ -3,6 +3,7 @@ import logging
 import sys
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
+# fixes for Windows:
 import platform
 if platform.system() == "Windows":
     # fix pywin32 in case it fails to import:
@@ -23,6 +24,7 @@ if platform.system() == "Windows":
             \n=== Exception 1 ===\n{str(e1)}\n=== Exception 2 ===\n{str(e2)}\
             \nPlease install pywin32 manually.")
             raise RuntimeError("Please install pywin32 manually: https://github.com/mhammond/pywin32")
+
 
 # do not remove this
 from dataclasses import dataclass

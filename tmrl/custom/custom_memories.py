@@ -1,9 +1,8 @@
-# third-party imports
+import random
 import numpy as np
-import cv2
 
-# local imports
 from tmrl.memory import TorchMemory
+
 
 # LOCAL BUFFER COMPRESSION ==============================
 
@@ -92,6 +91,93 @@ def replace_hist_before_eoe(hist, eoe_idx_in_hist):
 # SUPPORTED CUSTOM MEMORIES ============================================================================================
 
 
+class GenericTorchMemory(TorchMemory):
+    def __init__(self,
+                 memory_size=1e6,
+                 batch_size=1,
+                 dataset_path="",
+                 nb_steps=1,
+                 sample_preprocessor: callable = None,
+                 crc_debug=False,
+                 device="cpu"):
+        super().__init__(memory_size=memory_size,
+                         batch_size=batch_size,
+                         dataset_path=dataset_path,
+                         nb_steps=nb_steps,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
+
+    def append_buffer(self, buffer):
+
+        # parse:
+        d0 = [b[0] for b in buffer.memory]  # actions
+        d1 = [b[1] for b in buffer.memory]  # observations
+        d2 = [b[2] for b in buffer.memory]  # rewards
+        d3 = [b[3] for b in buffer.memory]  # terminated
+        d4 = [b[4] for b in buffer.memory]  # truncated
+        d5 = [b[5] for b in buffer.memory]  # info
+        d6 = [b[3] or b[4] for b in buffer.memory]  # done
+
+        # append:
+        if self.__len__() > 0:
+            self.data[0] += d0
+            self.data[1] += d1
+            self.data[2] += d2
+            self.data[3] += d3
+            self.data[4] += d4
+            self.data[5] += d5
+            self.data[6] += d6
+        else:
+            self.data.append(d0)
+            self.data.append(d1)
+            self.data.append(d2)
+            self.data.append(d3)
+            self.data.append(d4)
+            self.data.append(d5)
+            self.data.append(d6)
+
+        # trim
+        to_trim = int(self.__len__() - self.memory_size)
+        if to_trim > 0:
+            self.data[0] = self.data[0][to_trim:]
+            self.data[1] = self.data[1][to_trim:]
+            self.data[2] = self.data[2][to_trim:]
+            self.data[3] = self.data[3][to_trim:]
+            self.data[4] = self.data[4][to_trim:]
+            self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
+
+    def __len__(self):
+        if len(self.data) == 0:
+            return 0
+        res = len(self.data[0]) - 1
+        if res < 0:
+            return 0
+        else:
+            return res
+
+    def get_transition(self, item):
+
+        # This is a hack to avoid invalid transitions from terminal to initial
+        # TODO: find a way to only index valid transitions instead
+        while self.data[6][item]:
+            item = random.randint(a=0, b=self.__len__() - 1)
+
+        idx_last = item
+        idx_now = item + 1
+
+        last_obs = self.data[1][idx_last]
+        new_act = self.data[0][idx_now]
+        rew = self.data[2][idx_now]
+        new_obs = self.data[1][idx_now]
+        terminated = self.data[3][idx_now]
+        truncated = self.data[4][idx_now]
+        info = self.data[5][idx_now]
+
+        return last_obs, new_act, rew, new_obs, terminated, truncated, info
+
+
 class MemoryTM(TorchMemory):
     def __init__(self,
                  memory_size=None,
@@ -142,6 +228,16 @@ class MemoryTMLidar(MemoryTM):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
+        if self.data[4][item + self.min_samples - 1]:
+            if item == 0:  # if first item of the buffer
+                item += 1
+            elif item == self.__len__() - 1:  # if last item of the buffer
+                item -= 1
+            elif random.random() < 0.5:  # otherwise, sample randomly
+                item += 1
+            else:
+                item -= 1
+
         idx_last = item + self.min_samples - 1
         idx_now = item + self.min_samples
 
@@ -249,6 +345,16 @@ class MemoryTMLidarProgress(MemoryTM):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
+        if self.data[4][item + self.min_samples - 1]:
+            if item == 0:  # if first item of the buffer
+                item += 1
+            elif item == self.__len__() - 1:  # if last item of the buffer
+                item -= 1
+            elif random.random() < 0.5:  # otherwise, sample randomly
+                item += 1
+            else:
+                item -= 1
+
         idx_last = item + self.min_samples - 1
         idx_now = item + self.min_samples
 
@@ -360,6 +466,16 @@ class MemoryTMFull(MemoryTM):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
+        if self.data[4][item + self.min_samples - 1]:
+            if item == 0:  # if first item of the buffer
+                item += 1
+            elif item == self.__len__() - 1:  # if last item of the buffer
+                item -= 1
+            elif random.random() < 0.5:  # otherwise, sample randomly
+                item += 1
+            else:
+                item -= 1
+
         idx_last = item + self.min_samples - 1
         idx_now = item + self.min_samples
 

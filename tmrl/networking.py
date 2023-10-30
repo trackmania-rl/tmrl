@@ -232,13 +232,13 @@ def dump_run_instance(run_instance, checkpoint_path):
     dump(run_instance, checkpoint_path)
 
 
-def iterate_epochs_tm(run_cls,
-                      interface: TrainerInterface,
-                      checkpoint_path: str,
-                      dump_run_instance_fn=dump_run_instance,
-                      load_run_instance_fn=load_run_instance,
-                      epochs_between_checkpoints=1,
-                      updater_fn=None):
+def iterate_epochs(run_cls,
+                   interface: TrainerInterface,
+                   checkpoint_path: str,
+                   dump_run_instance_fn=dump_run_instance,
+                   load_run_instance_fn=load_run_instance,
+                   epochs_between_checkpoints=1,
+                   updater_fn=None):
     """
     Main training loop (remote)
     The run_cls instance is saved in checkpoint_path at the end of each epoch
@@ -314,7 +314,7 @@ def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path:
             else:
                 time.sleep(10.0)
     # logging.info(config)
-    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
+    for stats in iterate_epochs(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
         [wandb.log(json.loads(s.to_json())) for s in stats]
 
 
@@ -324,7 +324,7 @@ def run(interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=No
     """
     dump_run_instance_fn = dump_run_instance_fn or dump_run_instance
     load_run_instance_fn = load_run_instance_fn or load_run_instance
-    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
+    for stats in iterate_epochs(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
         pass
 
 
@@ -509,6 +509,10 @@ class RolloutWorker:
         self.crc_debug = crc_debug
         self.model_history = model_history
         self._cur_hist_cpt = 0
+        self.model_cpt = 0
+
+        self.debug_ts_cpt = 0
+        self.debug_ts_res_cpt = 0
 
         self.server_ip = server_ip if server_ip is not None else '127.0.0.1'
 
@@ -558,7 +562,12 @@ class RolloutWorker:
             dict: information retrieved from the environment)
         """
         obs = None
-        act = self.env.unwrapped.default_action.astype(np.float32)
+        try:
+            # Faster than hasattr() in real-time environments
+            act = self.env.unwrapped.default_action  # .astype(np.float32)
+        except AttributeError:
+            # In non-real-time environments, act is None on reset
+            act = None
         new_obs, info = self.env.reset()
         if self.obs_preprocessor is not None:
             new_obs = self.obs_preprocessor(new_obs)
@@ -566,7 +575,10 @@ class RolloutWorker:
         terminated, truncated = False, False
         if collect_samples:
             if self.crc_debug:
+                self.debug_ts_cpt += 1
+                self.debug_ts_res_cpt = 0
                 info['crc_sample'] = (obs, act, new_obs, rew, terminated, truncated)
+                info['crc_sample_ts'] = (self.debug_ts_cpt, self.debug_ts_res_cpt)
             if self.get_local_buffer_sample:
                 sample = self.get_local_buffer_sample(act, new_obs, rew, terminated, truncated, info)
             else:
@@ -604,7 +616,10 @@ class RolloutWorker:
             if last_step and not terminated:
                 truncated = True
             if self.crc_debug:
+                self.debug_ts_cpt += 1
+                self.debug_ts_res_cpt += 1
                 info['crc_sample'] = (obs, act, new_obs, rew, terminated, truncated)
+                info['crc_sample_ts'] = (self.debug_ts_cpt, self.debug_ts_res_cpt)
             if self.get_local_buffer_sample:
                 sample = self.get_local_buffer_sample(act, new_obs, rew, terminated, truncated, info)
             else:
@@ -612,7 +627,7 @@ class RolloutWorker:
             self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return new_obs, rew, terminated, truncated, info
 
-    def collect_train_episode(self, max_samples):
+    def collect_train_episode(self, max_samples=None):
         """
         Collects a maximum of `max_samples` training transitions (from reset to terminated or truncated)
 
@@ -623,6 +638,9 @@ class RolloutWorker:
             max_samples (int): if the environment is not `terminated` after `max_samples` time steps,
                 it is forcefully reset and `truncated` is set to True.
         """
+        if max_samples is None:
+            max_samples = self.max_samples_per_episode
+
         ret = 0.0
         steps = 0
         obs, info = self.reset(collect_samples=True)
@@ -635,7 +653,7 @@ class RolloutWorker:
         self.buffer.stat_train_return = ret
         self.buffer.stat_train_steps = steps
 
-    def run_episodes(self, max_samples_per_episode, nb_episodes=np.inf, train=False):
+    def run_episodes(self, max_samples_per_episode=None, nb_episodes=np.inf, train=False):
         """
         Runs `nb_episodes` episodes.
 
@@ -644,12 +662,15 @@ class RolloutWorker:
             nb_episodes (int): total number of episodes to collect
             train (bool): same as run_episode
         """
+        if max_samples_per_episode is None:
+            max_samples_per_episode = self.max_samples_per_episode
+
         counter = 0
         while counter < nb_episodes:
             self.run_episode(max_samples_per_episode, train=train)
             counter += 1
 
-    def run_episode(self, max_samples, train=False):
+    def run_episode(self, max_samples=None, train=False):
         """
         Collects a maximum of `max_samples` test transitions (from reset to terminated or truncated).
 
@@ -659,6 +680,9 @@ class RolloutWorker:
             train (bool): whether the episode is a training or a test episode.
                 `step` is called with `test=not train`.
         """
+        if max_samples is None:
+            max_samples = self.max_samples_per_episode
+
         ret = 0.0
         steps = 0
         obs, info = self.reset(collect_samples=False)
@@ -671,34 +695,206 @@ class RolloutWorker:
         self.buffer.stat_test_return = ret
         self.buffer.stat_test_steps = steps
 
-    def run(self, test_episode_interval=50, nb_episodes=np.inf):  # TODO: check number of collected samples are collected before sending
+    def run(self, test_episode_interval=0, nb_episodes=np.inf, verbose=True, expert=False):
         """
         Runs the worker for `nb_episodes` episodes.
 
-        This method is for training.
-        It collects a test episode each `test_episode_interval` episodes.
-        For deployment, use the `run_episodes` method instead.
+        This method sends episodes continuously to the Server, and checks for new weights between episodes.
+        For synchronous or more fine-grained sampling, use synchronous or lower-level APIs.
+        For deployment, use `run_episodes` rather than `run`.
 
         Args:
-            test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes
-            nb_episodes (int): maximum number of train episodes to collect
+            test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes;
+                set to 0 to not collect test episodes.
+            nb_episodes (int): maximum number of train episodes to collect.
+            verbose (bool): whether to log INFO messages.
+            expert (bool): experts send training samples without updating their model nor running test episodes.
         """
-        episode = 0
-        while episode < nb_episodes:
-            if episode % test_episode_interval == 0 and not self.crc_debug:
-                print_with_timestamp("running test episode")
-                self.run_episode(self.max_samples_per_episode, train=False)
-            print_with_timestamp("collecting train episode")
-            self.collect_train_episode(self.max_samples_per_episode)
-            print_with_timestamp("copying buffer for sending")
-            self.send_and_clear_buffer()
-            print_with_timestamp("checking for new weights")
-            self.update_actor_weights()
-            episode += 1
-            # if self.crc_debug:
-            #     break
 
-    def run_env_benchmark(self, nb_steps, test=False):
+        episode = 0
+        if expert:
+            if not verbose:
+                while episode < nb_episodes:
+                    self.collect_train_episode(self.max_samples_per_episode)
+                    self.send_and_clear_buffer()
+                    self.ignore_actor_weights()
+                    episode += 1
+            else:
+                while episode < nb_episodes:
+                    print_with_timestamp("collecting expert episode")
+                    self.collect_train_episode(self.max_samples_per_episode)
+                    print_with_timestamp("copying buffer for sending")
+                    self.send_and_clear_buffer()
+                    self.ignore_actor_weights()
+                    episode += 1
+        elif not verbose:
+            if not test_episode_interval:
+                while episode < nb_episodes:
+                    self.collect_train_episode(self.max_samples_per_episode)
+                    self.send_and_clear_buffer()
+                    self.update_actor_weights(verbose=False)
+                    episode += 1
+            else:
+                while episode < nb_episodes:
+                    if episode % test_episode_interval == 0 and not self.crc_debug:
+                        self.run_episode(self.max_samples_per_episode, train=False)
+                    self.collect_train_episode(self.max_samples_per_episode)
+                    self.send_and_clear_buffer()
+                    self.update_actor_weights(verbose=False)
+                    episode += 1
+        else:
+            while episode < nb_episodes:
+                if test_episode_interval and episode % test_episode_interval == 0 and not self.crc_debug:
+                    print_with_timestamp("running test episode")
+                    self.run_episode(self.max_samples_per_episode, train=False)
+                print_with_timestamp("collecting train episode")
+                self.collect_train_episode(self.max_samples_per_episode)
+                print_with_timestamp("copying buffer for sending")
+                self.send_and_clear_buffer()
+                print_with_timestamp("checking for new weights")
+                self.update_actor_weights(verbose=True)
+                episode += 1
+
+    def run_synchronous(self,
+                        test_episode_interval=0,
+                        nb_steps=np.inf,
+                        initial_steps=1,
+                        max_steps_per_update=np.inf,
+                        end_episodes=True,
+                        verbose=False):
+        """
+        Collects `nb_steps` steps while synchronizing with the Trainer.
+
+        This method is useful for traditional (non-real-time) environments that can be stepped fast.
+        It also works for rtgym environments with `wait_on_done` enabled, just set `end_episodes` to `True`.
+
+        Note: This method does not collect test episodes. Periodically use `run_episode(train=False)` if you wish to.
+
+        Args:
+            test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes;
+                set to 0 to not collect test episodes. NB: `end_episodes` must be `True` to collect test episodes.
+            nb_steps (int): total number of steps to collect (after `initial_steps`).
+            initial_steps (int): initial number of steps to collect before waiting for the first model update.
+            max_steps_per_update (float): maximum number of steps to collect per model received from the Server
+                (this can be a non-integer ratio).
+            end_episodes (bool): when True, waits for episodes to end before sending samples and waiting for updates.
+                When False (default), pauses whenever the max_steps_per_update ratio is exceeded.
+            verbose (bool): whether to log INFO messages.
+        """
+
+        # collect initial samples
+
+        if verbose:
+            logging.info(f"Collecting {initial_steps} initial steps")
+
+        iteration = 0
+        done = False
+        while iteration < initial_steps:
+            steps = 0
+            ret = 0.0
+            # reset
+            obs, info = self.reset(collect_samples=True)
+            done = False
+            iteration += 1
+            # episode
+            while not done and (end_episodes or iteration < initial_steps):
+                # step
+                obs, rew, terminated, truncated, info = self.step(obs=obs,
+                                                                  test=False,
+                                                                  collect_samples=True,
+                                                                  last_step=steps == self.max_samples_per_episode - 1)
+                iteration += 1
+                steps += 1
+                ret += rew
+                done = terminated or truncated
+            # send the collected samples to the Server
+            self.buffer.stat_train_return = ret
+            self.buffer.stat_train_steps = steps
+            if verbose:
+                logging.info(f"Sending buffer (initial steps)")
+            self.send_and_clear_buffer()
+
+        i_model = 1
+
+        # wait for the first updated model if required here
+        ratio = (iteration + 1) / i_model
+        while ratio > max_steps_per_update:
+            if verbose:
+                logging.info(f"Ratio {ratio} > {max_steps_per_update}, sending buffer checking updates")
+            self.send_and_clear_buffer()
+            i_model += self.update_actor_weights(verbose=verbose, blocking=True)
+            ratio = (iteration + 1) / i_model
+
+        # collect further samples while synchronizing with the Trainer
+
+        iteration = 0
+        episode = 0
+        steps = 0
+        ret = 0.0
+
+        while iteration < nb_steps:
+
+            if done:
+                # test episode
+                if test_episode_interval > 0 and episode % test_episode_interval == 0 and end_episodes:
+                    if verbose:
+                        print_with_timestamp("running test episode")
+                    self.run_episode(self.max_samples_per_episode, train=False)
+                # reset
+                obs, info = self.reset(collect_samples=True)
+                done = False
+                iteration += 1
+                steps = 0
+                ret = 0.0
+                episode += 1
+
+            while not done and (end_episodes or ratio <= max_steps_per_update):
+
+                # step
+                obs, rew, terminated, truncated, info = self.step(obs=obs,
+                                                                  test=False,
+                                                                  collect_samples=True,
+                                                                  last_step=steps == self.max_samples_per_episode - 1)
+                iteration += 1
+                steps += 1
+                ret += rew
+
+                done = terminated or truncated
+
+                if not end_episodes:
+                    # check model and send samples after each step
+                    ratio = (iteration + 1) / i_model
+                    while ratio > max_steps_per_update:
+                        if verbose:
+                            logging.info(f"Ratio {ratio} > {max_steps_per_update}, sending buffer checking updates (no eoe)")
+                        if not done:
+                            if verbose:
+                                logging.info(f"Sending buffer (no eoe)")
+                            self.send_and_clear_buffer()
+                        i_model += self.update_actor_weights(verbose=verbose, blocking=True)
+                        ratio = (iteration + 1) / i_model
+
+            if end_episodes:
+                # check model and send samples only after episodes end
+                ratio = (iteration + 1) / i_model
+                while ratio > max_steps_per_update:
+                    if verbose:
+                        logging.info(
+                            f"Ratio {ratio} > {max_steps_per_update}, sending buffer checking updates (eoe)")
+                    if not done:
+                        if verbose:
+                            logging.info(f"Sending buffer (eoe)")
+                        self.send_and_clear_buffer()
+                    i_model += self.update_actor_weights(verbose=verbose, blocking=True)
+                    ratio = (iteration + 1) / i_model
+
+            self.buffer.stat_train_return = ret
+            self.buffer.stat_train_steps = steps
+            if verbose:
+                logging.info(f"Sending buffer - DEBUG ratio {ratio} iteration {iteration} i_model {i_model}")
+            self.send_and_clear_buffer()
+
+    def run_env_benchmark(self, nb_steps, test=False, verbose=True):
         """
         Benchmarks the environment.
 
@@ -710,13 +906,17 @@ class RolloutWorker:
         Args:
             nb_steps (int): number of steps to perform to compute the benchmark
             test (int): whether the actor is called in test or train mode
+            verbose (bool): whether to log INFO messages
         """
         obs, info = self.reset(collect_samples=False)
         for _ in range(nb_steps):
             obs, rew, terminated, truncated, info = self.step(obs=obs, test=test, collect_samples=False)
             if terminated or truncated:
                 break
-        print_with_timestamp(f"Benchmark results:\n{self.env.benchmarks()}")
+        res = self.env.benchmarks()
+        if verbose:
+            print_with_timestamp(f"Benchmark results:\n{res}")
+        return res
 
     def send_and_clear_buffer(self):
         """
@@ -725,12 +925,20 @@ class RolloutWorker:
         self.__endpoint.produce(self.buffer, "trainers")
         self.buffer.clear()
 
-    def update_actor_weights(self):
+    def update_actor_weights(self, verbose=True, blocking=False):
         """
         Updates the actor with new weights received from the `Server` when available.
+
+        Args:
+            verbose (bool): whether to log INFO messages.
+            blocking (bool): if True, blocks until a model is received; otherwise, can be a no-op.
+
+        Returns:
+            int: number of new actor models received from the Server (the latest is used).
         """
-        weights_list = self.__endpoint.get_last()
-        if len(weights_list) > 0:
+        weights_list = self.__endpoint.receive_all(blocking=blocking)
+        nb_received = len(weights_list)
+        if nb_received > 0:
             weights = weights_list[-1]
             with open(self.model_path, 'wb') as f:
                 f.write(weights)
@@ -741,6 +949,22 @@ class RolloutWorker:
                     with open(self.model_path_history + str(x.strftime("%d_%m_%Y_%H_%M_%S")) + ".tmod", 'wb') as f:
                         f.write(weights)
                     self._cur_hist_cpt = 0
-                    print_with_timestamp("model weights saved in history")
+                    if verbose:
+                        print_with_timestamp("model weights saved in history")
             self.actor = self.actor.load(self.model_path, device=self.device)
-            print_with_timestamp("model weights have been updated")
+            if verbose:
+                print_with_timestamp("model weights have been updated")
+        return nb_received
+
+    def ignore_actor_weights(self):
+        """
+        Clears the buffer of weights received from the `Server`.
+
+        This is useful for expert RolloutWorkers, because all RolloutWorkers receive weights.
+
+        Returns:
+            int: number of new (ignored) actor models received from the Server.
+        """
+        weights_list = self.__endpoint.receive_all(blocking=False)
+        nb_received = len(weights_list)
+        return nb_received

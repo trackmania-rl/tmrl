@@ -4,7 +4,10 @@ from pathlib import Path
 import logging
 import json
 import platform
+from packaging import version
 
+
+__compatibility__ = "0.6.0"
 
 SYSTEM = platform.system()
 RTGYM_VERSION = "real-time-gym-v1" if SYSTEM == "Windows" else "real-time-gym-ts-v1"
@@ -19,6 +22,16 @@ CONFIG_FOLDER = TMRL_FOLDER / "config"
 CONFIG_FILE = TMRL_FOLDER / "config" / "config.json"
 with open(CONFIG_FILE) as f:
     TMRL_CONFIG = json.load(f)
+
+# VERSION CHECK: =====================================================
+
+__err_msg = "Perform a clean installation:\n(1) Uninstall TMRL,\n(2) Delete the TmrlData folder,\n(3) Reinstall TMRL."
+assert "__VERSION__" in TMRL_CONFIG, "config.json is outdated. " + __err_msg
+CONFIG_VERSION = TMRL_CONFIG["__VERSION__"]
+assert version.parse(CONFIG_VERSION) >= version.parse(__compatibility__), \
+    f"config.json version ({CONFIG_VERSION}) must be >= {__compatibility__}. " + __err_msg
+
+# GENERAL: ===========================================================
 
 RUN_NAME = TMRL_CONFIG["RUN_NAME"]  # "SACv1_SPINUP_4_LIDAR_pretrained_test_9"
 BUFFERS_MAXLEN = TMRL_CONFIG["BUFFERS_MAXLEN"]  # Maximum length of the local buffers for RolloutWorkers, Server and TrainerInterface
@@ -47,8 +60,7 @@ PRAGMA_PROGRESS = RTGYM_INTERFACE.endswith("LIDARPROGRESS")
 if PRAGMA_PROGRESS:
     PRAGMA_LIDAR = True
 LIDAR_BLACK_THRESHOLD = [55, 55, 55]  # [88, 88, 88] for tiny road, [55, 55, 55] FOR BASIC ROAD
-REWARD_END_OF_TRACK = 100  # bonus reward at the end of the track
-CONSTANT_PENALTY = 0  # should be <= 0 : added to the reward at each time step
+REWARD_CONFIG = ENV_CONFIG["REWARD_CONFIG"]
 SLEEP_TIME_AT_RESET = ENV_CONFIG["SLEEP_TIME_AT_RESET"]  # 1.5 to start in a Markov state with the lidar
 IMG_HIST_LEN = ENV_CONFIG["IMG_HIST_LEN"]  # 4 without RNN, 1 with RNN
 ACT_BUF_LEN = ENV_CONFIG["RTGYM_CONFIG"]["act_buf_len"]

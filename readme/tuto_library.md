@@ -2,15 +2,17 @@
 
 In other sections, we have seen how to use `tmrl` as a standalone program, thanks to the ready-to-use training pipeline for TrackMania.
 
-However, as soon as you will want to try more advanced stuff (e.g., using robots, other video games, other training algorithms, etc...), you will need to get your hands dirty with some python coding.
+However, as soon as you want to try more advanced things (e.g., using robots, other video games, other training algorithms, etc.), you will need to get your hands dirty with some python coding.
 This is when you need to start using `tmrl` as a python library.
 
 In this tutorial, we will learn from A to Z how to implement our own specialized pipeline, in our own robot environment, with our own training algorithm.
 
-In complement to this tutorial, you may use the [API documentation](https://tmrl.readthedocs.io/en/latest/).
-
 The full script of the tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
 
+You may also want to read the [API documentation](https://tmrl.readthedocs.io/en/latest/).
+
+In complement, you can find a minimal `tmrl` pipeline for the real-time environment used in this tutorial [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_drone.py).
+You can also find a minimal `tmrl` pipeline for non-real-time environments (e.g., Pendulum) [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_pendulum.py).
 
 **Note: some modules can be implemented independently.
 If you are here because you wish to implement your own training algorithm in TrackMania, you should read the [competition tutorial](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) instead.**
@@ -31,28 +33,28 @@ If you think an option to install `tmrl` without support for TrackMania should e
 ## Quick links
 
 - [Tools](#tools)
-  - [partial() method](#partial-method)
-  - [Constants](#constants)
+    - [partial() method](#partial-method)
+    - [Constants](#constants)
 - [Security](#network-and-internet-security)
-- [Server](#server) 
+- [Server](#server)
 - [Environment](#environment)
 - [RolloutWorker](#rollout-workers)
-  - [Environment class](#environment-class)
-  - [Actor class](#actor-class)
-  - [Sample compression](#sample-compression)
-  - [Device](#device)
-  - [Networking](#networking)
-  - [Persistent policy weights](#persistent-policy-weights)
-  - [Others](#others)
-  - [Instantiate and run](#instantiate-and-run-a-worker)
+    - [Environment class](#environment-class)
+    - [Actor class](#actor-class)
+    - [Sample compression](#sample-compression)
+    - [Device](#device)
+    - [Networking](#networking)
+    - [Persistent policy weights](#persistent-policy-weights)
+    - [Others](#others)
+    - [Instantiate and run](#instantiate-and-run-a-worker)
 - [Trainer](#trainer)
-  - [Networking and files](#networking-and-files)
-  - [Training class](#training-class)
-    - [Dummy environment](#dummy-environment)
-    - [Memory](#memory)
-    - [TrainingAgent](#training-agent)
-    - [Training parameters](#training-parameters)
-  - [Instantiate and run](#instantiate-and-run-the-trainer)
+    - [Networking and files](#networking-and-files)
+    - [Training class](#training-class)
+        - [Dummy environment](#dummy-environment)
+        - [Memory](#memory)
+        - [TrainingAgent](#training-agent)
+        - [Training parameters](#training-parameters)
+    - [Instantiate and run](#instantiate-and-run-the-trainer)
 - [CRC debugging](#crc-debugging)
 - [Full script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py)
 
@@ -128,15 +130,16 @@ server_port = 6666  # port through which our Server will be accessible
 
 ## Server
 
-`tmrl` is built on a client-server architecture, where the `Server` object is a simple central means of communication between an instance of the `Trainer` class and one to several instances of the `RolloutWorker` class.
+`tmrl` uses a multiple clients / single server architecture.
+The `Server` object is the central means of communication between an instance of the `Trainer` class and one to several instances of the `RolloutWorker` class.
 
-It enables `tmrl` to run on, e.g., HPC clusters where the user does not have port-forwarding access, as long as they have a local machine with port-forwarding access on which the `Server` can run (this can be a machine running a `RolloutWorker` in parallel).
+This enables `tmrl` to run on, e.g., HPC clusters where the user does not have port-forwarding access, as long as they have a local machine with port-forwarding access on which the `Server` can run (this can be a machine running a `RolloutWorker` in parallel).
 
 Both the `Trainer` and the `RolloutWorkers` connect to the `Server`.
 The `RolloutWorkers` run the current policy to collect samples in the real world, and periodically send these samples to the `Server`, which forwards them to the `Trainer`.
 The `Trainer` uses these samples to update the current policy, and periodically sends updated policy weights to the `Server`, which forwards them to all connected `RolloutWorkers`.
 
-The `Server` is thus the central communication point between entities and should be instantiated first.
+Being the central communication point between entities, the `Server` should be instantiated first.
 In the context of this tutorial, we will instantiate all 3 entities on the same machine, and thus they will communicate via the `localhost` address, which is `"127.0.0.1"`
 _(NB: the `Server` does not know this, it listens to any incoming connection)_.
 
@@ -160,11 +163,12 @@ As soon as the server is instantiated, it listens for incoming connections from 
 
 ## Environment
 In RL, a task is often called an "environment".
-`tmrl` is meant for asynchronous remote training of real-time applications such as robots.
-Thus, we use [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (`rtgym`) to wrap our robots and video games into a Gym environment.
-You can also probably use other environments as long as they are registered as Gymnasium environments and have a relevant substitute for the `default_action` attribute.
 
-To build your own environment (e.g., an environment for your own robot or video game), follow the [rtgym tutorial](https://github.com/yannbouteiller/rtgym#tutorial).
+`tmrl` is particularly fit for asynchronous remote training of real-time applications such as robots.
+We use [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (`rtgym`) to wrap our robots and video games into Gymnasium environments.
+But you can use an environment of your choice, as long as it is registered as a Gymnasium environment.
+
+To build your own real-time environment (e.g., an environment for your own robot or video game), you can follow the [rtgym tutorial](https://github.com/yannbouteiller/rtgym#tutorial).
 If you need inspiration, you can find our `rtgym` interfaces for TrackMania in [custom_gym_interfaces.py](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py).
 
 For the sake of the `tmrl` tutorial, we will be using the dummy RC drone environment from the `rtgym` tutorial:
@@ -304,8 +308,9 @@ class RolloutWorker:
             # history of policies can be stored here 
             model_history=cfg.MODEL_HISTORY,  # new policies are saved % model_history (0: not saved)
             standalone=False,  # if True, the worker will not try to connect to a server
+            verbose=True,  # if True, the worker will log messages to the console
     ):
-        # (...)
+# (...)
 ```
 
 For example, the default `RolloutWorker` implemented for TrackMania is instantiated [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py).
@@ -316,7 +321,7 @@ In this tutorial, we will implement a similar `RolloutWorker` for our dummy dron
 The first argument of our `RolloutWorker` is `env_cls`.
 
 This expects a Gymnasium environment class, which can be partially instantiated with `partial()`.
-Furthermore, this Gymnasium environment needs to be wrapped in the `GenericGymEnv` wrapper (which by default just changes float64 to float32 in observations).
+Furthermore, this Gymnasium environment needs to be wrapped in the `GenericGymEnv` wrapper.
 
 With our dummy drone environment, this translates to:
 
@@ -435,7 +440,7 @@ actor_module_cls = partial(MyActorModule)  # could add paramters like hidden_siz
 
 ### Sample compression
 
-One of the possible reasons for using `tmrl` is that it supports implementing ad-hoc pipelines for your applications.
+One reason for using `tmrl` is that it supports implementing ad-hoc pipelines for your applications.
 In particular, say you have a robot that uses CNNs to process a history of 4 concatenated images.
 You certainly do not want to send these 4 images over the Internet for each sample, because the content of the samples would overlap and you could use 4 times less bandwidth with a more clever pipeline.
 
@@ -504,8 +509,7 @@ Nevertheless, it is of course possible to work locally by hosting the `Server`, 
 This is done by setting the `Server` IP as the localhost IP, i.e., `"127.0.0.1"`, which we did.
 _(NB: We have set the values for `server_ip` and `server_port` earlier in this tutorial.)_
 
-In the current iteration of `tmrl`, samples are gathered locally in a buffer by the `RolloutWorker` and are sent to the `Server` only at the end of an episode.
-In case your Gymnasium environment is never `terminated` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
+In case your Gymnasium environment is never `terminated` (or only after too long), `tmrl` has an option for forcing reset after a time-steps threshold.
 For instance, let us say we don't want an episode to last more than 1000 time-steps:
 
 _(Note 1: This is for the sake of illustration, in fact, this cannot happen in our RC drone environment)_
@@ -583,7 +587,7 @@ my_worker = RolloutWorker(
 ```
 
 This connects to the `Server`, but does not start collecting experiences.
-If we want to start collecting experiences, we need to use the `run()` method:
+If we want to start collecting experiences, we can use the `run()` method:
 
 ```python
 my_worker.run(test_episode_interval=10)
@@ -601,15 +605,36 @@ For the moment, let us just comment this line:
 # my_worker.run(test_episode_interval=10)
 ```
 
+_**Note:** The `run()` method collects episodes continuously, as fast as allowed by the environment.
+In certain cases (e.g., in very-high-frequency or non-real-time environments), this is not what you want to achieve.
+Instead, you may prefer lower-level API functions.
+For instance, you could do something like this:_
+```python
+# Collect 10 episodes, then wait for the policy to get updated before collecting more.
+# (NB: in rtgym, you can tell your robot to "wait" when an episode is complete)
+
+while True:
+    episode = 0
+    while episode < 10:
+        my_worker.collect_train_episode(max_samples_per_episode)
+        my_worker.send_and_clear_buffer()
+        episode += 1
+
+    # Block until new weights are received from the Server
+    my_worker.update_actor_weights(verbose=True, blocking=True)
+
+    # Run a test episode
+    my_worker.run_episode(max_samples_per_episode, train=False)
+```
 
 ## Trainer
 
 In `tmrl`, RL training per-se happens in the `Trainer` entity.
 
 The `Trainer` connects to the `Server`, from which it receives compressed samples gathered from connected `RolloutWorkers`.
-These samples are stored (possibly in compressed format) in a memory object called `Memory`.
+These samples are stored (possibly in compressed format) in a `Memory` object.
 They are decompressed either when stored, or when sampled from the `Memory`, depending on the user choice.
-The decompressed samples are then used by an object called `TrainingAgent` to optimize the policy weights, that the `Trainer` periodically sends back to the `Server` so they are broadcast to all connected `RolloutWorkers`.
+The decompressed samples are then used by the `TrainingAgent` object to optimize the policy weights, that the `Trainer` periodically sends back to the `Server` so they are broadcast to all connected `RolloutWorkers`.
 
 The prototype of the `Trainer` class is:
 
@@ -638,7 +663,7 @@ The `server_port` and the `password` are still valid for our `Trainer`.
 `model_path` is similar to the one of the `RolloutWorker`.
 The trainer will keep a local copy of its model that acts as a saving file.
 
-`checkpoints_path` is similar, but this will save the whole `training_cls` instance (including the replay buffer).
+`checkpoints_path` is similar, but this will save the entire `training_cls` instance (including the `Memory`).
 If set to `None`, training will not be checkpointed.
 
 You could leave both paths to their default value and simply change the value of the `"RUN_NAME"` entry in `config.json` instead.
@@ -667,6 +692,8 @@ This expects a training class, possibly partially initialized.
 
 At the moment, `tmrl` supports one training class called [TrainingOffline](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/training_offline.py).
 This class is meant for off-policy asynchronous RL algorithms such as SAC.
+With a few synchronization tricks, it can also be used for online algorithms such as PPO
+_(see the note at the end of the "Rollout workers" section)_.
 
 When using PyTorch, the `TorchTrainingOffline` subclass further enables automatic selection of an available device.
 
@@ -675,7 +702,7 @@ The `TorchTrainingOffline` prototype is:
 ```python
 @dataclass(eq=0)
 class TorchTrainingOffline:
-    env_cls: type = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces
+    env_cls: type = GenericGymEnv  # dummy environment, used only to retrieve observation / action spaces
     memory_cls: type = TorchMemory  # replay memory
     training_agent_cls: type = TrainingAgent  # training agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
@@ -691,6 +718,8 @@ class TorchTrainingOffline:
     device: str = None  # device on which the model of the TrainingAgent will live (None for automatic)
 ```
 
+_(Note: be careful when pairing `max_training_steps_per_env_step` with a similar contraint in your `RolloutWorker(s)`: the `Trainer` counts calls to `RolloutWorker.reset()` as an "env_step")_
+
 `TorchTrainingOffline` requires other (possibly partially instantiated) classes as arguments: a dummy environment, a `TorchMemory`, and a `TrainingAgent`
 
 #### Dummy environment:
@@ -703,7 +732,7 @@ from tmrl.envs import GenericGymEnv
 env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_config})
 ```
 This dummy environment will only be used by the `Trainer` to retrieve the observation and action spaces (`reset()` will not be called).
-Alternatively, you can pass this information as a Tuple:
+Alternatively, you can pass this information as a tuple:
 
 ```python
 env_cls = (observation_space, action_space)
@@ -716,6 +745,11 @@ This must be a subclass of `TorchMemory`.
 
 The role of a `TorchMemory` object is to store and decompress samples received by the `Trainer` from the `Server`.
 
+In a `tmrl` pipeline, the `Memory` class is typically the most difficult (but also the most interesting) class to implement.
+This is because, in conjunction with sample compressors, `Memory` is where you can really optimize your pipeline for your specific application, and `tmrl` gives you full latitude for doing this.
+For the people who wish to quickly test things rather than implementing optimized pipelines, `tmrl` also provides a readily implemented `GenericTorchMemory` that works for all cases, as it has no optimizations (see the `tuto_minimal_drone.py` script for an example of usage).
+In this tutorial, we will instead implement a very optimized `Memory` for the sake of illustration.
+While these optimizations are clearly overkill for our toy RC drone example, they are tremendously important for vision-based applications like the default `tmrl` pipeline for TrackMania.
 
 `TorchMemory` has the following interface:
 
@@ -785,6 +819,7 @@ Again, just pass to the superclass.
 Let us implement our own `TorchMemory`.
 
 ```python
+import random
 from tmrl.memory import TorchMemory
 
 
@@ -807,18 +842,18 @@ Thus, we will use the action buffer length as an additional argument to our cust
                  dataset_path="",
                  act_buf_len=my_config["act_buf_len"]):
 
-        self.act_buf_len = act_buf_len  # length of the action buffer
+    self.act_buf_len = act_buf_len  # length of the action buffer
 
-        super().__init__(device=device,
-                         nb_steps=nb_steps,
-                         sample_preprocessor=sample_preprocessor,
-                         memory_size=memory_size,
-                         batch_size=batch_size,
-                         dataset_path=dataset_path)
+    super().__init__(device=device,
+                     nb_steps=nb_steps,
+                     sample_preprocessor=sample_preprocessor,
+                     memory_size=memory_size,
+                     batch_size=batch_size,
+                     dataset_path=dataset_path)
 ```
 
 
-In fact, the `TorchMemory` class leaves the whole storing and sampling procedures to your discretion.
+In fact, the `TorchMemory` class leaves the entire storing and sampling procedures to your discretion.
 This is because, when using `tmrl`, you may want to do exotic things such as storing samples on your hard drive (if they contain images for instance).
 If you have implemented a sample compressor for the `RolloutWorker` (as we have done earlier in this tutorial), you will also need to implement a decompression scheme.
 This decompression may happen either in `append_buffer()` (if you privilege sampling speed) or in `get_transition()` (if you privilege memory usage).
@@ -827,81 +862,87 @@ The `append_buffer()` method will simply store the compressed sample components 
 
 `append_buffer()` is passed a [buffer](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/networking.py#L198) object that contains a list of compressed `(act, new_obs, rew, terminated, truncated, info)` samples in its `memory` attribute.
 `act` is the action that was sent to the `step()` method of the Gymnasium environment to yield `new_obs`, `rew`, `terminated`, `truncated`, and `info`.
-Here, we decompose our samples in their relevant components, append these components to the `self.data` list, and clip `self.data` when `self.memory_size` is exceeded:
+Here, we decompose our samples in their relevant components, we append these components to the `self.data` list, and we truncate `self.data` when `self.memory_size` is exceeded:
 
 ```python
     def append_buffer(self, buffer):
-        """
-        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
-        """
-        
-        # decompose compressed samples into their relevant components:
-        
-        list_action = [b[0] for b in buffer.memory]
-        list_x_position = [b[1][0] for b in buffer.memory]
-        list_y_position = [b[1][1] for b in buffer.memory]
-        list_x_target = [b[1][2] for b in buffer.memory]
-        list_y_target = [b[1][3] for b in buffer.memory]
-        list_reward = [b[2] for b in buffer.memory]
-        list_terminated = [b[3] for b in buffer.memory]
-        list_truncated = [b[4] for b in buffer.memory]
-        list_info = [b[5] for b in buffer.memory]
-        
-        # append to self.data in some arbitrary way:
+    """
+    buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
+    """
 
-        if self.__len__() > 0:
-            self.data[0] += list_action
-            self.data[1] += list_x_position
-            self.data[2] += list_y_position
-            self.data[3] += list_x_target
-            self.data[4] += list_y_target
-            self.data[5] += list_reward
-            self.data[6] += list_terminated
-            self.data[7] += list_info
-            self.data[8] += list_truncated
-        else:
-            self.data.append(list_action)
-            self.data.append(list_x_position)
-            self.data.append(list_y_position)
-            self.data.append(list_x_target)
-            self.data.append(list_y_target)
-            self.data.append(list_reward)
-            self.data.append(list_terminated)
-            self.data.append(list_info)
-            self.data.append(list_truncated)
+    # decompose compressed samples into their relevant components:
 
-        # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
+    list_action = [b[0] for b in buffer.memory]
+    list_x_position = [b[1][0] for b in buffer.memory]
+    list_y_position = [b[1][1] for b in buffer.memory]
+    list_x_target = [b[1][2] for b in buffer.memory]
+    list_y_target = [b[1][3] for b in buffer.memory]
+    list_reward = [b[2] for b in buffer.memory]
+    list_terminated = [b[3] for b in buffer.memory]
+    list_truncated = [b[4] for b in buffer.memory]
+    list_info = [b[5] for b in buffer.memory]
+    list_done = [b[3] or b[4] for b in buffer.memory]
 
-        to_trim = self.__len__() - self.memory_size
-        if to_trim > 0:
-            self.data[0] = self.data[0][to_trim:]
-            self.data[1] = self.data[1][to_trim:]
-            self.data[2] = self.data[2][to_trim:]
-            self.data[3] = self.data[3][to_trim:]
-            self.data[4] = self.data[4][to_trim:]
-            self.data[5] = self.data[5][to_trim:]
-            self.data[6] = self.data[6][to_trim:]
-            self.data[7] = self.data[7][to_trim:]
-            self.data[8] = self.data[8][to_trim:]
+    # append to self.data in some arbitrary way:
+
+    if self.__len__() > 0:
+        self.data[0] += list_action
+        self.data[1] += list_x_position
+        self.data[2] += list_y_position
+        self.data[3] += list_x_target
+        self.data[4] += list_y_target
+        self.data[5] += list_reward
+        self.data[6] += list_terminated
+        self.data[7] += list_info
+        self.data[8] += list_truncated
+        self.data[9] += list_done
+    else:
+        self.data.append(list_action)
+        self.data.append(list_x_position)
+        self.data.append(list_y_position)
+        self.data.append(list_x_target)
+        self.data.append(list_y_target)
+        self.data.append(list_reward)
+        self.data.append(list_terminated)
+        self.data.append(list_info)
+        self.data.append(list_truncated)
+        self.data.append(list_done)
+
+    # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
+
+    to_trim = self.__len__() - self.memory_size
+    if to_trim > 0:
+        self.data[0] = self.data[0][to_trim:]
+        self.data[1] = self.data[1][to_trim:]
+        self.data[2] = self.data[2][to_trim:]
+        self.data[3] = self.data[3][to_trim:]
+        self.data[4] = self.data[4][to_trim:]
+        self.data[5] = self.data[5][to_trim:]
+        self.data[6] = self.data[6][to_trim:]
+        self.data[7] = self.data[7][to_trim:]
+        self.data[8] = self.data[8][to_trim:]
+        self.data[9] = self.data[9][to_trim:]
 ```
 
 We must also implement the `__len__()` method of our memory because the content of `self.data` is arbitrary and the `Trainer` needs to know what it can ask to the `get_transition()` method:
 
 ```python
     def __len__(self):
-        if len(self.data) == 0:
-            return 0  # self.data is empty
-        result = len(self.data[0]) - self.act_buf_len - 1
-        if result < 0:
-            return 0  # not enough samples to reconstruct the action buffer
-        else:
-            return result  # we can reconstruct that many samples
+    if len(self.data) == 0:
+        return 0  # self.data is empty
+    result = len(self.data[0]) - self.act_buf_len - 1
+    if result < 0:
+        return 0  # not enough samples to reconstruct the action buffer
+    else:
+        return result  # we can reconstruct that many samples
 ```
 Now, this is becoming interesting: why is the `__len__()` method so complicated?
 `self.data` is initially an empty list, so when its `len` is `0`, our memory is empty.
-But when it is not empty and we have fewer samples than the length of our action buffer, we cannot reconstruct the action buffer! Thus our memory is still empty.
+But when it is not empty and we have fewer samples than the length of our action buffer, we cannot reconstruct the action buffer.
+Thus our memory is still empty.
 Finally, if we have enough samples, we need to remove the length of the action buffer to get the number of samples we can actually reconstruct.
-Furthermore, the `get_transition()` method outputs a full RL transition, which includes the previous observation. Thus, we must subtract 1 to get the number of full transitions that we can actually output.
+Furthermore, the `get_transition()` method outputs a full RL transition, which includes the previous observation.
+Thus, we must subtract 1 to get the number of full transitions that we can actually output.
 
 Alright, let us finally implement `get_transition()`, where we have chosen sample decompression would happen.
 This method outputs full transitions as if they were output by the Gymnasium environment
@@ -909,49 +950,71 @@ This method outputs full transitions as if they were output by the Gymnasium env
 
 ```python
     def get_transition(self, item):
-        """
-        Args:
-            item: int: indices of the transition that the Trainer wants to sample
-        Returns:
-            full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
-        """
-        idx_last = item + self.act_buf_len - 1  # index of previous observation
-        idx_now = item + self.act_buf_len  # index of new observation
-        
-        # rebuild the action buffer of both observations:
-        actions = self.data[0][item:(item + self.act_buf_len + 1)]
-        last_act_buf = actions[:-1]  # action buffer of previous observation
-        new_act_buf = actions[1:]  # action buffer of new observation
-        
-        # rebuild the previous observation:
-        last_obs = (self.data[1][idx_last],  # x position
-                    self.data[2][idx_last],  # y position
-                    self.data[3][idx_last],  # x target
-                    self.data[4][idx_last],  # y target
-                    *last_act_buf)  # action buffer
-        
-        # rebuild the new observation:
-        new_obs = (self.data[1][idx_now],  # x position
-                   self.data[2][idx_now],  # y position
-                   self.data[3][idx_now],  # x target
-                   self.data[4][idx_now],  # y target
-                   *new_act_buf)  # action buffer
-        
-        # other components of the transition:
-        new_act = self.data[0][idx_now]  # action
-        rew = np.float32(self.data[5][idx_now])  # reward
-        terminated = self.data[6][idx_now]  # terminated signal
-        truncated = self.data[8][idx_now]  # truncated signal
-        info = self.data[7][idx_now]  # info dictionary
+    """
+    Args:
+        item: int: indices of the transition that the Trainer wants to sample
+    Returns:
+        full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
+    """
 
-        return last_obs, new_act, rew, new_obs, terminated, truncated, info
+    # if item corresponds to a transition from a terminal state to a reset state
+    if self.data[9][item + self.act_buf_len - 1]:
+        # this wouldn't make sense in RL, so we replace item by a neighbour transition
+        if item == 0:  # if first item of the buffer
+            item += 1
+        elif item == self.__len__() - 1:  # if last item of the buffer
+            item -= 1
+        elif random.random() < 0.5:  # otherwise, sample randomly
+            item += 1
+        else:
+            item -= 1
+
+    idx_last = item + self.act_buf_len - 1  # index of previous observation
+    idx_now = item + self.act_buf_len  # index of new observation
+
+    # rebuild the action buffer of both observations:
+    actions = self.data[0][item:(item + self.act_buf_len + 1)]
+    last_act_buf = actions[:-1]  # action buffer of previous observation
+    new_act_buf = actions[1:]  # action buffer of new observation
+
+    # rebuild the previous observation:
+    last_obs = (self.data[1][idx_last],  # x position
+                self.data[2][idx_last],  # y position
+                self.data[3][idx_last],  # x target
+                self.data[4][idx_last],  # y target
+                *last_act_buf)  # action buffer
+
+    # rebuild the new observation:
+    new_obs = (self.data[1][idx_now],  # x position
+               self.data[2][idx_now],  # y position
+               self.data[3][idx_now],  # x target
+               self.data[4][idx_now],  # y target
+               *new_act_buf)  # action buffer
+
+    # other components of the transition:
+    new_act = self.data[0][idx_now]  # action
+    rew = np.float32(self.data[5][idx_now])  # reward
+    terminated = self.data[6][idx_now]  # terminated signal
+    truncated = self.data[8][idx_now]  # truncated signal
+    info = self.data[7][idx_now]  # info dictionary
+
+    return last_obs, new_act, rew, new_obs, terminated, truncated, info
 ```
 _Note 1: the action buffer of `new_obs` contains `new_act`.
 This is because at least the last computed action (`new_act`) must be in the action buffer to keep a Markov state in a real-time environment. See [rtgym](https://github.com/yannbouteiller/rtgym)._
 
-_Note 2: in our dummy RC drone environment, the action buffer is not reset on calls to `reset()` and thus we don't need to do anything special about it here.
-However, in other environments, this will not always be the case.
-If you want to be extra picky, you may need to take special care for rebuilding transitions that happened after a `terminated` or `truncated` signal is set to `True`.
+_Note 2: in our dummy RC drone environment, the action buffer is not reset on calls to `reset()` and we do not call the special `wait()` method when an episode ends.
+Doing this, we keep the real-time flow of operations around reset transitions.
+Nevertheless, reset transitions are discontinuities in the `Gymnasium` standard: there is no action between a terminal state and the next state returned by `reset()`.
+This means that one action is a dummy action around reset transitions here.
+More specifically, in the case of an `rtgym` environment, the very last action of a trajectory is never sent to the robot.
+From an RL perspective, this action is still the proper last action of the trajectory (although it has no effect).
+However, because it is never applied, it is **not** supposed to go into the action buffer of post-reset transitions.
+If you are using an `rtgym` environment (as we do in this tutorial), `tmrl` will set the default action of your environment as the action corresponding to the observation returned by `reset()` in the `buffer` argument of your `append_buffer()` method.
+This is because this default action will be applied right after `reset()` is called, and it should therefore be part of the action buffer.
+If you are instead using a vanilla `Gymnasium` environment, `tmrl` will set this action to `None`, as you should ignore it anyway in non-real-time environments.
+Because this is an intricate effect specific to real-time environments, we will ignore it for now and come back to it at the very end of this tutorial.
+Just bear in mind that, if you want your pipeline to be 100% correct in real-time scenarios, you need to take special care for rebuilding transitions that happened after a `terminated` or `truncated` signal is set to `True`.
 This is done in the `tmrl` implementation of [TorchMemory for TrackMania](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_memories.py)._
 
 We now have our `memory_cls` argument:
@@ -1034,10 +1097,10 @@ class MyCriticModule(torch.nn.Module):
 class MyActorCriticModule(torch.nn.Module):
     def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU):
         super().__init__()
-        
+
         # our ActorModule:
         self.actor = MyActorModule(observation_space, action_space, hidden_sizes, activation)
-        
+
         # double Q networks:
         self.q1 = MyCriticModule(observation_space, action_space, hidden_sizes, activation)
         self.q2 = MyCriticModule(observation_space, action_space, hidden_sizes, activation)
@@ -1056,55 +1119,55 @@ import itertools
 
 
 class MyTrainingAgent(TrainingAgent):
-  model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
+    model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
-  def __init__(self,
-               observation_space=None,
-               action_space=None,
-               device=None,
-               model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
-               gamma=0.99,  # discount factor
-               polyak=0.995,  # exponential averaging factor for the target critic
-               alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
-               lr_actor=1e-3,  # learning rate for the actor
-               lr_critic=1e-3,  # learning rate for the critic
-               lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
-               learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
-               target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
-    super().__init__(observation_space=observation_space,
-                     action_space=action_space,
-                     device=device)
+    def __init__(self,
+                 observation_space=None,
+                 action_space=None,
+                 device=None,
+                 model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
+                 gamma=0.99,  # discount factor
+                 polyak=0.995,  # exponential averaging factor for the target critic
+                 alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
+                 lr_actor=1e-3,  # learning rate for the actor
+                 lr_critic=1e-3,  # learning rate for the critic
+                 lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
+                 learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
+                 target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
+        super().__init__(observation_space=observation_space,
+                         action_space=action_space,
+                         device=device)
 
-    model = model_cls(observation_space, action_space)
-    self.model = model.to(device)
-    self.model_target = no_grad(deepcopy(self.model))
-    self.gamma = gamma
-    self.polyak = polyak
-    self.alpha = alpha
-    self.lr_actor = lr_actor
-    self.lr_critic = lr_critic
-    self.lr_entropy = lr_entropy
-    self.learn_entropy_coef = learn_entropy_coef
-    self.target_entropy = target_entropy
-    self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
-    self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
-    self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
-    if self.target_entropy is None:
-      self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
-    else:
-      self.target_entropy = float(self.target_entropy)
-    if self.learn_entropy_coef:
-      self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
-      self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
-    else:
-      self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
+        model = model_cls(observation_space, action_space)
+        self.model = model.to(device)
+        self.model_target = no_grad(deepcopy(self.model))
+        self.gamma = gamma
+        self.polyak = polyak
+        self.alpha = alpha
+        self.lr_actor = lr_actor
+        self.lr_critic = lr_critic
+        self.lr_entropy = lr_entropy
+        self.learn_entropy_coef = learn_entropy_coef
+        self.target_entropy = target_entropy
+        self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
+        self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
+        self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
+        if self.target_entropy is None:
+            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+        else:
+            self.target_entropy = float(self.target_entropy)
+        if self.learn_entropy_coef:
+            self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
+            self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
+        else:
+            self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 ```
 
 The `get_actor()` method outputs the `ActorModule` to be broadcast to the `RolloutWorkers`:
 
 ```python
     def get_actor(self):
-        return self.model_nograd.actor
+    return self.model_nograd.actor
 ```
 
 And finally, for the training algorithm itself, we simply adapt the SAC Spinup implementation to the `train()` signature.
@@ -1112,62 +1175,62 @@ Note that `train()` returns a python dictionary in which you can store the metri
 
 ```python
     def train(self, batch):
-        """
-        Adapted from the SAC implementation of OpenAI Spinup
-        
-        https://github.com/openai/spinningup/tree/master/spinup/algos/pytorch/sac
-        """
-        o, a, r, o2, d, _ = batch  # these tensors are collated on device
-        # note that we purposefully ignore the truncated signal ( _ )
-        # thus, our value estimator will not be affected by episode truncation
-        pi, logp_pi = self.model.actor(o)
-        loss_alpha = None
-        if self.learn_entropy_coef:
-            alpha_t = torch.exp(self.log_alpha.detach())
-            loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
-        else:
-            alpha_t = self.alpha_t
-        if loss_alpha is not None:
-            self.alpha_optimizer.zero_grad()
-            loss_alpha.backward()
-            self.alpha_optimizer.step()
-        q1 = self.model.q1(o, a)
-        q2 = self.model.q2(o, a)
-        with torch.no_grad():
-            a2, logp_a2 = self.model.actor(o2)
-            q1_pi_targ = self.model_target.q1(o2, a2)
-            q2_pi_targ = self.model_target.q2(o2, a2)
-            q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
-            backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
-        loss_q1 = ((q1 - backup)**2).mean()
-        loss_q2 = ((q2 - backup)**2).mean()
-        loss_q = loss_q1 + loss_q2
-        self.q_optimizer.zero_grad()
-        loss_q.backward()
-        self.q_optimizer.step()
-        for p in self.q_params:
-            p.requires_grad = False
-        q1_pi = self.model.q1(o, pi)
-        q2_pi = self.model.q2(o, pi)
-        q_pi = torch.min(q1_pi, q2_pi)
-        loss_pi = (alpha_t * logp_pi - q_pi).mean()
-        self.pi_optimizer.zero_grad()
-        loss_pi.backward()
-        self.pi_optimizer.step()
-        for p in self.q_params:
-            p.requires_grad = True
-        with torch.no_grad():
-            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
-                p_targ.data.mul_(self.polyak)
-                p_targ.data.add_((1 - self.polyak) * p.data)
-        ret_dict = dict(
-            loss_actor=loss_pi.detach().item(),
-            loss_critic=loss_q.detach().item(),
-        )
-        if self.learn_entropy_coef:
-            ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
-            ret_dict["entropy_coef"] = alpha_t.item()
-        return ret_dict  # dictionary of metrics to be logged
+    """
+    Adapted from the SAC implementation of OpenAI Spinup
+    
+    https://github.com/openai/spinningup/tree/master/spinup/algos/pytorch/sac
+    """
+    o, a, r, o2, d, _ = batch  # these tensors are collated on device
+    # note that we purposefully ignore the truncated signal ( _ )
+    # thus, our value estimator will not be affected by episode truncation
+    pi, logp_pi = self.model.actor(o)
+    loss_alpha = None
+    if self.learn_entropy_coef:
+        alpha_t = torch.exp(self.log_alpha.detach())
+        loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
+    else:
+        alpha_t = self.alpha_t
+    if loss_alpha is not None:
+        self.alpha_optimizer.zero_grad()
+        loss_alpha.backward()
+        self.alpha_optimizer.step()
+    q1 = self.model.q1(o, a)
+    q2 = self.model.q2(o, a)
+    with torch.no_grad():
+        a2, logp_a2 = self.model.actor(o2)
+        q1_pi_targ = self.model_target.q1(o2, a2)
+        q2_pi_targ = self.model_target.q2(o2, a2)
+        q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
+        backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
+    loss_q1 = ((q1 - backup)**2).mean()
+    loss_q2 = ((q2 - backup)**2).mean()
+    loss_q = loss_q1 + loss_q2
+    self.q_optimizer.zero_grad()
+    loss_q.backward()
+    self.q_optimizer.step()
+    for p in self.q_params:
+        p.requires_grad = False
+    q1_pi = self.model.q1(o, pi)
+    q2_pi = self.model.q2(o, pi)
+    q_pi = torch.min(q1_pi, q2_pi)
+    loss_pi = (alpha_t * logp_pi - q_pi).mean()
+    self.pi_optimizer.zero_grad()
+    loss_pi.backward()
+    self.pi_optimizer.step()
+    for p in self.q_params:
+        p.requires_grad = True
+    with torch.no_grad():
+        for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
+            p_targ.data.mul_(self.polyak)
+            p_targ.data.add_((1 - self.polyak) * p.data)
+    ret_dict = dict(
+        loss_actor=loss_pi.detach().item(),
+        loss_critic=loss_q.detach().item(),
+    )
+    if self.learn_entropy_coef:
+        ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
+        ret_dict["entropy_coef"] = alpha_t.item()
+    return ret_dict  # dictionary of metrics to be logged
 ```
 
 This gives us our `training_agent_cls` argument, e.g.:
@@ -1189,10 +1252,10 @@ training_agent_cls = partial(MyTrainingAgent,
 #### Training parameters
 
 There are no epochs in RL.
-What we call `epoch` in `tmrl` is simply the point where the `Trainer` sends data to `wandb` and may checkpoint the training session on the hard drive.
+In `tmrl`, we call `epoch` the moment when the `Trainer` checkpoints the training session on the hard drive and sends training metrics to `wandb`.
 
 An `epoch` is made of a fixed number of `rounds`, and a `round` is made of a fixed number of training `steps`.
-These values are very arbitrary and you can set mostly whatever you like depending on how often you want to see metrics printed and logged (they are printed at the end of each `round` and logged at the end of each `epoch`):
+These values are very arbitrary and you can set mostly whatever you like depending on how often you want to see metrics logged (they are printed at the end of each `round` and logged to `wandb` at the end of each `epoch`):
 
 ```python
 epochs = 10  # maximum number of epochs, usually set this to np.inf
@@ -1235,7 +1298,7 @@ If set to `None`, the training device will be selected automatically:
 device = None
 ```
 
-A few more options not used in this tutorial are available.
+A couple more options not used in this tutorial are available.
 In particular, `profiling` enables profiling training (but this doesn't work well with CUDA), and `agent_scheduler` enables changing the `TrainingAgent` parameters during training.
 
 We finally have our training class:
@@ -1302,7 +1365,7 @@ When it does not make sense to have default values, just set the default values 
 
 But as for the `RolloutWorker`, this would block the code here until all `epochs` are complete, which in itself would require the `RolloutWorker` to also be running.
 
-In fact, the `RolloutWorker`, `Trainer`, and `Server` are best run in separate terminals (see TrackMania) because currently, they are all quite verbose.
+In fact, the `RolloutWorker`, `Trainer`, and `Server` are best run in separate terminals or machines (see TrackMania).
 However, for the sake of this tutorial, we will instantiate and run all of them in the same script by using python threads
 (of course, you are free to implement them in separate scripts on your end, actually, it is even strongly recommended):
 
@@ -1331,21 +1394,6 @@ And that is mostly all, folks! :smile:
 
 ---
 
-_(Note 1: I have not conducted any hyperparameter tuning when writing this tutorial and I have selected most values randomly, so it is very likely you can find much better training hyperparameters for this toy task if you like to try.
-However, be mindful that this task is much harder than it looks: the dummy RC drone has random and fairly long action and observation delays, which makes reaching the target difficult for vanilla RL algorithms like SAC.)_
-
-_(Note 2: Although in this tutorial we have run the `RolloutWorker` and the `Trainer` on the same CPU/GPU, this is of course not recommended in real applications.
-Since the environment is real-time, training may introduce noise in the time-step duration despite the best effort of `rtgym` to prevent this from happening.
-If you see `rtgym` warning you against time-step timeouts, this is probably because the `Trainer` is slowing it down too much.)_
-
-_(Note 3: If you have set `model_history > 0`, you will find the model history in your `weights` folder.
-Note also that everything will be checkpointed, so unless you empty your `checkpoints` and `weights` folders or change the run name, you will not be able to restart training from scratch.)_
-
-_(Note 4: Thank you for reading the `tmrl` tutorial.
-You are now **ready for the Real Life** :rocket: )_
-
----
-
 ## CRC debugging
 
 You have probably noticed that implementing your own compression/decompression pipeline is **extremely** error-prone.
@@ -1363,3 +1411,322 @@ Otherwise, you will get a "CRC check passed" message printed in the terminal for
 
 We recommend using the `crc_debug` mode as a sanity check whenever you implement a compression/decompression pipeline.
 To activate this mode, set the `crc_debug` arguments to `True` for both your `RolloutWorker` and `TorchMemory` instances.
+
+Let us do this for our implemented pipeline and see what happens:
+
+```terminal
+INFO:root: Resuming training
+DEBUG: CRC check passed. Time step: 91, since reset: 90
+DEBUG: CRC check passed. Time step: 320, since reset: 16
+DEBUG: CRC check passed. Time step: 135, since reset: 33
+DEBUG: CRC check passed. Time step: 96, since reset: 95
+DEBUG: CRC check passed. Time step: 24, since reset: 23
+DEBUG: CRC check passed. Time step: 259, since reset: 56
+
+Traceback (most recent call last):
+  File ".../tmrl/tmrl/tuto/tuto.py", line 535, in <module>
+    run_trainer(my_trainer)
+  File ".../tmrl/tmrl/tuto/tuto.py", line 528, in run_trainer
+    trainer.run()
+  File ".../tmrl/tmrl/networking.py", line 394, in run
+    run(interface=self.interface,
+  File ".../tmrl/tmrl/networking.py", line 327, in run
+    for stats in iterate_epochs(...):
+  File ".../tmrl/tmrl/networking.py", line 270, in iterate_epochs
+    yield run_instance.run_epoch(interface=interface)
+  File ".../tmrl/tmrl/training_offline.py", line 114, in run_epoch
+    for batch in self.memory:
+  File ".../tmrl/tmrl/memory.py", line 89, in __iter__
+    yield self.sample()
+  File ".../tmrl/tmrl/memory.py", line 152, in sample
+    batch = [self[idx] for idx in indices]
+  File ".../tmrl/tmrl/memory.py", line 152, in <listcomp>
+    batch = [self[idx] for idx in indices]
+  File ".../tmrl/tmrl/memory.py", line 169, in __getitem__
+    check_samples_crc(...)
+  File ".../tmrl/tmrl/memory.py", line 22, in check_samples_crc
+
+AssertionError: previous observations don't match:
+
+original:
+
+(array([0.34098563], dtype=float32),
+array([-0.63508004], dtype=float32),
+array([0.44789273], dtype=float32),
+array([0.39232507], dtype=float32),
+
+array([0.29402873, 1.3678434 ], dtype=float32),
+array([-1.8195685, -1.4343303], dtype=float32),
+array([0., 0.], dtype=float32),
+array([-0.07386027, -1.6602786 ], dtype=float32))
+
+!= rebuilt:
+
+(array([0.34098563], dtype=float32),
+array([-0.63508004], dtype=float32),
+array([0.44789273], dtype=float32),
+array([0.39232507], dtype=float32),
+
+array([-1.8195685, -1.4343303], dtype=float32),
+array([0.50566  , 1.7723236], dtype=float32),
+array([0., 0.], dtype=float32),
+array([-0.07386027, -1.6602786 ], dtype=float32))
+
+Time step: 306, since reset: 2
+```
+_(I have parsed the error a little bit to make it easier for you to analyze.)_
+
+Oh no! What is going on? :scream:
+
+If you have carefully read the entire tutorial, well, first, congratulations, but now you should be able to spot exactly what is wrong here and understand why this happens.
+
+Do you have it? :grinning:
+
+The "since reset" part indicates that the offending observation originates from a sample that was collected 2 time-steps after a reset transition in this examples, whereas the "CRC passed" messages indicate that many samples originating from later transitions have been reconstructed successfully.
+
+The last four arrays of each observation are the action buffers included in real-time observations.
+Notice the `array([0., 0.], dtype=float32)` in both the original and the rebuilt observations: this is what the dummy RC drone environment defines as its default action.
+Everything after this default action is correct, whereas everything before this action is shifted by one time-step in the action buffer.
+
+This issue happens because we weren't careful enough when rebuilding the action buffer after reset transitions.
+`reset()` is a discontinuity in the `Gymnnasium` standard, and it needs to be handled with special care in real-time scenarios.
+
+Specifically, in `rtgym` environments, the very last action of a trajectory is never sent to the robot.
+This is because, since the previously captured state is terminal (or truncated), it would never make sense to send this last action to the robot in the first place
+(in fact, sending it could even be harmful: the last action is theoretically random since it has no captured effect in the underlying MDP - note that it is also worthwhile to think about this for longer delays).
+On the other hand, when `reset()` is called in an `rtgym` environment, it sends whatever is currently defined as the "default" action to the robot (i.e., `array([0., 0.], dtype=float32)` in our case).
+
+In a nutshell, the very last action of the previous trajectory is never part of the post-reset action buffer in `rtgym` environments.
+
+Therefore, we need to make a couple modifications to our custom `Memory`.
+
+First, add this helper to your script:
+```python
+# Helper function to spot reset transitions:
+
+def last_true_in_list(li):
+    """
+    Returns the index of the last True element in list li, or None.
+    """
+    for i in reversed(range(len(li))):
+        if li[i]:
+            return i
+    return None
+```
+
+Then, add a "done" list to your data that checks whether `terminated` or `truncated` is `True` in `append_buffer()`.
+Finally, use this new list in `get_transition()` to spot reset transitions and update the action buffer accordingly:
+```python
+class MyMemory(TorchMemory):
+    def __init__(self,
+                 act_buf_len=None,
+                 device=None,
+                 nb_steps=None,
+                 sample_preprocessor: callable = None,
+                 memory_size=1000000,
+                 batch_size=32,
+                 dataset_path=""):
+
+        self.act_buf_len = act_buf_len  # length of the action buffer
+
+        super().__init__(device=device,
+                         nb_steps=nb_steps,
+                         sample_preprocessor=sample_preprocessor,
+                         memory_size=memory_size,
+                         batch_size=batch_size,
+                         dataset_path=dataset_path,
+                         crc_debug=CRC_DEBUG)
+
+    def append_buffer(self, buffer):
+        """
+        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
+        """
+
+        # decompose compressed samples into their relevant components:
+
+        list_action = [b[0] for b in buffer.memory]
+        list_x_position = [b[1][0] for b in buffer.memory]
+        list_y_position = [b[1][1] for b in buffer.memory]
+        list_x_target = [b[1][2] for b in buffer.memory]
+        list_y_target = [b[1][3] for b in buffer.memory]
+        list_reward = [b[2] for b in buffer.memory]
+        list_terminated = [b[3] for b in buffer.memory]
+        list_truncated = [b[4] for b in buffer.memory]
+        list_info = [b[5] for b in buffer.memory]
+        list_done = [b[3] or b[4] for b in buffer.memory]
+
+        # append to self.data in some arbitrary way:
+
+        if self.__len__() > 0:
+            self.data[0] += list_action
+            self.data[1] += list_x_position
+            self.data[2] += list_y_position
+            self.data[3] += list_x_target
+            self.data[4] += list_y_target
+            self.data[5] += list_reward
+            self.data[6] += list_terminated
+            self.data[7] += list_info
+            self.data[8] += list_truncated
+            self.data[9] += list_done
+        else:
+            self.data.append(list_action)
+            self.data.append(list_x_position)
+            self.data.append(list_y_position)
+            self.data.append(list_x_target)
+            self.data.append(list_y_target)
+            self.data.append(list_reward)
+            self.data.append(list_terminated)
+            self.data.append(list_info)
+            self.data.append(list_truncated)
+            self.data.append(list_done)
+
+        # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
+
+        to_trim = self.__len__() - self.memory_size
+        if to_trim > 0:
+            self.data[0] = self.data[0][to_trim:]
+            self.data[1] = self.data[1][to_trim:]
+            self.data[2] = self.data[2][to_trim:]
+            self.data[3] = self.data[3][to_trim:]
+            self.data[4] = self.data[4][to_trim:]
+            self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
+            self.data[7] = self.data[7][to_trim:]
+            self.data[8] = self.data[8][to_trim:]
+            self.data[9] = self.data[9][to_trim:]
+
+    def __len__(self):
+        if len(self.data) == 0:
+            return 0  # self.data is empty
+        result = len(self.data[0]) - self.act_buf_len - 1
+        if result < 0:
+            return 0  # not enough samples to reconstruct the action buffer
+        else:
+            return result  # we can reconstruct that many samples
+
+    def get_transition(self, item):
+        """
+        Args:
+            item: int: indice of the transition that the Trainer wants to sample
+        Returns:
+            full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
+        """
+        while True:  # this enables modifying item in edge cases
+
+            # if item corresponds to a transition from a terminal state to a reset state
+            if self.data[9][item + self.act_buf_len - 1]:
+                # this wouldn't make sense in RL, so we replace item by a neighbour transition
+                if item == 0:  # if first item of the buffer
+                    item += 1
+                elif item == self.__len__() - 1:  # if last item of the buffer
+                    item -= 1
+                elif random.random() < 0.5:  # otherwise, sample randomly
+                    item += 1
+                else:
+                    item -= 1
+
+            idx_last = item + self.act_buf_len - 1  # index of previous observation
+            idx_now = item + self.act_buf_len  # index of new observation
+
+            # rebuild the action buffer of both observations:
+            actions = self.data[0][item:(item + self.act_buf_len + 1)]
+            last_act_buf = actions[:-1]  # action buffer of previous observation
+            new_act_buf = actions[1:]  # action buffer of new observation
+
+            # correct the action buffer when it goes over a reset transition:
+            # (NB: we have eliminated the case where the transition *is* the reset transition)
+            eoe = last_true_in_list(self.data[9][item:(item + self.act_buf_len)])  # the last one is not important
+            if eoe is not None:
+                # either one or both action buffers are passing over a reset transition
+                if eoe < self.act_buf_len - 1:
+                    # last_act_buf is concerned
+                    if item == 0:
+                        # we have a problem: the previous action has been discarded; we cannot recover the buffer
+                        # in this edge case, we randomly sample another item
+                        item = random.randint(1, self.__len__())
+                        continue
+                    last_act_buf_eoe = eoe
+                    # replace everything before last_act_buf_eoe by the previous action
+                    prev_act = self.data[0][item - 1]
+                    for idx in range(last_act_buf_eoe + 1):
+                        act_tmp = last_act_buf[idx]
+                        last_act_buf[idx] = prev_act
+                        prev_act = act_tmp
+                if eoe > 0:
+                    # new_act_buf is concerned
+                    new_act_buf_eoe = eoe - 1
+                    # replace everything before new_act_buf_eoe by the previous action
+                    prev_act = self.data[0][item]
+                    for idx in range(new_act_buf_eoe + 1):
+                        act_tmp = new_act_buf[idx]
+                        new_act_buf[idx] = prev_act
+                        prev_act = act_tmp
+
+            # rebuild the previous observation:
+            last_obs = (self.data[1][idx_last],  # x position
+                        self.data[2][idx_last],  # y position
+                        self.data[3][idx_last],  # x target
+                        self.data[4][idx_last],  # y target
+                        *last_act_buf)  # action buffer
+
+            # rebuild the new observation:
+            new_obs = (self.data[1][idx_now],  # x position
+                       self.data[2][idx_now],  # y position
+                       self.data[3][idx_now],  # x target
+                       self.data[4][idx_now],  # y target
+                       *new_act_buf)  # action buffer
+
+            # other components of the transition:
+            new_act = self.data[0][idx_now]  # action
+            rew = np.float32(self.data[5][idx_now])  # reward
+            terminated = self.data[6][idx_now]  # terminated signal
+            truncated = self.data[8][idx_now]  # truncated signal
+            info = self.data[7][idx_now]  # info dictionary
+
+            break
+
+        return last_obs, new_act, rew, new_obs, terminated, truncated, info
+```
+
+Alright! This was a bit hacky, but that should work. Let us delete the automatically saved checkpoint file in `TmrlData/checkpoints` and retry:
+```terminal
+DEBUG: CRC check passed. Time step: 652, since reset: 74
+DEBUG: CRC check passed. Time step: 105, since reset: 33
+DEBUG: CRC check passed. Time step: 319, since reset: 1
+DEBUG: CRC check passed. Time step: 847, since reset: 67
+DEBUG: CRC check passed. Time step: 738, since reset: 59
+DEBUG: CRC check passed. Time step: 233, since reset: 7
+DEBUG: CRC check passed. Time step: 729, since reset: 50
+DEBUG: CRC check passed. Time step: 565, since reset: 88
+DEBUG: CRC check passed. Time step: 868, since reset: 88
+DEBUG: CRC check passed. Time step: 389, since reset: 1
+DEBUG: CRC check passed. Time step: 335, since reset: 17
+DEBUG: CRC check passed. Time step: 217, since reset: 11
+DEBUG: CRC check passed. Time step: 561, since reset: 84
+DEBUG: CRC check passed. Time step: 859, since reset: 79
+DEBUG: CRC check passed. Time step: 223, since reset: 17
+DEBUG: CRC check passed. Time step: 829, since reset: 49
+DEBUG: CRC check passed. Time step: 375, since reset: 4
+DEBUG: CRC check passed. Time step: 378, since reset: 7
+(...)
+```
+Finally!
+At this point, you can be fairly confident that your pipeline works perfectly :sunglasses:
+
+
+You can now disable CRC-debugging, delete checkpoints and weights in `TmrlData`, and start training seriously.
+
+---
+
+_(Note 1: I have not conducted any hyperparameter tuning when writing this tutorial and I have selected most values randomly, so it is very likely you can find much better training hyperparameters for this toy task if you like to try.
+However, be mindful that this task is much harder than it looks: the dummy RC drone has random and fairly long action and observation delays, which makes reaching the target difficult for vanilla RL algorithms like SAC.)_
+
+_(Note 2: Although in this tutorial we have run the `RolloutWorker` and the `Trainer` on the same CPU/GPU, this is of course not recommended in real applications.
+Since the environment is real-time, training may introduce noise in the time-step duration despite the best effort of `rtgym` to prevent this from happening.
+If you see `rtgym` warning you against time-step timeouts, this is probably because the `Trainer` is slowing it down too much.)_
+
+_(Note 3: If you have set `model_history > 0`, you will find the model history in your `weights` folder.
+Note also that everything will be checkpointed, so unless you empty your `checkpoints` and `weights` folders or change the run name, you will not be able to restart training from scratch.)_
+
+_(Note 4: Thank you for reading the `tmrl` tutorial.
+You are now **ready for the Real Life** :rocket: )_
