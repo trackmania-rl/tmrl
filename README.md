@@ -33,8 +33,8 @@
 ## Quick links
 - [The TMRL Project](#the-tmrl-project)
   - [Introduction](#introduction)
-    - [User features](#user-features-trackmania)
-    - [Developer features](#developer-features-real-time-applications-in-python)
+    - [Beginner features](#beginner-features-trackmania)
+    - [Advanced features](#advanced-features-real-time-applications)
     - [TMRL in the media](#tmrl-in-the-media)
   - [Installation](readme/Install.md)
   - [Getting started](readme/get_started.md)
@@ -70,35 +70,32 @@
 
 _Note: In the context of RL, an AI is called a policy._
 
-### User features (TrackMania):
+### Beginner features (TrackMania)
+
 * **Training algorithms:**
-`tmrl` lets you easily train policies in TrackMania with state-of-the-art Deep Reinforcement Learning algorithms such as [Soft Actor-Critic](https://www.youtube.com/watch?v=LN29DDlHp1U) (SAC) and [Randomized Ensembled Double Q-Learning](https://arxiv.org/abs/2101.05982) (REDQ).
+`tmrl` comes with a readily implemented example pipeline that lets you easily train policies in TrackMania 2020 with state-of-the-art Deep Reinforcement Learning algorithms such as [Soft Actor-Critic](https://www.youtube.com/watch?v=LN29DDlHp1U) (SAC) and [Randomized Ensembled Double Q-Learning](https://arxiv.org/abs/2101.05982) (REDQ).
 These algorithms store collected samples in a large dataset, called a replay memory.
-In parallel, this dataset is used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, break, steering angle...).
+In parallel, these samples are used to train an artificial neural network (policy) that maps observations (images, speed...) to relevant actions (gas, break, steering angle...).
 
-* **Analog control:**
-`tmrl` controls the game using a virtual gamepad, which enables analog input.
-
-* **Different types of observation:**
-The AI can either use raw unprocessed snapshots, or a LIDAR (Light Detection and Ranging) computed from the snapshots in order to perceive its environment.
+* **Analog control from screenshots:**
+The `tmrl` example pipeline trains policies that are able to drive from raw screenshots captured in real-time.
+For beginners, we also provide simpler rangefinder ("LIDAR") observations, which are less potent but easier to learn from.
+The example pipeline controls the game via a virtual gamepad, which enables analog input.
 
 * **Models:**
 To process LIDAR measurements, `tmrl` uses a Multi-Layer Perceptron (MLP).
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
 These models learn the physics from histories or observations equally spaced in time.
 
-### Developer features (real-time applications in Python):
+### Advanced features (real-time applications):
+
 * **Python library:**
 `tmrl` is a complete framework designed to help you successfully implement deep RL in your [real-time applications](#real-time-gym-framework) (e.g., robots...).
+It is based on a [single-server / multiple-clients architecture](#remote-training-architecture), which enables collecting samples locally on one or several workers and training remotely on a High Performance Computing cluster.
 A complete tutorial toward doing this is provided [here](readme/tuto_library.md).
 
 * **TrackMania Gymnasium environment:**
-`tmrl` comes with a real-time Gymnasium environment for the TrackMania2020 video game, based on [rtgym](https://pypi.org/project/rtgym/). Once `tmrl` is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gymnasium-environment).
-
-* **Distributed training:**
-`tmrl` is based on a single-server / multiple-clients architecture.
-It enables collecting samples locally on one or several computers and training remotely on a High Performance Computing cluster.
-Find out more [here](#remote-training-architecture).
+`tmrl` comes with a **Real-Time Gymnasium environment for TrackMania 2020**, based on [rtgym](https://pypi.org/project/rtgym/). Once the library is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gymnasium-environment).
 
 * **External libraries:**
 This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
@@ -108,6 +105,8 @@ and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring 
 
 ### TMRL in the media:
 - In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gymnasium environment that we used for the show is available [here](#lidar-with-track-progress).
+
+- In August 2023, we were invited at Ubisoft Montreal to give a talk about how video games could become simulators for real-world vision-based autonomous driving. Video of the talk coming soon!
 
 ## Installation
 
