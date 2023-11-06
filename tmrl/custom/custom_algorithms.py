@@ -51,7 +51,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.q_optimizer = Adam(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), lr=self.lr_critic)
 
         if self.target_entropy is None:  # automatic entropy coefficient
-            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+            self.target_entropy = -np.prod(action_space.shape)  # .astype(np.float32)
         else:
             self.target_entropy = float(self.target_entropy)
 
@@ -291,7 +291,7 @@ class REDQSACAgent(TrainingAgent):
         self.i_update = 0  # for UTD ratio
 
         if self.target_entropy is None:  # automatic entropy coefficient
-            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+            self.target_entropy = -np.prod(action_space.shape)  # .astype(np.float32)
         else:
             self.target_entropy = float(self.target_entropy)
 

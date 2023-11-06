@@ -89,14 +89,14 @@ class SquashedGaussianMLPActor(TorchActorModule):
         pi_action = torch.tanh(pi_action)
         pi_action = self.act_limit * pi_action
 
-        pi_action = pi_action.squeeze()
+        # pi_action = pi_action.squeeze()
 
         return pi_action, logp_pi
 
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.forward(obs, test, False)
-            return a.cpu().numpy()
+            return a.squeeze().cpu().numpy()
 
 
 class MLPQFunction(nn.Module):
@@ -109,7 +109,7 @@ class MLPQFunction(nn.Module):
     def forward(self, obs, act):
         x = torch.cat((*obs, act), -1)
         q = self.q(x)
-        return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
+        return torch.squeeze(q, -1)  # Critical to ensure q has right shape.  # FIXME: understand this
 
 
 class MLPActorCritic(nn.Module):
@@ -128,7 +128,7 @@ class MLPActorCritic(nn.Module):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
-            return a.cpu().numpy()
+            return a.squeeze().cpu().numpy()
 
 
 # REDQ MLP: =====================================================
@@ -155,7 +155,7 @@ class REDQMLPActorCritic(nn.Module):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
-            return a.cpu().numpy()
+            return a.squeeze().cpu().numpy()
 
 
 # CNNs: ================================================================================================================
@@ -430,7 +430,7 @@ class SquashedGaussianEffNetActor(TorchActorModule):
         pi_action = torch.tanh(pi_action)
         pi_action = self.act_limit * pi_action
 
-        pi_action = pi_action.squeeze()
+        # pi_action = pi_action.squeeze()
 
         return pi_action, logp_pi
 
@@ -439,7 +439,7 @@ class SquashedGaussianEffNetActor(TorchActorModule):
         size = sys.getsizeof(obs)
         with torch.no_grad():
             a, _ = self.forward(obs, test, False)
-            return a.cpu().numpy()
+            return a.squeeze().cpu().numpy()
 
 
 class EffNetQFunction(nn.Module):
@@ -471,7 +471,7 @@ class EffNetActorCritic(nn.Module):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
-            return a.cpu().numpy()
+            return a.squeeze().cpu().numpy()
 
 
 # Vanilla CNN FOR GRAYSCALE IMAGES: ====================================================================================
@@ -569,14 +569,14 @@ class SquashedGaussianVanillaCNNActor(TorchActorModule):
         pi_action = torch.tanh(pi_action)
         pi_action = self.act_limit * pi_action
 
-        pi_action = pi_action.squeeze()
+        # pi_action = pi_action.squeeze()
 
         return pi_action, logp_pi
 
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.forward(obs, test, False)
-            return a.cpu().numpy()
+            return a.squeeze().cpu().numpy()
 
 
 class VanillaCNNQFunction(nn.Module):
@@ -602,7 +602,7 @@ class VanillaCNNActorCritic(nn.Module):
     def act(self, obs, test=False):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
-            return a.cpu().numpy()
+            return a.squeeze().cpu().numpy()
 
 
 # Vanilla CNN FOR COLOR IMAGES: ========================================================================================
@@ -738,7 +738,7 @@ class SquashedGaussianRNNActor(nn.Module):
         obs_seq = tuple(o.view(1, *o.shape) for o in obs)  # artificially add sequence dimension
         with torch.no_grad():
             a, _ = self.forward(obs_seq=obs_seq, test=test, with_logprob=False, save_hidden=True)
-            return a.cpu().numpy()
+            return a.squeeze().cpu().numpy()
 
 
 class RNNQFunction(nn.Module):
