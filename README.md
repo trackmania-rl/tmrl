@@ -21,7 +21,7 @@
 - :red_car: **AI and TM enthusiasts:**\
 `tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md), video of a pre-trained AI [here](https://www.youtube.com/watch?v=hQkltOX0TYw), and beginner introduction to the SAC algorithm [here](https://www.youtube.com/watch?v=LN29DDlHp1U).
 - :rocket: **ML developers / roboticists:**\
-`tmrl` is a python library designed to facilitate the implementation of deep RL applications in real-time settings such as robots and video games. Full tutorial [here](readme/tuto_library.md) and documentation [here](https://tmrl.readthedocs.io/en/latest/).
+`tmrl` is a python library designed to facilitate the implementation of deep RL applications in real-time settings such as robots and video games. Minimal example pipeline [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal.py), full tutorial [here](readme/tuto_library.md) and documentation [here](https://tmrl.readthedocs.io/en/latest/).
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
 `tmrl` provides a Gymnasium environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gymnasium-environment).

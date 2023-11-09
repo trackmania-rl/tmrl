@@ -9,8 +9,9 @@ In this tutorial, we will learn from A to Z how to implement our own specialized
 
 In complement to this tutorial, you may use the [API documentation](https://tmrl.readthedocs.io/en/latest/).
 
-The full script of the tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
+A minimal, roughly equivalent `tmrl` pipeline is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal.py) (useful if you want to use `tmrl` on your task without delving too deep in the library).
 
+The full script of the tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
 
 **Note: some modules can be implemented independently.
 If you are here because you wish to implement your own training algorithm in TrackMania, you should read the [competition tutorial](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) instead.**
@@ -716,6 +717,11 @@ This must be a subclass of `TorchMemory`.
 
 The role of a `TorchMemory` object is to store and decompress samples received by the `Trainer` from the `Server`.
 
+In a `tmrl` pipeline, the `Memory` class is typically the most difficult (but also the most interesting) to implement.
+This is because, in conjunction with sample compressors, `Memory` is where you can really optimize your pipeline for your specific application, and `tmrl` gives you full latitude for doing this.
+For the people who wish to quickly test things rather than implementing optimized pipelines, `tmrl` provides a readily implemented `GenericTorchMemory` that works for all cases, as it has no optimizations (see the `tuto_minimal.py` script for a usage example.)
+In this tutorial, we will instead implement a very optimized `Memory` for the sake of illustration.
+While these optimizations are clearly overkill for our toy RC drone example, they are tremendously important for vision-based applications such as the default `tmrl` pipeline for TrackMania.
 
 `TorchMemory` has the following interface:
 
@@ -785,6 +791,7 @@ Again, just pass to the superclass.
 Let us implement our own `TorchMemory`.
 
 ```python
+import random
 from tmrl.memory import TorchMemory
 
 
@@ -846,6 +853,7 @@ Here, we decompose our samples in their relevant components, append these compon
         list_terminated = [b[3] for b in buffer.memory]
         list_truncated = [b[4] for b in buffer.memory]
         list_info = [b[5] for b in buffer.memory]
+        list_done = [b[3] or b[4] for b in buffer.memory]
         
         # append to self.data in some arbitrary way:
 
@@ -859,6 +867,7 @@ Here, we decompose our samples in their relevant components, append these compon
             self.data[6] += list_terminated
             self.data[7] += list_info
             self.data[8] += list_truncated
+            self.data[9] += list_done
         else:
             self.data.append(list_action)
             self.data.append(list_x_position)
@@ -869,6 +878,7 @@ Here, we decompose our samples in their relevant components, append these compon
             self.data.append(list_terminated)
             self.data.append(list_info)
             self.data.append(list_truncated)
+            self.data.append(list_done)
 
         # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
 
@@ -883,6 +893,7 @@ Here, we decompose our samples in their relevant components, append these compon
             self.data[6] = self.data[6][to_trim:]
             self.data[7] = self.data[7][to_trim:]
             self.data[8] = self.data[8][to_trim:]
+            self.data[9] = self.data[9][to_trim:]
 ```
 
 We must also implement the `__len__()` method of our memory because the content of `self.data` is arbitrary and the `Trainer` needs to know what it can ask to the `get_transition()` method:
@@ -915,6 +926,19 @@ This method outputs full transitions as if they were output by the Gymnasium env
         Returns:
             full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
         """
+        
+        # if item corresponds to a transition from a terminal state to a reset state
+        if self.data[9][item + self.act_buf_len - 1]:
+            # this wouldn't make sense in RL, so we replace item by a neighbour transition
+            if item == 0:  # if fist item of the buffer
+                item += 1
+            elif item == self.__len__() - 1:  # if last item of the buffer
+                item -= 1
+            elif random.random() < 0.5:  # otherwise, sample randomly
+                item += 1
+            else:
+                item -= 1
+        
         idx_last = item + self.act_buf_len - 1  # index of previous observation
         idx_now = item + self.act_buf_len  # index of new observation
         
@@ -949,9 +973,18 @@ This method outputs full transitions as if they were output by the Gymnasium env
 _Note 1: the action buffer of `new_obs` contains `new_act`.
 This is because at least the last computed action (`new_act`) must be in the action buffer to keep a Markov state in a real-time environment. See [rtgym](https://github.com/yannbouteiller/rtgym)._
 
-_Note 2: in our dummy RC drone environment, the action buffer is not reset on calls to `reset()` and thus we don't need to do anything special about it here.
-However, in other environments, this will not always be the case.
-If you want to be extra picky, you may need to take special care for rebuilding transitions that happened after a `terminated` or `truncated` signal is set to `True`.
+_Note 2: in our dummy RC drone environment, the action buffer is not reset on calls to `reset()` and we do not call the special `wait()` method when an episode ends.
+Doing this, we keep the real-time flow of operations around reset transitions.
+Nevertheless, reset transitions are discontinuities in the `Gymnasium` standard: there is no action between a terminal state and the next state returned by `reset()`.
+This means that one action is a dummy action around reset transitions here.
+More specifically, in the case of an `rtgym` environment, the very last action of a trajectory is never sent to the robot.
+From an RL perspective, this action is still the proper last action of the trajectory (although it has no effect).
+However, because it is never applied, it is **not** supposed to go into the action buffer of post-reset transitions.
+If you are using an `rtgym` environment (as we do in this tutorial), `tmrl` will set the default action of your environment as the action corresponding to the observation returned by `reset()` in the `buffer` argument of your `append_buffer()` method.
+This is because this default action will be applied right after `reset()` is called, and it should therefore be part of the action buffer.
+If you are instead using a vanilla `Gymnasium` environment, `tmrl` will set this action to `None`, as you should ignore it anyway in non-real-time environments.
+Because this is an intricate effect specific to real-time environments, we will ignore it for now and come back to it at the very end of this tutorial.
+Just bear in mind that, if you want your pipeline to be 100% correct in real-time scenarios, you need to take special care for rebuilding transitions that happened after a `terminated` or `truncated` signal is set to `True`.
 This is done in the `tmrl` implementation of [TorchMemory for TrackMania](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_memories.py)._
 
 We now have our `memory_cls` argument:
@@ -1331,21 +1364,6 @@ And that is mostly all, folks! :smile:
 
 ---
 
-_(Note 1: I have not conducted any hyperparameter tuning when writing this tutorial and I have selected most values randomly, so it is very likely you can find much better training hyperparameters for this toy task if you like to try.
-However, be mindful that this task is much harder than it looks: the dummy RC drone has random and fairly long action and observation delays, which makes reaching the target difficult for vanilla RL algorithms like SAC.)_
-
-_(Note 2: Although in this tutorial we have run the `RolloutWorker` and the `Trainer` on the same CPU/GPU, this is of course not recommended in real applications.
-Since the environment is real-time, training may introduce noise in the time-step duration despite the best effort of `rtgym` to prevent this from happening.
-If you see `rtgym` warning you against time-step timeouts, this is probably because the `Trainer` is slowing it down too much.)_
-
-_(Note 3: If you have set `model_history > 0`, you will find the model history in your `weights` folder.
-Note also that everything will be checkpointed, so unless you empty your `checkpoints` and `weights` folders or change the run name, you will not be able to restart training from scratch.)_
-
-_(Note 4: Thank you for reading the `tmrl` tutorial.
-You are now **ready for the Real Life** :rocket: )_
-
----
-
 ## CRC debugging
 
 You have probably noticed that implementing your own compression/decompression pipeline is **extremely** error-prone.
@@ -1363,3 +1381,323 @@ Otherwise, you will get a "CRC check passed" message printed in the terminal for
 
 We recommend using the `crc_debug` mode as a sanity check whenever you implement a compression/decompression pipeline.
 To activate this mode, set the `crc_debug` arguments to `True` for both your `RolloutWorker` and `TorchMemory` instances.
+
+Let us do this for our implemented pipeline and see what happens:
+
+```terminal
+
+INFO:root: Resuming training
+DEBUG: CRC check passed. Time step: 91, since reset: 90
+DEBUG: CRC check passed. Time step: 320, since reset: 16
+DEBUG: CRC check passed. Time step: 135, since reset: 33
+DEBUG: CRC check passed. Time step: 96, since reset: 95
+DEBUG: CRC check passed. Time step: 24, since reset: 23
+DEBUG: CRC check passed. Time step: 259, since reset: 56
+
+Traceback (most recent call last):
+  File ".../tmrl/tmrl/tuto/tuto.py", line 535, in <module>
+    run_trainer(my_trainer)
+  File ".../tmrl/tmrl/tuto/tuto.py", line 528, in run_trainer
+    trainer.run()
+  File ".../tmrl/tmrl/networking.py", line 394, in run
+    run(interface=self.interface,
+  File ".../tmrl/tmrl/networking.py", line 327, in run
+    for stats in iterate_epochs(...):
+  File ".../tmrl/tmrl/networking.py", line 270, in iterate_epochs
+    yield run_instance.run_epoch(interface=interface)
+  File ".../tmrl/tmrl/training_offline.py", line 114, in run_epoch
+    for batch in self.memory:
+  File ".../tmrl/tmrl/memory.py", line 89, in __iter__
+    yield self.sample()
+  File ".../tmrl/tmrl/memory.py", line 152, in sample
+    batch = [self[idx] for idx in indices]
+  File ".../tmrl/tmrl/memory.py", line 152, in <listcomp>
+    batch = [self[idx] for idx in indices]
+  File ".../tmrl/tmrl/memory.py", line 169, in __getitem__
+    check_samples_crc(...)
+  File ".../tmrl/tmrl/memory.py", line 22, in check_samples_crc
+
+AssertionError: previous observations don't match:
+
+original:
+
+(array([0.34098563], dtype=float32),
+array([-0.63508004], dtype=float32),
+array([0.44789273], dtype=float32),
+array([0.39232507], dtype=float32),
+
+array([0.29402873, 1.3678434 ], dtype=float32),
+array([-1.8195685, -1.4343303], dtype=float32),
+array([0., 0.], dtype=float32),
+array([-0.07386027, -1.6602786 ], dtype=float32))
+
+!= rebuilt:
+
+(array([0.34098563], dtype=float32),
+array([-0.63508004], dtype=float32),
+array([0.44789273], dtype=float32),
+array([0.39232507], dtype=float32),
+
+array([-1.8195685, -1.4343303], dtype=float32),
+array([0.50566  , 1.7723236], dtype=float32),
+array([0., 0.], dtype=float32),
+array([-0.07386027, -1.6602786 ], dtype=float32))
+
+Time step: 306, since reset: 2
+```
+_(I have parsed the error a little bit to make it easier for you to analyze.)_
+
+Oh no! What is going on? :scream:
+
+If you have carefully read the entire tutorial, well, congratulations, but now is the final test: try to spot exactly what is wrong here and explain why this happens.
+
+Do you have it? :grinning:
+
+The "since reset" part indicates that the offending observation originates from a sample that was collected 2 time-steps after a reset transition in this examples, whereas the "CRC passed" messages indicate that many samples originating from later transitions have been reconstructed successfully.
+
+The last four arrays of each observation are the action buffers included in real-time observations.
+Notice the `array([0., 0.], dtype=float32)` in both the original and the rebuilt observations: this is what the dummy RC drone environment defines as its default action.
+Everything after this default action is correct, whereas everything before this action is shifted by one time-step in the action buffer.
+
+This issue happens because we weren't careful enough when rebuilding the action buffer after reset transitions.
+`reset()` is a discontinuity in the `Gymnnasium` standard, and it needs to be handled with special care in real-time scenarios.
+
+Specifically, in `rtgym` environments, the very last action of a trajectory is never sent to the robot.
+This is because, since the previously captured state is terminal (or truncated), it would never make sense to send this last action to the robot in the first place
+(in fact, sending it could even be harmful: the last action is theoretically random since it has no captured effect in the underlying MDP - note that it is also worthwhile to think about this for longer delays).
+On the other hand, when `reset()` is called in an `rtgym` environment, it sends whatever is currently defined as the "default" action to the robot (i.e., `array([0., 0.], dtype=float32)` in our case).
+
+In a nutshell, the very last action of the previous trajectory is never part of the post-reset action buffer in `rtgym` environments.
+
+Therefore, we need to make a couple modifications to our custom `Memory`.
+
+First, add this helper to your script:
+```python
+# Helper function to spot reset transitions:
+
+def last_true_in_list(li):
+    """
+    Returns the index of the last True element in list li, or None.
+    """
+    for i in reversed(range(len(li))):
+        if li[i]:
+            return i
+    return None
+```
+
+Then, add a "done" list to your data that checks whether `terminated` or `truncated` is `True` in `append_buffer()`.
+Finally, use this new list in `get_transition()` to spot reset transitions and update the action buffer accordingly:
+```python
+class MyMemory(TorchMemory):
+    def __init__(self,
+                 act_buf_len=None,
+                 device=None,
+                 nb_steps=None,
+                 sample_preprocessor: callable = None,
+                 memory_size=1000000,
+                 batch_size=32,
+                 dataset_path=""):
+
+        self.act_buf_len = act_buf_len  # length of the action buffer
+
+        super().__init__(device=device,
+                         nb_steps=nb_steps,
+                         sample_preprocessor=sample_preprocessor,
+                         memory_size=memory_size,
+                         batch_size=batch_size,
+                         dataset_path=dataset_path,
+                         crc_debug=CRC_DEBUG)
+
+    def append_buffer(self, buffer):
+        """
+        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
+        """
+
+        # decompose compressed samples into their relevant components:
+
+        list_action = [b[0] for b in buffer.memory]
+        list_x_position = [b[1][0] for b in buffer.memory]
+        list_y_position = [b[1][1] for b in buffer.memory]
+        list_x_target = [b[1][2] for b in buffer.memory]
+        list_y_target = [b[1][3] for b in buffer.memory]
+        list_reward = [b[2] for b in buffer.memory]
+        list_terminated = [b[3] for b in buffer.memory]
+        list_truncated = [b[4] for b in buffer.memory]
+        list_info = [b[5] for b in buffer.memory]
+        list_done = [b[3] or b[4] for b in buffer.memory]
+
+        # append to self.data in some arbitrary way:
+
+        if self.__len__() > 0:
+            self.data[0] += list_action
+            self.data[1] += list_x_position
+            self.data[2] += list_y_position
+            self.data[3] += list_x_target
+            self.data[4] += list_y_target
+            self.data[5] += list_reward
+            self.data[6] += list_terminated
+            self.data[7] += list_info
+            self.data[8] += list_truncated
+            self.data[9] += list_done
+        else:
+            self.data.append(list_action)
+            self.data.append(list_x_position)
+            self.data.append(list_y_position)
+            self.data.append(list_x_target)
+            self.data.append(list_y_target)
+            self.data.append(list_reward)
+            self.data.append(list_terminated)
+            self.data.append(list_info)
+            self.data.append(list_truncated)
+            self.data.append(list_done)
+
+        # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
+
+        to_trim = self.__len__() - self.memory_size
+        if to_trim > 0:
+            self.data[0] = self.data[0][to_trim:]
+            self.data[1] = self.data[1][to_trim:]
+            self.data[2] = self.data[2][to_trim:]
+            self.data[3] = self.data[3][to_trim:]
+            self.data[4] = self.data[4][to_trim:]
+            self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
+            self.data[7] = self.data[7][to_trim:]
+            self.data[8] = self.data[8][to_trim:]
+            self.data[9] = self.data[9][to_trim:]
+
+    def __len__(self):
+        if len(self.data) == 0:
+            return 0  # self.data is empty
+        result = len(self.data[0]) - self.act_buf_len - 1
+        if result < 0:
+            return 0  # not enough samples to reconstruct the action buffer
+        else:
+            return result  # we can reconstruct that many samples
+
+    def get_transition(self, item):
+        """
+        Args:
+            item: int: indice of the transition that the Trainer wants to sample
+        Returns:
+            full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
+        """
+        while True:  # this enables modifying item in edge cases
+
+            # if item corresponds to a transition from a terminal state to a reset state
+            if self.data[9][item + self.act_buf_len - 1]:
+                # this wouldn't make sense in RL, so we replace item by a neighbour transition
+                if item == 0:  # if fist item of the buffer
+                    item += 1
+                elif item == self.__len__() - 1:  # if last item of the buffer
+                    item -= 1
+                elif random.random() < 0.5:  # otherwise, sample randomly
+                    item += 1
+                else:
+                    item -= 1
+
+            idx_last = item + self.act_buf_len - 1  # index of previous observation
+            idx_now = item + self.act_buf_len  # index of new observation
+
+            # rebuild the action buffer of both observations:
+            actions = self.data[0][item:(item + self.act_buf_len + 1)]
+            last_act_buf = actions[:-1]  # action buffer of previous observation
+            new_act_buf = actions[1:]  # action buffer of new observation
+
+            # correct the action buffer when it goes over a reset transition:
+            # (NB: we have eliminated the case where the transition *is* the reset transition)
+            eoe = last_true_in_list(self.data[9][item:(item + self.act_buf_len)])  # the last one is not important
+            if eoe is not None:
+                # either one or both action buffers are passing over a reset transition
+                if eoe < self.act_buf_len - 1:
+                    # last_act_buf is concerned
+                    if item == 0:
+                        # we have a problem: the previous action has been discarded; we cannot recover the buffer
+                        # in this edge case, we randomly sample another item
+                        item = random.randint(1, self.__len__())
+                        continue
+                    last_act_buf_eoe = eoe
+                    # replace everything before last_act_buf_eoe by the previous action
+                    prev_act = self.data[0][item - 1]
+                    for idx in range(last_act_buf_eoe + 1):
+                        act_tmp = last_act_buf[idx]
+                        last_act_buf[idx] = prev_act
+                        prev_act = act_tmp
+                if eoe > 0:
+                    # new_act_buf is concerned
+                    new_act_buf_eoe = eoe - 1
+                    # replace everything before new_act_buf_eoe by the previous action
+                    prev_act = self.data[0][item]
+                    for idx in range(new_act_buf_eoe + 1):
+                        act_tmp = new_act_buf[idx]
+                        new_act_buf[idx] = prev_act
+                        prev_act = act_tmp
+
+            # rebuild the previous observation:
+            last_obs = (self.data[1][idx_last],  # x position
+                        self.data[2][idx_last],  # y position
+                        self.data[3][idx_last],  # x target
+                        self.data[4][idx_last],  # y target
+                        *last_act_buf)  # action buffer
+
+            # rebuild the new observation:
+            new_obs = (self.data[1][idx_now],  # x position
+                       self.data[2][idx_now],  # y position
+                       self.data[3][idx_now],  # x target
+                       self.data[4][idx_now],  # y target
+                       *new_act_buf)  # action buffer
+
+            # other components of the transition:
+            new_act = self.data[0][idx_now]  # action
+            rew = np.float32(self.data[5][idx_now])  # reward
+            terminated = self.data[6][idx_now]  # terminated signal
+            truncated = self.data[8][idx_now]  # truncated signal
+            info = self.data[7][idx_now]  # info dictionary
+
+            break
+
+        return last_obs, new_act, rew, new_obs, terminated, truncated, info
+```
+
+Alright! This was a bit hacky, but that should work. Let us delete the automatically saved checkpoint file in `TmrlData/checkpoints` and retry:
+```terminal
+DEBUG: CRC check passed. Time step: 652, since reset: 74
+DEBUG: CRC check passed. Time step: 105, since reset: 33
+DEBUG: CRC check passed. Time step: 319, since reset: 1
+DEBUG: CRC check passed. Time step: 847, since reset: 67
+DEBUG: CRC check passed. Time step: 738, since reset: 59
+DEBUG: CRC check passed. Time step: 233, since reset: 7
+DEBUG: CRC check passed. Time step: 729, since reset: 50
+DEBUG: CRC check passed. Time step: 565, since reset: 88
+DEBUG: CRC check passed. Time step: 868, since reset: 88
+DEBUG: CRC check passed. Time step: 389, since reset: 1
+DEBUG: CRC check passed. Time step: 335, since reset: 17
+DEBUG: CRC check passed. Time step: 217, since reset: 11
+DEBUG: CRC check passed. Time step: 561, since reset: 84
+DEBUG: CRC check passed. Time step: 859, since reset: 79
+DEBUG: CRC check passed. Time step: 223, since reset: 17
+DEBUG: CRC check passed. Time step: 829, since reset: 49
+DEBUG: CRC check passed. Time step: 375, since reset: 4
+DEBUG: CRC check passed. Time step: 378, since reset: 7
+(...)
+```
+Finally!
+At this point, you can be fairly confident that your pipeline works perfectly :sunglasses:
+
+
+You can now disable CRC-debugging, delete checkpoints and weights in `TmrlData`, and start training seriously.
+
+---
+
+_(Note 1: I have not conducted any hyperparameter tuning when writing this tutorial and I have selected most values randomly, so it is very likely you can find much better training hyperparameters for this toy task if you like to try.
+However, be mindful that this task is much harder than it looks: the dummy RC drone has random and fairly long action and observation delays, which makes reaching the target difficult for vanilla RL algorithms like SAC.)_
+
+_(Note 2: Although in this tutorial we have run the `RolloutWorker` and the `Trainer` on the same CPU/GPU, this is of course not recommended in real applications.
+Since the environment is real-time, training may introduce noise in the time-step duration despite the best effort of `rtgym` to prevent this from happening.
+If you see `rtgym` warning you against time-step timeouts, this is probably because the `Trainer` is slowing it down too much.)_
+
+_(Note 3: If you have set `model_history > 0`, you will find the model history in your `weights` folder.
+Note also that everything will be checkpointed, so unless you empty your `checkpoints` and `weights` folders or change the run name, you will not be able to restart training from scratch.)_
+
+_(Note 4: Thank you for reading the `tmrl` tutorial.
+You are now **ready for the Real Life** :rocket: )_

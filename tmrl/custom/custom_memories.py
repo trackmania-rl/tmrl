@@ -1,9 +1,8 @@
-# third-party imports
+import random
 import numpy as np
-import cv2
 
-# local imports
 from tmrl.memory import TorchMemory
+
 
 # LOCAL BUFFER COMPRESSION ==============================
 
@@ -118,6 +117,7 @@ class GenericTorchMemory(TorchMemory):
         d3 = [b[3] for b in buffer.memory]  # terminated
         d4 = [b[4] for b in buffer.memory]  # truncated
         d5 = [b[5] for b in buffer.memory]  # info
+        d6 = [b[3] or b[4] for b in buffer.memory]  # done
 
         # append:
         if self.__len__() > 0:
@@ -127,6 +127,7 @@ class GenericTorchMemory(TorchMemory):
             self.data[3] += d3
             self.data[4] += d4
             self.data[5] += d5
+            self.data[6] += d6
         else:
             self.data.append(d0)
             self.data.append(d1)
@@ -134,6 +135,7 @@ class GenericTorchMemory(TorchMemory):
             self.data.append(d3)
             self.data.append(d4)
             self.data.append(d5)
+            self.data.append(d6)
 
         # trim
         to_trim = self.__len__() - self.memory_size
@@ -144,6 +146,7 @@ class GenericTorchMemory(TorchMemory):
             self.data[3] = self.data[3][to_trim:]
             self.data[4] = self.data[4][to_trim:]
             self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
 
     def __len__(self):
         if len(self.data) == 0:
@@ -155,6 +158,17 @@ class GenericTorchMemory(TorchMemory):
             return res
 
     def get_transition(self, item):
+
+        if self.data[6][item]:
+            if item == 0:
+                item += 1
+            elif item == self.__len__() - 1:
+                item -= 1
+            elif random.random() < 0.5:
+                item += 1
+            else:
+                item -= 1
+
         idx_last = item
         idx_now = item + 1
 
@@ -219,6 +233,16 @@ class MemoryTMLidar(MemoryTM):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
+        if self.data[4][item + self.min_samples - 1]:
+            if item == 0:  # if fist item of the buffer
+                item += 1
+            elif item == self.__len__() - 1:  # if last item of the buffer
+                item -= 1
+            elif random.random() < 0.5:  # otherwise, sample randomly
+                item += 1
+            else:
+                item -= 1
+
         idx_last = item + self.min_samples - 1
         idx_now = item + self.min_samples
 
@@ -326,6 +350,16 @@ class MemoryTMLidarProgress(MemoryTM):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
+        if self.data[4][item + self.min_samples - 1]:
+            if item == 0:  # if fist item of the buffer
+                item += 1
+            elif item == self.__len__() - 1:  # if last item of the buffer
+                item -= 1
+            elif random.random() < 0.5:  # otherwise, sample randomly
+                item += 1
+            else:
+                item -= 1
+
         idx_last = item + self.min_samples - 1
         idx_now = item + self.min_samples
 
@@ -437,6 +471,16 @@ class MemoryTMFull(MemoryTM):
         So we load 5 images from here...
         Don't forget the info dict for CRC debugging
         """
+        if self.data[4][item + self.min_samples - 1]:
+            if item == 0:  # if fist item of the buffer
+                item += 1
+            elif item == self.__len__() - 1:  # if last item of the buffer
+                item -= 1
+            elif random.random() < 0.5:  # otherwise, sample randomly
+                item += 1
+            else:
+                item -= 1
+
         idx_last = item + self.min_samples - 1
         idx_now = item + self.min_samples
 

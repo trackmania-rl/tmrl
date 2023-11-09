@@ -232,13 +232,13 @@ def dump_run_instance(run_instance, checkpoint_path):
     dump(run_instance, checkpoint_path)
 
 
-def iterate_epochs_tm(run_cls,
-                      interface: TrainerInterface,
-                      checkpoint_path: str,
-                      dump_run_instance_fn=dump_run_instance,
-                      load_run_instance_fn=load_run_instance,
-                      epochs_between_checkpoints=1,
-                      updater_fn=None):
+def iterate_epochs(run_cls,
+                   interface: TrainerInterface,
+                   checkpoint_path: str,
+                   dump_run_instance_fn=dump_run_instance,
+                   load_run_instance_fn=load_run_instance,
+                   epochs_between_checkpoints=1,
+                   updater_fn=None):
     """
     Main training loop (remote)
     The run_cls instance is saved in checkpoint_path at the end of each epoch
@@ -314,7 +314,7 @@ def run_with_wandb(entity, project, run_id, interface, run_cls, checkpoint_path:
             else:
                 time.sleep(10.0)
     # logging.info(config)
-    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
+    for stats in iterate_epochs(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
         [wandb.log(json.loads(s.to_json())) for s in stats]
 
 
@@ -324,7 +324,7 @@ def run(interface, run_cls, checkpoint_path: str = None, dump_run_instance_fn=No
     """
     dump_run_instance_fn = dump_run_instance_fn or dump_run_instance
     load_run_instance_fn = load_run_instance_fn or load_run_instance
-    for stats in iterate_epochs_tm(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
+    for stats in iterate_epochs(run_cls, interface, checkpoint_path, dump_run_instance_fn, load_run_instance_fn, 1, updater_fn):
         pass
 
 
@@ -510,6 +510,9 @@ class RolloutWorker:
         self.model_history = model_history
         self._cur_hist_cpt = 0
 
+        self.debug_ts_cpt = 0
+        self.debug_ts_res_cpt = 0
+
         self.server_ip = server_ip if server_ip is not None else '127.0.0.1'
 
         print_with_timestamp(f"server IP: {self.server_ip}")
@@ -566,7 +569,10 @@ class RolloutWorker:
         terminated, truncated = False, False
         if collect_samples:
             if self.crc_debug:
+                self.debug_ts_cpt += 1
+                self.debug_ts_res_cpt = 0
                 info['crc_sample'] = (obs, act, new_obs, rew, terminated, truncated)
+                info['crc_sample_ts'] = (self.debug_ts_cpt, self.debug_ts_res_cpt)
             if self.get_local_buffer_sample:
                 sample = self.get_local_buffer_sample(act, new_obs, rew, terminated, truncated, info)
             else:
@@ -604,7 +610,10 @@ class RolloutWorker:
             if last_step and not terminated:
                 truncated = True
             if self.crc_debug:
+                self.debug_ts_cpt += 1
+                self.debug_ts_res_cpt += 1
                 info['crc_sample'] = (obs, act, new_obs, rew, terminated, truncated)
+                info['crc_sample_ts'] = (self.debug_ts_cpt, self.debug_ts_res_cpt)
             if self.get_local_buffer_sample:
                 sample = self.get_local_buffer_sample(act, new_obs, rew, terminated, truncated, info)
             else:
