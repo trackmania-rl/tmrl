@@ -43,6 +43,15 @@ You can test our pre-trained AIs directly in TrackMania by following these steps
       "act_buf_len": 2,
       "benchmark": false,
       "wait_on_done": true
+    },
+    "REWARD_CONFIG": {
+      "END_OF_TRACK": 100.0,
+      "CONSTANT_PENALTY": 0.0,
+      "CHECK_FORWARD": 500,
+      "CHECK_BACKWARD": 10,
+      "FAILURE_COUNTDOWN": 10,
+      "MIN_STEPS": 70,
+      "MAX_STRAY": 100.0
     }
   }
 ```
@@ -73,6 +82,15 @@ _(note: it will be downscaled when starting the worker)_:
       "act_buf_len": 2,
       "benchmark": false,
       "wait_on_done": true
+    },
+    "REWARD_CONFIG": {
+      "END_OF_TRACK": 100.0,
+      "CONSTANT_PENALTY": 0.0,
+      "CHECK_FORWARD": 500,
+      "CHECK_BACKWARD": 10,
+      "FAILURE_COUNTDOWN": 10,
+      "MIN_STEPS": 70,
+      "MAX_STRAY": 100.0
     }
   }
 ```
@@ -100,10 +118,9 @@ In case you get a DLL error from the `win32gui/win32ui/win32con` library, instal
 
 #### Profiling / optimization:
 If you see many warnings complaining about time-steps timing out, this means your computer struggles at running the AI and trackmania in parallel.
-Try reducing the trackmania graphics to the minimum (in particular, try setting the maximum fps to 30, but not much less than this, because screenshots are captured at 20 fps)
-_(NB: seeing these warnings once at each environment reset is normal, this is because we purposefully sleep when the car is waiting for green light)._
+Try reducing the trackmania graphics to the minimum (in particular, try setting the maximum fps to 30, but not much less than this, because screenshots are captured at 20 fps).
 
-In the `Graphics` tab of the TM20 settings, ensure that the resolution is 958 * 488 pixels for the LIDAR environment and 256 * 128 pixels for the raw screenshot environment.
+In the `Graphics` tab of the TM20 settings, make sure that the resolution is 958 * 488 pixels for the LIDAR environment and 256 * 128 pixels for the raw screenshot environment.
 
 The `Input` setting for gamepads must be the default.
 
@@ -181,6 +198,17 @@ With carefully chosen hyperparameters, an RTX3080 on a distant machine as traine
 And it takes more like 2 days in the raw screenshots environment! :wink:
 
 _(Note: you can exit these processes by pressing `CTRL + C` in each terminal)_
+
+### Log training metrics:
+
+You can log your training data to [Weights and Biases](https://wandb.ai) by using the `--wandb` option:
+```shell
+python -m tmrl --trainer --wandb
+```
+The default `config.json` file contains credentials that log your data to the [public tmrl project](https://wandb.ai/tmrl/tmrl).
+
+Please replace these credentials with your own if you want to hide/keep your training data, or if you want to log large files.
+We clean the public project once in a while.
 
 ## Use the TMRL API for other robot applications
 

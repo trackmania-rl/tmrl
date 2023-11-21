@@ -1,6 +1,6 @@
 # TrackMania 2020 pipeline on Linux
 
-Since version `0.6.0`, the example `tmrl` pipeline for TrackMania 2020 is experimentally supported on Linux, including the `gymnasium` environment (previously supported for Windows only).
+Since version `0.6.0`, the example `tmrl` pipeline for TrackMania 2020 is experimentally supported on Linux, including the `gymnasium` environment.
 
 Note that Ubisoft Nadeo does not officially support Linux.
 Thus, installing TrackMania 2020 and OpenPlanet on Linux is somewhat involved.
@@ -13,7 +13,7 @@ Furthermore, you will need to grant yourself access to `uinput` so `vgamepad` ca
 ## TrackMania 2020 installation (Steam)
 
 - Install Steam
-  - If you are using Debian (Ubuntu...), you can do this in a terminal with `sudo apt-get install steam`
+  - If you are using Debian/Ubuntu, you can do this in a terminal with `sudo apt-get install steam`
 - Launch Steam.
   - You can do this by executing the `steam` command in a terminal
 - Connect to your Steam account (or create one).
@@ -36,13 +36,13 @@ Furthermore, you will need to grant yourself access to `uinput` so `vgamepad` ca
 - Select `Run winecfg` and press OK
 - Navigate to the `Drives` tab, check `Show dot files` and click `Apply`
 - Close the utility, and press `Cancel` several times to exit protontricks.
-- Download [OpenPlanet for Trackmania](https://openplanet.dev/download).
+- Download the latest version of [OpenPlanet for Trackmania](https://openplanet.dev/download).
 - Open a terminal where you downloaded the installer, and execute `protontricks-launch <installer_name.exe>` (replace `<installer_name.exe>` with the name of your downloaded OpenPlanet installer).
 - Select Trackmania, and proceed.
 - When the installer asks you where it should install OpenPlanet for Trackmania, select the file where Trackmania is installed. On Steam, it is something like `/home/username/.steam/steam/steamapps/common/Trackmania`.
 - Complete the installation and launch Trackmania from Steam. OpenPlanet should now work properly.
 
-**Note: You need to redo this manually after each automatic update of TrackMania, otherwise the game will fail to launch.**
+**Note: You need to redo these steps (starting from the OpenPlanet download) after each automatic update of TrackMania, otherwise the game will fail to launch.**
 
 ## Grant yourself access to `uinput`
 The `tmrl` `gymnasium` environment for TrackMania 2020 uses the `vgamepad` library to control the game.
@@ -64,7 +64,7 @@ KERNEL=="uinput", TAG+="uaccess"
 Save by pressing `CTRL+o`, `ENTER`, and exit `nano` by pressing `CTRL+x`
 
 ## Install `xdotool`
-For instance if you are on Debian:
+For instance if you are on Debian/Ubuntu:
 ```bash
 sudo apt-get install xdotool
 ```

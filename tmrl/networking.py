@@ -561,7 +561,12 @@ class RolloutWorker:
             dict: information retrieved from the environment)
         """
         obs = None
-        act = self.env.unwrapped.default_action  # .astype(np.float32)
+        try:
+            # Faster than hasattr() in real-time environments
+            act = self.env.unwrapped.default_action  # .astype(np.float32)
+        except AttributeError:
+            # In non-real-time environments, act is None on reset
+            act = None
         new_obs, info = self.env.reset()
         if self.obs_preprocessor is not None:
             new_obs = self.obs_preprocessor(new_obs)
@@ -680,7 +685,7 @@ class RolloutWorker:
         self.buffer.stat_test_return = ret
         self.buffer.stat_test_steps = steps
 
-    def run(self, test_episode_interval=50, nb_episodes=np.inf):  # TODO: check number of collected samples are collected before sending
+    def run(self, test_episode_interval=50, nb_episodes=np.inf, verbose=True):  # TODO: check number of collected samples are collected before sending
         """
         Runs the worker for `nb_episodes` episodes.
 
@@ -691,23 +696,26 @@ class RolloutWorker:
         Args:
             test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes
             nb_episodes (int): maximum number of train episodes to collect
+            verbose (bool): whether to log INFO messages
         """
         episode = 0
         while episode < nb_episodes:
             if episode % test_episode_interval == 0 and not self.crc_debug:
-                print_with_timestamp("running test episode")
+                if verbose:
+                    print_with_timestamp("running test episode")
                 self.run_episode(self.max_samples_per_episode, train=False)
-            print_with_timestamp("collecting train episode")
+            if verbose:
+                print_with_timestamp("collecting train episode")
             self.collect_train_episode(self.max_samples_per_episode)
-            print_with_timestamp("copying buffer for sending")
+            if verbose:
+                print_with_timestamp("copying buffer for sending")
             self.send_and_clear_buffer()
-            print_with_timestamp("checking for new weights")
-            self.update_actor_weights()
+            if verbose:
+                print_with_timestamp("checking for new weights")
+            self.update_actor_weights(verbose=verbose)
             episode += 1
-            # if self.crc_debug:
-            #     break
 
-    def run_env_benchmark(self, nb_steps, test=False):
+    def run_env_benchmark(self, nb_steps, test=False, verbose=True):
         """
         Benchmarks the environment.
 
@@ -719,13 +727,17 @@ class RolloutWorker:
         Args:
             nb_steps (int): number of steps to perform to compute the benchmark
             test (int): whether the actor is called in test or train mode
+            verbose (bool): whether to log INFO messages
         """
         obs, info = self.reset(collect_samples=False)
         for _ in range(nb_steps):
             obs, rew, terminated, truncated, info = self.step(obs=obs, test=test, collect_samples=False)
             if terminated or truncated:
                 break
-        print_with_timestamp(f"Benchmark results:\n{self.env.benchmarks()}")
+        res = self.env.benchmarks()
+        if verbose:
+            print_with_timestamp(f"Benchmark results:\n{res}")
+        return res
 
     def send_and_clear_buffer(self):
         """
@@ -734,9 +746,15 @@ class RolloutWorker:
         self.__endpoint.produce(self.buffer, "trainers")
         self.buffer.clear()
 
-    def update_actor_weights(self):
+    def update_actor_weights(self, verbose=True):
         """
         Updates the actor with new weights received from the `Server` when available.
+
+        Args:
+            verbose (bool): whether to log INFO messages
+
+        Returns:
+            bool: whether new actor weights have been received from the Server
         """
         weights_list = self.__endpoint.get_last()
         if len(weights_list) > 0:
@@ -750,6 +768,10 @@ class RolloutWorker:
                     with open(self.model_path_history + str(x.strftime("%d_%m_%Y_%H_%M_%S")) + ".tmod", 'wb') as f:
                         f.write(weights)
                     self._cur_hist_cpt = 0
-                    print_with_timestamp("model weights saved in history")
+                    if verbose:
+                        print_with_timestamp("model weights saved in history")
             self.actor = self.actor.load(self.model_path, device=self.device)
-            print_with_timestamp("model weights have been updated")
+            if verbose:
+                print_with_timestamp("model weights have been updated")
+            return True
+        return False

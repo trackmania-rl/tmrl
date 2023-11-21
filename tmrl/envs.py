@@ -27,7 +27,7 @@ class GenericGymEnv(gymnasium.Wrapper):
             env = AffineObservationWrapper(env, 0, obs_scale)
         if to_float32:
             env = Float64ToFloat32(env)
-        assert isinstance(env.action_space, gymnasium.spaces.Box)
+        # assert isinstance(env.action_space, gymnasium.spaces.Box), f"{env.action_space}"
         # env = NormalizeActionWrapper(env)
         super().__init__(env)
 

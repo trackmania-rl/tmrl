@@ -1,10 +1,10 @@
 """
-FIXME: WIP, not working.
+This tutorial script is a minimal TMRL pipeline.
 
-This tutorial script is a minimal TMRL pipeline for your environment.
+It works out-of-the-box for real-time environments with simple flat observations and continuous actions.
 
-It works out-of-the-box for environments with simple flat observations.
-Replace individual components to fit your needs.
+TMRL is primarily meant to help you implement ad-hoc pipelines, not use available ones, though.
+For serious applications, you are encouraged to read the full TMRL tutorial.
 """
 
 # tutorial imports:
@@ -44,6 +44,17 @@ my_rtgym_config = DUMMY_RC_DRONE_CONFIG
 # Environment class:
 
 env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_rtgym_config})
+
+# Note: this script would also work with regular, continuous action Gymnasium environments, such as:
+# env_cls = partial(GenericGymEnv, id="Pendulum-v1")
+# In this tutorial, the RolloutWorker will sample continuously, as fast as it can, though.
+# For Pendulum, this means it would collect samples at the execution frequency of the model used to compute actions.
+# This is why, in TMRL, you should not use RolloutWorker.run() for very-high-frequency or non-real-time environments.
+# Instead, you should use the following RolloutWorker lower-level API:
+# -> RolloutWorker.collect_train_episode()
+# -> RolloutWorker.send_and_clear_buffer()
+# -> RolloutWorker.update_actor_weights()
+# Read the TMRL documentation for more details.
 
 # Observation and action space:
 
@@ -87,7 +98,7 @@ if __name__ == "__main__":
 # It is designed to work with the SAC algorithm.
 actor_module_cls = partial(SquashedGaussianMLPActor)
 
-# Model local files
+# Worker local files
 
 weights_folder = cfg.WEIGHTS_FOLDER
 model_path = str(weights_folder / (my_run_name + ".tmod"))  # Current model will be stored here.
@@ -106,6 +117,8 @@ if __name__ == "__main__":
         server_port=server_port,
         password=password,
         max_samples_per_episode=1000,
+        model_path=model_path,
+        # model_path_history=model_path_history,  # not used when model_history is -1
         model_history=model_history,
         crc_debug=CRC_DEBUG)
 
@@ -127,7 +140,7 @@ if __name__ == "__main__":
 # The TrainingAgent contains your training algorithm per-se.
 # TrainingOffline is meant for asynchronous off-policy algorithms, such as Soft Actor-Critic.
 
-# Local files:
+# Trainer local files:
 
 weights_folder = cfg.WEIGHTS_FOLDER
 checkpoints_folder = cfg.CHECKPOINTS_FOLDER
@@ -141,6 +154,7 @@ env_cls = (obs_space, act_space)
 # Memory:
 
 memory_cls = partial(GenericTorchMemory,
+                     memory_size=1e6,
                      batch_size=32,
                      crc_debug=CRC_DEBUG)
 
@@ -199,16 +213,16 @@ if __name__ == "__main__":
 # === Running the pipeline =============================================================================================
 
 # Now we have everything we need.
-# Typically, you will run your TMRL Server, Trainer and RolloutWorkers in different processes / machines.
+# Typically, you will run your TMRL Server, Trainer and RolloutWorkers in different terminals / machines.
 # But for simplicity, in this tutorial, we run them in different threads instead.
-# Note that the Server is already running (it starts running as soon as it is instantiated).
+# Note that the Server is already running (it started running when instantiated).
 
 
 # Separate threads for running the RolloutWorker and Trainer:
 
 
 def run_worker(worker):
-    worker.run(test_episode_interval=10)
+    worker.run(test_episode_interval=10, verbose=True)
 
 
 def run_trainer(trainer):

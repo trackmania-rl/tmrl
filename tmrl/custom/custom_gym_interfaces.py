@@ -24,7 +24,7 @@ from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, save_ghost
 
 # Globals ==============================================================================================================
 
-NB_OBS_FORWARD = 500  # this allows (and rewards) 50m cuts
+CHECK_FORWARD = 500  # this allows (and rewards) 50m cuts
 
 
 # Interface for Trackmania 2020 ========================================================================================
@@ -36,24 +36,18 @@ class TM2020Interface(RealTimeGymInterface):
     def __init__(self,
                  img_hist_len: int = 4,
                  gamepad: bool = True,
-                 min_nb_steps_before_failure: int = int(3.5 * 20),
                  save_replays: bool = False,
                  grayscale: bool = True,
-                 resize_to=(64, 64),
-                 finish_reward=cfg.REWARD_END_OF_TRACK,
-                 constant_penalty=cfg.CONSTANT_PENALTY):
+                 resize_to=(64, 64)):
         """
         Base rtgym interface for TrackMania 2020 (Full environment)
 
         Args:
             img_hist_len: int: history of images that are part of observations
             gamepad: bool: whether to use a virtual gamepad for control
-            min_nb_steps_before_failure: int: episode is done if not receiving reward during this nb of timesteps
             save_replays: bool: whether to save TrackMania replays on successful episodes
             grayscale: bool: whether to output grayscale images or color images
             resize_to: Tuple[int, int]: resize output images to this (width, height)
-            finish_reward: float: reward when passing the finish line
-            constant_penalty: float: constant reward given at each time-step
         """
         self.last_time = None
         self.img_hist_len = img_hist_len
@@ -65,12 +59,11 @@ class TM2020Interface(RealTimeGymInterface):
         self.j = None
         self.window_interface = None
         self.small_window = None
-        self.min_nb_steps_before_failure = min_nb_steps_before_failure
         self.save_replays = save_replays
         self.grayscale = grayscale
         self.resize_to = resize_to
-        self.finish_reward = finish_reward
-        self.constant_penalty = constant_penalty
+        self.finish_reward = cfg.REWARD_CONFIG['END_OF_TRACK']
+        self.constant_penalty = cfg.REWARD_CONFIG['CONSTANT_PENALTY']
 
         self.initialized = False
 
@@ -85,10 +78,11 @@ class TM2020Interface(RealTimeGymInterface):
         self.img_hist = deque(maxlen=self.img_hist_len)
         self.img = None
         self.reward_function = RewardFunction(reward_data_path=cfg.REWARD_PATH,
-                                              nb_obs_forward=NB_OBS_FORWARD,
-                                              nb_obs_backward=10,
-                                              nb_zero_rew_before_failure=10,
-                                              min_nb_steps_before_failure=self.min_nb_steps_before_failure)
+                                              nb_obs_forward=cfg.REWARD_CONFIG['CHECK_FORWARD'],
+                                              nb_obs_backward=cfg.REWARD_CONFIG['CHECK_BACKWARD'],
+                                              nb_zero_rew_before_failure=cfg.REWARD_CONFIG['FAILURE_COUNTDOWN'],
+                                              min_nb_steps_before_failure=cfg.REWARD_CONFIG['MIN_STEPS'],
+                                              max_dist_from_traj=cfg.REWARD_CONFIG['MAX_STRAY'])
         self.client = TM2020OpenPlanetClient()
 
     def initialize(self):

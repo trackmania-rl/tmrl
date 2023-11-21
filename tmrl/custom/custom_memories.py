@@ -138,7 +138,7 @@ class GenericTorchMemory(TorchMemory):
             self.data.append(d6)
 
         # trim
-        to_trim = self.__len__() - self.memory_size
+        to_trim = int(self.__len__() - self.memory_size)
         if to_trim > 0:
             self.data[0] = self.data[0][to_trim:]
             self.data[1] = self.data[1][to_trim:]
@@ -234,7 +234,7 @@ class MemoryTMLidar(MemoryTM):
         Don't forget the info dict for CRC debugging
         """
         if self.data[4][item + self.min_samples - 1]:
-            if item == 0:  # if fist item of the buffer
+            if item == 0:  # if first item of the buffer
                 item += 1
             elif item == self.__len__() - 1:  # if last item of the buffer
                 item -= 1
@@ -351,7 +351,7 @@ class MemoryTMLidarProgress(MemoryTM):
         Don't forget the info dict for CRC debugging
         """
         if self.data[4][item + self.min_samples - 1]:
-            if item == 0:  # if fist item of the buffer
+            if item == 0:  # if first item of the buffer
                 item += 1
             elif item == self.__len__() - 1:  # if last item of the buffer
                 item -= 1
@@ -472,7 +472,7 @@ class MemoryTMFull(MemoryTM):
         Don't forget the info dict for CRC debugging
         """
         if self.data[4][item + self.min_samples - 1]:
-            if item == 0:  # if fist item of the buffer
+            if item == 0:  # if first item of the buffer
                 item += 1
             elif item == self.__len__() - 1:  # if last item of the buffer
                 item -= 1

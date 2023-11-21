@@ -11,8 +11,8 @@ https://github.com/trackmania-rl/tmrl#full-environment
 
 Note: This tutorial describes implementing and running a TrainingAgent along with an ActorModule.
 It is relevant if you want to implement your own RL approaches in TrackMania.
-If you plan to try non-RL approaches instead, this is also accepted:
-just use the competition Gymnasium Full environment and do whatever you need,
+If you plan to try non-RL approaches instead, this is also accepted in the competition:
+just use the Gymnasium Full environment and do whatever you need,
 then, wrap your trained policy in an ActorModule, and submit your entry :)
 
 Copy and adapt this script to implement your own algorithm/model in TrackMania.

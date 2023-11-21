@@ -6,12 +6,12 @@ from dataclasses import dataclass
 # third-party imports
 import numpy as np
 import torch
-from torch.optim import Adam
+from torch.optim import Adam, AdamW, SGD
 
 # local imports
 import tmrl.custom.custom_models as core
 from tmrl.custom.utils.nn import copy_shared, no_grad
-from tmrl.util import cached_property
+from tmrl.util import cached_property, partial
 from tmrl.training import TrainingAgent
 import tmrl.config.config_constants as cfg
 
@@ -35,6 +35,12 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
     lr_entropy: float = 1e-3  # entropy autotuning (SAC v2)
     learn_entropy_coef: bool = True  # if True, SAC v2 is used, else, SAC v1 is used
     target_entropy: float = None  # if None, the target entropy for SAC v2 is set automatically
+    optimizer_actor: str = "adam"  # one of ["adam", "adamw", "sgd"]
+    optimizer_critic: str = "adam"  # one of ["adam", "adamw", "sgd"]
+    betas_actor: tuple = None  # for Adam and AdamW
+    betas_critic: tuple = None  # for Adam and AdamW
+    l2_actor: float = None  # weight decay
+    l2_critic: float = None  # weight decay
 
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
@@ -46,11 +52,44 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
 
-        # Set up optimizers for policy and q-function
-        self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
-        self.q_optimizer = Adam(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), lr=self.lr_critic)
+        # Set up optimizers for policy and q-function:
 
-        if self.target_entropy is None:  # automatic entropy coefficient
+        self.optimizer_actor = self.optimizer_actor.lower()
+        self.optimizer_critic = self.optimizer_critic.lower()
+        if self.optimizer_actor not in ["adam", "adamw", "sgd"]:
+            logging.warning(f"actor optimizer {self.optimizer_actor} is not valid, defaulting to sgd")
+        if self.optimizer_critic not in ["adam", "adamw", "sgd"]:
+            logging.warning(f"critic optimizer {self.optimizer_critic} is not valid, defaulting to sgd")
+        if self.optimizer_actor == "adam":
+            pi_optimizer_cls = Adam
+        elif self.optimizer_actor == "adamw":
+            pi_optimizer_cls = AdamW
+        else:
+            pi_optimizer_cls = SGD
+        pi_optimizer_kwargs = {"lr": self.lr_actor}
+        if self.optimizer_actor in ["adam, adamw"] and self.betas_actor is not None:
+            pi_optimizer_kwargs["betas"] = tuple(self.betas_actor)
+        if self.l2_actor is not None:
+            pi_optimizer_kwargs["weight_decay"] = self.l2_actor
+
+        if self.optimizer_critic == "adam":
+            q_optimizer_cls = Adam
+        elif self.optimizer_critic == "adamw":
+            q_optimizer_cls = AdamW
+        else:
+            q_optimizer_cls = SGD
+        q_optimizer_kwargs = {"lr": self.lr_critic}
+        if self.optimizer_critic in ["adam, adamw"] and self.betas_critic is not None:
+            q_optimizer_kwargs["betas"] = tuple(self.betas_critic)
+        if self.l2_critic is not None:
+            q_optimizer_kwargs["weight_decay"] = self.l2_critic
+
+        self.pi_optimizer = pi_optimizer_cls(self.model.actor.parameters(), **pi_optimizer_kwargs)
+        self.q_optimizer = q_optimizer_cls(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), **q_optimizer_kwargs)
+
+        # entropy coefficient:
+
+        if self.target_entropy is None:
             self.target_entropy = -np.prod(action_space.shape)  # .astype(np.float32)
         else:
             self.target_entropy = float(self.target_entropy)

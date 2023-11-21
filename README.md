@@ -21,20 +21,20 @@
 - :red_car: **AI and TM enthusiasts:**\
 `tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md), video of a pre-trained AI [here](https://www.youtube.com/watch?v=hQkltOX0TYw), and beginner introduction to the SAC algorithm [here](https://www.youtube.com/watch?v=LN29DDlHp1U).
 - :rocket: **ML developers / roboticists:**\
-`tmrl` is a python library designed to facilitate the implementation of deep RL applications in real-time settings such as robots and video games. Minimal example pipeline [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal.py), full tutorial [here](readme/tuto_library.md) and documentation [here](https://tmrl.readthedocs.io/en/latest/).
+`tmrl` is a python library designed to facilitate the implementation of ad-hoc RL pipelines for industrial applications, including real-time control. Minimal example [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal.py), full tutorial [here](readme/tuto_library.md) and documentation [here](https://tmrl.readthedocs.io/en/latest/).
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
 `tmrl` provides a Gymnasium environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gymnasium-environment).
 
 - :earth_americas: **Everyone:**\
-`tmrl` hosts the [TrackMania Roborace League](readme/competition.md), a vision-based AI competition where participants design real-time self-racing AIs in the TrackMania video game.
+`tmrl` hosts the [TrackMania Roborace League](readme/competition.md), a vision-based AI competition where participants design real-time self-racing AIs in the TrackMania 2020 video game.
 
 
 ## Quick links
 - [The TMRL Project](#the-tmrl-project)
   - [Introduction](#introduction)
-    - [Beginner features](#beginner-features-trackmania)
-    - [Advanced features](#advanced-features-real-time-applications)
+    - [User features](#user-features-trackmania-example-pipeline)
+    - [Developer features](#developer-features-real-world-applications-in-python)
     - [TMRL in the media](#tmrl-in-the-media)
   - [Installation](readme/Install.md)
   - [Getting started](readme/get_started.md)
@@ -67,10 +67,11 @@
 ## Introduction
 
 `tmrl` is a python framework designed to help you train Artificial Intelligences (AIs) through deep Reinforcement Learning (RL), for your own robots or real-time video games.
+As a fun and safe robot proxy for vision-based autonomous driving, `tmrl` features a readily-implemented example pipeline in the TrackMania 2020 video game.
 
 _Note: In the context of RL, an AI is called a policy._
 
-### Beginner features (TrackMania)
+### User features (TrackMania example pipeline):
 
 * **Training algorithms:**
 `tmrl` comes with a readily implemented example pipeline that lets you easily train policies in TrackMania 2020 with state-of-the-art Deep Reinforcement Learning algorithms such as [Soft Actor-Critic](https://www.youtube.com/watch?v=LN29DDlHp1U) (SAC) and [Randomized Ensembled Double Q-Learning](https://arxiv.org/abs/2101.05982) (REDQ).
@@ -80,25 +81,25 @@ In parallel, these samples are used to train an artificial neural network (polic
 * **Analog control from screenshots:**
 The `tmrl` example pipeline trains policies that are able to drive from raw screenshots captured in real-time.
 For beginners, we also provide simpler rangefinder ("LIDAR") observations, which are less potent but easier to learn from.
-The example pipeline controls the game via a virtual gamepad, which enables analog input.
+The example pipeline controls the game via a virtual gamepad, which enables analog actions.
 
 * **Models:**
-To process LIDAR measurements, `tmrl` uses a Multi-Layer Perceptron (MLP).
+To process LIDAR measurements, the example `tmrl` pipeline uses a Multi-Layer Perceptron (MLP).
 To process raw camera images (snapshots), it uses a Convolutional Neural Network (CNN).
-These models learn the physics from histories or observations equally spaced in time.
+These models learn the physics of the game from histories or observations equally spaced in time.
 
-### Advanced features (real-time applications):
+### Developer features (real-world applications in Python):
 
 * **Python library:**
-`tmrl` is a complete framework designed to help you successfully implement deep RL in your [real-time applications](#real-time-gym-framework) (e.g., robots...).
-It is based on a [single-server / multiple-clients architecture](#remote-training-architecture), which enables collecting samples locally on one or several workers and training remotely on a High Performance Computing cluster.
-A complete tutorial toward doing this is provided [here](readme/tuto_library.md).
+`tmrl` is a complete framework designed to help you successfully implement ad-hoc RL pipelines for real-world applications. It features secure remote training, fine-grained customizability, and it is fully compatible with [real-time environments](#real-time-gym-framework) (e.g., robots...).
+It is based on a [single-server / multiple-clients architecture](#remote-training-architecture), which enables collecting samples locally from one to arbitrarily many workers, and training remotely on a High Performance Computing cluster.
+A complete tutorial toward doing this for your specific application is provided [here](readme/tuto_library.md).
 
 * **TrackMania Gymnasium environment:**
-`tmrl` comes with a **Real-Time Gymnasium environment for TrackMania 2020**, based on [rtgym](https://pypi.org/project/rtgym/). Once the library is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gymnasium-environment).
+`tmrl` comes with a Gymnasium environment for TrackMania 2020, based on [rtgym](https://pypi.org/project/rtgym/). Once the library is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gymnasium-environment).
 
 * **External libraries:**
-This project gave birth to a few sub-projects of more general interest that were cut out and packaged as standalone python libraries.
+`tmrl` gave birth to a couple sub-projects of more general interest, that were cut out and packaged as standalone python libraries.
 In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gymnasium environments in real-time applications,
 [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers,
 and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring python object over the Internet in a secure fashion.
@@ -106,7 +107,7 @@ and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring 
 ### TMRL in the media:
 - In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gymnasium environment that we used for the show is available [here](#lidar-with-track-progress).
 
-- In August 2023, we were invited at Ubisoft Montreal to give a talk about how video games could become simulators for real-world vision-based autonomous driving. Video of the talk coming soon!
+- In 2023, we were invited at Ubisoft Montreal to talk about how video games could become simulators for vision-based autonomous driving in the future. Video of the talk coming soon.
 
 ## Installation
 
@@ -114,12 +115,12 @@ Detailed instructions for installation are provided at [this link](readme/Instal
 
 ## Getting started
 
-Full guidance toward setting up an environment in TrackMania, testing pre-trained weights, as well as a beginner-friendly tutorial to train, test, and fine-tune your own models,
+Full guidance toward setting up an environment in TrackMania 2020, testing pre-trained weights, as well as a beginner-friendly tutorial to train, test, and fine-tune your own models,
 are provided at [this link](readme/get_started.md).
 
 ## TMRL python library
 
-An advanced tutorial toward implementing your own ad-hoc optimized training pipelines for your own real-time tasks other than TrackMania (robots, other video games...) is provided [here](readme/tuto_library.md).
+An advanced tutorial toward implementing your own ad-hoc optimized training pipelines for your own real-time tasks (e.g., robots...) is provided [here](readme/tuto_library.md).
 
 ## Security
 
@@ -150,10 +151,10 @@ This is because, without TLS encryption, this password will be readable in the p
 
 ## TrackMania Roborace League
 
-We host the [TrackMania Roborace League](readme/competition.md), a fun way of benchmarking self-racing approaches in the TrackMania2020 video game.
+We host the [TrackMania Roborace League](readme/competition.md), a fun way of benchmarking self-racing approaches in the TrackMania 2020 video game.
 Follow the link for information about the competition, including the current leaderboard and instructions to participate.
 
-Regardless of whether they want to compete or not, ML developers will find the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) useful for creating advanced training pipelines in TrackMania.
+Regardless of whether they want to compete or not, ML developers will find the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) handy for creating advanced training pipelines in TrackMania.
 
 ## TrackMania Gymnasium environment
 In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
@@ -164,7 +165,7 @@ from tmrl import get_environment
 from time import sleep
 import numpy as np
 
-# default LIDAR observations are of shape: ((1,), (4, 19), (3,), (3,))
+# LIDAR observations are of shape: ((1,), (4, 19), (3,), (3,))
 # representing: (speed, 4 last LIDARs, 2 previous actions)
 # actions are [gas, break, steer], analog between -1.0 and +1.0
 def model(obs):
@@ -221,7 +222,17 @@ This works on any track, using any (sensible) camera configuration.
       "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
       "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
       "benchmark": false,  // enables benchmarking your environment when true
-      "wait_on_done": true
+      "wait_on_done": true,  // true
+      "ep_max_length": 1000  // episodes are truncated after this number of time steps
+    },
+    "REWARD_CONFIG": {
+      "END_OF_TRACK": 100.0,  // reward for reaching the finish line
+      "CONSTANT_PENALTY": 0.0,  // constant reward at every time-step
+      "CHECK_FORWARD": 500,  // maximum computed cut from last point
+      "CHECK_BACKWARD": 10,  // maximum computed backtracking from last point
+      "FAILURE_COUNTDOWN": 10,  // early termination after this number time steps
+      "MIN_STEPS": 70,  // number of time steps before early termination kicks in
+      "MAX_STRAY": 100.0  // early termination if further away from the demo trajectory
     }
   }
 }
@@ -249,7 +260,17 @@ This works only on plain road with black borders, using the front camera with ca
       "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
       "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
       "benchmark": false,  // enables benchmarking your environment when true
-      "wait_on_done": true
+      "wait_on_done": true,  // true
+      "ep_max_length": 1000  // episodes are truncated after this number of time steps
+    },
+    "REWARD_CONFIG": {
+      "END_OF_TRACK": 100.0,  // reward for reaching the finish line
+      "CONSTANT_PENALTY": 0.0,  // constant reward at every time-step
+      "CHECK_FORWARD": 500,  // maximum computed cut from last point
+      "CHECK_BACKWARD": 10,  // maximum computed backtracking from last point
+      "FAILURE_COUNTDOWN": 10,  // early termination after this number time steps
+      "MIN_STEPS": 70,  // number of time steps before early termination kicks in
+      "MAX_STRAY": 100.0  // early termination if further away from the demo trajectory
     }
   }
 }
@@ -275,7 +296,17 @@ However, if you wish to use this environment, e.g., to beat our results, you can
       "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
       "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
       "benchmark": false,  // enables benchmarking your environment when true
-      "wait_on_done": true
+      "wait_on_done": true,  // true
+      "ep_max_length": 1000  // episodes are truncated after this number of time steps
+    },
+    "REWARD_CONFIG": {
+      "END_OF_TRACK": 100.0,  // reward for reaching the finish line
+      "CONSTANT_PENALTY": 0.0,  // constant reward at every time-step
+      "CHECK_FORWARD": 500,  // maximum computed cut from last point
+      "CHECK_BACKWARD": 10,  // maximum computed backtracking from last point
+      "FAILURE_COUNTDOWN": 10,  // early termination after this number time steps
+      "MIN_STEPS": 70,  // number of time steps before early termination kicks in
+      "MAX_STRAY": 100.0  // early termination if further away from the demo trajectory
     }
   }
 }
@@ -283,18 +314,18 @@ However, if you wish to use this environment, e.g., to beat our results, you can
 
 ## TrackMania training details
 
-In `tmrl`, model (AI) that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
-Its goal is to learn how to complete the track as fast as possible by exploring its own capacities and environment.
+In the example `tmrl` pipeline, an AI (policy) that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
+Its goal is to learn how to complete the track as fast as possible by exploring its own capabilities and environment.
 
 The car feeds observations such as images to an artificial neural network, which must output the best possible controls from these observations.
 This implies that the AI must understand its environment in some way.
-To achieve this understanding, the car explores the world for a few hours (up to a few days), slowly gaining an understanding of how to act efficiently.
+To achieve this understanding, it explores the world for a few hours (up to a few days), slowly gaining an understanding of how to act efficiently.
 This is accomplished through Deep Reinforcement Learning (RL).
 
 ### Reinforcement Learning basics
 
 Most RL algorithms are based on a mathematical description of the environment called Markov Decision Process (MDP).
-A policy trained though RL interacts with an MDP as follows:
+A policy trained via RL interacts with an MDP as follows:
 
 ![reward](readme/img/mrp.png)
 
@@ -303,7 +334,7 @@ At each time-step, the policy applies an action (float values for gas, brake, an
 The action is applied to the environment, which yields a new observation at the end of the transition.
 
 For the purpose of training this policy, the environment also provides another signal, called the "reward".
-Indeed, RL is derived from behaviorism, which relies on the fundamental idea that intelligence is the result of a history of positive and negative stimuli.
+RL is derived from behaviorism, which relies on the fundamental idea that intelligence is the result of a history of positive and negative stimuli.
 The reward received by the AI at each time-step is a measure of how well it performs.
 
 In order to learn how to drive, the AI tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that its long-term reward is maximized.
@@ -329,17 +360,17 @@ The reward signal is used to train the value network, and the value network is u
 
 Advantages of SAC over other existing methods are the following:
 - It is able to store transitions in a huge circular buffer called the "replay memory" and reuse these transitions several times during training.
-  This is an important property for applications such as `tmrl` where only a relatively small number of transitions can be collected due to the Real-Time nature of the setting.
+  This is an important property for applications such as TrackMania where only a relatively small number of transitions can be collected due to the Real-Time nature of the setting.
 - It is able to output analog controls. We use this property with a virtual gamepad.
 - It maximizes the entropy of the learned policy.
   This means that the policy will be as random as possible while maximizing the reward.
-  This property helps explore the environment and is known to produce policies that are robust to external perturbations, which is of central importance e.g. in real-world self-driving scenarios.
+  This property helps explore the environment and is known to produce policies that are robust to external perturbations, which is of central importance in real-world self-driving scenarios.
 
 ### Randomized Ensembled Double Q-Learning
 
 ([Full paper](https://arxiv.org/abs/2101.05982))
 
-REDQ is a more recent methodology that improves the performance of value-based algorithms such as SAC.
+REDQ is a more recent methodology that improves the performance of value-based algorithms like SAC.
 
 The improvement introduced by REDQ consists essentially of training an ensemble of parallel value networks from which a subset is randomly sampled to evaluate target values during training.
 The authors show that this enables low-bias updates and a sample efficiency comparable to model-based algorithms, at a much lower computational cost.
@@ -374,7 +405,6 @@ As mentioned before, a reward function is needed to evaluate how well the policy
 There are multiple reward functions that could be used.
 For instance, one could directly use the raw speed of the car as a reward.
 This makes some sense because the car slows down when it crashes and goes fast when it is performing well.
-We use this as a reward in TrackMania Nations Forever.
 
 However, such approach is naive.
 Indeed, the actual goal of racing is not to move as fast as possible.
@@ -418,9 +448,6 @@ In TrackMania 2020, we now use the [OpenPlanet](https://openplanet.nl) API to re
 
 ### Results
 
-We train policies in Real-Time with several observation spaces.
-We show that our AIs are able to take advantage of the more complex types of observations in order to learn complex dynamics, leading to more clever policies:
-
 In the following experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using a history of 4 LIDAR measurements.
 The positions of both cars are captured at constant time intervals in this animation:
 
@@ -428,7 +455,6 @@ The positions of both cars are captured at constant time intervals in this anima
 
 The blue car learned to drive at a constant speed, as it is the best it can do from its naive observation space.
 Conversely, the red car is able to infer higher-order dynamics from the history of 4 LIDARs and successfully learned to break, take the apex of the curve, and accelerate again after this sharp turn, which is slightly better in this situation.
-
 
 # Framework details
 
@@ -455,26 +481,26 @@ Periodically, each rollout worker also receives new policy weights from the cent
 
 The central server is located either on the localhost of one of the rollout worker computers, on another computer on the local network, or on another computer on the Internet.
 It collects samples from all the connected rollout workers and stores these in a local buffer.
-This buffer is periodically sent to the trainer interface.
-Periodically, the central server receives updated policy weights from the trainer interface and broadcasts these to all connected rollout workers.
+This buffer is then sent to the trainer interface.
+The central server receives updated policy weights from the trainer interface and broadcasts these to all connected rollout workers.
 
-The trainer interface is typically located on a non-rollout worker computer of the local network, or on another computer on the Internet (like a GPU cluster).
+The trainer interface is typically located on a non-rollout worker computer of the local network, or on another machine on the Internet (e.g., a GPU cluster).
 Of course, it is also possible to locate everything on localhost when needed.
 The trainer interface periodically receives the samples gathered by the central server and appends these to a replay memory.
 Periodically, it sends the new policy weights to the central server.
 
-These mechanics can be summarized as follows:
+These mechanics are summarized as follows:
 
 ![Networking architecture](readme/img/network_interface.png "Networking Architecture")
 
 
 # Development roadmap:
-You are welcome to contribute to the `tmrl` project.
+Contributions to `tmrl` are welcome.
 Please consider the following:
-- Further profiling and code optimization.
+- Further profiling and code optimization,
 - Find the cleanest way to support sequences in `Memory` for RNN training.
 
-You can discuss contribution projects in the [discussions section](https://github.com/trackmania-rl/tmrl/discussions)
+You can discuss contribution projects in the [discussions section](https://github.com/trackmania-rl/tmrl/discussions).
 
 
 # Authors:
@@ -487,11 +513,12 @@ When contributing, please submit a PR with your name in the contributors list wi
 
 ## Contributors:
 - Simon Ramstedt - initial code base
-- AndrejGobeX - optimization of screen capture
+- AndrejGobeX - optimization of screen capture (TrackMania)
+- Pius - Linux support (TrackMania)
 
 # License
 
-MIT, Bouteiller and Geze 2021-2022.
+MIT, Bouteiller and Geze.
 
 # Sponsors:
 

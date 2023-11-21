@@ -111,7 +111,8 @@ install_req = [
     'pyautogui',
     'pyinstrument',
     'tlspyo>=0.2.5',
-    'chardet'  # requests dependency
+    'chardet',  # requests dependency
+    'packaging'
 ]
 
 # Dependencies for the TrackMania pipeline

@@ -2,16 +2,16 @@
 
 In other sections, we have seen how to use `tmrl` as a standalone program, thanks to the ready-to-use training pipeline for TrackMania.
 
-However, as soon as you will want to try more advanced stuff (e.g., using robots, other video games, other training algorithms, etc...), you will need to get your hands dirty with some python coding.
+However, as soon as you want to try more advanced things (e.g., using robots, other video games, other training algorithms, etc.), you will need to get your hands dirty with some python coding.
 This is when you need to start using `tmrl` as a python library.
 
 In this tutorial, we will learn from A to Z how to implement our own specialized pipeline, in our own robot environment, with our own training algorithm.
 
-In complement to this tutorial, you may use the [API documentation](https://tmrl.readthedocs.io/en/latest/).
-
-A minimal, roughly equivalent `tmrl` pipeline is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal.py) (useful if you want to use `tmrl` on your task without delving too deep in the library).
-
 The full script of the tutorial is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py).
+
+You may also want to read the [API documentation](https://tmrl.readthedocs.io/en/latest/).
+
+In complement, you can find a minimal `tmrl` pipeline [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal.py).
 
 **Note: some modules can be implemented independently.
 If you are here because you wish to implement your own training algorithm in TrackMania, you should read the [competition tutorial](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) instead.**
@@ -129,15 +129,16 @@ server_port = 6666  # port through which our Server will be accessible
 
 ## Server
 
-`tmrl` is built on a client-server architecture, where the `Server` object is a simple central means of communication between an instance of the `Trainer` class and one to several instances of the `RolloutWorker` class.
+`tmrl` uses a multiple clients / single server architecture.
+The `Server` object is the central means of communication between an instance of the `Trainer` class and one to several instances of the `RolloutWorker` class.
 
-It enables `tmrl` to run on, e.g., HPC clusters where the user does not have port-forwarding access, as long as they have a local machine with port-forwarding access on which the `Server` can run (this can be a machine running a `RolloutWorker` in parallel).
+This enables `tmrl` to run on, e.g., HPC clusters where the user does not have port-forwarding access, as long as they have a local machine with port-forwarding access on which the `Server` can run (this can be a machine running a `RolloutWorker` in parallel).
 
 Both the `Trainer` and the `RolloutWorkers` connect to the `Server`.
 The `RolloutWorkers` run the current policy to collect samples in the real world, and periodically send these samples to the `Server`, which forwards them to the `Trainer`.
 The `Trainer` uses these samples to update the current policy, and periodically sends updated policy weights to the `Server`, which forwards them to all connected `RolloutWorkers`.
 
-The `Server` is thus the central communication point between entities and should be instantiated first.
+Being the central communication point between entities, the `Server` should be instantiated first.
 In the context of this tutorial, we will instantiate all 3 entities on the same machine, and thus they will communicate via the `localhost` address, which is `"127.0.0.1"`
 _(NB: the `Server` does not know this, it listens to any incoming connection)_.
 
@@ -161,11 +162,12 @@ As soon as the server is instantiated, it listens for incoming connections from 
 
 ## Environment
 In RL, a task is often called an "environment".
-`tmrl` is meant for asynchronous remote training of real-time applications such as robots.
-Thus, we use [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (`rtgym`) to wrap our robots and video games into a Gym environment.
-You can also probably use other environments as long as they are registered as Gymnasium environments and have a relevant substitute for the `default_action` attribute.
 
-To build your own environment (e.g., an environment for your own robot or video game), follow the [rtgym tutorial](https://github.com/yannbouteiller/rtgym#tutorial).
+`tmrl` is particularly fit for asynchronous remote training of real-time applications such as robots.
+We use [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (`rtgym`) to wrap our robots and video games into Gymnasium environments.
+But you can use an environment of your choice, as long as it is registered as a Gymnasium environment.
+
+To build your own real-time environment (e.g., an environment for your own robot or video game), you can follow the [rtgym tutorial](https://github.com/yannbouteiller/rtgym#tutorial).
 If you need inspiration, you can find our `rtgym` interfaces for TrackMania in [custom_gym_interfaces.py](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py).
 
 For the sake of the `tmrl` tutorial, we will be using the dummy RC drone environment from the `rtgym` tutorial:
@@ -305,6 +307,7 @@ class RolloutWorker:
             # history of policies can be stored here 
             model_history=cfg.MODEL_HISTORY,  # new policies are saved % model_history (0: not saved)
             standalone=False,  # if True, the worker will not try to connect to a server
+            verbose=True,  # if True, the worker will log messages to the console
     ):
         # (...)
 ```
@@ -317,7 +320,7 @@ In this tutorial, we will implement a similar `RolloutWorker` for our dummy dron
 The first argument of our `RolloutWorker` is `env_cls`.
 
 This expects a Gymnasium environment class, which can be partially instantiated with `partial()`.
-Furthermore, this Gymnasium environment needs to be wrapped in the `GenericGymEnv` wrapper (which by default just changes float64 to float32 in observations).
+Furthermore, this Gymnasium environment needs to be wrapped in the `GenericGymEnv` wrapper.
 
 With our dummy drone environment, this translates to:
 
@@ -436,7 +439,7 @@ actor_module_cls = partial(MyActorModule)  # could add paramters like hidden_siz
 
 ### Sample compression
 
-One of the possible reasons for using `tmrl` is that it supports implementing ad-hoc pipelines for your applications.
+One reason for using `tmrl` is that it supports implementing ad-hoc pipelines for your applications.
 In particular, say you have a robot that uses CNNs to process a history of 4 concatenated images.
 You certainly do not want to send these 4 images over the Internet for each sample, because the content of the samples would overlap and you could use 4 times less bandwidth with a more clever pipeline.
 
@@ -505,8 +508,7 @@ Nevertheless, it is of course possible to work locally by hosting the `Server`, 
 This is done by setting the `Server` IP as the localhost IP, i.e., `"127.0.0.1"`, which we did.
 _(NB: We have set the values for `server_ip` and `server_port` earlier in this tutorial.)_
 
-In the current iteration of `tmrl`, samples are gathered locally in a buffer by the `RolloutWorker` and are sent to the `Server` only at the end of an episode.
-In case your Gymnasium environment is never `terminated` (or only after too long), `tmrl` enables forcing reset after a time-steps threshold.
+In case your Gymnasium environment is never `terminated` (or only after too long), `tmrl` has an option for forcing reset after a time-steps threshold.
 For instance, let us say we don't want an episode to last more than 1000 time-steps:
 
 _(Note 1: This is for the sake of illustration, in fact, this cannot happen in our RC drone environment)_
@@ -584,7 +586,7 @@ my_worker = RolloutWorker(
 ```
 
 This connects to the `Server`, but does not start collecting experiences.
-If we want to start collecting experiences, we need to use the `run()` method:
+If we want to start collecting experiences, we can use the `run()` method:
 
 ```python
 my_worker.run(test_episode_interval=10)
@@ -602,15 +604,41 @@ For the moment, let us just comment this line:
 # my_worker.run(test_episode_interval=10)
 ```
 
+_**Note:** The `run()` method collects episodes continuously, as fast as allowed by the environment.
+In certain cases (e.g., in very-high-frequency or non-real-time environments), this is not what you want to achieve.
+Instead, you may prefer lower-level API functions.
+For instance, you could do something like this:_
+```python
+# Collect 10 episodes, then wait for the policy to get updated before collecting more.
+# (NB: in rtgym, you can tell your robot to "wait" when an episode is complete)
+
+nb_model_updates = 0
+
+while True:
+    prev_nb_model_updates = nb_model_updates
+    episode = 0
+    while episode < 10:
+        my_worker.collect_train_episode(max_samples_per_episode)
+        my_worker.send_and_clear_buffer()
+        episode += 1
+    while nb_model_updates == prev_nb_model_updates:
+        if my_worker.update_actor_weights(verbose=True):
+            nb_model_updates += 1
+        else:
+            time.sleep(0.01)
+    
+    # Run a test episode
+    my_worker.run_episode(max_samples_per_episode, train=False)
+```
 
 ## Trainer
 
 In `tmrl`, RL training per-se happens in the `Trainer` entity.
 
 The `Trainer` connects to the `Server`, from which it receives compressed samples gathered from connected `RolloutWorkers`.
-These samples are stored (possibly in compressed format) in a memory object called `Memory`.
+These samples are stored (possibly in compressed format) in a `Memory` object.
 They are decompressed either when stored, or when sampled from the `Memory`, depending on the user choice.
-The decompressed samples are then used by an object called `TrainingAgent` to optimize the policy weights, that the `Trainer` periodically sends back to the `Server` so they are broadcast to all connected `RolloutWorkers`.
+The decompressed samples are then used by the `TrainingAgent` object to optimize the policy weights, that the `Trainer` periodically sends back to the `Server` so they are broadcast to all connected `RolloutWorkers`.
 
 The prototype of the `Trainer` class is:
 
@@ -639,7 +667,7 @@ The `server_port` and the `password` are still valid for our `Trainer`.
 `model_path` is similar to the one of the `RolloutWorker`.
 The trainer will keep a local copy of its model that acts as a saving file.
 
-`checkpoints_path` is similar, but this will save the whole `training_cls` instance (including the replay buffer).
+`checkpoints_path` is similar, but this will save the entire `training_cls` instance (including the `Memory`).
 If set to `None`, training will not be checkpointed.
 
 You could leave both paths to their default value and simply change the value of the `"RUN_NAME"` entry in `config.json` instead.
@@ -668,6 +696,8 @@ This expects a training class, possibly partially initialized.
 
 At the moment, `tmrl` supports one training class called [TrainingOffline](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/training_offline.py).
 This class is meant for off-policy asynchronous RL algorithms such as SAC.
+With a few synchronization tricks, it can also be used for online algorithms such as PPO
+_(see the note at the end of the "Rollout workers" section)_.
 
 When using PyTorch, the `TorchTrainingOffline` subclass further enables automatic selection of an available device.
 
@@ -704,7 +734,7 @@ from tmrl.envs import GenericGymEnv
 env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_config})
 ```
 This dummy environment will only be used by the `Trainer` to retrieve the observation and action spaces (`reset()` will not be called).
-Alternatively, you can pass this information as a Tuple:
+Alternatively, you can pass this information as a tuple:
 
 ```python
 env_cls = (observation_space, action_space)
@@ -717,11 +747,11 @@ This must be a subclass of `TorchMemory`.
 
 The role of a `TorchMemory` object is to store and decompress samples received by the `Trainer` from the `Server`.
 
-In a `tmrl` pipeline, the `Memory` class is typically the most difficult (but also the most interesting) to implement.
+In a `tmrl` pipeline, the `Memory` class is typically the most difficult (but also the most interesting) class to implement.
 This is because, in conjunction with sample compressors, `Memory` is where you can really optimize your pipeline for your specific application, and `tmrl` gives you full latitude for doing this.
-For the people who wish to quickly test things rather than implementing optimized pipelines, `tmrl` provides a readily implemented `GenericTorchMemory` that works for all cases, as it has no optimizations (see the `tuto_minimal.py` script for a usage example.)
+For the people who wish to quickly test things rather than implementing optimized pipelines, `tmrl` also provides a readily implemented `GenericTorchMemory` that works for all cases, as it has no optimizations (see the `tuto_minimal.py` script for an example of usage).
 In this tutorial, we will instead implement a very optimized `Memory` for the sake of illustration.
-While these optimizations are clearly overkill for our toy RC drone example, they are tremendously important for vision-based applications such as the default `tmrl` pipeline for TrackMania.
+While these optimizations are clearly overkill for our toy RC drone example, they are tremendously important for vision-based applications like the default `tmrl` pipeline for TrackMania.
 
 `TorchMemory` has the following interface:
 
@@ -825,7 +855,7 @@ Thus, we will use the action buffer length as an additional argument to our cust
 ```
 
 
-In fact, the `TorchMemory` class leaves the whole storing and sampling procedures to your discretion.
+In fact, the `TorchMemory` class leaves the entire storing and sampling procedures to your discretion.
 This is because, when using `tmrl`, you may want to do exotic things such as storing samples on your hard drive (if they contain images for instance).
 If you have implemented a sample compressor for the `RolloutWorker` (as we have done earlier in this tutorial), you will also need to implement a decompression scheme.
 This decompression may happen either in `append_buffer()` (if you privilege sampling speed) or in `get_transition()` (if you privilege memory usage).
@@ -834,7 +864,7 @@ The `append_buffer()` method will simply store the compressed sample components 
 
 `append_buffer()` is passed a [buffer](https://github.com/trackmania-rl/tmrl/blob/c1f740740a7d57382a451607fdc66d92ba62ea0c/tmrl/networking.py#L198) object that contains a list of compressed `(act, new_obs, rew, terminated, truncated, info)` samples in its `memory` attribute.
 `act` is the action that was sent to the `step()` method of the Gymnasium environment to yield `new_obs`, `rew`, `terminated`, `truncated`, and `info`.
-Here, we decompose our samples in their relevant components, append these components to the `self.data` list, and clip `self.data` when `self.memory_size` is exceeded:
+Here, we decompose our samples in their relevant components, we append these components to the `self.data` list, and we truncate `self.data` when `self.memory_size` is exceeded:
 
 ```python
     def append_buffer(self, buffer):
@@ -910,9 +940,11 @@ We must also implement the `__len__()` method of our memory because the content 
 ```
 Now, this is becoming interesting: why is the `__len__()` method so complicated?
 `self.data` is initially an empty list, so when its `len` is `0`, our memory is empty.
-But when it is not empty and we have fewer samples than the length of our action buffer, we cannot reconstruct the action buffer! Thus our memory is still empty.
+But when it is not empty and we have fewer samples than the length of our action buffer, we cannot reconstruct the action buffer.
+Thus our memory is still empty.
 Finally, if we have enough samples, we need to remove the length of the action buffer to get the number of samples we can actually reconstruct.
-Furthermore, the `get_transition()` method outputs a full RL transition, which includes the previous observation. Thus, we must subtract 1 to get the number of full transitions that we can actually output.
+Furthermore, the `get_transition()` method outputs a full RL transition, which includes the previous observation.
+Thus, we must subtract 1 to get the number of full transitions that we can actually output.
 
 Alright, let us finally implement `get_transition()`, where we have chosen sample decompression would happen.
 This method outputs full transitions as if they were output by the Gymnasium environment
@@ -930,7 +962,7 @@ This method outputs full transitions as if they were output by the Gymnasium env
         # if item corresponds to a transition from a terminal state to a reset state
         if self.data[9][item + self.act_buf_len - 1]:
             # this wouldn't make sense in RL, so we replace item by a neighbour transition
-            if item == 0:  # if fist item of the buffer
+            if item == 0:  # if first item of the buffer
                 item += 1
             elif item == self.__len__() - 1:  # if last item of the buffer
                 item -= 1
@@ -1222,10 +1254,10 @@ training_agent_cls = partial(MyTrainingAgent,
 #### Training parameters
 
 There are no epochs in RL.
-What we call `epoch` in `tmrl` is simply the point where the `Trainer` sends data to `wandb` and may checkpoint the training session on the hard drive.
+In `tmrl`, we call `epoch` the moment when the `Trainer` checkpoints the training session on the hard drive and sends training metrics to `wandb`.
 
 An `epoch` is made of a fixed number of `rounds`, and a `round` is made of a fixed number of training `steps`.
-These values are very arbitrary and you can set mostly whatever you like depending on how often you want to see metrics printed and logged (they are printed at the end of each `round` and logged at the end of each `epoch`):
+These values are very arbitrary and you can set mostly whatever you like depending on how often you want to see metrics logged (they are printed at the end of each `round` and logged to `wandb` at the end of each `epoch`):
 
 ```python
 epochs = 10  # maximum number of epochs, usually set this to np.inf
@@ -1268,7 +1300,7 @@ If set to `None`, the training device will be selected automatically:
 device = None
 ```
 
-A few more options not used in this tutorial are available.
+A couple more options not used in this tutorial are available.
 In particular, `profiling` enables profiling training (but this doesn't work well with CUDA), and `agent_scheduler` enables changing the `TrainingAgent` parameters during training.
 
 We finally have our training class:
@@ -1335,7 +1367,7 @@ When it does not make sense to have default values, just set the default values 
 
 But as for the `RolloutWorker`, this would block the code here until all `epochs` are complete, which in itself would require the `RolloutWorker` to also be running.
 
-In fact, the `RolloutWorker`, `Trainer`, and `Server` are best run in separate terminals (see TrackMania) because currently, they are all quite verbose.
+In fact, the `RolloutWorker`, `Trainer`, and `Server` are best run in separate terminals or machines (see TrackMania).
 However, for the sake of this tutorial, we will instantiate and run all of them in the same script by using python threads
 (of course, you are free to implement them in separate scripts on your end, actually, it is even strongly recommended):
 
@@ -1385,7 +1417,6 @@ To activate this mode, set the `crc_debug` arguments to `True` for both your `Ro
 Let us do this for our implemented pipeline and see what happens:
 
 ```terminal
-
 INFO:root: Resuming training
 DEBUG: CRC check passed. Time step: 91, since reset: 90
 DEBUG: CRC check passed. Time step: 320, since reset: 16
@@ -1449,7 +1480,7 @@ _(I have parsed the error a little bit to make it easier for you to analyze.)_
 
 Oh no! What is going on? :scream:
 
-If you have carefully read the entire tutorial, well, congratulations, but now is the final test: try to spot exactly what is wrong here and explain why this happens.
+If you have carefully read the entire tutorial, well, first, congratulations, but now you should be able to spot exactly what is wrong here and understand why this happens.
 
 Do you have it? :grinning:
 
@@ -1587,7 +1618,7 @@ class MyMemory(TorchMemory):
             # if item corresponds to a transition from a terminal state to a reset state
             if self.data[9][item + self.act_buf_len - 1]:
                 # this wouldn't make sense in RL, so we replace item by a neighbour transition
-                if item == 0:  # if fist item of the buffer
+                if item == 0:  # if first item of the buffer
                     item += 1
                 elif item == self.__len__() - 1:  # if last item of the buffer
                     item -= 1

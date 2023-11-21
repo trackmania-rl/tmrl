@@ -325,7 +325,7 @@ class MyMemory(TorchMemory):
             # if item corresponds to a transition from a terminal state to a reset state
             if self.data[9][item + self.act_buf_len - 1]:
                 # this wouldn't make sense in RL, so we replace item by a neighbour transition
-                if item == 0:  # if fist item of the buffer
+                if item == 0:  # if first item of the buffer
                     item += 1
                 elif item == self.__len__() - 1:  # if last item of the buffer
                     item -= 1

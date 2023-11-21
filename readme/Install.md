@@ -37,7 +37,7 @@ During the installation, Windows may complain that OpenPlanet has no valid certi
 ### Linux users:
 _(Windows users can skip this section)_
 
-Since version `6.0.0`, we support the full TrackMania 2020 pipeline on Linux, including our `gymnasium` environment.
+Since version `0.6.0`, we support the full TrackMania 2020 pipeline on Linux, including the `gymnasium` environment.
 Because Ubisoft Nadeo does not officially support Linux, we wrote a [Linux tutorial](install_linux.md) to help you set up TrackMania and OpenPlanet on your machine.
 
 ### Install TMRL:
