@@ -32,28 +32,28 @@ If you think an option to install `tmrl` without support for TrackMania should e
 ## Quick links
 
 - [Tools](#tools)
-  - [partial() method](#partial-method)
-  - [Constants](#constants)
+    - [partial() method](#partial-method)
+    - [Constants](#constants)
 - [Security](#network-and-internet-security)
-- [Server](#server) 
+- [Server](#server)
 - [Environment](#environment)
 - [RolloutWorker](#rollout-workers)
-  - [Environment class](#environment-class)
-  - [Actor class](#actor-class)
-  - [Sample compression](#sample-compression)
-  - [Device](#device)
-  - [Networking](#networking)
-  - [Persistent policy weights](#persistent-policy-weights)
-  - [Others](#others)
-  - [Instantiate and run](#instantiate-and-run-a-worker)
+    - [Environment class](#environment-class)
+    - [Actor class](#actor-class)
+    - [Sample compression](#sample-compression)
+    - [Device](#device)
+    - [Networking](#networking)
+    - [Persistent policy weights](#persistent-policy-weights)
+    - [Others](#others)
+    - [Instantiate and run](#instantiate-and-run-a-worker)
 - [Trainer](#trainer)
-  - [Networking and files](#networking-and-files)
-  - [Training class](#training-class)
-    - [Dummy environment](#dummy-environment)
-    - [Memory](#memory)
-    - [TrainingAgent](#training-agent)
-    - [Training parameters](#training-parameters)
-  - [Instantiate and run](#instantiate-and-run-the-trainer)
+    - [Networking and files](#networking-and-files)
+    - [Training class](#training-class)
+        - [Dummy environment](#dummy-environment)
+        - [Memory](#memory)
+        - [TrainingAgent](#training-agent)
+        - [Training parameters](#training-parameters)
+    - [Instantiate and run](#instantiate-and-run-the-trainer)
 - [CRC debugging](#crc-debugging)
 - [Full script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto.py)
 
@@ -309,7 +309,7 @@ class RolloutWorker:
             standalone=False,  # if True, the worker will not try to connect to a server
             verbose=True,  # if True, the worker will log messages to the console
     ):
-        # (...)
+# (...)
 ```
 
 For example, the default `RolloutWorker` implemented for TrackMania is instantiated [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/__main__.py).
@@ -612,21 +612,16 @@ For instance, you could do something like this:_
 # Collect 10 episodes, then wait for the policy to get updated before collecting more.
 # (NB: in rtgym, you can tell your robot to "wait" when an episode is complete)
 
-nb_model_updates = 0
-
 while True:
-    prev_nb_model_updates = nb_model_updates
     episode = 0
     while episode < 10:
         my_worker.collect_train_episode(max_samples_per_episode)
         my_worker.send_and_clear_buffer()
         episode += 1
-    while nb_model_updates == prev_nb_model_updates:
-        if my_worker.update_actor_weights(verbose=True):
-            nb_model_updates += 1
-        else:
-            time.sleep(0.01)
-    
+
+    # Block until new weights are received from the Server
+    my_worker.update_actor_weights(verbose=True, blocking=True)
+
     # Run a test episode
     my_worker.run_episode(max_samples_per_episode, train=False)
 ```
@@ -706,7 +701,7 @@ The `TorchTrainingOffline` prototype is:
 ```python
 @dataclass(eq=0)
 class TorchTrainingOffline:
-    env_cls: type = GenericGymEnv  # dummy environment, used only to retrieve observation and action spaces
+    env_cls: type = GenericGymEnv  # dummy environment, used only to retrieve observation / action spaces
     memory_cls: type = TorchMemory  # replay memory
     training_agent_cls: type = TrainingAgent  # training agent
     epochs: int = 10  # total number of epochs, we save the agent every epoch
@@ -721,6 +716,8 @@ class TorchTrainingOffline:
     start_training: int = 0  # minimum number of samples in the replay buffer before starting training
     device: str = None  # device on which the model of the TrainingAgent will live (None for automatic)
 ```
+
+_(Note: be careful when pairing `max_training_steps_per_env_step` with a similar contraint in your `RolloutWorker(s)`: the `Trainer` counts calls to `RolloutWorker.reset()` as an "env_step")_
 
 `TorchTrainingOffline` requires other (possibly partially instantiated) classes as arguments: a dummy environment, a `TorchMemory`, and a `TrainingAgent`
 
@@ -844,14 +841,14 @@ Thus, we will use the action buffer length as an additional argument to our cust
                  dataset_path="",
                  act_buf_len=my_config["act_buf_len"]):
 
-        self.act_buf_len = act_buf_len  # length of the action buffer
+    self.act_buf_len = act_buf_len  # length of the action buffer
 
-        super().__init__(device=device,
-                         nb_steps=nb_steps,
-                         sample_preprocessor=sample_preprocessor,
-                         memory_size=memory_size,
-                         batch_size=batch_size,
-                         dataset_path=dataset_path)
+    super().__init__(device=device,
+                     nb_steps=nb_steps,
+                     sample_preprocessor=sample_preprocessor,
+                     memory_size=memory_size,
+                     batch_size=batch_size,
+                     dataset_path=dataset_path)
 ```
 
 
@@ -868,75 +865,75 @@ Here, we decompose our samples in their relevant components, we append these com
 
 ```python
     def append_buffer(self, buffer):
-        """
-        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
-        """
-        
-        # decompose compressed samples into their relevant components:
-        
-        list_action = [b[0] for b in buffer.memory]
-        list_x_position = [b[1][0] for b in buffer.memory]
-        list_y_position = [b[1][1] for b in buffer.memory]
-        list_x_target = [b[1][2] for b in buffer.memory]
-        list_y_target = [b[1][3] for b in buffer.memory]
-        list_reward = [b[2] for b in buffer.memory]
-        list_terminated = [b[3] for b in buffer.memory]
-        list_truncated = [b[4] for b in buffer.memory]
-        list_info = [b[5] for b in buffer.memory]
-        list_done = [b[3] or b[4] for b in buffer.memory]
-        
-        # append to self.data in some arbitrary way:
+    """
+    buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
+    """
 
-        if self.__len__() > 0:
-            self.data[0] += list_action
-            self.data[1] += list_x_position
-            self.data[2] += list_y_position
-            self.data[3] += list_x_target
-            self.data[4] += list_y_target
-            self.data[5] += list_reward
-            self.data[6] += list_terminated
-            self.data[7] += list_info
-            self.data[8] += list_truncated
-            self.data[9] += list_done
-        else:
-            self.data.append(list_action)
-            self.data.append(list_x_position)
-            self.data.append(list_y_position)
-            self.data.append(list_x_target)
-            self.data.append(list_y_target)
-            self.data.append(list_reward)
-            self.data.append(list_terminated)
-            self.data.append(list_info)
-            self.data.append(list_truncated)
-            self.data.append(list_done)
+    # decompose compressed samples into their relevant components:
 
-        # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
+    list_action = [b[0] for b in buffer.memory]
+    list_x_position = [b[1][0] for b in buffer.memory]
+    list_y_position = [b[1][1] for b in buffer.memory]
+    list_x_target = [b[1][2] for b in buffer.memory]
+    list_y_target = [b[1][3] for b in buffer.memory]
+    list_reward = [b[2] for b in buffer.memory]
+    list_terminated = [b[3] for b in buffer.memory]
+    list_truncated = [b[4] for b in buffer.memory]
+    list_info = [b[5] for b in buffer.memory]
+    list_done = [b[3] or b[4] for b in buffer.memory]
 
-        to_trim = self.__len__() - self.memory_size
-        if to_trim > 0:
-            self.data[0] = self.data[0][to_trim:]
-            self.data[1] = self.data[1][to_trim:]
-            self.data[2] = self.data[2][to_trim:]
-            self.data[3] = self.data[3][to_trim:]
-            self.data[4] = self.data[4][to_trim:]
-            self.data[5] = self.data[5][to_trim:]
-            self.data[6] = self.data[6][to_trim:]
-            self.data[7] = self.data[7][to_trim:]
-            self.data[8] = self.data[8][to_trim:]
-            self.data[9] = self.data[9][to_trim:]
+    # append to self.data in some arbitrary way:
+
+    if self.__len__() > 0:
+        self.data[0] += list_action
+        self.data[1] += list_x_position
+        self.data[2] += list_y_position
+        self.data[3] += list_x_target
+        self.data[4] += list_y_target
+        self.data[5] += list_reward
+        self.data[6] += list_terminated
+        self.data[7] += list_info
+        self.data[8] += list_truncated
+        self.data[9] += list_done
+    else:
+        self.data.append(list_action)
+        self.data.append(list_x_position)
+        self.data.append(list_y_position)
+        self.data.append(list_x_target)
+        self.data.append(list_y_target)
+        self.data.append(list_reward)
+        self.data.append(list_terminated)
+        self.data.append(list_info)
+        self.data.append(list_truncated)
+        self.data.append(list_done)
+
+    # trim self.data in some arbitrary way when self.__len__() > self.memory_size:
+
+    to_trim = self.__len__() - self.memory_size
+    if to_trim > 0:
+        self.data[0] = self.data[0][to_trim:]
+        self.data[1] = self.data[1][to_trim:]
+        self.data[2] = self.data[2][to_trim:]
+        self.data[3] = self.data[3][to_trim:]
+        self.data[4] = self.data[4][to_trim:]
+        self.data[5] = self.data[5][to_trim:]
+        self.data[6] = self.data[6][to_trim:]
+        self.data[7] = self.data[7][to_trim:]
+        self.data[8] = self.data[8][to_trim:]
+        self.data[9] = self.data[9][to_trim:]
 ```
 
 We must also implement the `__len__()` method of our memory because the content of `self.data` is arbitrary and the `Trainer` needs to know what it can ask to the `get_transition()` method:
 
 ```python
     def __len__(self):
-        if len(self.data) == 0:
-            return 0  # self.data is empty
-        result = len(self.data[0]) - self.act_buf_len - 1
-        if result < 0:
-            return 0  # not enough samples to reconstruct the action buffer
-        else:
-            return result  # we can reconstruct that many samples
+    if len(self.data) == 0:
+        return 0  # self.data is empty
+    result = len(self.data[0]) - self.act_buf_len - 1
+    if result < 0:
+        return 0  # not enough samples to reconstruct the action buffer
+    else:
+        return result  # we can reconstruct that many samples
 ```
 Now, this is becoming interesting: why is the `__len__()` method so complicated?
 `self.data` is initially an empty list, so when its `len` is `0`, our memory is empty.
@@ -952,55 +949,55 @@ This method outputs full transitions as if they were output by the Gymnasium env
 
 ```python
     def get_transition(self, item):
-        """
-        Args:
-            item: int: indices of the transition that the Trainer wants to sample
-        Returns:
-            full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
-        """
-        
-        # if item corresponds to a transition from a terminal state to a reset state
-        if self.data[9][item + self.act_buf_len - 1]:
-            # this wouldn't make sense in RL, so we replace item by a neighbour transition
-            if item == 0:  # if first item of the buffer
-                item += 1
-            elif item == self.__len__() - 1:  # if last item of the buffer
-                item -= 1
-            elif random.random() < 0.5:  # otherwise, sample randomly
-                item += 1
-            else:
-                item -= 1
-        
-        idx_last = item + self.act_buf_len - 1  # index of previous observation
-        idx_now = item + self.act_buf_len  # index of new observation
-        
-        # rebuild the action buffer of both observations:
-        actions = self.data[0][item:(item + self.act_buf_len + 1)]
-        last_act_buf = actions[:-1]  # action buffer of previous observation
-        new_act_buf = actions[1:]  # action buffer of new observation
-        
-        # rebuild the previous observation:
-        last_obs = (self.data[1][idx_last],  # x position
-                    self.data[2][idx_last],  # y position
-                    self.data[3][idx_last],  # x target
-                    self.data[4][idx_last],  # y target
-                    *last_act_buf)  # action buffer
-        
-        # rebuild the new observation:
-        new_obs = (self.data[1][idx_now],  # x position
-                   self.data[2][idx_now],  # y position
-                   self.data[3][idx_now],  # x target
-                   self.data[4][idx_now],  # y target
-                   *new_act_buf)  # action buffer
-        
-        # other components of the transition:
-        new_act = self.data[0][idx_now]  # action
-        rew = np.float32(self.data[5][idx_now])  # reward
-        terminated = self.data[6][idx_now]  # terminated signal
-        truncated = self.data[8][idx_now]  # truncated signal
-        info = self.data[7][idx_now]  # info dictionary
+    """
+    Args:
+        item: int: indices of the transition that the Trainer wants to sample
+    Returns:
+        full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
+    """
 
-        return last_obs, new_act, rew, new_obs, terminated, truncated, info
+    # if item corresponds to a transition from a terminal state to a reset state
+    if self.data[9][item + self.act_buf_len - 1]:
+        # this wouldn't make sense in RL, so we replace item by a neighbour transition
+        if item == 0:  # if first item of the buffer
+            item += 1
+        elif item == self.__len__() - 1:  # if last item of the buffer
+            item -= 1
+        elif random.random() < 0.5:  # otherwise, sample randomly
+            item += 1
+        else:
+            item -= 1
+
+    idx_last = item + self.act_buf_len - 1  # index of previous observation
+    idx_now = item + self.act_buf_len  # index of new observation
+
+    # rebuild the action buffer of both observations:
+    actions = self.data[0][item:(item + self.act_buf_len + 1)]
+    last_act_buf = actions[:-1]  # action buffer of previous observation
+    new_act_buf = actions[1:]  # action buffer of new observation
+
+    # rebuild the previous observation:
+    last_obs = (self.data[1][idx_last],  # x position
+                self.data[2][idx_last],  # y position
+                self.data[3][idx_last],  # x target
+                self.data[4][idx_last],  # y target
+                *last_act_buf)  # action buffer
+
+    # rebuild the new observation:
+    new_obs = (self.data[1][idx_now],  # x position
+               self.data[2][idx_now],  # y position
+               self.data[3][idx_now],  # x target
+               self.data[4][idx_now],  # y target
+               *new_act_buf)  # action buffer
+
+    # other components of the transition:
+    new_act = self.data[0][idx_now]  # action
+    rew = np.float32(self.data[5][idx_now])  # reward
+    terminated = self.data[6][idx_now]  # terminated signal
+    truncated = self.data[8][idx_now]  # truncated signal
+    info = self.data[7][idx_now]  # info dictionary
+
+    return last_obs, new_act, rew, new_obs, terminated, truncated, info
 ```
 _Note 1: the action buffer of `new_obs` contains `new_act`.
 This is because at least the last computed action (`new_act`) must be in the action buffer to keep a Markov state in a real-time environment. See [rtgym](https://github.com/yannbouteiller/rtgym)._
@@ -1099,10 +1096,10 @@ class MyCriticModule(torch.nn.Module):
 class MyActorCriticModule(torch.nn.Module):
     def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU):
         super().__init__()
-        
+
         # our ActorModule:
         self.actor = MyActorModule(observation_space, action_space, hidden_sizes, activation)
-        
+
         # double Q networks:
         self.q1 = MyCriticModule(observation_space, action_space, hidden_sizes, activation)
         self.q2 = MyCriticModule(observation_space, action_space, hidden_sizes, activation)
@@ -1121,55 +1118,55 @@ import itertools
 
 
 class MyTrainingAgent(TrainingAgent):
-  model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
+    model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
-  def __init__(self,
-               observation_space=None,
-               action_space=None,
-               device=None,
-               model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
-               gamma=0.99,  # discount factor
-               polyak=0.995,  # exponential averaging factor for the target critic
-               alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
-               lr_actor=1e-3,  # learning rate for the actor
-               lr_critic=1e-3,  # learning rate for the critic
-               lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
-               learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
-               target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
-    super().__init__(observation_space=observation_space,
-                     action_space=action_space,
-                     device=device)
+    def __init__(self,
+                 observation_space=None,
+                 action_space=None,
+                 device=None,
+                 model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
+                 gamma=0.99,  # discount factor
+                 polyak=0.995,  # exponential averaging factor for the target critic
+                 alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
+                 lr_actor=1e-3,  # learning rate for the actor
+                 lr_critic=1e-3,  # learning rate for the critic
+                 lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
+                 learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
+                 target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
+        super().__init__(observation_space=observation_space,
+                         action_space=action_space,
+                         device=device)
 
-    model = model_cls(observation_space, action_space)
-    self.model = model.to(device)
-    self.model_target = no_grad(deepcopy(self.model))
-    self.gamma = gamma
-    self.polyak = polyak
-    self.alpha = alpha
-    self.lr_actor = lr_actor
-    self.lr_critic = lr_critic
-    self.lr_entropy = lr_entropy
-    self.learn_entropy_coef = learn_entropy_coef
-    self.target_entropy = target_entropy
-    self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
-    self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
-    self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
-    if self.target_entropy is None:
-      self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
-    else:
-      self.target_entropy = float(self.target_entropy)
-    if self.learn_entropy_coef:
-      self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
-      self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
-    else:
-      self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
+        model = model_cls(observation_space, action_space)
+        self.model = model.to(device)
+        self.model_target = no_grad(deepcopy(self.model))
+        self.gamma = gamma
+        self.polyak = polyak
+        self.alpha = alpha
+        self.lr_actor = lr_actor
+        self.lr_critic = lr_critic
+        self.lr_entropy = lr_entropy
+        self.learn_entropy_coef = learn_entropy_coef
+        self.target_entropy = target_entropy
+        self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
+        self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
+        self.q_optimizer = Adam(self.q_params, lr=self.lr_critic)
+        if self.target_entropy is None:
+            self.target_entropy = -np.prod(action_space.shape).astype(np.float32)
+        else:
+            self.target_entropy = float(self.target_entropy)
+        if self.learn_entropy_coef:
+            self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
+            self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
+        else:
+            self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
 ```
 
 The `get_actor()` method outputs the `ActorModule` to be broadcast to the `RolloutWorkers`:
 
 ```python
     def get_actor(self):
-        return self.model_nograd.actor
+    return self.model_nograd.actor
 ```
 
 And finally, for the training algorithm itself, we simply adapt the SAC Spinup implementation to the `train()` signature.
@@ -1177,62 +1174,62 @@ Note that `train()` returns a python dictionary in which you can store the metri
 
 ```python
     def train(self, batch):
-        """
-        Adapted from the SAC implementation of OpenAI Spinup
-        
-        https://github.com/openai/spinningup/tree/master/spinup/algos/pytorch/sac
-        """
-        o, a, r, o2, d, _ = batch  # these tensors are collated on device
-        # note that we purposefully ignore the truncated signal ( _ )
-        # thus, our value estimator will not be affected by episode truncation
-        pi, logp_pi = self.model.actor(o)
-        loss_alpha = None
-        if self.learn_entropy_coef:
-            alpha_t = torch.exp(self.log_alpha.detach())
-            loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
-        else:
-            alpha_t = self.alpha_t
-        if loss_alpha is not None:
-            self.alpha_optimizer.zero_grad()
-            loss_alpha.backward()
-            self.alpha_optimizer.step()
-        q1 = self.model.q1(o, a)
-        q2 = self.model.q2(o, a)
-        with torch.no_grad():
-            a2, logp_a2 = self.model.actor(o2)
-            q1_pi_targ = self.model_target.q1(o2, a2)
-            q2_pi_targ = self.model_target.q2(o2, a2)
-            q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
-            backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
-        loss_q1 = ((q1 - backup)**2).mean()
-        loss_q2 = ((q2 - backup)**2).mean()
-        loss_q = loss_q1 + loss_q2
-        self.q_optimizer.zero_grad()
-        loss_q.backward()
-        self.q_optimizer.step()
-        for p in self.q_params:
-            p.requires_grad = False
-        q1_pi = self.model.q1(o, pi)
-        q2_pi = self.model.q2(o, pi)
-        q_pi = torch.min(q1_pi, q2_pi)
-        loss_pi = (alpha_t * logp_pi - q_pi).mean()
-        self.pi_optimizer.zero_grad()
-        loss_pi.backward()
-        self.pi_optimizer.step()
-        for p in self.q_params:
-            p.requires_grad = True
-        with torch.no_grad():
-            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
-                p_targ.data.mul_(self.polyak)
-                p_targ.data.add_((1 - self.polyak) * p.data)
-        ret_dict = dict(
-            loss_actor=loss_pi.detach().item(),
-            loss_critic=loss_q.detach().item(),
-        )
-        if self.learn_entropy_coef:
-            ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
-            ret_dict["entropy_coef"] = alpha_t.item()
-        return ret_dict  # dictionary of metrics to be logged
+    """
+    Adapted from the SAC implementation of OpenAI Spinup
+    
+    https://github.com/openai/spinningup/tree/master/spinup/algos/pytorch/sac
+    """
+    o, a, r, o2, d, _ = batch  # these tensors are collated on device
+    # note that we purposefully ignore the truncated signal ( _ )
+    # thus, our value estimator will not be affected by episode truncation
+    pi, logp_pi = self.model.actor(o)
+    loss_alpha = None
+    if self.learn_entropy_coef:
+        alpha_t = torch.exp(self.log_alpha.detach())
+        loss_alpha = -(self.log_alpha * (logp_pi + self.target_entropy).detach()).mean()
+    else:
+        alpha_t = self.alpha_t
+    if loss_alpha is not None:
+        self.alpha_optimizer.zero_grad()
+        loss_alpha.backward()
+        self.alpha_optimizer.step()
+    q1 = self.model.q1(o, a)
+    q2 = self.model.q2(o, a)
+    with torch.no_grad():
+        a2, logp_a2 = self.model.actor(o2)
+        q1_pi_targ = self.model_target.q1(o2, a2)
+        q2_pi_targ = self.model_target.q2(o2, a2)
+        q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
+        backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
+    loss_q1 = ((q1 - backup)**2).mean()
+    loss_q2 = ((q2 - backup)**2).mean()
+    loss_q = loss_q1 + loss_q2
+    self.q_optimizer.zero_grad()
+    loss_q.backward()
+    self.q_optimizer.step()
+    for p in self.q_params:
+        p.requires_grad = False
+    q1_pi = self.model.q1(o, pi)
+    q2_pi = self.model.q2(o, pi)
+    q_pi = torch.min(q1_pi, q2_pi)
+    loss_pi = (alpha_t * logp_pi - q_pi).mean()
+    self.pi_optimizer.zero_grad()
+    loss_pi.backward()
+    self.pi_optimizer.step()
+    for p in self.q_params:
+        p.requires_grad = True
+    with torch.no_grad():
+        for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
+            p_targ.data.mul_(self.polyak)
+            p_targ.data.add_((1 - self.polyak) * p.data)
+    ret_dict = dict(
+        loss_actor=loss_pi.detach().item(),
+        loss_critic=loss_q.detach().item(),
+    )
+    if self.learn_entropy_coef:
+        ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
+        ret_dict["entropy_coef"] = alpha_t.item()
+    return ret_dict  # dictionary of metrics to be logged
 ```
 
 This gives us our `training_agent_cls` argument, e.g.:

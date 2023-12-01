@@ -509,6 +509,7 @@ class RolloutWorker:
         self.crc_debug = crc_debug
         self.model_history = model_history
         self._cur_hist_cpt = 0
+        self.model_cpt = 0
 
         self.debug_ts_cpt = 0
         self.debug_ts_res_cpt = 0
@@ -685,35 +686,200 @@ class RolloutWorker:
         self.buffer.stat_test_return = ret
         self.buffer.stat_test_steps = steps
 
-    def run(self, test_episode_interval=50, nb_episodes=np.inf, verbose=True):  # TODO: check number of collected samples are collected before sending
+    def run(self, test_episode_interval=0, nb_episodes=np.inf, verbose=True, expert=False):
         """
         Runs the worker for `nb_episodes` episodes.
 
-        This method is for training.
-        It collects a test episode each `test_episode_interval` episodes.
-        For deployment, use the `run_episodes` method instead.
+        This method sends episodes continuously to the Server, and checks for new weights between episodes.
+        For synchronous or more fine-grained sampling, use synchronous or lower-level APIs.
+        For deployment, use `run_episodes` rather than `run`.
 
         Args:
-            test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes
-            nb_episodes (int): maximum number of train episodes to collect
-            verbose (bool): whether to log INFO messages
+            test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes;
+                set to 0 to not collect test episodes.
+            nb_episodes (int): maximum number of train episodes to collect.
+            verbose (bool): whether to log INFO messages.
+            expert (bool): experts send training samples without updating their model nor running test episodes.
         """
+
         episode = 0
-        while episode < nb_episodes:
-            if episode % test_episode_interval == 0 and not self.crc_debug:
-                if verbose:
+        if expert:
+            if not verbose:
+                while episode < nb_episodes:
+                    self.collect_train_episode(self.max_samples_per_episode)
+                    self.send_and_clear_buffer()
+                    self.ignore_actor_weights()
+                    episode += 1
+            else:
+                while episode < nb_episodes:
+                    print_with_timestamp("collecting expert episode")
+                    self.collect_train_episode(self.max_samples_per_episode)
+                    print_with_timestamp("copying buffer for sending")
+                    self.send_and_clear_buffer()
+                    self.ignore_actor_weights()
+                    episode += 1
+        elif not verbose:
+            if not test_episode_interval:
+                while episode < nb_episodes:
+                    self.collect_train_episode(self.max_samples_per_episode)
+                    self.send_and_clear_buffer()
+                    self.update_actor_weights(verbose=False)
+                    episode += 1
+            else:
+                while episode < nb_episodes:
+                    if episode % test_episode_interval == 0 and not self.crc_debug:
+                        self.run_episode(self.max_samples_per_episode, train=False)
+                    self.collect_train_episode(self.max_samples_per_episode)
+                    self.send_and_clear_buffer()
+                    self.update_actor_weights(verbose=False)
+                    episode += 1
+        else:
+            while episode < nb_episodes:
+                if test_episode_interval and episode % test_episode_interval == 0 and not self.crc_debug:
                     print_with_timestamp("running test episode")
-                self.run_episode(self.max_samples_per_episode, train=False)
+                    self.run_episode(self.max_samples_per_episode, train=False)
+                print_with_timestamp("collecting train episode")
+                self.collect_train_episode(self.max_samples_per_episode)
+                print_with_timestamp("copying buffer for sending")
+                self.send_and_clear_buffer()
+                print_with_timestamp("checking for new weights")
+                self.update_actor_weights(verbose=True)
+                episode += 1
+
+    def run_synchronous_episodes(self,
+                                 nb_episodes=np.inf,
+                                 initial_episodes=1,
+                                 max_episodes_per_update=np.inf,
+                                 verbose=True):
+        """
+        Collects `nb_episodes` episodes while synchronizing with the Trainer.
+
+        This method may be useful for high-frequency Real-Time Gym environments using `wait_on_done`.
+
+        Note: This method does not collect test episodes. Periodically use `run_episode(train=False)` if you wish to.
+
+        Args:
+            nb_episodes (int): total number of episodes to collect (after `initial_episodes`).
+            initial_episodes (int): initial number of episodes to collect before doing anything else.
+            max_episodes_per_update (float): maximum number of episodes to collect per model received from the Server
+                (NB: this can be a non-integer ratio).
+            verbose (bool): whether to log INFO messages.
+        """
+
+        # Collect initial episodes:
+        for i in range(initial_episodes):
             if verbose:
                 print_with_timestamp("collecting train episode")
             self.collect_train_episode(self.max_samples_per_episode)
             if verbose:
                 print_with_timestamp("copying buffer for sending")
             self.send_and_clear_buffer()
+
+        # Collect further episodes in a synchronized fashion:
+        i_model = 1
+        for i in range(nb_episodes):
             if verbose:
                 print_with_timestamp("checking for new weights")
-            self.update_actor_weights(verbose=verbose)
-            episode += 1
+            ratio = (i + 1) / i_model
+            while ratio >= max_episodes_per_update:
+                i_model += self.update_actor_weights(verbose=verbose, blocking=True)
+                ratio = (i + 1) / i_model
+            if verbose:
+                print_with_timestamp("collecting train episode")
+            self.collect_train_episode(self.max_samples_per_episode)
+            if verbose:
+                print_with_timestamp("copying buffer for sending")
+            self.send_and_clear_buffer()
+
+    def run_synchronous_steps(self, nb_steps=np.inf, initial_steps=1, max_steps_per_update=np.inf):
+        """
+        Collects `nb_steps` steps while synchronizing with the Trainer.
+
+        This method is useful for non-real-time environments.
+
+        Note: This method does not collect test episodes. Periodically use `run_episode(train=False)` if you wish to.
+
+        Args:
+            nb_steps (int): total number of steps to collect (after `initial_steps`).
+            initial_steps (int): initial number of steps to collect before doing anything else.
+            max_steps_per_update (float): maximum number of steps to collect per model received from the Server
+                (NB: this can be a non-integer ratio).
+        """
+
+        # collect initial samples
+
+        iteration = 0
+        while iteration < initial_steps:
+            steps = 0
+            done = False
+            ret = 0.0
+            # reset
+            obs, info = self.reset(collect_samples=True)
+            iteration += 1
+            while not done and iteration < initial_steps:
+                # step
+                obs, rew, terminated, truncated, info = self.step(obs=obs,
+                                                                  test=False,
+                                                                  collect_samples=True,
+                                                                  last_step=steps == self.max_samples_per_episode - 1)
+                iteration += 1
+                steps += 1
+                ret += rew
+                if not terminated and iteration >= initial_steps:
+                    truncated = True
+                done = terminated or truncated
+            self.buffer.stat_train_return = ret
+            self.buffer.stat_train_steps = steps
+            self.send_and_clear_buffer()
+
+        # collect further samples while synchronizing with the Trainer
+
+        i_model = 1
+        iteration = 0
+
+        while iteration < nb_steps:
+
+            steps = 0
+            done = False
+            ret = 0.0
+
+            # reset
+            obs, info = self.reset(collect_samples=True)
+            iteration += 1
+
+            # check model
+            ratio = (iteration + 1) / i_model
+            while ratio >= max_steps_per_update:
+                self.send_and_clear_buffer()
+                i_model += self.update_actor_weights(verbose=False, blocking=True)
+                ratio = (iteration + 1) / i_model
+
+            while not done and iteration < nb_steps:
+
+                # step
+                obs, rew, terminated, truncated, info = self.step(obs=obs,
+                                                                  test=False,
+                                                                  collect_samples=True,
+                                                                  last_step=steps == self.max_samples_per_episode - 1)
+                iteration += 1
+                steps += 1
+                ret += rew
+
+                if not terminated and iteration >= nb_steps:
+                    truncated = True
+                done = terminated or truncated
+
+                # check model
+                ratio = (iteration + 1) / i_model
+                while ratio >= max_steps_per_update:
+                    if not done:
+                        self.send_and_clear_buffer()
+                    i_model += self.update_actor_weights(verbose=False, blocking=True)
+                    ratio = (iteration + 1) / i_model
+
+            self.buffer.stat_train_return = ret
+            self.buffer.stat_train_steps = steps
+            self.send_and_clear_buffer()
 
     def run_env_benchmark(self, nb_steps, test=False, verbose=True):
         """
@@ -746,18 +912,20 @@ class RolloutWorker:
         self.__endpoint.produce(self.buffer, "trainers")
         self.buffer.clear()
 
-    def update_actor_weights(self, verbose=True):
+    def update_actor_weights(self, verbose=True, blocking=False):
         """
         Updates the actor with new weights received from the `Server` when available.
 
         Args:
-            verbose (bool): whether to log INFO messages
+            verbose (bool): whether to log INFO messages.
+            blocking (bool): if True, blocks until a model is received; otherwise, can be a no-op.
 
         Returns:
-            bool: whether new actor weights have been received from the Server
+            int: number of new actor models received from the Server (the latest is used).
         """
-        weights_list = self.__endpoint.get_last()
-        if len(weights_list) > 0:
+        weights_list = self.__endpoint.receive_all(blocking=blocking)
+        nb_received = len(weights_list)
+        if nb_received > 0:
             weights = weights_list[-1]
             with open(self.model_path, 'wb') as f:
                 f.write(weights)
@@ -773,5 +941,17 @@ class RolloutWorker:
             self.actor = self.actor.load(self.model_path, device=self.device)
             if verbose:
                 print_with_timestamp("model weights have been updated")
-            return True
-        return False
+        return nb_received
+
+    def ignore_actor_weights(self):
+        """
+        Clears the buffer of weights received from the `Server`.
+
+        This is useful for expert RolloutWorkers, because all RolloutWorkers receive weights.
+
+        Returns:
+            int: number of new (ignored) actor models received from the Server.
+        """
+        weights_list = self.__endpoint.receive_all(blocking=False)
+        nb_received = len(weights_list)
+        return nb_received

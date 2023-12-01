@@ -18,7 +18,7 @@ def main(args):
         serv = Server()
         while True:
             time.sleep(1.0)
-    elif args.worker or args.test or args.benchmark:
+    elif args.worker or args.test or args.benchmark or args.expert:
         config = cfg_obj.CONFIG_DICT
         config_modifiers = args.config
         for k, v in config_modifiers.items():
@@ -35,6 +35,8 @@ def main(args):
                            standalone=args.test)
         if args.worker:
             rw.run()
+        elif args.expert:
+            rw.run(expert=True)
         elif args.benchmark:
             rw.run_env_benchmark(nb_steps=1000, test=False)
         else:
@@ -70,6 +72,7 @@ if __name__ == "__main__":
     parser.add_argument('--server', action='store_true', help='launches the server')
     parser.add_argument('--trainer', action='store_true', help='launches the trainer')
     parser.add_argument('--worker', action='store_true', help='launches a rollout worker')
+    parser.add_argument('--expert', action='store_true', help='launches an expert rollout worker (no model update)')
     parser.add_argument('--test', action='store_true', help='runs inference without training')
     parser.add_argument('--benchmark', action='store_true', help='runs a benchmark of the environment')
     parser.add_argument('--record-reward', dest='record_reward', action='store_true', help='utility to record a reward function in TM20')
