@@ -7,11 +7,15 @@ if platform.system() == "Windows":
     import win32ui
     import win32con
     import tmrl.config.config_constants as cfg
+    import ctypes
 
 
     class WindowInterface:
         def __init__(self, window_name="Trackmania"):
             self.window_name = window_name
+
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
 
             hwnd = win32gui.FindWindow(None, self.window_name)
             assert hwnd != 0, f"Could not find a window named {self.window_name}."
