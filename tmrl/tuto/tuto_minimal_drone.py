@@ -1,10 +1,7 @@
 """
-This tutorial script is a minimal TMRL pipeline.
+Tutorial: a minimal TMRL pipeline for real-time robots.
 
-It works out-of-the-box for real-time environments with simple flat observations and continuous actions.
-
-TMRL is primarily meant to help you implement ad-hoc pipelines, not use available ones, though.
-For serious applications, you are encouraged to read the full TMRL tutorial.
+This script works out-of-the-box for real-time environments with flat continuous observations and actions.
 """
 
 # tutorial imports:
@@ -23,11 +20,12 @@ from tmrl.custom.custom_memories import GenericTorchMemory
 from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
 
 
-# Set this to True only for debugging your pipeline
+# Set this to True only for debugging your pipeline.
 CRC_DEBUG = False
 
-# This will be the base name used for training checkpoints and saved models
-my_run_name = "tutorial_minimal"
+# This will be the base name used for training checkpoints and models saved in the TmrlData folder.
+# If you change anything, also change this name (or delete the saved files in TmrlData).
+my_run_name = "tutorial_minimal_drone"
 
 
 # First, you need to define your Gymnasium environment.
@@ -44,17 +42,6 @@ my_rtgym_config = DUMMY_RC_DRONE_CONFIG
 # Environment class:
 
 env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_rtgym_config})
-
-# Note: this script would also work with regular, continuous action Gymnasium environments, such as:
-# env_cls = partial(GenericGymEnv, id="Pendulum-v1")
-# In this tutorial, the RolloutWorker will sample continuously, as fast as it can, though.
-# For Pendulum, this means it would collect samples at the execution frequency of the model used to compute actions.
-# This is why, in TMRL, you should not use RolloutWorker.run() for very-high-frequency or non-real-time environments.
-# Instead, you should use the following RolloutWorker lower-level API:
-# -> RolloutWorker.collect_train_episode()
-# -> RolloutWorker.send_and_clear_buffer()
-# -> RolloutWorker.update_actor_weights()
-# Read the TMRL documentation for more details.
 
 # Observation and action space:
 

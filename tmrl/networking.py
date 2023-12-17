@@ -746,77 +746,45 @@ class RolloutWorker:
                 self.update_actor_weights(verbose=True)
                 episode += 1
 
-    def run_synchronous_episodes(self,
-                                 nb_episodes=np.inf,
-                                 initial_episodes=1,
-                                 max_episodes_per_update=np.inf,
-                                 verbose=True):
-        """
-        Collects `nb_episodes` episodes while synchronizing with the Trainer.
-
-        This method may be useful for high-frequency Real-Time Gym environments using `wait_on_done`.
-
-        Note: This method does not collect test episodes. Periodically use `run_episode(train=False)` if you wish to.
-
-        Args:
-            nb_episodes (int): total number of episodes to collect (after `initial_episodes`).
-            initial_episodes (int): initial number of episodes to collect before doing anything else.
-            max_episodes_per_update (float): maximum number of episodes to collect per model received from the Server
-                (NB: this can be a non-integer ratio).
-            verbose (bool): whether to log INFO messages.
-        """
-
-        # Collect initial episodes:
-        for i in range(initial_episodes):
-            if verbose:
-                print_with_timestamp("collecting train episode")
-            self.collect_train_episode(self.max_samples_per_episode)
-            if verbose:
-                print_with_timestamp("copying buffer for sending")
-            self.send_and_clear_buffer()
-
-        # Collect further episodes in a synchronized fashion:
-        i_model = 1
-        for i in range(nb_episodes):
-            if verbose:
-                print_with_timestamp("checking for new weights")
-            ratio = (i + 1) / i_model
-            while ratio >= max_episodes_per_update:
-                i_model += self.update_actor_weights(verbose=verbose, blocking=True)
-                ratio = (i + 1) / i_model
-            if verbose:
-                print_with_timestamp("collecting train episode")
-            self.collect_train_episode(self.max_samples_per_episode)
-            if verbose:
-                print_with_timestamp("copying buffer for sending")
-            self.send_and_clear_buffer()
-
-    def run_synchronous_steps(self, nb_steps=np.inf, initial_steps=1, max_steps_per_update=np.inf):
+    def run_synchronous(self,
+                        nb_steps=np.inf,
+                        initial_steps=1,
+                        max_steps_per_update=np.inf,
+                        end_episodes=True,
+                        verbose=False):
         """
         Collects `nb_steps` steps while synchronizing with the Trainer.
 
-        This method is useful for non-real-time environments.
+        This method is useful for traditional (non-real-time) environments that can be stepped fast.
+        It also works for rtgym environments with `wait_on_done` enabled, just set `end_episodes` to `True`.
 
         Note: This method does not collect test episodes. Periodically use `run_episode(train=False)` if you wish to.
 
         Args:
             nb_steps (int): total number of steps to collect (after `initial_steps`).
-            initial_steps (int): initial number of steps to collect before doing anything else.
+            initial_steps (int): initial number of steps to collect before waiting for the first model update.
             max_steps_per_update (float): maximum number of steps to collect per model received from the Server
-                (NB: this can be a non-integer ratio).
+                (this can be a non-integer ratio).
+            end_episodes (bool): when True, waits for episodes to end before sending samples and waiting for updates.
+                When False (default), pauses whenever the max_steps_per_update ratio is exceeded.
+            verbose (bool): whether to log INFO messages.
         """
 
         # collect initial samples
 
+        if verbose:
+            logging.info(f"Collecting {initial_steps} initial steps")
+
         iteration = 0
         while iteration < initial_steps:
             steps = 0
-            done = False
             ret = 0.0
             # reset
             obs, info = self.reset(collect_samples=True)
+            done = False
             iteration += 1
-            while not done and iteration < initial_steps:
+            # episode
+            while not done and (end_episodes or iteration < initial_steps):
                 # step
                 obs, rew, terminated, truncated, info = self.step(obs=obs,
                                                                   test=False,
@@ -825,36 +793,40 @@ class RolloutWorker:
                 iteration += 1
                 steps += 1
                 ret += rew
-                if not terminated and iteration >= initial_steps:
-                    truncated = True
                 done = terminated or truncated
+            # send the collected samples to the Server
             self.buffer.stat_train_return = ret
             self.buffer.stat_train_steps = steps
+            if verbose:
+                logging.info(f"Sending buffer (initial steps)")
             self.send_and_clear_buffer()
+
+        i_model = 1
+
+        # wait for the first updated model if required here
+        ratio = (iteration + 1) / i_model
+        while ratio > max_steps_per_update:
+            if verbose:
+                logging.info(f"Ratio {ratio} > {max_steps_per_update}, sending buffer checking updates")
+            self.send_and_clear_buffer()
+            i_model += self.update_actor_weights(verbose=verbose, blocking=True)
+            ratio = (iteration + 1) / i_model
 
         # collect further samples while synchronizing with the Trainer
 
-        i_model = 1
         iteration = 0
 
         while iteration < nb_steps:
 
-            steps = 0
-            done = False
-            ret = 0.0
+            if done:
+                # reset
+                obs, info = self.reset(collect_samples=True)
+                done = False
+                iteration += 1
+                steps = 0
+                ret = 0.0
 
-            # reset
-            obs, info = self.reset(collect_samples=True)
-            iteration += 1
-
-            # check model
-            ratio = (iteration + 1) / i_model
-            while ratio >= max_steps_per_update:
-                self.send_and_clear_buffer()
-                i_model += self.update_actor_weights(verbose=False, blocking=True)
-                ratio = (iteration + 1) / i_model
-
-            while not done and iteration < nb_steps:
+            while not done and (end_episodes or ratio <= max_steps_per_update):
 
                 # step
                 obs, rew, terminated, truncated, info = self.step(obs=obs,
@@ -865,20 +837,39 @@ class RolloutWorker:
                 steps += 1
                 ret += rew
 
-                if not terminated and iteration >= nb_steps:
-                    truncated = True
                 done = terminated or truncated
 
-                # check model
+                if not end_episodes:
+                    # check model and send samples after each step
+                    ratio = (iteration + 1) / i_model
+                    while ratio > max_steps_per_update:
+                        if verbose:
+                            logging.info(f"Ratio {ratio} > {max_steps_per_update}, sending buffer checking updates (no eoe)")
+                        if not done:
+                            if verbose:
+                                logging.info(f"Sending buffer (no eoe)")
+                            self.send_and_clear_buffer()
+                        i_model += self.update_actor_weights(verbose=verbose, blocking=True)
+                        ratio = (iteration + 1) / i_model
+
+            if end_episodes:
+                # check model and send samples only after episodes end
                 ratio = (iteration + 1) / i_model
-                while ratio >= max_steps_per_update:
+                while ratio > max_steps_per_update:
+                    if verbose:
+                        logging.info(
+                            f"Ratio {ratio} > {max_steps_per_update}, sending buffer checking updates (eoe)")
                     if not done:
+                        if verbose:
+                            logging.info(f"Sending buffer (eoe)")
                         self.send_and_clear_buffer()
-                    i_model += self.update_actor_weights(verbose=False, blocking=True)
+                    i_model += self.update_actor_weights(verbose=verbose, blocking=True)
                     ratio = (iteration + 1) / i_model
 
             self.buffer.stat_train_return = ret
             self.buffer.stat_train_steps = steps
+            if verbose:
+                logging.info(f"Sending buffer - DEBUG ratio {ratio} iteration {iteration} i_model {i_model}")
             self.send_and_clear_buffer()
 
     def run_env_benchmark(self, nb_steps, test=False, verbose=True):

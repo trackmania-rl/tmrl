@@ -11,7 +11,7 @@ The full script of the tutorial is available [here](https://github.com/trackmani
 
 You may also want to read the [API documentation](https://tmrl.readthedocs.io/en/latest/).
 
-In complement, you can find a minimal `tmrl` pipeline [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal.py).
+In complement, you can find a minimal `tmrl` pipeline [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_drone.py).
 
 **Note: some modules can be implemented independently.
 If you are here because you wish to implement your own training algorithm in TrackMania, you should read the [competition tutorial](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) instead.**
@@ -746,7 +746,7 @@ The role of a `TorchMemory` object is to store and decompress samples received b
 
 In a `tmrl` pipeline, the `Memory` class is typically the most difficult (but also the most interesting) class to implement.
 This is because, in conjunction with sample compressors, `Memory` is where you can really optimize your pipeline for your specific application, and `tmrl` gives you full latitude for doing this.
-For the people who wish to quickly test things rather than implementing optimized pipelines, `tmrl` also provides a readily implemented `GenericTorchMemory` that works for all cases, as it has no optimizations (see the `tuto_minimal.py` script for an example of usage).
+For the people who wish to quickly test things rather than implementing optimized pipelines, `tmrl` also provides a readily implemented `GenericTorchMemory` that works for all cases, as it has no optimizations (see the `tuto_minimal_drone.py` script for an example of usage).
 In this tutorial, we will instead implement a very optimized `Memory` for the sake of illustration.
 While these optimizations are clearly overkill for our toy RC drone example, they are tremendously important for vision-based applications like the default `tmrl` pipeline for TrackMania.
 

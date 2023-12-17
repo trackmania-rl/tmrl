@@ -123,11 +123,10 @@ elif platform.system() == "Linux":
     install_req.append('mss')
     install_req.append('vgamepad>=0.1.0')
 
-# The directory containing this file
+# Short readme for PyPI
 HERE = os.path.abspath(os.path.dirname(__file__))
-
-# The text of the README file
-with open(os.path.join(HERE, "README.md")) as fid:
+README_FOLDER = os.path.join(HERE, "readme")
+with open(os.path.join(HERE, "pypi.md")) as fid:
     README = fid.read()
 
 setup(

@@ -159,15 +159,10 @@ class GenericTorchMemory(TorchMemory):
 
     def get_transition(self, item):
 
-        if self.data[6][item]:
-            if item == 0:
-                item += 1
-            elif item == self.__len__() - 1:
-                item -= 1
-            elif random.random() < 0.5:
-                item += 1
-            else:
-                item -= 1
+        # This is a hack to avoid invalid transitions from terminal to initial
+        # TODO: find a way to only index valid transitions instead
+        while self.data[6][item]:
+            item = random.randint(a=0, b=self.__len__() - 1)
 
         idx_last = item
         idx_now = item + 1

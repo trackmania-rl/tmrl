@@ -11,7 +11,7 @@
 
 `tmrl` is a fully-fledged distributed RL framework for robotics, designed to help you train Deep Reinforcement Learning AIs in real-time applications.
 
-`tmrl` comes with a readily implemented pipeline for the TrackMania 2020 video game.
+`tmrl` comes with an example self-driving pipeline for the TrackMania 2020 video game.
 
 ![example](https://github.com/trackmania-rl/tmrl/releases/download/v0.2.0/video_lidar.gif)
 
@@ -20,8 +20,9 @@
 
 - :red_car: **AI and TM enthusiasts:**\
 `tmrl` enables you to train AIs in TrackMania with minimal effort. Tutorial for you guys [here](readme/get_started.md), video of a pre-trained AI [here](https://www.youtube.com/watch?v=hQkltOX0TYw), and beginner introduction to the SAC algorithm [here](https://www.youtube.com/watch?v=LN29DDlHp1U).
+
 - :rocket: **ML developers / roboticists:**\
-`tmrl` is a python library designed to facilitate the implementation of ad-hoc RL pipelines for industrial applications, including real-time control. Minimal example [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal.py), full tutorial [here](readme/tuto_library.md) and documentation [here](https://tmrl.readthedocs.io/en/latest/).
+`tmrl` is a python library designed to facilitate the implementation of ad-hoc RL pipelines for industrial applications, and most notably real-time control. Minimal example [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_drone.py), full tutorial [here](readme/tuto_library.md) and documentation [here](https://tmrl.readthedocs.io/en/latest/).
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
 `tmrl` provides a Gymnasium environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gymnasium-environment).
@@ -99,7 +100,7 @@ A complete tutorial toward doing this for your specific application is provided 
 `tmrl` comes with a Gymnasium environment for TrackMania 2020, based on [rtgym](https://pypi.org/project/rtgym/). Once the library is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gymnasium-environment).
 
 * **External libraries:**
-`tmrl` gave birth to a couple sub-projects of more general interest, that were cut out and packaged as standalone python libraries.
+`tmrl` gave birth to some sub-projects of more general interest, that were cut out and packaged as standalone python libraries.
 In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gymnasium environments in real-time applications,
 [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers,
 and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring python object over the Internet in a secure fashion.
@@ -115,8 +116,7 @@ Detailed instructions for installation are provided at [this link](readme/Instal
 
 ## Getting started
 
-Full guidance toward setting up an environment in TrackMania 2020, testing pre-trained weights, as well as a beginner-friendly tutorial to train, test, and fine-tune your own models,
-are provided at [this link](readme/get_started.md).
+Full guidance toward setting up an environment in TrackMania 2020, testing pre-trained weights, as well as a beginner-friendly tutorial to train, test, and fine-tune your own models, are provided at [this link](readme/get_started.md).
 
 ## TMRL python library
 
@@ -133,7 +133,7 @@ This is fine as long as you use `tmrl` on your own private network.
 
 HOWEVER, THIS IS A SECURITY BREACH IF YOU START USING `tmrl` ON A PUBLIC NETWORK.
 
-To use `tmrl` on a public network (for instance, on the Internet), we recommend that you enable Transport Layer Security (TLS).
+To securely use `tmrl` on a public network (for instance, on the Internet), enable Transport Layer Security (TLS).
 To do so, follow these instructions on all your machines:
 
 - Open `config.json`;
