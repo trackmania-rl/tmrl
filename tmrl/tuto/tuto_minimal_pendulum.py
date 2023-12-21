@@ -6,6 +6,7 @@ This script works out-of-the-box for Gymnasium environments with flat continuous
 
 # tutorial imports:
 from threading import Thread
+import time
 
 # TMRL imports:
 from tmrl.networking import Server, RolloutWorker, Trainer
@@ -17,31 +18,20 @@ from tmrl.custom.custom_algorithms import SpinupSacAgent
 from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic
 from tmrl.custom.custom_memories import GenericTorchMemory
 
-from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
-
 
 # Set this to True only for debugging your pipeline.
 CRC_DEBUG = False
 
-# This will be the base name used for training checkpoints and models saved in the TmrlData folder.
+# Name used for training checkpoints and models saved in the TmrlData folder.
 # If you change anything, also change this name (or delete the saved files in TmrlData).
 my_run_name = "tutorial_minimal_pendulum"
 
 
-# First, you need to define your Gymnasium environment.
-# TMRL is typically useful to train real-time robots.
-# Thus, we use Real-Time Gym to define a dummy RC drone as an example.
-# (Implemented in tuto_envs.dummy_rc_drone_interface)
-
 # === Environment ======================================================================================================
-
-# rtgym interface:
-
-my_rtgym_config = DUMMY_RC_DRONE_CONFIG
 
 # Environment class:
 
-env_cls = partial(GenericGymEnv, id="Pendulum-v1")
+env_cls = partial(GenericGymEnv, id="Pendulum-v1", gym_kwargs={"render_mode": None})
 
 # Observation and action space:
 
@@ -62,7 +52,7 @@ print(f"observation space: {obs_space}")
 # The TMRL Server is the central point of communication between TMRL entities.
 # The Trainer and the RolloutWorkers connect to the Server.
 
-security = None  # This is fine for secure local networks. On the Internet, use TLS instead.
+security = None  # This is fine for secure local networks. On the Internet, use "TLS" instead.
 password = cfg.PASSWORD  # This is the password defined in TmrlData/config/config.json
 
 server_ip = "127.0.0.1"  # This is the localhost IP. Change it for your public IP if you want to run on the Internet.
@@ -123,7 +113,7 @@ if __name__ == "__main__":
 # TrainingOffline notably contains a Memory class, and a TrainingAgent class.
 # The Memory is a replay buffer. In TMRL, you are able and encouraged to define your own Memory.
 # This is how you can implement highly optimized ad-hoc pipelines for your applications.
-# Nevertheless, TMRL also define a generic, non-optimized Memory that can be used for any pipeline.
+# Nevertheless, TMRL also defines a generic, non-optimized Memory that can be used for any pipeline.
 # The TrainingAgent contains your training algorithm per-se.
 # TrainingOffline is meant for asynchronous off-policy algorithms, such as Soft Actor-Critic.
 
@@ -135,7 +125,6 @@ model_path = str(weights_folder / (my_run_name + "_t.tmod"))
 checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.tcpt"))
 
 # Dummy environment OR (observation space, action space) tuple:
-# env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_rtgym_config})
 env_cls = (obs_space, act_space)
 
 # Memory:
@@ -214,16 +203,13 @@ def run_worker(worker):
     # More precisely, it enables limiting the number of collected steps per worker per model update.
     # initial_steps is the number of environment steps performed before waiting for the first model update.
     # max_steps_per_update is the RolloutWorker synchronization ratio (max environment steps per model update).
-    # end_episodes relaxes synchronization: the worker will wait for model updates only at the end of episodes.
-    nb_steps_between_tests = 2000
-    nb_iterations = 101
-    for _ in range(nb_iterations):
-        # collect training samples synchronously:
-        worker.run_synchronous(nb_steps=nb_steps_between_tests,  # total number of samples to collect
-                               initial_steps=100,  # initial number of samples
-                               max_steps_per_update=10,  # synchronization ratio
-                               end_episodes=True)
-        worker.run_episode(200, train=False)  # test episode
+    # end_episodes relaxes synchronization: the worker run episodes until they are terminated/truncated before waiting.
+
+    # collect training samples synchronously:
+    worker.run_synchronous(test_episode_interval=10,  # collect one test episode every 10 train episodes
+                           initial_steps=100,  # initial number of samples
+                           max_steps_per_update=10,  # synchronization ratio of 10 environment steps per training step
+                           end_episodes=True)  # wait for the episodes to end before updating the model
 
 
 def run_trainer(trainer):
@@ -237,4 +223,18 @@ if __name__ == "__main__":
 
     run_trainer(my_trainer)
 
-    # the worker daemon thread will be killed here.
+    print("Training complete. Lazily sleeping for 1 second so that our worker thread blocks...")
+    time.sleep(1.0)
+
+    print("Rendering the trained policy.")
+
+    rendering_worker = RolloutWorker(
+        standalone=True,
+        env_cls=partial(GenericGymEnv, id="Pendulum-v1", gym_kwargs={"render_mode": "human"}),
+        actor_module_cls=partial(SquashedGaussianMLPActor),
+        sample_compressor=None,
+        device="cpu",
+        max_samples_per_episode=1000,
+        model_path=model_path)
+
+    rendering_worker.run_episodes()

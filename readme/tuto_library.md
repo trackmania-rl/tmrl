@@ -11,7 +11,8 @@ The full script of the tutorial is available [here](https://github.com/trackmani
 
 You may also want to read the [API documentation](https://tmrl.readthedocs.io/en/latest/).
 
-In complement, you can find a minimal `tmrl` pipeline [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_drone.py).
+In complement, you can find a minimal `tmrl` pipeline for the real-time environment used in this tutorial [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_drone.py).
+You can also find a minimal `tmrl` pipeline for non-real-time environments (e.g., Pendulum) [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_pendulum.py).
 
 **Note: some modules can be implemented independently.
 If you are here because you wish to implement your own training algorithm in TrackMania, you should read the [competition tutorial](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) instead.**

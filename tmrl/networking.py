@@ -627,7 +627,7 @@ class RolloutWorker:
             self.buffer.append_sample(sample)  # CAUTION: in the buffer, act is for the PREVIOUS transition (act, obs(act))
         return new_obs, rew, terminated, truncated, info
 
-    def collect_train_episode(self, max_samples):
+    def collect_train_episode(self, max_samples=None):
         """
         Collects a maximum of `max_samples` training transitions (from reset to terminated or truncated)
 
@@ -638,6 +638,9 @@ class RolloutWorker:
             max_samples (int): if the environment is not `terminated` after `max_samples` time steps,
                 it is forcefully reset and `truncated` is set to True.
         """
+        if max_samples is None:
+            max_samples = self.max_samples_per_episode
+
         ret = 0.0
         steps = 0
         obs, info = self.reset(collect_samples=True)
@@ -650,7 +653,7 @@ class RolloutWorker:
         self.buffer.stat_train_return = ret
         self.buffer.stat_train_steps = steps
 
-    def run_episodes(self, max_samples_per_episode, nb_episodes=np.inf, train=False):
+    def run_episodes(self, max_samples_per_episode=None, nb_episodes=np.inf, train=False):
         """
         Runs `nb_episodes` episodes.
 
@@ -659,12 +662,15 @@ class RolloutWorker:
             nb_episodes (int): total number of episodes to collect
             train (bool): same as run_episode
         """
+        if max_samples_per_episode is None:
+            max_samples_per_episode = self.max_samples_per_episode
+
         counter = 0
         while counter < nb_episodes:
             self.run_episode(max_samples_per_episode, train=train)
             counter += 1
 
-    def run_episode(self, max_samples, train=False):
+    def run_episode(self, max_samples=None, train=False):
         """
         Collects a maximum of `max_samples` test transitions (from reset to terminated or truncated).
 
@@ -674,6 +680,9 @@ class RolloutWorker:
             train (bool): whether the episode is a training or a test episode.
                 `step` is called with `test=not train`.
         """
+        if max_samples is None:
+            max_samples = self.max_samples_per_episode
+
         ret = 0.0
         steps = 0
         obs, info = self.reset(collect_samples=False)
@@ -747,6 +756,7 @@ class RolloutWorker:
                 episode += 1
 
     def run_synchronous(self,
+                        test_episode_interval=0,
                         nb_steps=np.inf,
                         initial_steps=1,
                         max_steps_per_update=np.inf,
@@ -761,6 +771,8 @@ class RolloutWorker:
         Note: This method does not collect test episodes. Periodically use `run_episode(train=False)` if you wish to.
 
         Args:
+            test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes;
+                set to 0 to not collect test episodes. NB: `end_episodes` must be `True` to collect test episodes.
             nb_steps (int): total number of steps to collect (after `initial_steps`).
             initial_steps (int): initial number of steps to collect before waiting for the first model update.
             max_steps_per_update (float): maximum number of steps to collect per model received from the Server
@@ -776,6 +788,7 @@ class RolloutWorker:
             logging.info(f"Collecting {initial_steps} initial steps")
 
         iteration = 0
+        done = False
         while iteration < initial_steps:
             steps = 0
             ret = 0.0
@@ -815,16 +828,25 @@ class RolloutWorker:
         # collect further samples while synchronizing with the Trainer
 
         iteration = 0
+        episode = 0
+        steps = 0
+        ret = 0.0
 
         while iteration < nb_steps:
 
             if done:
+                # test episode
+                if test_episode_interval > 0 and episode % test_episode_interval == 0 and end_episodes:
+                    if verbose:
+                        print_with_timestamp("running test episode")
+                    self.run_episode(self.max_samples_per_episode, train=False)
                 # reset
                 obs, info = self.reset(collect_samples=True)
                 done = False
                 iteration += 1
                 steps = 0
                 ret = 0.0
+                episode += 1
 
             while not done and (end_episodes or ratio <= max_steps_per_update):
 

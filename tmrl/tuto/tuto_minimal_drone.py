@@ -6,6 +6,7 @@ This script works out-of-the-box for real-time environments with flat continuous
 
 # tutorial imports:
 from threading import Thread
+from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
 
 # TMRL imports:
 from tmrl.networking import Server, RolloutWorker, Trainer
@@ -17,13 +18,11 @@ from tmrl.custom.custom_algorithms import SpinupSacAgent
 from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic
 from tmrl.custom.custom_memories import GenericTorchMemory
 
-from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
-
 
 # Set this to True only for debugging your pipeline.
 CRC_DEBUG = False
 
-# This will be the base name used for training checkpoints and models saved in the TmrlData folder.
+# Name used for training checkpoints and models saved in the TmrlData folder.
 # If you change anything, also change this name (or delete the saved files in TmrlData).
 my_run_name = "tutorial_minimal_drone"
 
@@ -62,7 +61,7 @@ print(f"observation space: {obs_space}")
 # The TMRL Server is the central point of communication between TMRL entities.
 # The Trainer and the RolloutWorkers connect to the Server.
 
-security = None  # This is fine for secure local networks. On the Internet, use TLS instead.
+security = None  # This is fine for secure local networks. On the Internet, use "TLS" instead.
 password = cfg.PASSWORD  # This is the password defined in TmrlData/config/config.json
 
 server_ip = "127.0.0.1"  # This is the localhost IP. Change it for your public IP if you want to run on the Internet.
@@ -123,7 +122,7 @@ if __name__ == "__main__":
 # TrainingOffline notably contains a Memory class, and a TrainingAgent class.
 # The Memory is a replay buffer. In TMRL, you are able and encouraged to define your own Memory.
 # This is how you can implement highly optimized ad-hoc pipelines for your applications.
-# Nevertheless, TMRL also define a generic, non-optimized Memory that can be used for any pipeline.
+# Nevertheless, TMRL also defines a generic, non-optimized Memory that can be used for any pipeline.
 # The TrainingAgent contains your training algorithm per-se.
 # TrainingOffline is meant for asynchronous off-policy algorithms, such as Soft Actor-Critic.
 
