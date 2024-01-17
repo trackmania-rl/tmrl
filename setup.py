@@ -126,7 +126,7 @@ elif platform.system() == "Linux":
 # Short readme for PyPI
 HERE = os.path.abspath(os.path.dirname(__file__))
 README_FOLDER = os.path.join(HERE, "readme")
-with open(os.path.join(HERE, "pypi.md")) as fid:
+with open(os.path.join(README_FOLDER, "pypi.md")) as fid:
     README = fid.read()
 
 setup(
