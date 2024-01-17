@@ -67,8 +67,9 @@
 
 ## Introduction
 
-`tmrl` is a python framework designed to help you train Artificial Intelligences (AIs) through deep Reinforcement Learning (RL), for your own robots or real-time video games.
-As a fun and safe robot proxy for vision-based autonomous driving, `tmrl` features a readily-implemented example pipeline in the TrackMania 2020 video game.
+`tmrl` is a python framework designed to help you train Artificial Intelligences (AIs) through deep Reinforcement Learning (RL) in real-time applications (robots, video-games, high-frequency control...).
+
+As a fun and safe robot proxy for vision-based autonomous driving, `tmrl` features a readily-implemented example pipeline for the TrackMania 2020 racing video game.
 
 _Note: In the context of RL, an AI is called a policy._
 
@@ -108,7 +109,7 @@ and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring 
 ### TMRL in the media:
 - In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gymnasium environment that we used for the show is available [here](#lidar-with-track-progress).
 
-- In 2023, we were invited at Ubisoft Montreal to talk about how video games could become simulators for vision-based autonomous driving in the future. Video of the talk coming soon.
+- In 2023, we were invited at Ubisoft Montreal to talk about how video games could become simulators for vision-based autonomous driving in the future. Recording of the talk coming soon!
 
 ## Installation
 
@@ -120,7 +121,7 @@ Full guidance toward setting up an environment in TrackMania 2020, testing pre-t
 
 ## TMRL python library
 
-An advanced tutorial toward implementing your own ad-hoc optimized training pipelines for your own real-time tasks (e.g., robots...) is provided [here](readme/tuto_library.md).
+An advanced tutorial toward implementing your own ad-hoc optimized training pipelines for your own real-time tasks is provided [here](readme/tuto_library.md).
 
 ## Security
 
@@ -145,7 +146,7 @@ To do so, follow these instructions on all your machines:
 
 If for any reason you do not wish to use TLS (not recommended), you should still at least use a custom password in `config.json` when training over a public network.
 HOWEVER, DO NOT USE A PASSWORD THAT YOU USE FOR OTHER APPLICATIONS.
-This is because, without TLS encryption, this password will be readable in the packets sent by your machines over the network.
+This is because, without TLS encryption, this password will be readable in the packets sent by your machines over the network and can be intercepted.
 
 # Autonomous driving in TrackMania
 
@@ -334,7 +335,7 @@ At each time-step, the policy applies an action (float values for gas, brake, an
 The action is applied to the environment, which yields a new observation at the end of the transition.
 
 For the purpose of training this policy, the environment also provides another signal, called the "reward".
-RL is derived from behaviorism, which relies on the fundamental idea that intelligence is the result of a history of positive and negative stimuli.
+RL is inspired from behaviorism, which relies on the fundamental idea that intelligence is the result of a history of positive and negative stimuli.
 The reward received by the AI at each time-step is a measure of how well it performs.
 
 In order to learn how to drive, the AI tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that its long-term reward is maximized.
@@ -406,8 +407,8 @@ There are multiple reward functions that could be used.
 For instance, one could directly use the raw speed of the car as a reward.
 This makes some sense because the car slows down when it crashes and goes fast when it is performing well.
 
-However, such approach is naive.
-Indeed, the actual goal of racing is not to move as fast as possible.
+This approach would be naive, though.
+The actual goal of racing is not to move as fast as possible.
 Rather, one wants to complete the largest portion of the track in the smallest possible amount of time.
 This is not equivalent as one should consider the optimal trajectory, which may imply slowing down on sharp turns in order to take the apex of each curve.
 
@@ -426,17 +427,17 @@ In a nutshell, whereas the previous reward function was measuring how fast the c
 
 In `tmrl`, the car can be controlled in two different ways:
 
+- The policy can control the car with analog inputs by emulating an XBox360 controller thanks to the [vgamepad](https://pypi.org/project/vgamepad/) library.
 - The policy can output simple (binary) arrow presses.
-- On Windows, the policy controls the car with analog inputs by emulating an XBox360 controller thanks to the [vgamepad](https://pypi.org/project/vgamepad/) library.
 
 ### Available observation spaces
 
-Different observation spaces are available in `tmrl`:
+Different observation spaces are available in the TrackMania pipeline::
 
 - A history of raw screenshots (typically 4).
 - A history of LIDAR measurement computed from raw screenshots in tracks with black borders.
 
-In addition, we provide the norm of the velocity as part of the observation space in all our experiments.
+In addition,the pipeline provides the norm of the velocity as part of the observation space.
 
 Example of `tmrl` environment in TrackMania Nations Forever with a single LIDAR measurement:
 
