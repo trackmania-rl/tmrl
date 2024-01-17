@@ -25,16 +25,6 @@ if platform.system() == "Windows":
             \nPlease install pywin32 manually.")
             raise RuntimeError("Please install pywin32 manually: https://github.com/mhammond/pywin32")
 
-    #KeyboardInterrupt handler:
-    import _thread
-    import win32api
-    def ctrl_c_handler(dwCtrlType, hook_sigint=_thread.interrupt_main):
-        if dwCtrlType == 0:  # CTRL_C_EVENT
-            hook_sigint()
-            return 1  # don't chain to the next handler
-        return 0  # chain to the next handler
-    win32api.SetConsoleCtrlHandler(ctrl_c_handler, 1)
-
 
 # do not remove this
 from dataclasses import dataclass
