@@ -1,1 +1,2 @@
+include readme/pypi.md
 exclude tmrl/wandb/*
