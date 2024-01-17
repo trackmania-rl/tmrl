@@ -86,8 +86,10 @@ if not TMRL_FOLDER.exists():
                 # copy new plugin
                 OP_PLUGINS_FOLDER = OPENPLANET_FOLDER / 'Plugins'
                 OP_PLUGINS_FOLDER.mkdir(parents=True, exist_ok=True)
-                TM20_PLUGIN = RESOURCES_FOLDER / 'Plugins' / 'TMRL_GrabData.op'
-                copy2(TM20_PLUGIN, OP_PLUGINS_FOLDER)
+                TM20_PLUGIN_1 = RESOURCES_FOLDER / 'Plugins' / 'TMRL_GrabData.op'
+                TM20_PLUGIN_2 = RESOURCES_FOLDER / 'Plugins' / 'TMRL_SaveGhost.op'
+                copy2(TM20_PLUGIN_1, OP_PLUGINS_FOLDER)
+                copy2(TM20_PLUGIN_2, OP_PLUGINS_FOLDER)
             except Exception as e:
                 print(
                     f"An exception was caught when trying to copy the OpenPlanet plugin automatically. \
@@ -131,13 +133,13 @@ with open(os.path.join(README_FOLDER, "pypi.md")) as fid:
 
 setup(
     name='tmrl',
-    version='0.6.0',
+    version='0.6.1',
     description='Network-based framework for real-time robot learning',
     long_description=README,
     long_description_content_type='text/markdown',
     keywords='reinforcement learning, robot learning, trackmania, self driving, roborace',
     url='https://github.com/trackmania-rl/tmrl',
-    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.6.0.tar.gz',
+    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.6.1.tar.gz',
     author='Yann Bouteiller, Edouard Geze',
     author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
     license='MIT',
