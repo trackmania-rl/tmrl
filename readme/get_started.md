@@ -210,6 +210,14 @@ The default `config.json` file contains credentials that log your data to the [p
 Please replace these credentials with your own if you want to hide/keep your training data, or if you want to log large files.
 We clean the public project once in a while.
 
+### Save replays:
+
+The `config.json` file enables you to save replays in TrackMania, for shooting videos of your trained AIs: `"interface_kwargs": {"save_replays": true}`.
+
+All runs will be recorded, including the failed ones.
+
+_Note: If you use `python -m tmrl --test` to record, you may also want to set `"SLEEP_TIME_AT_RESET": 0.0` to get a clean start (but you should leave this to `1.5` when using `python -m tmrl --trainer`)._
+
 ## Use the TMRL API for other robot applications
 
 If you are a python developer and wish to use the `tmrl` library with your own robots, well, we have your back.

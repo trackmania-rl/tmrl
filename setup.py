@@ -10,10 +10,10 @@ import urllib.error
 import socket
 
 if sys.version_info < (3, 7):
-    sys.exit('Sorry, Python < 3.7 is not supported. We use dataclasses that have been introduced in 3.7.')
+    sys.exit('Sorry, Python < 3.7 is not supported.')
 
 
-RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.4.2/resources.zip"
+RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.6.0/resources.zip"
 
 
 def url_retrieve(url: str, outfile: Path, overwrite: bool = False):
