@@ -63,12 +63,15 @@ def main(args):
             check_env_tm20lidar()
         else:
             check_env_tm20full()
+    elif args.install:
+        logging.info(f"TMRL folder: {cfg.TMRL_FOLDER}")
     else:
         raise ArgumentTypeError('Enter a valid argument')
 
 
 if __name__ == "__main__":
     parser = ArgumentParser()
+    parser.add_argument('--install', action='store_true', help='checks TMRL installation')
     parser.add_argument('--server', action='store_true', help='launches the server')
     parser.add_argument('--trainer', action='store_true', help='launches the trainer')
     parser.add_argument('--worker', action='store_true', help='launches a rollout worker')

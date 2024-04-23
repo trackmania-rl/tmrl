@@ -1,6 +1,6 @@
 # Adapted from https://github.com/mhammond/pywin32/blob/main/pywin32_postinstall.py
 
-# May have to be adapted in the future if becomming incompatible with new version of pywin32.
+# May have to be adapted in the future if becoming incompatible with new versions of pywin32.
 
 # postinstall script for pywin32
 #

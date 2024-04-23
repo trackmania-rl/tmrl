@@ -13,6 +13,10 @@ if sys.version_info < (3, 7):
     sys.exit('Sorry, Python < 3.7 is not supported.')
 
 
+# NB: the following code is duplicated under tmrl.tools.init_package.init_tmrl,
+# don't forget to update both whenever changing RESOURCES_URL.
+
+
 RESOURCES_URL = "https://github.com/trackmania-rl/tmrl/releases/download/v0.6.0/resources.zip"
 
 
@@ -133,13 +137,13 @@ with open(os.path.join(README_FOLDER, "pypi.md")) as fid:
 
 setup(
     name='tmrl',
-    version='0.6.1',
+    version='0.6.2',
     description='Network-based framework for real-time robot learning',
     long_description=README,
     long_description_content_type='text/markdown',
     keywords='reinforcement learning, robot learning, trackmania, self driving, roborace',
     url='https://github.com/trackmania-rl/tmrl',
-    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.6.1.tar.gz',
+    download_url='https://github.com/trackmania-rl/tmrl/archive/refs/tags/v0.6.2.tar.gz',
     author='Yann Bouteiller, Edouard Geze',
     author_email='yann.bouteiller@polymtl.ca, edouard.geze@hotmail.fr',
     license='MIT',

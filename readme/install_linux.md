@@ -74,7 +74,13 @@ Open a terminal and run:
 ```bash
 pip3 install tmrl
 ```
-This installs the `tmrl` library in your active python environment and creates a `TmrlData` folder in your home directory.
+
+Validate:
+```bash
+python -m tmrl --install
+```
+
+The `tmrl` library is now installed in your active python environment and has created a `TmrlData` folder in your home directory.
 
 Navigate to your TrackMania Proton folder:
 
@@ -94,30 +100,4 @@ cp ~/TmrlData/resources/tmrl-test.Map.Gbx Documents/Trackmania/Maps/My Maps/.
 
 ## Set up `tmrl`
 
-
-### Configure/manage TMRL:
-
-The `TmrlData` folder is your _"control pannel"_, it contains everything `tmrl` uses and generates:
-- The `checkpoints` subfolder is used by the trainer process: it contains persistent checkpoints of your training,
-- The `weights` subfolder is used by the worker process: it contains snapshots of your trained policies,
-- The `reward` subfolder is used by the worker process: it contains your reward function,
-- The `dataset` subfolder is for RL developers (to use with custom replay buffers),
-- The `config` subfolder contains a configuration file that you probably want to tweak.
-
-Navigate to `TmrlData\config` and open `config.json` in a text editor.
-
-In particular, you may want to adapt the following entries:
-- `RUN_NAME`: set a new name for starting training from scratch
-- `LOCALHOST_WORKER`: set to `false` for `workers` not on the same computer as the `server`
-- `LOCALHOST_TRAINER`: set to `false` for `trainer` not on the same computer as the `server`
-- `PUBLIC_IP_SERVER`: public IP of the `server` if not running on localhost
-- `PORT` needs to be forwarded on the `server` if not running on localhost
-- `WANDB_PROJECT`, `WANDB_ENTITY` and `WANDB_KEY` can be replaced by you own [wandb](https://wandb.ai/site) credentials for monitoring training
-
-You can delete the content of all folders (but not the folders themselves) whenever you like (except `config.json`, a default version is provided in `resources` if you delete this).
-
-### Check that everything works:
-
-Launch TrackMania 2020, launch a track, then press `f3` to open the OpenPlanet menu, open the logs by clicking `OpenPlanet > Log`, and in the OpenPlanet menu click `Developer > (Re)load plugin > TMRL Grab Data`.
-You should see a message like "waiting for incoming connection" appear in the logs.
-Press `f3` again to close the menu.
+Find out how to configure the library [here](Install.md#set-up-tmrl).

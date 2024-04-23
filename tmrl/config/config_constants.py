@@ -1,7 +1,9 @@
 # standard library imports
+
+import logging
+
 import os
 from pathlib import Path
-import logging
 import json
 import platform
 from packaging import version
@@ -9,10 +11,16 @@ from packaging import version
 
 __compatibility__ = "0.6.0"
 
+# TMRL FOLDER: =======================================================
+
 SYSTEM = platform.system()
 RTGYM_VERSION = "real-time-gym-v1" if SYSTEM == "Windows" else "real-time-gym-ts-v1"
 
 TMRL_FOLDER = Path.home() / "TmrlData"
+
+if not TMRL_FOLDER.exists():
+    raise RuntimeError(f"Missing folder: {TMRL_FOLDER}")
+
 CHECKPOINTS_FOLDER = TMRL_FOLDER / "checkpoints"
 DATASET_FOLDER = TMRL_FOLDER / "dataset"
 REWARD_FOLDER = TMRL_FOLDER / "reward"

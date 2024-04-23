@@ -1,7 +1,7 @@
 # Prerequisites
 * Windows / Linux
 * Python >= 3.7
-* A recent NVIDIA GPU (required only on the training computer if you plan to train your own AI)
+* A recent NVIDIA GPU (required only on the training computer if you plan to train your own models)
 
 #### If using Anaconda on Windows:
 
@@ -47,6 +47,13 @@ To install the `tmrl` python library, open your favorite terminal and run:
 ```shell
 pip install tmrl
 ```
+
+Then, validate the installation:
+
+```shell
+python -m tmrl --install
+```
+
 #### Additional information for Windows / Trackmania 2020:
 
 If running on Windows, during the installation, a driver will be installed to emulate a virtual gamepad.
@@ -74,6 +81,8 @@ If at some point you want to do a clean re-install of `tmrl`:
 - Delete the `TmrlData` folder from your home folder
 - `pip install tmrl`
 
+## Set up TMRL
+
 ### (Optional) Configure/manage TMRL:
 
 The `TmrlData` folder is your _"control pannel"_, it contains everything `tmrl` uses and generates:
@@ -94,6 +103,15 @@ In particular, you may want to adapt the following entries:
 - `WANDB_PROJECT`, `WANDB_ENTITY` and `WANDB_KEY` can be replaced by you own [wandb](https://wandb.ai/site) credentials for monitoring training
 
 You can delete the content of all folders (but not the folders themselves) whenever you like (except `config.json`, a default version is provided in `resources` if you delete this).
+
+To reset the library, delete the entire `TmrlData` folder and run:
+
+```shell
+python -m tmrl --install
+```
+
+This will download and extract the `TmrlData` folder back to its original state.
+
 
 ### (Optional) Check that everything works:
 

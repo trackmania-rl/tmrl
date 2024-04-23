@@ -25,6 +25,8 @@ if platform.system() == "Windows":
             \nPlease install pywin32 manually.")
             raise RuntimeError("Please install pywin32 manually: https://github.com/mhammond/pywin32")
 
+# TMRL folder initialization:
+from tmrl.tools.init_package.init_tmrl import TMRL_FOLDER
 
 # do not remove this
 from dataclasses import dataclass
