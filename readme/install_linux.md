@@ -22,7 +22,7 @@ Furthermore, you will need to grant yourself access to `uinput` so `vgamepad` ca
 - Navigate to `Store` and search for `Trackmania` in the search bar. Add the game to your library, navigate to `Library`, select `Trackmania`, and install.
 - If you don't already have one, create an account on the [Ubisoft website](https://www.ubisoft.com/).
 - Open a terminal and run `sudo apt-get install winetricks`
-- Run `protontricks --gui` (it should have been installed by Steam, otherwise install it with `sudo apt-get install protontricks`)
+- Run `protontricks --gui` (it should have been installed by Steam, otherwise [install it](https://github.com/Matoking/protontricks)).
 - **Write down the number next to TrackMania. This is the number of your TrackMania prefix.**
 - Select TrackMania and press OK.
 - Select `Install an application` and press OK.

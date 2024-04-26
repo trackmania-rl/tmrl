@@ -162,7 +162,7 @@ _(Instructions for TrackMania 2020)_
   ```shell
   python -m tmrl --record-reward
   ```
-  - Press `e` to start recording
+  - If you are on Windows, press `e` to start recording _(on Linux, recording starts automatically)_
   - Complete the track
 - Check that your reward and environment work correctly:
   - Execute:
