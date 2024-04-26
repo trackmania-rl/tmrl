@@ -13,6 +13,8 @@ import logging
 
 def check_env_tm20lidar():
     window_interface = WindowInterface("Trackmania")
+    if cfg.SYSTEM != "Windows":
+        window_interface.move_and_resize()  # needed on Linux
     lidar = Lidar(window_interface.screenshot())
     env_config = DEFAULT_CONFIG_DICT.copy()
     env_config["interface"] = TM2020InterfaceLidar
