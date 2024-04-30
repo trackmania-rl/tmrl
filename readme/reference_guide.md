@@ -18,7 +18,7 @@ All parameters are described below.
 
 :warning: `tmrl` does not support comments in `config.json`, we provide them here only for documentation: do not copy-paste those comments!
 
-```json
+```json5
 {
   "RUN_NAME": "SAC_4_imgs_pretrained",  // experiment name (matches names in checkpoints and weights)
   "RESET_TRAINING": false,  // if true, training restarts from scratch (loads the replay buffer only)
