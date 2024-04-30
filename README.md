@@ -41,6 +41,7 @@
     - [Windows](readme/Install.md)
     - [Linux](readme/install_linux.md)
   - [Getting started](readme/get_started.md)
+    - [Quick reference guide](readme/reference_guide.md)
   - [TMRL python library for robot learning](readme/tuto_library.md)
     - [API reference](https://tmrl.readthedocs.io/en/latest/)
   - [Security (important)](#security)
