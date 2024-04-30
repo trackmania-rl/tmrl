@@ -37,7 +37,7 @@ All parameters are described below.
   "NB_WORKERS": -1,  // maximum number of Workers that can connect to the Server (-1 for infinite)
   "WANDB_PROJECT": "tmrl",  // your wandb project name
   "WANDB_ENTITY": "tmrl",  // your wandb entity name
-  "WANDB_KEY": "df28d4daa98d2df2557d74caf78e40c68adaf288",  // your wandb key
+  "WANDB_KEY": "YourWandbApiKey",  // your wandb key
   "PORT": 55555,  // public port of your Server
   "LOCAL_PORT_SERVER": 55556,  // localhost Server port (must not overlap)
   "LOCAL_PORT_TRAINER": 55557,  // localhost Trainer port (must not overlap)
