@@ -94,6 +94,8 @@ The `TmrlData` folder is your _"control pannel"_, it contains everything `tmrl` 
 
 Navigate to `TmrlData\config` and open `config.json` in a text editor.
 
+( :information_source: `config.json` is described in details [here](reference_guide.md).)
+
 In particular, you may want to adapt the following entries:
 - `RUN_NAME`: set a new name for starting training from scratch
 - `LOCALHOST_WORKER`: set to `false` for `workers` not on the same computer as the `server`

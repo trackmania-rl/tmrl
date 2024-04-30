@@ -187,7 +187,7 @@ python -m tmrl --trainer
 python -m tmrl --worker
 ```
 
-_(Note: you may want to run these commands on separate computers instead, for instance if the trainer is located on a remote HPC computer. You can adapt `TmrlData\config\config.json` for this matter)_
+_(Note: you may want to run these commands on separate computers instead, for instance if the trainer is located on a remote HPC computer. You can adapt `TmrlData\config\config.json` for this matter. `config.json` is described in details [here](reference_guide.md).)_
 
 During training, make sure you don't see too many 'timestep timeouts' in the worker terminal.
 If you do, this means that your GPU is not powerful enough, and you should use remote training instead of localhost training (see `TmrlData\config\config.json`).
