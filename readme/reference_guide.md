@@ -122,7 +122,7 @@ All parameters are described below.
     python -m tmrl --test
     ```
 
-- Record a reward function in TrackMania. In Windows, press `e` to start recording. In Linux, recording starts automatically. You should start recording at the beginning of the track. The script will compute the reward function automatically when you cross the finish line:
+- Record a reward function in TrackMania. You should start recording at the beginning of the track. The script will compute the reward function automatically when you cross the finish line:
     ```bash
     python -m tmrl --record-reward
     ```

@@ -13,10 +13,6 @@ import logging
 
 PATH_REWARD = cfg.REWARD_PATH
 DATASET_PATH = cfg.DATASET_PATH
-SYSTEM = cfg.SYSTEM
-
-if SYSTEM == "Windows":
-    import keyboard
 
 
 def record_reward_dist(path_reward=PATH_REWARD):
@@ -27,21 +23,13 @@ def record_reward_dist(path_reward=PATH_REWARD):
     is_recording = False
     while True:
         if not is_recording:
-            if SYSTEM == "Windows":
-                if keyboard.is_pressed('e'):
-                    logging.info(f"start recording")
-                    is_recording = True
-            else:
-                logging.info(f"start recording")
-                is_recording = True
+            logging.info(f"start recording")
+            is_recording = True
 
         if is_recording:
             data = client.retrieve_data(sleep_if_empty=0.01)  # we need many points to build a smooth curve
             terminated = bool(data[8])
-            if SYSTEM == "Windows":
-                early_stop = keyboard.is_pressed('q')
-            else:
-                early_stop = False
+            early_stop = False
             if early_stop or terminated:
                 logging.info(f"Computing reward function checkpoints from captured positions...")
                 logging.info(f"Initial number of captured positions: {len(positions)}")
