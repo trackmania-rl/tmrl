@@ -15,7 +15,10 @@ PATH_REWARD = cfg.REWARD_PATH
 DATASET_PATH = cfg.DATASET_PATH
 
 
-def record_reward_dist(path_reward=PATH_REWARD):
+def record_reward_dist(path_reward=PATH_REWARD, use_keyboard=False):
+    if use_keyboard:
+        import keyboard
+
     positions = []
     client = TM2020OpenPlanetClient()
     path = path_reward
@@ -23,13 +26,23 @@ def record_reward_dist(path_reward=PATH_REWARD):
     is_recording = False
     while True:
         if not is_recording:
-            logging.info(f"start recording")
-            is_recording = True
+            if not use_keyboard:
+                logging.info(f"start recording")
+                is_recording = True
+            else:
+                if keyboard.is_pressed('e'):
+                    logging.info(f"start recording")
+                    is_recording = True
 
         if is_recording:
             data = client.retrieve_data(sleep_if_empty=0.01)  # we need many points to build a smooth curve
             terminated = bool(data[8])
-            early_stop = False
+
+            if not use_keyboard:
+                early_stop = False
+            else:
+                early_stop = keyboard.is_pressed('q')
+
             if early_stop or terminated:
                 logging.info(f"Computing reward function checkpoints from captured positions...")
                 logging.info(f"Initial number of captured positions: {len(positions)}")
