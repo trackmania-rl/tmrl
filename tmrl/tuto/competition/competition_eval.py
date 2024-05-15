@@ -11,7 +11,7 @@ from tmrl.envs import GenericGymEnv
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
 
-from tmrl.tuto.competition.custom_actor_module import MyActorModule  # change this to match your ActorModule name
+from custom_actor_module import MyActorModule  # change this to match your ActorModule name
 
 
 # rtgym environment class (full TrackMania2020 Gymnasium environment with replays enabled):
@@ -23,7 +23,7 @@ env_cls = partial(GenericGymEnv, id=cfg.RTGYM_VERSION, gym_kwargs={"config": con
 device_worker = 'cpu'
 
 try:
-    from tmrl.tuto.competition.custom_actor_module import obs_preprocessor
+    from custom_actor_module import obs_preprocessor
 except Exception as e:
     obs_preprocessor = cfg_obj.OBS_PREPROCESSOR
 
