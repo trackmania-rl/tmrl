@@ -34,4 +34,4 @@ if __name__ == "__main__":
                        device=device_worker,
                        obs_preprocessor=obs_preprocessor,
                        standalone=True)
-    rw.run()
+    rw.run_episodes()

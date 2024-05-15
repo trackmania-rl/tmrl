@@ -43,6 +43,8 @@ In particular, you will want to set the following in the TMRL config.json file o
 "PORT": <port of the server (usually requires port forwarding if accessed via the Internet)>,
 
 If you are training over the Internet, please read the security instructions on the TMRL GitHub page.
+
+IMPORTANT: Set a custom 'RUN_NAME' in config.json, otherwise this script will not work.
 """
 
 # Let us start our tutorial by importing some useful stuff.
@@ -795,11 +797,11 @@ class SACTrainingAgent(TrainingAgent):
 
 training_agent_cls = partial(SACTrainingAgent,
                              model_cls=VanillaCNNActorCritic,
-                             gamma=0.99,
+                             gamma=0.995,
                              polyak=0.995,
-                             alpha=0.02,
-                             lr_actor=0.000005,
-                             lr_critic=0.00003)
+                             alpha=0.01,
+                             lr_actor=0.00001,
+                             lr_critic=0.00005)
 
 
 # =====================================================================
@@ -870,7 +872,7 @@ if __name__ == "__main__":
                            max_samples_per_episode=max_samples_per_episode,
                            obs_preprocessor=obs_preprocessor,
                            standalone=args.test)
-        rw.run()
+        rw.run(test_episode_interval=10)
     elif args.server:
         import time
         serv = Server(port=server_port,
