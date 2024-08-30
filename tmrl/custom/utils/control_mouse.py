@@ -1,6 +1,5 @@
 # standard library imports
 import platform
-import time
 
 if platform.system() == "Windows":
 
@@ -21,13 +20,6 @@ if platform.system() == "Windows":
         else:
             click(500, 390)
             click(500, 390)
-
-    def mouse_save_replay_tm20(small_window=False):
-        if small_window:
-            click(130, 132)
-        else:
-            click(500, 415)
-        mouseUp()
 
     def mouse_close_replay_window_tm20(small_window=False):
         if small_window:
