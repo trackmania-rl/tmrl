@@ -3,10 +3,6 @@
 # standard library imports
 import platform
 
-# local imports
-from tmrl.custom.utils.control_mouse import (mouse_change_name_replay_tm20,
-                                             mouse_close_replay_window_tm20,
-                                             mouse_save_replay_tm20)
 
 if platform.system() == "Windows":
     # standard library imports
