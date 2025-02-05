@@ -17,6 +17,7 @@ import enum
 
 from filterpy.kalman import KalmanFilter
 from tmrl.custom.a1.utils.moving_window_filter import MovingWindowFilter
+from tmrl.custon.a1.utils.action_filter import ActionFilterButter
 
 try:
     from tmrl.custom.a1.utils.robot_interface import RobotInterface
@@ -165,15 +166,19 @@ class A1Robot:
                  accelerometer_variance=0.1,
                  sensor_variance=0.1,
                  initial_variance=0.1,
-                 moving_window_filter_size=1):
+                 moving_window_filter_size=1,
+                 action_filter_highcut=3.0):
         
-        # A1 SDK interface:
+        # A1 SDK interface
         self._interface = RobotInterface()
         self._initialize_interface()
 
-        # General
+        # Step counter
         self.time_step = time_step
-        self.motor_control_mode = motor_control_mode
+        self._step_counter = 0
+
+        # General
+        self._motor_control_mode = motor_control_mode
         self._enable_clip_motor_commands = enable_clip_motor_commands
         self._motor_torque_limit = motor_torque_limit
         self._state = None
@@ -209,11 +214,27 @@ class A1Robot:
         self._joint_angle_upper_limits = np.array([field[1] for field in ACTION_CONFIG])
         self._joint_angle_lower_limits = np.array([field[2] for field in ACTION_CONFIG])
 
+        # Safety flag
+        self._is_safe = True
+
         self.update()
+
+        # action filter
+        self._action_repeat = 1  # TODO remove
+        self._action_filter_highcut = action_filter_highcut
+        self._action_filter = self._build_action_filter([self._action_filter_highcut])
     
     def _initialize_interface(self):
         self._interface.send_command(np.zeros(60, dtype=np.float32))
         time.sleep(0.5)
+    
+    def _build_action_filter(self, highcut=None):
+        sampling_rate = 1 / (self.time_step * self._action_repeat)
+        a_filter = ActionFilterButter(
+            sampling_rate=sampling_rate,
+            num_joints=NUM_MOTORS,
+            highcut=highcut)
+        return a_filter
     
     def reset_velocity_estimator(self):
         logging.info("resetting velocity estimator")
@@ -342,7 +363,7 @@ class A1Robot:
             motor_commands[np.array(range(NUM_MOTORS)) * 5 + 4] = clipped_torques
             return motor_commands
     
-    def act(self, motor_commands, motor_control_mode=None):
+    def apply_action(self, motor_commands, motor_control_mode=None):
         """
         Clip and apply the motor commands using the motor model.
         Args:
@@ -373,6 +394,98 @@ class A1Robot:
     def check_motor_temperatures(self):
         if any(self.motor_temperatures > MOTOR_WARN_TEMP_C):
             logging.warning(f"Motors are getting hot. Temperatures: {[(name, temp) for name, temp in zip(MOTOR_NAMES, self._motor_temperatures.astype(int))]}")
+    
+    def _ResetActionFilter(self):
+        self._action_filter.reset()
+
+    def _filter_action(self, action):
+        # initialize the filter history, since resetting the filter will fill
+        # the history with zeros and this can cause sudden movements at the start
+        # of each episode
+        # import ipdb; ipdb.set_trace()
+        if self._step_counter == 0:
+            default_action = self.get_motor_angles()
+            self._action_filter.init_history(default_action)
+
+        filtered_action = self._action_filter.filter(action)
+        return filtered_action
+    
+    def _step_minitaur(self, action, control_mode=None):
+       action = self._filter_action(action)
+        if control_mode == None:
+            control_mode = self._motor_control_mode
+        for i in range(self._action_repeat):
+            proc_action = self.ProcessAction(action, i)
+            self.step_internal(proc_action, control_mode)
+            self._step_counter += 1
+
+        self._last_action = action
+
+    def _step_a1_robot(self, action, control_mode=None):
+        self._step_minitaur(action, control_mode)
+        self.check_motor_temperatures()
+
+    # TODO: adapt the following
+    
+    def _ValidateMotorStates(self):
+        # Check torque.
+        if any(np.abs(self.motor_torques) > self._motor_torque_limits):
+            raise robot_config.SafetyError(
+                "Torque limits exceeded\ntorques: {}".format(
+                    self.motor_torques))
+
+        # Check joint velocities.
+        if any(np.abs(self.GetTrueMotorVelocities()) > MAX_JOINT_VELOCITY):
+            raise robot_config.SafetyError(
+                "Velocity limits exceeded\nvelocities: {}".format(
+                    self.GetTrueMotorVelocities()))
+
+        # Joints often start out of bounds (in sim they're 0 and on real they're
+        # slightly out of bounds), so we don't check angles during reset.
+        if self._currently_resetting or self.running_reset_policy:
+            return
+        # Check joint positions.
+        if (any(self.GetTrueMotorAngles() > (self._joint_angle_upper_limits +
+                                             self.JOINT_EPSILON))
+                or any(self.GetTrueMotorAngles() <
+                       (self._joint_angle_lower_limits - self.JOINT_EPSILON))):
+            raise robot_config.SafetyError(
+                "Joint angle limits exceeded\nangles: {}".format(
+                    self.GetTrueMotorAngles()))
+
+    def step_internal(self, action, motor_control_mode=None):
+        if self._is_safe:
+            self.apply_action(action, motor_control_mode)
+        self.update()
+        self._state_action_counter += 1
+        if not self._is_safe:
+            return
+        try:
+            self._ValidateMotorStates()
+        except (robot_config.SafetyError) as e:
+            print(e)
+            if self.running_reset_policy:
+                # Let the resetter handle retries.
+                raise e
+            self._is_safe = False
+            return
+        self._Nap()
+
+    def _Nap(self):
+        """Sleep for the remainder of self.time_step."""
+        now = time.time()
+        sleep_time = self.time_step - (now - self._last_step_time_wall)
+        if self._timesteps is not None:
+            self._timesteps.append(now - self._last_step_time_wall)
+        self._last_step_time_wall = now
+        if sleep_time >= 0:
+            time.sleep(sleep_time)
+
+    def Brake(self):
+        self.ReleasePose()
+        self._robot_interface.brake()
+        self.LogTimesteps()
+        self._Nap()
 
 
 if __name__ == "__main__":
