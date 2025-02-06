@@ -169,7 +169,7 @@ We use [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (`rtgym`) to wra
 But you can use an environment of your choice, as long as it is registered as a Gymnasium environment.
 
 To build your own real-time environment (e.g., an environment for your own robot or video game), you can follow the [rtgym tutorial](https://github.com/yannbouteiller/rtgym#tutorial).
-If you need inspiration, you can find our `rtgym` interfaces for TrackMania in [custom_gym_interfaces.py](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py).
+If you need inspiration, you can find our `rtgym` interfaces for TrackMania in [tm_gym_interfaces.py](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/tm/tm_gym_interfaces.py).
 
 For the sake of the `tmrl` tutorial, we will be using the dummy RC drone environment from the `rtgym` tutorial:
 
@@ -558,7 +558,7 @@ A few more parameters are configurable, although they will not be useful in this
 In particular:
 
 `obs_preprocessor` can be used to modify observations returned by the environment (this enables, e.g., converting RGB images into grayscale without modifying the environment).
-Some examples of such preprocessors are available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_preprocessors.py).
+Some examples of such preprocessors are available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/tm/tm_preprocessors.py).
 
 `standalone` can be set to `True` for deployment, in which case the `RolloutWorker` will not attempt to connect to the `Server`.
 

@@ -4,9 +4,9 @@ import cv2
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 
 # local imports
-from tmrl.custom.custom_gym_interfaces import TM2020Interface, TM2020InterfaceLidar
-from tmrl.custom.utils.window import WindowInterface
-from tmrl.custom.utils.tools import Lidar
+from tmrl.custom.tm.tm_gym_interfaces import TM2020Interface, TM2020InterfaceLidar
+from tmrl.custom.tm.utils.window import WindowInterface
+from tmrl.custom.tm.utils.tools import Lidar
 import tmrl.config.config_constants as cfg
 import logging
 

@@ -1,7 +1,6 @@
 # third-party imports
 import numpy as np
 import logging
-import cv2
 
 
 # OBSERVATION PREPROCESSING ==================================

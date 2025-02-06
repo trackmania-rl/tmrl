@@ -134,7 +134,7 @@ class TorchActorModule(ActorModule, torch.nn.Module, ABC):
 
     def load(self, path, device):
         self.device = device
-        self.load_state_dict(torch.load(path, map_location=self.device))
+        self.load_state_dict(torch.load(path, map_location=self.device, weights_only=True))
         return self
 
     def act_(self, obs, test=False):

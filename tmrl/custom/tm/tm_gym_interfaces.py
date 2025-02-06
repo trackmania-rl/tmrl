@@ -15,12 +15,12 @@ from rtgym import RealTimeGymInterface
 
 # local imports
 import tmrl.config.config_constants as cfg
-from tmrl.custom.utils.compute_reward import RewardFunction
-from tmrl.custom.utils.control_gamepad import control_gamepad, gamepad_reset, gamepad_close_finish_pop_up_tm20
-from tmrl.custom.utils.control_mouse import mouse_close_finish_pop_up_tm20
-from tmrl.custom.utils.control_keyboard import apply_control, keyres
-from tmrl.custom.utils.window import WindowInterface
-from tmrl.custom.utils.tools import Lidar, TM2020OpenPlanetClient, save_ghost
+from tmrl.custom.tm.utils.compute_reward import RewardFunction
+from tmrl.custom.tm.utils.control_gamepad import control_gamepad, gamepad_reset, gamepad_close_finish_pop_up_tm20
+from tmrl.custom.tm.utils.control_mouse import mouse_close_finish_pop_up_tm20
+from tmrl.custom.tm.utils.control_keyboard import apply_control, keyres
+from tmrl.custom.tm.utils.window import WindowInterface
+from tmrl.custom.tm.utils.tools import Lidar, TM2020OpenPlanetClient, save_ghost
 
 # Globals ==============================================================================================================
 

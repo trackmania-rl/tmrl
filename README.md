@@ -242,7 +242,7 @@ This works on any track, using any (sensible) camera configuration.
 }
 ```
 Note that human players can see or hear the features provided by this environment: we provide no "cheat" that would render the approach non-transferable to the real world.
-In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py) to build your own custom environment for TrackMania.
+In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/tm/tm_gym_interfaces.py) to build your own custom environment for TrackMania.
 
 The `Full` environment is used in the official [TMRL competition](https://github.com/trackmania-rl/tmrl/blob/master/readme/competition.md), and custom environments are featured in the "off" competition :wink:
 
@@ -471,7 +471,7 @@ This project uses [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (```r
 
 Time-steps are being elastically constrained to their nominal duration. When this elastic constraint cannot be satisfied, the previous time-step times out and the new time-step starts from the current timestamp.
 
-Custom `rtgym` interfaces for Trackmania used by `tmrl` are implemented in [custom_gym_interfaces.py](https://github.com/yannbouteiller/tmrl/blob/master/tmrl/custom/custom_gym_interfaces.py).
+Custom `rtgym` interfaces for Trackmania used by `tmrl` are implemented in [tm_gym_interfaces.py](https://github.com/yannbouteiller/tmrl/blob/master/tmrl/custom/tm/tm_gym_interfaces.py).
 
 ## Remote training architecture:
 

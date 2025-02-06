@@ -7,7 +7,7 @@ import numpy as np
 
 # local imports
 import tmrl.config.config_constants as cfg
-from tmrl.custom.utils.tools import TM2020OpenPlanetClient
+from tmrl.custom.tm.utils.tools import TM2020OpenPlanetClient
 import logging
 
 
