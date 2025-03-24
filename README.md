@@ -197,7 +197,7 @@ for _ in range(200):  # rtgym ensures this runs at 20Hz by default
     obs, rew, terminated, truncated, info = env.step(act)  # step (rtgym ensures healthy time-steps)
     if terminated or truncated:
         break
-env.wait()  # rtgym-specific method to artificially 'pause' the environment when needed
+env.unwrapped.wait()  # rtgym-specific method to artificially 'pause' the environment when needed
 ```
 
 The environment flavor can be chosen and customized by changing the content of the `ENV` entry in `TmrlData\config\config.json`:

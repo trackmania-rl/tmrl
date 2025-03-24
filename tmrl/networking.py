@@ -917,7 +917,7 @@ class RolloutWorker:
             obs, rew, terminated, truncated, info = self.step(obs=obs, test=test, collect_samples=False)
             if terminated or truncated:
                 break
-        res = self.env.benchmarks()
+        res = self.env.unwrapped.benchmarks()
         if verbose:
             print_with_timestamp(f"Benchmark results:\n{res}")
         return res
