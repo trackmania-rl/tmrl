@@ -10,7 +10,7 @@ import urllib.error
 import socket
 
 
-TMRL_VERSION = '0.7.0'
+TMRL_VERSION = '0.7.1'
 
 
 if sys.version_info < (3, 7):
