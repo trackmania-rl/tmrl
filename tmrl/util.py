@@ -60,6 +60,22 @@ def collate_torch(batch, device=None):
         return torch.from_numpy(np.array(batch)).to(device)  # we create a numpy array first to work around https://github.com/pytorch/pytorch/issues/24200
 
 
+def concat_collated(batches):
+    """Concatenates a list of already-collated batches (with torch tensors as leaves) along the batch dimension."""
+    elem = batches[0]
+    if isinstance(elem, torch.Tensor):
+        return torch.cat(batches, dim=0)
+    elif hasattr(elem, '__torch_tensor__'):
+        return torch.cat([b.__torch_tensor__() for b in batches], dim=0)
+    elif isinstance(elem, Sequence):
+        transposed = zip(*batches)
+        return type(elem)(concat_collated(samples) for samples in transposed)
+    elif isinstance(elem, Mapping):
+        return type(elem)((key, concat_collated([d[key] for d in batches])) for key in elem)
+    else:
+        raise TypeError(f"Unsupported type: {type(elem)}")
+
+
 # === catched property =================================================================================================
 
 

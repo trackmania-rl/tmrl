@@ -1,5 +1,7 @@
 # TMRL
 
+_Training Machines with Reinforcement Learning_
+
 [![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
 [![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)](https://github.com/trackmania-rl/tmrl/blob/master/LICENSE)
 [![DOI](https://zenodo.org/badge/277973609.svg)](https://zenodo.org/badge/latestdoi/277973609)
@@ -9,7 +11,7 @@
 | [![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest) |
 
 
-`tmrl` is a fully-fledged distributed RL framework for robotics, designed to help you train Deep Reinforcement Learning AIs in real-time applications.
+`tmrl` is a fully-fledged distributed RL framework for robotics, designed to help you train Deep Reinforcement Learning agents in real-time applications.
 
 `tmrl` comes with an example self-driving pipeline for the TrackMania 2020 video game.
 
@@ -28,7 +30,7 @@
 `tmrl` provides a Gymnasium environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gymnasium-environment).
 
 - :earth_americas: **Everyone:**\
-`tmrl` hosts the [TrackMania Roborace League](readme/competition.md), a vision-based AI competition where participants design real-time self-racing AIs in the TrackMania 2020 video game.
+`tmrl` hosts the [TrackMania Roborace League](readme/competition.md), an informal vision-based AI competition where participants design real-time self-racing AIs in TrackMania 2020.
 
 
 ## Quick links
@@ -54,10 +56,11 @@
     - [RL basics](#reinforcement-learning-basics)
     - [SAC](#soft-actor-critic)
     - [REDQ](#randomized-ensembled-double-q-learning)
+    - [DroQ](#dropout-q-learning)
     - [A clever reward](#a-clever-reward)
     - [Available action spaces](#available-action-spaces)
     - [Available observation spaces](#available-observation-spaces)
-    - [Results](#results)
+    - [Example eesults](#example-results)
 - [Framework details](#framework-details)
     - [Real-time Gym framework](#real-time-gym-framework)
       - [rtgym repo](https://github.com/yannbouteiller/rtgym)
@@ -116,15 +119,17 @@ and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring 
 
 ## Installation
 
-Detailed instructions for installation are provided at [this link](readme/Install.md).
+- Detailed instructions for installation are provided at [this link](readme/Install.md).
 
 ## Getting started
 
-Full guidance toward setting up an environment in TrackMania 2020, testing pre-trained weights, as well as a beginner-friendly tutorial to train, test, and fine-tune your own models, are provided at [this link](readme/get_started.md).
+- Full guidance toward setting up an environment in TrackMania 2020, testing pre-trained weights, as well as a beginner-friendly tutorial to train, test, and fine-tune your own models, are provided at [this link](readme/get_started.md).
 
 ## TMRL python library
 
-An advanced tutorial toward implementing your own ad-hoc optimized training pipelines for your own real-time tasks is provided [here](readme/tuto_library.md).
+- A minimal script that you can easily adapt to run a simple `tmrl` pipeline on your own robot is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_drone.py).
+
+- An advanced tutorial toward implementing your own ad-hoc optimized training pipelines for your own complex real-time tasks is provided [here](readme/tuto_library.md).
 
 ## Security
 
@@ -138,7 +143,7 @@ This is fine as long as you use `tmrl` on your own private network.
 HOWEVER, THIS IS A SECURITY BREACH IF YOU START USING `tmrl` ON A PUBLIC NETWORK.
 
 To securely use `tmrl` on a public network (for instance, on the Internet), enable Transport Layer Security (TLS).
-To do so, follow these instructions on all your machines:
+To do this, follow these instructions on all your machines:
 
 - Open `config.json`;
 - Set the `"TLS"` entry to `true`;
@@ -318,7 +323,7 @@ However, if you wish to use this environment, e.g., to beat our results, you can
 
 ## TrackMania training details
 
-In the example `tmrl` pipeline, an AI (policy) that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
+In the example `tmrl` pipeline, an agent (policy) that knows absolutely nothing about driving or even about what a road is, is set at the starting point of a track.
 Its goal is to learn how to complete the track as fast as possible by exploring its own capabilities and environment.
 
 The car feeds observations such as images to an artificial neural network, which must output the best possible controls from these observations.
@@ -339,9 +344,9 @@ The action is applied to the environment, which yields a new observation at the 
 
 For the purpose of training this policy, the environment also provides another signal, called the "reward".
 RL is inspired from behaviorism, which relies on the fundamental idea that intelligence is the result of a history of positive and negative stimuli.
-The reward received by the AI at each time-step is a measure of how well it performs.
+The reward received by the agent at each time-step is a measure of how well it performs.
 
-In order to learn how to drive, the AI tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that its long-term reward is maximized.
+In order to learn how to drive, the agent tries random actions in response to incoming observations, gets rewarded positively or negatively, and optimizes its policy so that its long-term reward is maximized.
 
 ### Soft Actor-Critic
 
@@ -351,16 +356,16 @@ In order to learn how to drive, the AI tries random actions in response to incom
 
 Soft Actor-Critic (SAC) is an algorithm that enables learning continuous stochastic controllers.
 
-More specifically, SAC does this using two separate Artificial Neural Networks (NNs):
+More specifically, SAC does this using two separate Artificial Neural Networks (ANNs):
 
-- The first one, called the "policy network" (or, in the literature, the "actor"), is the NN the user is ultimately interested in : the controller of the car.
+- The first ANN, called the "policy network" (or, in the literature, the "actor"), is the ANN the user is ultimately interested in : the controller of the car.
   It takes observations as input and outputs actions.
-- The second called the "value network" (or, in the literature, the "critic"), is used to train the policy network.
+- The second ANN, called the "value network" (or, in the literature, the "critic"), is used to train the policy network.
   It takes an observation ```x``` and an action ```a``` as input, to output a value.
   This value is an estimate of the expected sum of future rewards if the AI observes ```x```, selects ```a```, and then uses the policy network forever (there is also a discount factor so that this sum is not infinite).
 
 Both networks are trained in parallel using each other.
-The reward signal is used to train the value network, and the value network is used to train the policy network.
+The reward signal is used to train the value network based on the current policy network, and the value network is used to train the policy network.
 
 Advantages of SAC over other existing methods are the following:
 - It is able to store transitions in a huge circular buffer called the "replay memory" and reuse these transitions several times during training.
@@ -374,33 +379,81 @@ Advantages of SAC over other existing methods are the following:
 
 ([Full paper](https://arxiv.org/abs/2101.05982))
 
-REDQ is a more recent methodology that improves the performance of value-based algorithms like SAC.
+REDQ is a more recent methodology that improves the sample-efficiency of value-based algorithms like SAC.
 
-The improvement introduced by REDQ consists essentially of training an ensemble of parallel value networks from which a subset is randomly sampled to evaluate target values during training.
-The authors show that this enables low-bias updates and a sample efficiency comparable to model-based algorithms, at a much lower computational cost.
+REDQ consists of training an ensemble of parallel value networks from which a subset is randomly sampled to evaluate target values during training.
+The authors showed that this enables low-bias updates and a sample efficiency comparable to model-based algorithms, at a much lower computational cost.
 
-By default, `tmrl` trains policies with vanilla SAC.
-To use REDQ-SAC, edit `TmrlData\config\config.json` on the machine used for training, and replace the `"SAC"` value with `"REDQSAC"` in the `"ALGORITHM"` entry.
+By default, the `tmrl` example pipeline trains policies in TrackMania with vanilla SAC.
+To use REDQ-SAC in this pipeline, edit `TmrlData\config\config.json` on the machine used for training, and replace the `"SAC"` value with `"REDQSAC"` in the `"ALGORITHM"` entry.
 You also need values for the `"REDQ_N"`, `"REDQ_M"` and `"REDQ_Q_UPDATES_PER_POLICY_UPDATE"` entries, where `"REDQ_N"` is the number of parallel critics, `"REDQ_M"` is the size of the subset, and `"REDQ_Q_UPDATES_PER_POLICY_UPDATE"` is a number of critic updates happenning between each actor update.
 
 For instance, a valid `"ALG"` entry using REDQ-SAC is:
 
 ```json
-  "ALG": {
-    "ALGORITHM": "REDQSAC",
-    "LEARN_ENTROPY_COEF":false,
-    "LR_ACTOR":0.0003,
-    "LR_CRITIC":0.00005,
-    "LR_ENTROPY":0.0003,
-    "GAMMA":0.995,
-    "POLYAK":0.995,
-    "TARGET_ENTROPY":-7.0,
-    "ALPHA":0.37,
-    "REDQ_N":10,
-    "REDQ_M":2,
-    "REDQ_Q_UPDATES_PER_POLICY_UPDATE":20
+"BATCH_SIZE": 16,  
+"ALG": {
+  "ALGORITHM": "REDQSAC",
+  "LEARN_ENTROPY_COEF":false,
+  "LR_ACTOR":0.0003,
+  "LR_CRITIC":0.00005,
+  "LR_ENTROPY":0.0003,
+  "GAMMA":0.995,
+  "POLYAK":0.995,
+  "TARGET_ENTROPY":-7.0,
+  "ALPHA":0.37,
+  "REDQ_N":10,
+  "REDQ_M":2,
+  "REDQ_Q_UPDATES_PER_POLICY_UPDATE":20,
+  "OPTIMIZER_ACTOR": "adam",
+  "OPTIMIZER_CRITIC": "adam",
+  "BETAS_ACTOR": [0.997, 0.997],
+  "BETAS_CRITIC": [0.997, 0.997],
+  "L2_ACTOR": 0.0,
+  "L2_CRITIC": 0.0,
   },
 ```
+
+_Note: In the `tmrl` implementation of REDQ-SAC, `"REDQ_Q_UPDATES_PER_POLICY_UPDATE"` minibatches of size `"BATCH_SIZE"` are sampled to train the critic ensemble and concatenated to train the actor. Each training step corresponds to a minibtach, i.e., to one training step of the critic ensemble._
+
+### Dropout Q-Learning
+
+([Full paper](https://arxiv.org/abs/2110.02034))
+
+While REDQ is theoretically sample-efficient, in practice it suffers from a large computational cost.
+DroQ is a variant of REDQ designed to bring this computational cost down, typically by using only 2 critics.
+Instead of a large ensemble of critics, DroQ relies on Dropout layers in the critics' architecture to achieve a similar effect on bias reduction.
+
+Furthermore, the example `tmrl` pipeline may benefit from using layer normalization in actors and/or critics.
+To try DroQ with layer normalization on both the actor and the critic ensemble, adapt `config.json` with the following:
+
+```json
+"BATCH_SIZE": 16,
+"ALG": {
+  "ALGORITHM": "REDQSAC",
+  "LEARN_ENTROPY_COEF":true,
+  "LR_ACTOR":0.00001,
+  "LR_CRITIC":0.00005,
+  "LR_ENTROPY":0.0003,
+  "GAMMA":0.995,
+  "POLYAK":0.995,
+  "TARGET_ENTROPY":-0.5,
+  "ALPHA":0.01,
+  "REDQ_N":2,
+  "REDQ_M":2,
+  "REDQ_Q_UPDATES_PER_POLICY_UPDATE":20,
+  "OPTIMIZER_ACTOR": "adam",
+  "OPTIMIZER_CRITIC": "adam",
+  "BETAS_ACTOR": [0.997, 0.997],
+  "BETAS_CRITIC": [0.997, 0.997],
+  "L2_ACTOR": 0.0,
+  "L2_CRITIC": 0.0,
+  "DROPOUT_CRITIC": 0.05,
+  "LAYER_NORM_CRITIC": true,
+  "LAYER_NORM_ACTOR": true
+},
+```
+
 
 ### A clever reward
 
@@ -424,33 +477,26 @@ This does not have to be a good demonstration, but only to follow the track.
 Once the demonstration trajectory is recorded, it is automatically divided into equally spaced points.
 
 During training, at each time-step, the reward is then the number of such points that the car has passed since the previous time-step.
-In a nutshell, whereas the previous reward function was measuring how fast the car was, this new reward function measures how good it is at covering a big portion of the track in a given amount of time.
+In a nutshell, instead of measuring how fast the car goes, this reward function measures how good it is at covering a big portion of the track in a given amount of time.
 
 ### Available action spaces
 
-In `tmrl`, the car can be controlled in two different ways:
+The `tmrl` example pipeline controls TrackMania in two possible ways:
 
 - The policy can control the car with analog inputs by emulating an XBox360 controller thanks to the [vgamepad](https://pypi.org/project/vgamepad/) library.
 - The policy can output simple (binary) arrow presses.
 
 ### Available observation spaces
 
-Different observation spaces are available in the TrackMania pipeline::
+Different observation spaces are available in the example TrackMania pipeline::
 
 - A history of raw screenshots (typically 4).
 - A history of LIDAR measurement computed from raw screenshots in tracks with black borders.
 
 In addition,the pipeline provides the norm of the velocity as part of the observation space.
+In TrackMania 2020, we use the [OpenPlanet](https://openplanet.nl) API to retrieve the raw speed directly.
 
-Example of `tmrl` environment in TrackMania Nations Forever with a single LIDAR measurement:
-
-![reward](readme/img/lidar.png)
-
-In TrackMania Nations Forever, we use to compute the raw speed from screenshots thanks to the 1-NN algorithm.
-
-In TrackMania 2020, we now use the [OpenPlanet](https://openplanet.nl) API to retrieve the raw speed directly.
-
-### Results
+### Example results
 
 In the following experiment, on top of the raw speed, the blue car is using a single LIDAR measurement whereas the red car is using a history of 4 LIDAR measurements.
 The positions of both cars are captured at constant time intervals in this animation:
@@ -463,7 +509,7 @@ Conversely, the red car is able to infer higher-order dynamics from the history 
 # Framework details
 
 ## Real-time Gym framework:
-This project uses [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (```rtgym```), a simple python framework that enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
+On top of Gymnasium, `tmrl` is fully compatible with [Real-Time Gym](https://github.com/yannbouteiller/rtgym) (```rtgym```), a simple python framework that enables efficient real-time implementations of Delayed Markov Decision Processes in real-world applications.
 
 ```rtgym``` constrains the times at which actions are sent and observations are retrieved as follows:
 
@@ -489,11 +535,11 @@ This buffer is then sent to the trainer interface.
 The central server receives updated policy weights from the trainer interface and broadcasts these to all connected rollout workers.
 
 The trainer interface is typically located on a non-rollout worker computer of the local network, or on another machine on the Internet (e.g., a GPU cluster).
-Of course, it is also possible to locate everything on localhost when needed.
+Of course, it is also possible to put everything on localhost when needed.
 The trainer interface periodically receives the samples gathered by the central server and appends these to a replay memory.
 Periodically, it sends the new policy weights to the central server.
 
-These mechanics are summarized as follows:
+These mechanics are summarized in the following figure:
 
 ![Networking architecture](readme/img/network_interface.png "Networking Architecture")
 

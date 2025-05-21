@@ -1,8 +1,3 @@
-# === Trackmania =======================================================================================================
-
-
-# standard library imports
-
 # third-party imports
 import numpy as np
 import torch
@@ -11,7 +6,6 @@ import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from math import floor, sqrt
 from torch.nn import Conv2d, Module, ModuleList
-# import torchvision
 
 # local imports
 from tmrl.util import prod
@@ -32,11 +26,23 @@ def combined_shape(length, shape=None):
     return (length, shape) if np.isscalar(shape) else (length, *shape)
 
 
-def mlp(sizes, activation, output_activation=nn.Identity):
+def mlp(sizes, activation, output_activation=nn.Identity, dropout=0.0, layer_norm=False):
     layers = []
+    if not isinstance(dropout, list):
+        dropout = [dropout, ] * (len(sizes) - 1)
+    if not isinstance(layer_norm, list):
+        layer_norm = [layer_norm, ] * (len(sizes) - 1)
+    elif len(dropout) != (len(sizes) - 1) or len(layer_norm) != (len(sizes) - 1):
+        raise RuntimeError(f"Invalid argument shapes. sizes:{len(sizes)}, dropout:{len(dropout)}, layer_norm:{len(layer_norm)}")
     for j in range(len(sizes) - 1):
+        layer = [nn.Linear(sizes[j], sizes[j + 1])]
+        if dropout[j]:
+            layer.append(nn.Dropout(p=dropout[j]))
+        if layer_norm[j]:
+            layer.append(nn.LayerNorm(sizes[j + 1]))
         act = activation if j < len(sizes) - 2 else output_activation
-        layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
+        layer.append(act())
+        layers += layer
     return nn.Sequential(*layers)
 
 
@@ -46,11 +52,10 @@ def count_vars(module):
 
 LOG_STD_MAX = 2
 LOG_STD_MIN = -20
-EPSILON = 1e-7
 
 
 class SquashedGaussianMLPActor(TorchActorModule):
-    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU):
+    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU, layer_norm=False):
         super().__init__(observation_space, action_space)
         try:
             dim_obs = sum(prod(s for s in space.shape) for space in observation_space)
@@ -60,7 +65,7 @@ class SquashedGaussianMLPActor(TorchActorModule):
             self.tuple_obs = False
         dim_act = action_space.shape[0]
         act_limit = action_space.high[0]
-        self.net = mlp([dim_obs] + list(hidden_sizes), activation, activation)
+        self.net = mlp([dim_obs] + list(hidden_sizes), activation, activation, layer_norm=layer_norm)
         self.mu_layer = nn.Linear(hidden_sizes[-1], dim_act)
         self.log_std_layer = nn.Linear(hidden_sizes[-1], dim_act)
         self.act_limit = act_limit
@@ -83,10 +88,7 @@ class SquashedGaussianMLPActor(TorchActorModule):
 
         if with_logprob:
             # Compute logprob from Gaussian, and then apply correction for Tanh squashing.
-            # NOTE: The correction formula is a little bit magic. To get an understanding
-            # of where it comes from, check out the original SAC paper (arXiv 1801.01290)
-            # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
-            # Try deriving it yourself as a (very difficult) exercise. :)
+            # NOTE: explanation at https://github.com/openai/spinningup/issues/279
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
             logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
         else:
@@ -109,7 +111,7 @@ class SquashedGaussianMLPActor(TorchActorModule):
 
 
 class MLPQFunction(nn.Module):
-    def __init__(self, obs_space, act_space, hidden_sizes=(256, 256), activation=nn.ReLU):
+    def __init__(self, obs_space, act_space, hidden_sizes=(256, 256), activation=nn.ReLU, dropout=0.0, layer_norm=False):
         super().__init__()
         try:
             obs_dim = sum(prod(s for s in space.shape) for space in obs_space)
@@ -118,7 +120,9 @@ class MLPQFunction(nn.Module):
             obs_dim = prod(obs_space.shape)
             self.tuple_obs = False
         act_dim = act_space.shape[0]
-        self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation)
+        dropout = [dropout] * len(hidden_sizes) + [0.0]
+        layer_norm = [layer_norm] * len(hidden_sizes) + [False]
+        self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation, dropout=dropout, layer_norm=layer_norm)
 
     def forward(self, obs, act):
         x = torch.cat((*obs, act), -1) if self.tuple_obs else torch.cat((torch.flatten(obs, start_dim=1), act), -1)
@@ -127,17 +131,20 @@ class MLPQFunction(nn.Module):
 
 
 class MLPActorCritic(nn.Module):
-    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=nn.ReLU):
+    def __init__(self,
+                 observation_space,
+                 action_space,
+                 hidden_sizes=(256, 256),
+                 activation=nn.ReLU,
+                 critic_dropout=0.0,
+                 critic_layer_norm=False,
+                 actor_layer_norm=False):
         super().__init__()
 
-        # obs_dim = observation_space.shape[0]
-        # act_dim = action_space.shape[0]
-        act_limit = action_space.high[0]
-
         # build policy and value functions
-        self.actor = SquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation)
-        self.q1 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
-        self.q2 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
+        self.actor = SquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation, layer_norm=actor_layer_norm)
+        self.q1 = MLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm)
+        self.q2 = MLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm)
 
     def act(self, obs, test=False):
         with torch.no_grad():
@@ -148,7 +155,7 @@ class MLPActorCritic(nn.Module):
             return res
 
 
-# REDQ MLP: =====================================================
+# Ensemble critic MLP: =====================================================
 
 
 class REDQMLPActorCritic(nn.Module):
@@ -157,17 +164,17 @@ class REDQMLPActorCritic(nn.Module):
                  action_space,
                  hidden_sizes=(256, 256),
                  activation=nn.ReLU,
-                 n=10):
+                 n=10,
+                 critic_dropout=0.0,
+                 critic_layer_norm=False,
+                 actor_layer_norm=False):
         super().__init__()
 
-        # obs_dim = observation_space.shape[0]
-        # act_dim = action_space.shape[0]
-        act_limit = action_space.high[0]
+        self.n = n
 
         # build policy and value functions
-        self.actor = SquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation)
-        self.n = n
-        self.qs = ModuleList([MLPQFunction(observation_space, action_space, hidden_sizes, activation) for _ in range(self.n)])
+        self.actor = SquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation, layer_norm=actor_layer_norm)
+        self.qs = ModuleList([MLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm) for _ in range(self.n)])
 
     def act(self, obs, test=False):
         with torch.no_grad():
@@ -176,11 +183,6 @@ class REDQMLPActorCritic(nn.Module):
 
 
 # CNNs: ================================================================================================================
-
-# EfficientNet =========================================================================================================
-
-# EfficientNetV2 implementation adapted from https://github.com/d-li14/efficientnetv2.pytorch/blob/main/effnetv2.py
-# We use the EfficientNetV2 structure for image features and we merge the TM2020 float features to linear layers
 
 
 def _make_divisible(v, divisor, min_value=None):
@@ -202,6 +204,216 @@ def _make_divisible(v, divisor, min_value=None):
         new_v += divisor
     return new_v
 
+
+# Vanilla CNN FOR GRAYSCALE IMAGES: ====================================================================================
+
+
+def num_flat_features(x):
+    size = x.size()[1:]
+    num_features = 1
+    for s in size:
+        num_features *= s
+    return num_features
+
+
+def conv2d_out_dims(conv_layer, h_in, w_in):
+    h_out = floor((h_in + 2 * conv_layer.padding[0] - conv_layer.dilation[0] * (conv_layer.kernel_size[0] - 1) - 1) / conv_layer.stride[0] + 1)
+    w_out = floor((w_in + 2 * conv_layer.padding[1] - conv_layer.dilation[1] * (conv_layer.kernel_size[1] - 1) - 1) / conv_layer.stride[1] + 1)
+    return h_out, w_out
+
+
+class VanillaCNN(Module):
+    def __init__(self, q_net, dropout=0.0, layer_norm=False):
+        super(VanillaCNN, self).__init__()
+        self.q_net = q_net
+        self.h_out, self.w_out = cfg.IMG_HEIGHT, cfg.IMG_WIDTH
+        hist = cfg.IMG_HIST_LEN
+
+        self.conv1 = Conv2d(hist, 64, 8, stride=2)
+        self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
+        self.conv2 = Conv2d(64, 64, 4, stride=2)
+        self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)
+        self.conv3 = Conv2d(64, 128, 4, stride=2)
+        self.h_out, self.w_out = conv2d_out_dims(self.conv3, self.h_out, self.w_out)
+        self.conv4 = Conv2d(128, 128, 4, stride=2)
+        self.h_out, self.w_out = conv2d_out_dims(self.conv4, self.h_out, self.w_out)
+        self.out_channels = self.conv4.out_channels
+        self.flat_features = self.out_channels * self.h_out * self.w_out
+        self.mlp_input_features = self.flat_features + 12 if self.q_net else self.flat_features + 9
+        if self.q_net:
+            self.mlp_layers = [256, 256, 1]
+            dropout = [dropout, dropout, 0.0]
+            layer_norm = [layer_norm, layer_norm, False]
+        else:
+            self.mlp_layers = [256, 256]
+        self.mlp = mlp([self.mlp_input_features] + self.mlp_layers, nn.ReLU, dropout=dropout, layer_norm=layer_norm)
+
+    def forward(self, x):
+        if self.q_net:
+            speed, gear, rpm, images, act1, act2, act = x
+        else:
+            speed, gear, rpm, images, act1, act2 = x
+
+        x = F.relu(self.conv1(images))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+        flat_features = num_flat_features(x)
+        assert flat_features == self.flat_features, f"x.shape:{x.shape}, flat_features:{flat_features}, self.out_channels:{self.out_channels}, self.h_out:{self.h_out}, self.w_out:{self.w_out}"
+        x = x.view(-1, flat_features)
+        if self.q_net:
+            x = torch.cat((speed, gear, rpm, x, act1, act2, act), -1)
+        else:
+            x = torch.cat((speed, gear, rpm, x, act1, act2), -1)
+        x = self.mlp(x)
+        return x
+
+
+class SquashedGaussianVanillaCNNActor(TorchActorModule):
+    def __init__(self, observation_space, action_space, layer_norm=False):
+        super().__init__(observation_space, action_space)
+        dim_act = action_space.shape[0]
+        act_limit = action_space.high[0]
+        self.net = VanillaCNN(q_net=False, layer_norm=layer_norm)
+        self.mu_layer = nn.Linear(256, dim_act)
+        self.log_std_layer = nn.Linear(256, dim_act)
+        self.act_limit = act_limit
+
+    def forward(self, obs, test=False, with_logprob=True):
+        net_out = self.net(obs)
+        mu = self.mu_layer(net_out)
+        log_std = self.log_std_layer(net_out)
+        log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
+        std = torch.exp(log_std)
+
+        pi_distribution = Normal(mu, std)
+        if test:
+            pi_action = mu
+        else:
+            pi_action = pi_distribution.rsample()
+
+        if with_logprob:
+            logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
+            # NB: this is from Spinup:
+            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)  # explanation: https://github.com/openai/spinningup/issues/279
+            # Whereas SB3 does this:
+            # logp_pi -= torch.sum(torch.log(1 - torch.tanh(pi_action) ** 2 + 1e-7), dim=1)
+            # # log_prob -= th.sum(th.log(1 - actions**2 + 1e-7), dim=1)
+        else:
+            logp_pi = None
+
+        pi_action = torch.tanh(pi_action)
+        pi_action = self.act_limit * pi_action
+
+        # pi_action = pi_action.squeeze()
+
+        return pi_action, logp_pi
+
+    def act(self, obs, test=False):
+        with torch.no_grad():
+            a, _ = self.forward(obs, test, False)
+            return a.squeeze().cpu().numpy()
+
+
+class VanillaCNNQFunction(nn.Module):
+    def __init__(self, observation_space, action_space, dropout=0.0, layer_norm=False):
+        super().__init__()
+        self.net = VanillaCNN(q_net=True, dropout=dropout, layer_norm=layer_norm)
+
+    def forward(self, obs, act):
+        x = (*obs, act)
+        q = self.net(x)
+        return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
+
+
+class VanillaCNNActorCritic(nn.Module):
+    def __init__(self,
+                 observation_space,
+                 action_space,
+                 critic_dropout=0.0,
+                 critic_layer_norm=False,
+                 actor_layer_norm=False):
+        super().__init__()
+
+        # build policy and value functions
+        self.actor = SquashedGaussianVanillaCNNActor(observation_space, action_space, layer_norm=actor_layer_norm)
+        self.q1 = VanillaCNNQFunction(observation_space, action_space, dropout=critic_dropout, layer_norm=critic_layer_norm)
+        self.q2 = VanillaCNNQFunction(observation_space, action_space, dropout=critic_dropout, layer_norm=critic_layer_norm)
+
+    def act(self, obs, test=False):
+        with torch.no_grad():
+            a, _ = self.actor(obs, test, False)
+            return a.squeeze().cpu().numpy()
+
+
+class REDQVanillaCNNActorCritic(nn.Module):
+    def __init__(self,
+                 observation_space,
+                 action_space,
+                 n=10,
+                 critic_dropout=0.0,
+                 critic_layer_norm=False,
+                 actor_layer_norm=False):
+        super().__init__()
+
+        self.n = n
+
+        # build policy and value functions
+        self.actor = SquashedGaussianVanillaCNNActor(observation_space, action_space, layer_norm=actor_layer_norm)
+        self.qs = ModuleList([VanillaCNNQFunction(observation_space, action_space, dropout=critic_dropout, layer_norm=critic_layer_norm) for _ in range(self.n)])
+
+    def act(self, obs, test=False):
+        with torch.no_grad():
+            a, _ = self.actor(obs, test, False)
+            return a.squeeze().cpu().numpy()
+
+
+# Vanilla CNN FOR COLOR IMAGES: ========================================================================================
+
+def remove_colors(images):
+    """
+    We remove colors so that we can simply use the same structure as the grayscale model.
+
+    The "color" default pipeline is mostly here for support, as our model effectively gets rid of 2 channels out of 3.
+    If you actually want to use colors, do not use the default pipeline.
+    Instead, you need to code a custom model that doesn't get rid of them.
+    """
+    images = images[:, :, :, :, 0]
+    return images
+
+
+class SquashedGaussianVanillaColorCNNActor(SquashedGaussianVanillaCNNActor):
+    def forward(self, obs, test=False, with_logprob=True):
+        speed, gear, rpm, images, act1, act2 = obs
+        images = remove_colors(images)
+        obs = (speed, gear, rpm, images, act1, act2)
+        return super().forward(obs, test=False, with_logprob=True)
+
+
+class VanillaColorCNNQFunction(VanillaCNNQFunction):
+    def forward(self, obs, act):
+        speed, gear, rpm, images, act1, act2 = obs
+        images = remove_colors(images)
+        obs = (speed, gear, rpm, images, act1, act2)
+        return super().forward(obs, act)
+
+
+class VanillaColorCNNActorCritic(VanillaCNNActorCritic):
+    def __init__(self, observation_space, action_space):
+        super().__init__(observation_space, action_space)
+
+        # build policy and value functions
+        self.actor = SquashedGaussianVanillaColorCNNActor(observation_space, action_space)
+        self.q1 = VanillaColorCNNQFunction(observation_space, action_space)
+        self.q2 = VanillaColorCNNQFunction(observation_space, action_space)
+
+
+# UNSUPPORTED ==========================================================================================================
+
+# EfficientNet =========================================================================================================
+
+# EfficientNetV2 implementation adapted from https://github.com/d-li14/efficientnetv2.pytorch/blob/main/effnetv2.py
+# We use the EfficientNetV2 structure for image features and we merge the TM2020 float features to linear layers
 
 # SiLU (Swish) activation function
 if hasattr(nn, 'SiLU'):
@@ -435,10 +647,7 @@ class SquashedGaussianEffNetActor(TorchActorModule):
 
         if with_logprob:
             # Compute logprob from Gaussian, and then apply correction for Tanh squashing.
-            # NOTE: The correction formula is a little bit magic. To get an understanding
-            # of where it comes from, check out the original SAC paper (arXiv 1801.01290)
-            # and look in appendix C. This is a more numerically-stable equivalent to Eq 21.
-            # Try deriving it yourself as a (very difficult) exercise. :)
+            # NOTE: explanation at https://github.com/openai/spinningup/issues/279
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
             logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
         else:
@@ -489,180 +698,6 @@ class EffNetActorCritic(nn.Module):
         with torch.no_grad():
             a, _ = self.actor(obs, test, False)
             return a.squeeze().cpu().numpy()
-
-
-# Vanilla CNN FOR GRAYSCALE IMAGES: ====================================================================================
-
-
-def num_flat_features(x):
-    size = x.size()[1:]
-    num_features = 1
-    for s in size:
-        num_features *= s
-    return num_features
-
-
-def conv2d_out_dims(conv_layer, h_in, w_in):
-    h_out = floor((h_in + 2 * conv_layer.padding[0] - conv_layer.dilation[0] * (conv_layer.kernel_size[0] - 1) - 1) / conv_layer.stride[0] + 1)
-    w_out = floor((w_in + 2 * conv_layer.padding[1] - conv_layer.dilation[1] * (conv_layer.kernel_size[1] - 1) - 1) / conv_layer.stride[1] + 1)
-    return h_out, w_out
-
-
-class VanillaCNN(Module):
-    def __init__(self, q_net):
-        super(VanillaCNN, self).__init__()
-        self.q_net = q_net
-        self.h_out, self.w_out = cfg.IMG_HEIGHT, cfg.IMG_WIDTH
-        hist = cfg.IMG_HIST_LEN
-
-        self.conv1 = Conv2d(hist, 64, 8, stride=2)
-        self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
-        self.conv2 = Conv2d(64, 64, 4, stride=2)
-        self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)
-        self.conv3 = Conv2d(64, 128, 4, stride=2)
-        self.h_out, self.w_out = conv2d_out_dims(self.conv3, self.h_out, self.w_out)
-        self.conv4 = Conv2d(128, 128, 4, stride=2)
-        self.h_out, self.w_out = conv2d_out_dims(self.conv4, self.h_out, self.w_out)
-        self.out_channels = self.conv4.out_channels
-        self.flat_features = self.out_channels * self.h_out * self.w_out
-        self.mlp_input_features = self.flat_features + 12 if self.q_net else self.flat_features + 9
-        self.mlp_layers = [256, 256, 1] if self.q_net else [256, 256]
-        self.mlp = mlp([self.mlp_input_features] + self.mlp_layers, nn.ReLU)
-
-    def forward(self, x):
-        if self.q_net:
-            speed, gear, rpm, images, act1, act2, act = x
-        else:
-            speed, gear, rpm, images, act1, act2 = x
-
-        x = F.relu(self.conv1(images))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
-        x = F.relu(self.conv4(x))
-        flat_features = num_flat_features(x)
-        assert flat_features == self.flat_features, f"x.shape:{x.shape}, flat_features:{flat_features}, self.out_channels:{self.out_channels}, self.h_out:{self.h_out}, self.w_out:{self.w_out}"
-        x = x.view(-1, flat_features)
-        if self.q_net:
-            x = torch.cat((speed, gear, rpm, x, act1, act2, act), -1)
-        else:
-            x = torch.cat((speed, gear, rpm, x, act1, act2), -1)
-        x = self.mlp(x)
-        return x
-
-
-class SquashedGaussianVanillaCNNActor(TorchActorModule):
-    def __init__(self, observation_space, action_space):
-        super().__init__(observation_space, action_space)
-        dim_act = action_space.shape[0]
-        act_limit = action_space.high[0]
-        self.net = VanillaCNN(q_net=False)
-        self.mu_layer = nn.Linear(256, dim_act)
-        self.log_std_layer = nn.Linear(256, dim_act)
-        self.act_limit = act_limit
-
-    def forward(self, obs, test=False, with_logprob=True):
-        net_out = self.net(obs)
-        mu = self.mu_layer(net_out)
-        log_std = self.log_std_layer(net_out)
-        log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
-        std = torch.exp(log_std)
-
-        pi_distribution = Normal(mu, std)
-        if test:
-            pi_action = mu
-        else:
-            pi_action = pi_distribution.rsample()
-
-        if with_logprob:
-            logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
-            # NB: this is from Spinup:
-            logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)  # FIXME: this formula is mathematically wrong, no idea why it seems to work
-            # Whereas SB3 does this:
-            # logp_pi -= torch.sum(torch.log(1 - torch.tanh(pi_action) ** 2 + EPSILON), dim=1)  # TODO: double check
-            # # log_prob -= th.sum(th.log(1 - actions**2 + self.epsilon), dim=1)
-        else:
-            logp_pi = None
-
-        pi_action = torch.tanh(pi_action)
-        pi_action = self.act_limit * pi_action
-
-        # pi_action = pi_action.squeeze()
-
-        return pi_action, logp_pi
-
-    def act(self, obs, test=False):
-        with torch.no_grad():
-            a, _ = self.forward(obs, test, False)
-            return a.squeeze().cpu().numpy()
-
-
-class VanillaCNNQFunction(nn.Module):
-    def __init__(self, observation_space, action_space):
-        super().__init__()
-        self.net = VanillaCNN(q_net=True)
-
-    def forward(self, obs, act):
-        x = (*obs, act)
-        q = self.net(x)
-        return torch.squeeze(q, -1)  # Critical to ensure q has right shape.
-
-
-class VanillaCNNActorCritic(nn.Module):
-    def __init__(self, observation_space, action_space):
-        super().__init__()
-
-        # build policy and value functions
-        self.actor = SquashedGaussianVanillaCNNActor(observation_space, action_space)
-        self.q1 = VanillaCNNQFunction(observation_space, action_space)
-        self.q2 = VanillaCNNQFunction(observation_space, action_space)
-
-    def act(self, obs, test=False):
-        with torch.no_grad():
-            a, _ = self.actor(obs, test, False)
-            return a.squeeze().cpu().numpy()
-
-
-# Vanilla CNN FOR COLOR IMAGES: ========================================================================================
-
-def remove_colors(images):
-    """
-    We remove colors so that we can simply use the same structure as the grayscale model.
-
-    The "color" default pipeline is mostly here for support, as our model effectively gets rid of 2 channels out of 3.
-    If you actually want to use colors, do not use the default pipeline.
-    Instead, you need to code a custom model that doesn't get rid of them.
-    """
-    images = images[:, :, :, :, 0]
-    return images
-
-
-class SquashedGaussianVanillaColorCNNActor(SquashedGaussianVanillaCNNActor):
-    def forward(self, obs, test=False, with_logprob=True):
-        speed, gear, rpm, images, act1, act2 = obs
-        images = remove_colors(images)
-        obs = (speed, gear, rpm, images, act1, act2)
-        return super().forward(obs, test=False, with_logprob=True)
-
-
-class VanillaColorCNNQFunction(VanillaCNNQFunction):
-    def forward(self, obs, act):
-        speed, gear, rpm, images, act1, act2 = obs
-        images = remove_colors(images)
-        obs = (speed, gear, rpm, images, act1, act2)
-        return super().forward(obs, act)
-
-
-class VanillaColorCNNActorCritic(VanillaCNNActorCritic):
-    def __init__(self, observation_space, action_space):
-        super().__init__(observation_space, action_space)
-
-        # build policy and value functions
-        self.actor = SquashedGaussianVanillaColorCNNActor(observation_space, action_space)
-        self.q1 = VanillaColorCNNQFunction(observation_space, action_space)
-        self.q2 = VanillaColorCNNQFunction(observation_space, action_space)
-
-
-# UNSUPPORTED ==========================================================================================================
 
 
 # RNN: ==========================================================

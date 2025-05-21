@@ -1,6 +1,6 @@
-# third-party imports
-# from tmrl.custom.custom_checkpoints import load_run_instance_images_dataset, dump_run_instance_images_dataset
-# third-party imports
+"""
+This file sets up the example TMRL pipeline according to the content of config.json
+"""
 
 import rtgym
 
@@ -11,8 +11,8 @@ from tmrl.custom.tm.tm_gym_interfaces import TM2020Interface, TM2020InterfaceLid
 from tmrl.custom.custom_memories import MemoryTMFull, MemoryTMLidar, MemoryTMLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.tm.tm_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_tm_lidar_progress_act_in_obs
 from tmrl.envs import GenericGymEnv
-from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianVanillaCNNActor, VanillaCNNActorCritic, SquashedGaussianVanillaColorCNNActor, VanillaColorCNNActorCritic
-from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
+from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianVanillaCNNActor, VanillaCNNActorCritic, SquashedGaussianVanillaColorCNNActor, VanillaColorCNNActorCritic, REDQVanillaCNNActorCritic
+from tmrl.custom.custom_algorithms import SpinupSACAgent as SAC_Agent
 from tmrl.custom.custom_algorithms import REDQSACAgent as REDQ_Agent
 from tmrl.custom.custom_checkpoints import update_run_instance
 from tmrl.util import partial
@@ -20,10 +20,16 @@ from tmrl.util import partial
 
 ALG_CONFIG = cfg.TMRL_CONFIG["ALG"]
 ALG_NAME = ALG_CONFIG["ALGORITHM"]
-assert ALG_NAME in ["SAC", "REDQSAC"], f"If you wish to implement {ALG_NAME}, do not use 'ALG' in config.json for that."
+REDQ_N = ALG_CONFIG["REDQ_N"] if "REDQ_N" in ALG_CONFIG else 10
+DROPOUT_CRITIC = ALG_CONFIG["DROPOUT_CRITIC"] if "DROPOUT_CRITIC" in ALG_CONFIG else 0.0
+LAYER_NORM_CRITIC = ALG_CONFIG["LAYER_NORM_CRITIC"] if "LAYER_NORM_CRITIC" in ALG_CONFIG else False
+LAYER_NORM_ACTOR = ALG_CONFIG["LAYER_NORM_ACTOR"] if "LAYER_NORM_ACTOR" in ALG_CONFIG else False
+assert ALG_NAME in ["SAC", "REDQSAC"], f"Invalid config.json: TMRL has no example pipeline for {ALG_NAME}. config.json defines the default kwargs internal to the TMRL framework: you should avoid tempering with this file when using the TMRL Python library. To implement custom TMRL pipelines, please read the TMRL tutorial on GitHub."
 
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
+
+# model:
 
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
@@ -31,13 +37,24 @@ if cfg.PRAGMA_LIDAR:
         TRAIN_MODEL = RNNActorCritic
         POLICY = SquashedGaussianRNNActor
     else:
-        TRAIN_MODEL = MLPActorCritic if ALG_NAME == "SAC" else REDQMLPActorCritic
-        POLICY = SquashedGaussianMLPActor
+        assert ALG_NAME in ["SAC", "REDQSAC"], f"{ALG_NAME} is not implemented here."
+        if ALG_NAME == "SAC":
+            TRAIN_MODEL = partial(MLPActorCritic, critic_dropout=DROPOUT_CRITIC, critic_layer_norm=LAYER_NORM_CRITIC, actor_layer_norm=LAYER_NORM_ACTOR)
+        else:
+            TRAIN_MODEL = partial(REDQMLPActorCritic, n=REDQ_N, critic_dropout=DROPOUT_CRITIC, critic_layer_norm=LAYER_NORM_CRITIC, actor_layer_norm=LAYER_NORM_ACTOR)
+        POLICY = partial(SquashedGaussianMLPActor, layer_norm=LAYER_NORM_ACTOR)
 else:
     assert not cfg.PRAGMA_RNN, "RNNs not supported yet"
-    assert ALG_NAME == "SAC", f"{ALG_NAME} is not implemented here."
-    TRAIN_MODEL = VanillaCNNActorCritic if cfg.GRAYSCALE else VanillaColorCNNActorCritic
-    POLICY = SquashedGaussianVanillaCNNActor if cfg.GRAYSCALE else SquashedGaussianVanillaColorCNNActor
+    assert ALG_NAME in ["SAC", "REDQSAC"], f"{ALG_NAME} is not implemented here."
+    if ALG_NAME == "SAC":
+        TRAIN_MODEL = partial(VanillaCNNActorCritic, critic_dropout=DROPOUT_CRITIC, critic_layer_norm=LAYER_NORM_CRITIC, actor_layer_norm=LAYER_NORM_ACTOR) if cfg.GRAYSCALE else VanillaColorCNNActorCritic
+        POLICY = partial(SquashedGaussianVanillaCNNActor, layer_norm=LAYER_NORM_ACTOR) if cfg.GRAYSCALE else SquashedGaussianVanillaColorCNNActor
+    else:
+        assert cfg.GRAYSCALE, f"{ALG_NAME} is not implemented here."
+        TRAIN_MODEL = partial(REDQVanillaCNNActorCritic, n=REDQ_N, critic_dropout=DROPOUT_CRITIC, critic_layer_norm=LAYER_NORM_CRITIC, actor_layer_norm=LAYER_NORM_ACTOR)
+        POLICY = partial(SquashedGaussianVanillaCNNActor, layer_norm=LAYER_NORM_ACTOR)
+
+# rtgym interface:
 
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_PROGRESS:
@@ -99,7 +116,11 @@ MEMORY = partial(MEM,
                  act_buf_len=cfg.ACT_BUF_LEN,
                  crc_debug=cfg.CRC_DEBUG)
 
+
 # ALGORITHM: ===================================================
+
+
+assert ALG_NAME in ["SAC", "REDQSAC"], f"{ALG_NAME} is not implemented here."
 
 if ALG_NAME == "SAC":
     AGENT = partial(
@@ -134,10 +155,16 @@ else:
         learn_entropy_coef=ALG_CONFIG["LEARN_ENTROPY_COEF"],  # False for SAC v2 with no temperature autotuning
         target_entropy=ALG_CONFIG["TARGET_ENTROPY"],  # None for automatic
         alpha=ALG_CONFIG["ALPHA"],  # inverse of reward scale
-        n=ALG_CONFIG["REDQ_N"],  # number of Q networks
+        optimizer_actor=ALG_CONFIG["OPTIMIZER_ACTOR"],
+        optimizer_critic=ALG_CONFIG["OPTIMIZER_CRITIC"],
+        betas_actor=ALG_CONFIG["BETAS_ACTOR"] if "BETAS_ACTOR" in ALG_CONFIG else None,
+        betas_critic=ALG_CONFIG["BETAS_CRITIC"] if "BETAS_CRITIC" in ALG_CONFIG else None,
+        l2_actor=ALG_CONFIG["L2_ACTOR"] if "L2_ACTOR" in ALG_CONFIG else None,
+        l2_critic=ALG_CONFIG["L2_CRITIC"] if "L2_CRITIC" in ALG_CONFIG else None,
         m=ALG_CONFIG["REDQ_M"],  # number of Q targets
         q_updates_per_policy_update=ALG_CONFIG["REDQ_Q_UPDATES_PER_POLICY_UPDATE"]
     )
+
 
 # TRAINER: =====================================================
 
@@ -183,7 +210,9 @@ else:  # images
         agent_scheduler=None,  # sac_v2_entropy_scheduler
         start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"])
 
+
 # CHECKPOINTS: ===================================================
+
 
 DUMP_RUN_INSTANCE_FN = None if cfg.PRAGMA_LIDAR else None  # dump_run_instance_images_dataset
 LOAD_RUN_INSTANCE_FN = None if cfg.PRAGMA_LIDAR else None  # load_run_instance_images_dataset

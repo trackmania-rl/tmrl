@@ -14,7 +14,7 @@ from tmrl.util import partial
 from tmrl.envs import GenericGymEnv
 import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TorchTrainingOffline
-from tmrl.custom.custom_algorithms import SpinupSacAgent
+from tmrl.custom.custom_algorithms import SpinupSACAgent
 from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic
 from tmrl.custom.custom_memories import GenericTorchMemory
 
@@ -136,7 +136,7 @@ memory_cls = partial(GenericTorchMemory,
 
 # Training agent:
 
-training_agent_cls = partial(SpinupSacAgent,
+training_agent_cls = partial(SpinupSACAgent,
                              model_cls=MLPActorCritic,
                              gamma=0.99,
                              polyak=0.995,
