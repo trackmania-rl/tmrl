@@ -56,7 +56,7 @@ class TrainingOffline:
     def __post_init__(self):
         device = self.device
         self.epoch = 0
-        self.memory = self.memory_cls(nb_steps=self.steps, device=device)
+        self.memory = self.memory_cls(device=device)
         if type(self.env_cls) == tuple:
             observation_space, action_space = self.env_cls
         else:
@@ -111,7 +111,9 @@ class TrainingOffline:
 
             t_sample_prev = t2
 
-            for batch in self.memory:  # this samples a fixed number of batches
+            for _ in range(self.steps):
+
+                batch = self.memory.sample()
 
                 t_sample = time.time()
 
@@ -128,11 +130,15 @@ class TrainingOffline:
 
                 t_train = time.time()
 
+                sample_dur, collate_dur = self.memory.get_benchmarks()
+
                 stats_training_dict["return_test"] = self.memory.stat_test_return
                 stats_training_dict["return_train"] = self.memory.stat_train_return
                 stats_training_dict["episode_length_test"] = self.memory.stat_test_steps
                 stats_training_dict["episode_length_train"] = self.memory.stat_train_steps
                 stats_training_dict["sampling_duration"] = t_sample - t_sample_prev
+                stats_training_dict["sample"] = sample_dur
+                stats_training_dict["collate"] = collate_dur
                 stats_training_dict["training_step_duration"] = t_train - t_update_buffer
                 stats_training += stats_training_dict,
                 self.total_updates += 1

@@ -143,6 +143,12 @@ class Server:
                              security=security,
                              keys_dir=keys_dir)
 
+    def stop(self):
+        """
+        Stops the tlspyo Relay.
+        """
+        self.__relay.stop()
+
 
 # TRAINER: ==========================================
 
@@ -181,6 +187,12 @@ class TrainerInterface:
         print_with_timestamp(f"server IP: {self.server_ip}")
 
         self.__endpoint.notify(groups={'trainers': -1})  # retrieve everything
+
+    def stop(self):
+        """
+        Stops the tlspyo Endpoint.
+        """
+        self.__endpoint.stop()
 
     def broadcast_model(self, model: ActorModule):
         """
@@ -388,6 +400,12 @@ class Trainer:
                                           hostname=hostname,
                                           model_path=model_path)
 
+    def stop(self):
+        """
+        Stops the tlspyo Endpoint.
+        """
+        self.interface.stop()
+
     def run(self):
         """
         Runs training.
@@ -533,6 +551,13 @@ class RolloutWorker:
                                        deserializer_mode="synchronous")
         else:
             self.__endpoint = None
+
+    def stop(self):
+        """
+        Stops the tlspyo Endpoint.
+        """
+        if self.__endpoint is not None:
+            self.__endpoint.stop()
 
     def act(self, obs, test=False):
         """

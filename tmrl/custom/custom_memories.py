@@ -1,7 +1,8 @@
 import random
 import numpy as np
+import torch
 
-from tmrl.memory import TorchMemory
+from tmrl.memory import BaseMemory, TorchMemory
 
 
 # LOCAL BUFFER COMPRESSION ==============================
@@ -92,18 +93,21 @@ def replace_hist_before_eoe(hist, eoe_idx_in_hist):
 
 
 class GenericTorchMemory(TorchMemory):
+    """
+    Generic Torch memory implementation.
+
+    GenericTorchMemory can handle most nested structures, but does not implement any memory or computational optimization.
+    """
     def __init__(self,
                  memory_size=1e6,
                  batch_size=1,
                  dataset_path="",
-                 nb_steps=1,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
         super().__init__(memory_size=memory_size,
                          batch_size=batch_size,
                          dataset_path=dataset_path,
-                         nb_steps=nb_steps,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
@@ -178,6 +182,127 @@ class GenericTorchMemory(TorchMemory):
         return last_obs, new_act, rew, new_obs, terminated, truncated, info
 
 
+class ArrayTorchMemory(BaseMemory):
+    """
+    Optimized generic Torch memory implementation for simple numpy arrays.
+
+    ArrayTorchMemory only handles numpy arrays (no nested structures).
+    If your observations or actions are made of nested structures, you need to flatten them into homogeneous numpy arrays when using ArrayTorchMemory.
+    ArrayTorchMemory is computationally efficient, but not memory-optimized in general.
+    """
+    def __init__(self,
+                 memory_size=1e6,
+                 batch_size=1,
+                 dataset_path="",
+                 sample_preprocessor: callable = None,
+                 crc_debug=False,
+                 device="cpu",
+                 replace=False,
+                 shuffle=False):
+        super().__init__(memory_size=memory_size,
+                         batch_size=batch_size,
+                         dataset_path=dataset_path,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
+        self.replace = replace
+        self.shuffle = shuffle
+        self.data = []
+        self.rng = np.random.default_rng()
+
+    def __len__(self):
+        if len(self.data) == 0:
+            return 0
+        res = len(self.data[0]) - 1
+        if res < 0:
+            return 0
+        else:
+            return res
+
+    def append_buffer(self, buffer):
+
+        elt = buffer.memory[0]
+        assert isinstance(elt[0], np.ndarray), f"Actions must be numpy arrays. Found {type(buffer.memory[0][0])}"
+        assert isinstance(elt[1], np.ndarray), f"Observations must be numpy arrays. Found {type(buffer.memory[0][0])}"
+
+        # parse:
+        d0 = np.stack([b[0] for b in buffer.memory])  # actions
+        d1 = np.stack([b[1] for b in buffer.memory])  # observations
+        d2 = np.stack([b[2] for b in buffer.memory])  # rewards
+        d3 = np.stack([b[3] for b in buffer.memory])  # terminated
+        d4 = np.stack([b[4] for b in buffer.memory])  # truncated
+        d5 = [b[5] for b in buffer.memory]  # info dicts
+        d6 = np.stack([b[3] or b[4] for b in buffer.memory])  # done
+
+        # append:
+        if self.__len__() > 0:
+            self.data[0] = np.concatenate((self.data[0], d0))
+            self.data[1] = np.concatenate((self.data[1], d0))
+            self.data[2] = np.concatenate((self.data[2], d2))
+            self.data[3] = np.concatenate((self.data[3], d3))
+            self.data[4] = np.concatenate((self.data[4], d4))
+            self.data[5] += d5  # info dicts
+            self.data[6] = np.concatenate((self.data[6], d6))
+        else:
+            self.data.append(d0)
+            self.data.append(d1)
+            self.data.append(d2)
+            self.data.append(d3)
+            self.data.append(d4)
+            self.data.append(d5)
+            self.data.append(d6)
+
+        # trim
+        to_trim = int(self.__len__() - self.memory_size)
+        if to_trim > 0:
+            self.data[0] = self.data[0][to_trim:]
+            self.data[1] = self.data[1][to_trim:]
+            self.data[2] = self.data[2][to_trim:]
+            self.data[3] = self.data[3][to_trim:]
+            self.data[4] = self.data[4][to_trim:]
+            self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
+
+    def sample(self):
+
+        max_idx = len(self) - 1
+
+        indices = self.rng.choice(a=max_idx, size=self.batch_size, replace=self.replace if max_idx > self.batch_size else True, shuffle=self.shuffle)
+        dones = self.data[6][indices]
+
+        # resample indices that refer to invalid transitions from terminal to initial states
+        # TODO: find a way to only index valid transitions instead
+        while np.any(dones):
+            to_resample = np.where(dones)[0]
+            indices[to_resample] = self.rng.choice(a=max_idx, size=len(to_resample), replace=self.replace if max_idx > len(to_resample) else True, shuffle=self.shuffle)
+            dones[to_resample] = self.data[6][indices[to_resample]]
+
+        idx_last = indices
+        idx_now = indices + 1
+
+        last_obs = self.data[1][idx_last]
+        new_act = self.data[0][idx_now]
+        rew = self.data[2][idx_now]
+        new_obs = self.data[1][idx_now]
+        terminated = self.data[3][idx_now]
+        truncated = self.data[4][idx_now]
+
+        if self.crc_debug:
+            raise RuntimeError("CRC support not implemented")
+
+        if self.sample_preprocessor is not None:
+            raise RuntimeError("Sample preprocessor support not implemented")
+
+        last_obs = torch.tensor(last_obs).to(self.device)
+        new_act = torch.tensor(new_act).to(self.device)
+        rew = torch.tensor(rew).to(self.device)
+        new_obs = torch.tensor(new_obs).to(self.device)
+        terminated = torch.tensor(terminated).to(self.device)
+        truncated = torch.tensor(truncated).to(self.device)
+
+        return last_obs, new_act, rew, new_obs, terminated, truncated
+
+
 class MemoryTM(TorchMemory):
     def __init__(self,
                  memory_size=None,
@@ -185,7 +310,6 @@ class MemoryTM(TorchMemory):
                  dataset_path="",
                  imgs_obs=4,
                  act_buf_len=1,
-                 nb_steps=1,
                  sample_preprocessor: callable = None,
                  crc_debug=False,
                  device="cpu"):
@@ -197,7 +321,6 @@ class MemoryTM(TorchMemory):
         super().__init__(memory_size=memory_size,
                          batch_size=batch_size,
                          dataset_path=dataset_path,
-                         nb_steps=nb_steps,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)
@@ -576,3 +699,4 @@ class MemoryTMFull(MemoryTM):
             self.data[10] = self.data[10][to_trim:]
 
         return self
+

@@ -5,6 +5,7 @@ import zlib
 from abc import ABC, abstractmethod
 from pathlib import Path
 from random import randint
+import time
 import logging
 
 # third-party imports
@@ -31,7 +32,75 @@ def check_samples_crc(original_po, original_a, original_o, original_r, original_
     print(f"DEBUG: CRC check passed. Time step: {debug_ts}, since reset: {debug_ts_res}")
 
 
-class Memory(ABC):
+class BaseMemory(ABC):
+    """
+    Directly implement this instead of Memory if you want to optimize sampling (e.g., no collating...).
+
+    Note: sample preprocessing (i.e., data augmentation), offline dataset and CRC debugging are optional and left to your discretion.
+    """
+    def __init__(self,
+                 device,
+                 memory_size=1000000,
+                 batch_size=256,
+                 sample_preprocessor:callable = None,
+                 dataset_path="",
+                 crc_debug=False):
+        """
+        Args:
+            device (str): output tensors will be collated to this device
+            memory_size (int): size of the circular buffer
+            batch_size (int): batch size of the output tensors
+            sample_preprocessor (callable): can be used for data augmentation
+            dataset_path (str): path to an offline dataset can be provided here to initialize the memory
+            crc_debug (bool): False usually, True when CRC debugging is activated
+        """
+        # Base memory attributes:
+        self.device = device
+        self.batch_size = batch_size
+        self.memory_size = memory_size
+
+        # These stats are here because they reach the trainer along with the buffer:
+        self.stat_test_return = 0.0
+        self.stat_train_return = 0.0
+        self.stat_test_steps = 0
+        self.stat_train_steps = 0
+
+        # Optional attributes:
+        self.sample_preprocessor = sample_preprocessor
+        self.dataset_path = dataset_path
+        self.crc_debug = crc_debug
+
+    @abstractmethod
+    def append_buffer(self, buffer):
+        """
+        Must append a Buffer object to the memory.
+
+        Args:
+            buffer (tmrl.networking.Buffer): the buffer of samples to append.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def sample(self):
+        """
+        Must sample a minibatch collated to self.device.
+
+        Returns:
+            minibatch (Tuple of tensors): possibly nested structure of tensors collated to self.device, and of batch dimension self.batch_size;
+                minibatches are tuples of tensors of the form (last_obs, new_act, rew, new_obs, terminated, truncated)
+        """
+        raise NotImplementedError
+
+    def append(self, buffer):
+        if len(buffer) > 0:
+            self.stat_train_return = buffer.stat_train_return
+            self.stat_test_return = buffer.stat_test_return
+            self.stat_train_steps = buffer.stat_train_steps
+            self.stat_test_steps = buffer.stat_test_steps
+            self.append_buffer(buffer)
+
+
+class Memory(BaseMemory, ABC):
     """
     Interface implementing the replay buffer.
 
@@ -41,7 +110,6 @@ class Memory(ABC):
     """
     def __init__(self,
                  device,
-                 nb_steps,
                  sample_preprocessor: callable = None,
                  memory_size=1000000,
                  batch_size=256,
@@ -50,27 +118,25 @@ class Memory(ABC):
         """
         Args:
             device (str): output tensors will be collated to this device
-            nb_steps (int): number of steps per round
             sample_preprocessor (callable): can be used for data augmentation
             memory_size (int): size of the circular buffer
             batch_size (int): batch size of the output tensors
             dataset_path (str): an offline dataset may be provided here to initialize the memory
             crc_debug (bool): False usually, True when using CRC debugging of the pipeline
         """
-        self.nb_steps = nb_steps
-        self.device = device
-        self.batch_size = batch_size
-        self.memory_size = memory_size
-        self.sample_preprocessor = sample_preprocessor
-        self.crc_debug = crc_debug
+        super().__init__(device=device,
+                         memory_size=memory_size,
+                         batch_size=batch_size,
+                         sample_preprocessor=sample_preprocessor,
+                         dataset_path=dataset_path,
+                         crc_debug=crc_debug)
 
-        # These stats are here because they reach the trainer along with the buffer:
-        self.stat_test_return = 0.0
-        self.stat_train_return = 0.0
-        self.stat_test_steps = 0
-        self.stat_train_steps = 0
+        # Benchmarking stats
+        self.sampling_time = 0
+        self.collating_time = 0
+        self.nb_iterations = 0
 
-        # init memory
+        # init data
         self.path = Path(dataset_path)
         logging.debug(f"Memory self.path:{self.path}")
         if os.path.isfile(self.path / 'data.pkl'):
@@ -84,19 +150,20 @@ class Memory(ABC):
             # TODO: crop to memory_size
             logging.warning(f"the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
-    def __iter__(self):
-        for _ in range(self.nb_steps):
-            yield self.sample()
+    # def __iter__(self):
+    #     for _ in range(self.nb_steps):
+    #         yield self.sample()
 
-    @abstractmethod
-    def append_buffer(self, buffer):
-        """
-        Must append a Buffer object to the memory.
-
-        Args:
-            buffer (tmrl.networking.Buffer): the buffer of samples to append.
-        """
-        raise NotImplementedError
+    def get_benchmarks(self):
+        if self.nb_iterations == 0:
+            return 0.0, 0.0
+        else:
+            sampling_time = self.sampling_time / self.nb_iterations
+            collating_time = self.collating_time / self.nb_iterations
+            self.nb_iterations = 0
+            self.sampling_time = 0.0
+            self.collating_time = 0.0
+            return sampling_time, collating_time
 
     @abstractmethod
     def __len__(self):
@@ -147,20 +214,6 @@ class Memory(ABC):
         """
         raise NotImplementedError
 
-    def sample(self):
-        indices = self.sample_indices()
-        batch = [self[idx] for idx in indices]
-        batch = self.collate(batch, self.device)
-        return batch
-
-    def append(self, buffer):
-        if len(buffer) > 0:
-            self.stat_train_return = buffer.stat_train_return
-            self.stat_test_return = buffer.stat_test_return
-            self.stat_train_steps = buffer.stat_train_steps
-            self.stat_test_steps = buffer.stat_test_steps
-            self.append_buffer(buffer)
-
     def __getitem__(self, item):
         prev_obs, new_act, rew, new_obs, terminated, truncated, info = self.get_transition(item)
         if self.crc_debug:
@@ -172,6 +225,18 @@ class Memory(ABC):
         terminated = np.float32(terminated)  # we don't want bool tensors
         truncated = np.float32(truncated)  # we don't want bool tensors
         return prev_obs, new_act, rew, new_obs, terminated, truncated
+
+    def sample(self):
+        indices = self.sample_indices()
+        t1 = time.perf_counter()
+        batch = [self[idx] for idx in indices]
+        t2 = time.perf_counter()
+        batch = self.collate(batch, self.device)
+        t3 = time.perf_counter()
+        self.nb_iterations += 1
+        self.sampling_time += t2 - t1
+        self.collating_time += t3 - t2
+        return batch
 
     def sample_indices(self):
         return (randint(0, len(self) - 1) for _ in range(self.batch_size))
@@ -187,7 +252,6 @@ class TorchMemory(Memory, ABC):
     """
     def __init__(self,
                  device,
-                 nb_steps,
                  sample_preprocessor: callable = None,
                  memory_size=1000000,
                  batch_size=256,
@@ -196,7 +260,6 @@ class TorchMemory(Memory, ABC):
         """
         Args:
             device (str): output tensors will be collated to this device
-            nb_steps (int): number of steps per round
             sample_preprocessor (callable): can be used for data augmentation
             memory_size (int): size of the circular buffer
             batch_size (int): batch size of the output tensors
@@ -206,7 +269,6 @@ class TorchMemory(Memory, ABC):
         super().__init__(memory_size=memory_size,
                          batch_size=batch_size,
                          dataset_path=dataset_path,
-                         nb_steps=nb_steps,
                          sample_preprocessor=sample_preprocessor,
                          crc_debug=crc_debug,
                          device=device)

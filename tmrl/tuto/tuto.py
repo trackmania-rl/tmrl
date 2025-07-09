@@ -592,6 +592,12 @@ if __name__ == "__main__":
     daemon_thread_worker = Thread(target=run_worker, args=(my_worker, ), kwargs={}, daemon=True)
     daemon_thread_worker.start()  # start the worker daemon thread
 
+    # Run a training session:
     run_trainer(my_trainer)
 
-    # the worker daemon thread will be killed here.
+    # Once training is completed, stop all tlspyo entities:
+    my_trainer.stop()
+    my_worker.stop()
+    my_server.stop()
+
+    # The worker daemon thread will be killed here.

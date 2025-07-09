@@ -59,7 +59,7 @@ def update_memory(run_instance):
             or run_instance.memory.batch_size != batch_size \
             or run_instance.memory.memory_size != memory_size:
         run_instance.steps = steps
-        run_instance.memory.nb_steps = steps
+        # run_instance.memory.nb_steps = steps
         run_instance.memory.batch_size = batch_size
         run_instance.memory.memory_size = memory_size
         logging.info(f"Memory updated with steps:{steps}, batch size:{batch_size}, memory size:{memory_size}.")
