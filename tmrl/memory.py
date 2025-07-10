@@ -50,9 +50,9 @@ class BaseMemory(ABC):
             device (str): output tensors will be collated to this device
             memory_size (int): size of the circular buffer
             batch_size (int): batch size of the output tensors
-            sample_preprocessor (callable): can be used for data augmentation
-            dataset_path (str): path to an offline dataset can be provided here to initialize the memory
-            crc_debug (bool): False usually, True when CRC debugging is activated
+            sample_preprocessor (callable): optional, can be used for data augmentation
+            dataset_path (str): optional, can be used to initialize the memory with an offline dataset
+            crc_debug (bool): optional, False usually, True when CRC debugging is activated
         """
         # Base memory attributes:
         self.device = device
@@ -90,6 +90,14 @@ class BaseMemory(ABC):
                 minibatches are tuples of tensors of the form (last_obs, new_act, rew, new_obs, terminated, truncated)
         """
         raise NotImplementedError
+
+    def get_benchmarks(self):
+        """
+        Can be overridden to log a tuple of floats for benchmarking the performance of your Memory class.
+
+        Returns: benchmarks (Tuple of floats) or None
+        """
+        return None
 
     def append(self, buffer):
         if len(buffer) > 0:

@@ -77,7 +77,7 @@ _Training Machines with Reinforcement Learning_
 
 As a fun and safe robot proxy for vision-based autonomous driving, `tmrl` features a readily-implemented example pipeline for the TrackMania 2020 racing video game.
 
-_Note: In the context of RL, an AI is called a policy._
+_Note: In the context of RL, an AI is called a "policy" or an "actor"._
 
 ### User features (TrackMania example pipeline):
 
@@ -99,15 +99,16 @@ These models learn the physics of the game from histories or observations equall
 ### Developer features (real-world applications in Python):
 
 * **Python library:**
-`tmrl` is a complete framework designed to help you successfully implement ad-hoc RL pipelines for real-world applications. It features secure remote training, fine-grained customizability, and it is fully compatible with [real-time environments](#real-time-gym-framework) (e.g., robots...).
+`tmrl` is a complete framework designed to help you successfully implement ad-hoc RL pipelines for real-world applications.
+It features secure remote training, fine-grained customizability, and it is fully compatible with [real-time environments](#real-time-gym-framework) (e.g., robots, high-frequency trading bots, etc.).
 It is based on a [single-server / multiple-clients architecture](#remote-training-architecture), which enables collecting samples locally from one to arbitrarily many workers, and training remotely on a High Performance Computing cluster.
-A complete tutorial toward doing this for your specific application is provided [here](readme/tuto_library.md).
+Tutorials toward doing this for your specific application are provided [here](https://github.com/trackmania-rl/tmrl/tree/master/tmrl/tuto).
 
 * **TrackMania Gymnasium environment:**
 `tmrl` comes with a Gymnasium environment for TrackMania 2020, based on [rtgym](https://pypi.org/project/rtgym/). Once the library is installed, it is easy to use this environment in your own training framework. More information [here](#trackmania-gymnasium-environment).
 
 * **External libraries:**
-`tmrl` gave birth to some sub-projects of more general interest, that were cut out and packaged as standalone python libraries.
+`tmrl` gave birth to a few sub-projects of more general interest, that were cut out and packaged as standalone python libraries.
 In particular, [rtgym](https://github.com/yannbouteiller/rtgym) enables implementing Gymnasium environments in real-time applications,
 [vgamepad](https://github.com/yannbouteiller/vgamepad) enables emulating virtual game controllers,
 and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring python object over the Internet in a secure fashion.
@@ -115,7 +116,7 @@ and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring 
 ### TMRL in the media:
 - In the french show [Underscore_ (2022-06-08)](https://www.youtube.com/watch?v=c1xq7iJ3f9E), we used a vision-based (LIDAR) policy to play against the TrackMania world champions. Spoiler: our policy lost by far (expectedly :smile:); the superhuman target was set to about 32s on the `tmrl-test` track, while the trained policy had a mean performance of about 45.5s. The Gymnasium environment that we used for the show is available [here](#lidar-with-track-progress).
 
-- In 2023, we were [invited at Ubisoft Montreal](https://youtu.be/Nm71G0-wnFU?feature=shared&t=4317) to give a talk describing how video games could serve as visual simulators for vision-based autonomous driving in the near future.
+- In 2023, we were [invited at Ubisoft Montreal](https://youtu.be/Nm71G0-wnFU?feature=shared&t=4317) to discuss how video games could serve as visual simulators for vision-based autonomous driving in the near future.
 
 ## Installation
 
@@ -127,9 +128,11 @@ and [tlspyo](https://github.com/MISTLab/tls-python-object) enables transferring 
 
 ## TMRL python library
 
-- A minimal script that you can easily adapt to run a simple `tmrl` pipeline on your own robot is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_drone.py).
+- A minimal script that you can easily adapt to deploy a simple `tmrl` pipeline on your own robot is available [here](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/tuto_minimal_drone.py).
 
 - An advanced tutorial toward implementing your own ad-hoc optimized training pipelines for your own complex real-time tasks is provided [here](readme/tuto_library.md).
+
+- More tutorial scripts are available in the [tuto directory](tmrl/tuto).
 
 ## Security
 
@@ -160,8 +163,8 @@ This is because, without TLS encryption, this password will be readable in the p
 
 ## TrackMania Roborace League
 
-We host the [TrackMania Roborace League](readme/competition.md), a fun way of benchmarking self-racing approaches in the TrackMania 2020 video game.
-Follow the link for information about the competition, including the current leaderboard and instructions to participate.
+We host the [TrackMania Roborace League](readme/competition.md) to benchmark real-time self-racing approaches in the TrackMania 2020 video game.
+So far this competition has failed to gain much traction, so in case you are interested in organizing something cooler, please reach us :sparkles:
 
 Regardless of whether they want to compete or not, ML developers will find the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) handy for creating advanced training pipelines in TrackMania.
 
@@ -547,8 +550,8 @@ These mechanics are summarized in the following figure:
 # Development roadmap:
 Contributions to `tmrl` are welcome.
 Please consider the following:
-- Further profiling and code optimization,
-- Find the cleanest way to support sequences in `Memory` for RNN training.
+- JAX support
+- Further profiling and code optimization
 
 You can discuss contribution projects in the [discussions section](https://github.com/trackmania-rl/tmrl/discussions).
 

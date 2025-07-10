@@ -237,7 +237,7 @@ class ArrayTorchMemory(BaseMemory):
         # append:
         if self.__len__() > 0:
             self.data[0] = np.concatenate((self.data[0], d0))
-            self.data[1] = np.concatenate((self.data[1], d0))
+            self.data[1] = np.concatenate((self.data[1], d1))
             self.data[2] = np.concatenate((self.data[2], d2))
             self.data[3] = np.concatenate((self.data[3], d3))
             self.data[4] = np.concatenate((self.data[4], d4))
@@ -293,12 +293,13 @@ class ArrayTorchMemory(BaseMemory):
         if self.sample_preprocessor is not None:
             raise RuntimeError("Sample preprocessor support not implemented")
 
-        last_obs = torch.tensor(last_obs).to(self.device)
-        new_act = torch.tensor(new_act).to(self.device)
-        rew = torch.tensor(rew).to(self.device)
-        new_obs = torch.tensor(new_obs).to(self.device)
-        terminated = torch.tensor(terminated).to(self.device)
-        truncated = torch.tensor(truncated).to(self.device)
+        # convert everything to batched float32 torch tensors
+        last_obs = torch.tensor(last_obs, dtype=torch.float32).to(self.device)
+        new_act = torch.tensor(new_act, dtype=torch.float32).to(self.device)
+        rew = torch.tensor(rew, dtype=torch.float32).to(self.device)
+        new_obs = torch.tensor(new_obs, dtype=torch.float32).to(self.device)
+        terminated = torch.tensor(terminated, dtype=torch.float32).to(self.device)
+        truncated = torch.tensor(truncated, dtype=torch.float32).to(self.device)
 
         return last_obs, new_act, rew, new_obs, terminated, truncated
 

@@ -98,16 +98,16 @@ class TrainingOffline:
 
             stats_training = []
 
-            t0 = time.time()
+            t0 = time.perf_counter()
             self.check_ratio(interface)
-            t1 = time.time()
+            t1 = time.perf_counter()
 
             if self.profiling:
                 from pyinstrument import Profiler
                 pro = Profiler()
                 pro.start()
 
-            t2 = time.time()
+            t2 = time.perf_counter()
 
             t_sample_prev = t2
 
@@ -115,30 +115,32 @@ class TrainingOffline:
 
                 batch = self.memory.sample()
 
-                t_sample = time.time()
+                t_sample = time.perf_counter()
 
                 if self.total_updates % self.update_buffer_interval == 0:
                     # retrieve local buffer in replay memory
                     self.update_buffer(interface)
 
-                t_update_buffer = time.time()
+                t_update_buffer = time.perf_counter()
 
                 if self.total_updates == 0:
                     logging.info(f"starting training")
 
                 stats_training_dict = self.agent.train(batch)
 
-                t_train = time.time()
+                t_train = time.perf_counter()
 
-                sample_dur, collate_dur = self.memory.get_benchmarks()
+                memory_benchmarks = self.memory.get_benchmarks()
+
+                if memory_benchmarks is not None:
+                    for i, benchmark in enumerate(memory_benchmarks):
+                        stats_training_dict[f"memory_benchmark_{i}"] = benchmark
 
                 stats_training_dict["return_test"] = self.memory.stat_test_return
                 stats_training_dict["return_train"] = self.memory.stat_train_return
                 stats_training_dict["episode_length_test"] = self.memory.stat_test_steps
                 stats_training_dict["episode_length_train"] = self.memory.stat_train_steps
                 stats_training_dict["sampling_duration"] = t_sample - t_sample_prev
-                stats_training_dict["sample"] = sample_dur
-                stats_training_dict["collate"] = collate_dur
                 stats_training_dict["training_step_duration"] = t_train - t_update_buffer
                 stats_training += stats_training_dict,
                 self.total_updates += 1
@@ -147,9 +149,9 @@ class TrainingOffline:
                     interface.broadcast_model(self.agent.get_actor())
                 self.check_ratio(interface)
 
-                t_sample_prev = time.time()
+                t_sample_prev = time.perf_counter()
 
-            t3 = time.time()
+            t3 = time.perf_counter()
 
             round_time = t3 - t0
             idle_time = t1 - t0

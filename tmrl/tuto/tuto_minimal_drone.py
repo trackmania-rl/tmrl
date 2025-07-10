@@ -6,6 +6,7 @@ This script works out-of-the-box for real-time environments with flat continuous
 
 # tutorial imports:
 from threading import Thread
+from gymnasium.wrappers import FlattenObservation
 from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
 
 # TMRL imports:
@@ -16,11 +17,18 @@ import tmrl.config.config_constants as cfg
 from tmrl.training_offline import TorchTrainingOffline
 from tmrl.custom.custom_algorithms import SpinupSACAgent
 from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic
-from tmrl.custom.custom_memories import GenericTorchMemory
+from tmrl.custom.custom_memories import GenericTorchMemory, ArrayTorchMemory
 
 
 # Set this to True only for debugging your pipeline.
 CRC_DEBUG = False
+
+# Set this to True to flatten observations and use ArrayTorchMemory instead of GenericTorchMemory.
+# Note: ArrayTorchMemory is much faster than GenericTorchMemory but only handles flat observation/action spaces.
+# The gain in performance is due to the fact that ArrayTorchMemory doesn't use a collating function.
+FLATTEN_ENV = True
+
+MEMORY = ArrayTorchMemory if FLATTEN_ENV else GenericTorchMemory
 
 # Name used for training checkpoints and models saved in the TmrlData folder.
 # If you change anything, also change this name (or delete the saved files in TmrlData).
@@ -40,7 +48,14 @@ my_rtgym_config = DUMMY_RC_DRONE_CONFIG
 
 # Environment class:
 
-env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_rtgym_config})
+env_version = "real-time-gym-ts-v1"
+env_kwargs = {"config": my_rtgym_config}
+
+if FLATTEN_ENV:
+    wrappers = [(FlattenObservation, (), {})]  # Wrapper to flatten observations
+    env_cls = partial(GenericGymEnv, id=env_version, gym_kwargs=env_kwargs, wrappers=wrappers)
+else:
+    env_cls = partial(GenericGymEnv, id=env_version, gym_kwargs=env_kwargs)
 
 # Observation and action space:
 
@@ -139,7 +154,7 @@ env_cls = (obs_space, act_space)
 
 # Memory:
 
-memory_cls = partial(GenericTorchMemory,
+memory_cls = partial(MEMORY,
                      memory_size=1e6,
                      batch_size=32,
                      crc_debug=CRC_DEBUG)

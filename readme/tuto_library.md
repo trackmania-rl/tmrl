@@ -1,5 +1,7 @@
 # Tutorial: TMRL as a Python library
 
+:house: _Homepage: [TMRL Python tutorials](https://github.com/trackmania-rl/tmrl/tree/master/tmrl/tuto)_
+
 In other sections, we have seen how to use `tmrl` as a standalone program, thanks to the ready-to-use training pipeline for TrackMania.
 
 However, as soon as you want to try more advanced things (e.g., using robots, other video games, other training algorithms, etc.), you will need to get your hands dirty with some python coding.
