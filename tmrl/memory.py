@@ -19,16 +19,31 @@ from tmrl.util import collate_torch
 __docformat__ = "google"
 
 
-def check_samples_crc(original_po, original_a, original_o, original_r, original_d, original_t, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, rebuilt_t, debug_ts, debug_ts_res):
-    assert original_po is None or str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_d) == str(rebuilt_d), f"terminated don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_t) == str(rebuilt_t), f"truncated don't match:\noriginal:\n{original_t}\n!= rebuilt:\n{rebuilt_t}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    original_crc = zlib.crc32(str.encode(str((original_a, original_o, original_r, original_d, original_t))))
-    crc = zlib.crc32(str.encode(str((rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, rebuilt_t))))
-    assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}.\nEither the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\noriginal sample:\n{(original_a, original_o, original_r, original_d)}\n!= rebuilt sample:\n{(rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+def check_samples_crc(original_po, original_a, original_o, original_r, original_d, original_t, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, rebuilt_t, debug_ts, debug_ts_res, epsilon=0.0):
+    if epsilon == 0.0:  # strict check
+        assert original_po is None or str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{str(original_po)}\n!= rebuilt:\n{str(rebuilt_po)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{str(original_a)}\n!= rebuilt:\n{str(rebuilt_a)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{str(original_o)}\n!= rebuilt:\n{str(rebuilt_o)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{str(original_r)}\n!= rebuilt:\n{str(rebuilt_r)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        assert str(original_d) == str(rebuilt_d), f"terminated don't match:\noriginal:\n{str(original_d)}\n!= rebuilt:\n{str(rebuilt_d)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        assert str(original_t) == str(rebuilt_t), f"truncated don't match:\noriginal:\n{str(original_t)}\n!= rebuilt:\n{str(rebuilt_t)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        original_crc = zlib.crc32(str.encode(str((original_a, original_o, original_r, original_d, original_t))))
+        crc = zlib.crc32(str.encode(str((rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, rebuilt_t))))
+        assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}.\nEither the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\noriginal sample:\n{(original_a, original_o, original_r, original_d)}\n!= rebuilt sample:\n{(rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+    else:  # check if values are close
+        if isinstance(original_o, np.ndarray):
+            assert original_po is None or np.allclose(original_po, rebuilt_po, atol=epsilon), f"previous observations don't match:\noriginal:\n{str(original_po)}\n!= rebuilt:\n{str(rebuilt_po)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+            assert np.allclose(original_o, rebuilt_o, atol=epsilon), f"observations don't match:\noriginal:\n{str(original_o)}\n!= rebuilt:\n{str(rebuilt_o)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        else:
+            assert original_po is None or str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{str(original_po)}\n!= rebuilt:\n{str(rebuilt_po)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+            assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{str(original_o)}\n!= rebuilt:\n{str(rebuilt_o)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        if isinstance(original_a, np.ndarray):
+            assert np.allclose(original_a, rebuilt_a, atol=epsilon), f"actions don't match:\noriginal:\n{str(original_a)}\n!= rebuilt:\n{str(rebuilt_a)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        else:
+            assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{str(original_a)}\n!= rebuilt:\n{str(rebuilt_a)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        assert np.allclose(original_r, rebuilt_r, atol=epsilon), f"rewards don't match:\noriginal:\n{str(original_r)}\n!= rebuilt:\n{str(rebuilt_r)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        assert original_d == rebuilt_d, f"terminated don't match:\noriginal:\n{str(original_d)}\n!= rebuilt:\n{str(rebuilt_d)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+        assert original_t == rebuilt_t, f"truncated don't match:\noriginal:\n{str(original_t)}\n!= rebuilt:\n{str(rebuilt_t)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
     print(f"DEBUG: CRC check passed. Time step: {debug_ts}, since reset: {debug_ts_res}")
 
 
@@ -96,6 +111,14 @@ class BaseMemory(ABC):
         Can be overridden to log a tuple of floats for benchmarking the performance of your Memory class.
 
         Returns: benchmarks (Tuple of floats) or None
+        """
+        return None
+
+    def get_benchmarks_names(self):
+        """
+        Use this method to name the elements of the tuple returned by get_benchmarks.
+
+        Returns: benchmarks names (Tuple of strings) or None
         """
         return None
 
@@ -172,6 +195,9 @@ class Memory(BaseMemory, ABC):
             self.sampling_time = 0.0
             self.collating_time = 0.0
             return sampling_time, collating_time
+
+    def get_benchmarks_names(self):
+        return "get_transitions", "collate"
 
     @abstractmethod
     def __len__(self):

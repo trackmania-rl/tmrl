@@ -89,6 +89,8 @@ class TrainingOffline:
         stats = []
         state = None
 
+        benchmarks_names = self.memory.get_benchmarks_names()
+
         if self.agent_scheduler is not None:
             self.agent_scheduler(self.agent, self.epoch)
 
@@ -130,18 +132,26 @@ class TrainingOffline:
 
                 t_train = time.perf_counter()
 
-                memory_benchmarks = self.memory.get_benchmarks()
-
-                if memory_benchmarks is not None:
-                    for i, benchmark in enumerate(memory_benchmarks):
-                        stats_training_dict[f"memory_benchmark_{i}"] = benchmark
-
+                # RolloutWorker performance:
                 stats_training_dict["return_test"] = self.memory.stat_test_return
                 stats_training_dict["return_train"] = self.memory.stat_train_return
                 stats_training_dict["episode_length_test"] = self.memory.stat_test_steps
                 stats_training_dict["episode_length_train"] = self.memory.stat_train_steps
+
+                # Memory time benchmarks:
                 stats_training_dict["sampling_duration"] = t_sample - t_sample_prev
+                memory_benchmarks = self.memory.get_benchmarks()
+                if memory_benchmarks is not None:
+                    if benchmarks_names is not None:
+                        for i, benchmark in enumerate(memory_benchmarks):
+                            stats_training_dict[benchmarks_names[i]] = benchmark
+                    else:
+                        for i, benchmark in enumerate(memory_benchmarks):
+                            stats_training_dict[f"memory_benchmark_{i}"] = benchmark
+
+                # Training time benchmarks:
                 stats_training_dict["training_step_duration"] = t_train - t_update_buffer
+
                 stats_training += stats_training_dict,
                 self.total_updates += 1
                 if self.total_updates % self.update_model_interval == 0:

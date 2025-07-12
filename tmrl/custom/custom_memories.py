@@ -2,7 +2,7 @@ import random
 import numpy as np
 import torch
 
-from tmrl.memory import BaseMemory, TorchMemory
+from tmrl.memory import BaseMemory, TorchMemory, check_samples_crc
 
 
 # LOCAL BUFFER COMPRESSION ==============================
@@ -226,9 +226,9 @@ class ArrayTorchMemory(BaseMemory):
         assert isinstance(elt[1], np.ndarray), f"Observations must be numpy arrays. Found {type(buffer.memory[0][0])}"
 
         # parse:
-        d0 = np.stack([b[0] for b in buffer.memory])  # actions
-        d1 = np.stack([b[1] for b in buffer.memory])  # observations
-        d2 = np.stack([b[2] for b in buffer.memory])  # rewards
+        d0 = np.stack([b[0] for b in buffer.memory], dtype=np.float32)  # actions
+        d1 = np.stack([b[1] for b in buffer.memory], dtype=np.float32)  # observations
+        d2 = np.stack([b[2] for b in buffer.memory], dtype=np.float32)  # rewards
         d3 = np.stack([b[3] for b in buffer.memory])  # terminated
         d4 = np.stack([b[4] for b in buffer.memory])  # truncated
         d5 = [b[5] for b in buffer.memory]  # info dicts
@@ -267,10 +267,11 @@ class ArrayTorchMemory(BaseMemory):
 
         max_idx = len(self) - 1
 
+        # sample indices in replay buffer:
         indices = self.rng.choice(a=max_idx, size=self.batch_size, replace=self.replace if max_idx > self.batch_size else True, shuffle=self.shuffle)
         dones = self.data[6][indices]
 
-        # resample indices that refer to invalid transitions from terminal to initial states
+        # resample indices that refer to invalid transitions from terminal to initial states:
         # TODO: find a way to only index valid transitions instead
         while np.any(dones):
             to_resample = np.where(dones)[0]
@@ -280,28 +281,40 @@ class ArrayTorchMemory(BaseMemory):
         idx_last = indices
         idx_now = indices + 1
 
-        last_obs = self.data[1][idx_last]
-        new_act = self.data[0][idx_now]
-        rew = self.data[2][idx_now]
-        new_obs = self.data[1][idx_now]
-        terminated = self.data[3][idx_now]
-        truncated = self.data[4][idx_now]
+        # numpy batched tensors:
+        last_obs_batch = self.data[1][idx_last]
+        new_act_batch = self.data[0][idx_now]
+        rew_batch = self.data[2][idx_now]
+        new_obs_batch = self.data[1][idx_now]
+        terminated_batch = self.data[3][idx_now]
+        truncated_batch = self.data[4][idx_now]
 
+        # CRC-debug numpy batched tensors:
         if self.crc_debug:
-            raise RuntimeError("CRC support not implemented")
+            for i in range(len(idx_now)):
+                prev_obs = last_obs_batch[i]
+                new_act = new_act_batch[i]
+                rew = rew_batch[i]
+                new_obs = new_obs_batch[i]
+                terminated = terminated_batch[i]
+                truncated = truncated_batch[i]
+                info = self.data[5][idx_now[i]]
+                po, a, o, r, d, t = info['crc_sample']
+                debug_ts, debug_ts_res = info['crc_sample_ts']
+                check_samples_crc(po, a, o, r, d, t, prev_obs, new_act, new_obs, rew, terminated, truncated, debug_ts, debug_ts_res, epsilon=1e-4)
 
         if self.sample_preprocessor is not None:
-            raise RuntimeError("Sample preprocessor support not implemented")
+            raise RuntimeError("Sample preprocessor support not implemented here.")
 
-        # convert everything to batched float32 torch tensors
-        last_obs = torch.tensor(last_obs, dtype=torch.float32).to(self.device)
-        new_act = torch.tensor(new_act, dtype=torch.float32).to(self.device)
-        rew = torch.tensor(rew, dtype=torch.float32).to(self.device)
-        new_obs = torch.tensor(new_obs, dtype=torch.float32).to(self.device)
-        terminated = torch.tensor(terminated, dtype=torch.float32).to(self.device)
-        truncated = torch.tensor(truncated, dtype=torch.float32).to(self.device)
+        # convert numpy tensors to torch tensors:
+        last_obs_batch = torch.tensor(last_obs_batch, dtype=torch.float32).to(self.device)
+        new_act_batch = torch.tensor(new_act_batch, dtype=torch.float32).to(self.device)
+        rew_batch = torch.tensor(rew_batch, dtype=torch.float32).to(self.device)
+        new_obs_batch = torch.tensor(new_obs_batch, dtype=torch.float32).to(self.device)
+        terminated_batch = torch.tensor(terminated_batch, dtype=torch.float32).to(self.device)
+        truncated_batch = torch.tensor(truncated_batch, dtype=torch.float32).to(self.device)
 
-        return last_obs, new_act, rew, new_obs, terminated, truncated
+        return last_obs_batch, new_act_batch, rew_batch, new_obs_batch, terminated_batch, truncated_batch
 
 
 class MemoryTM(TorchMemory):
