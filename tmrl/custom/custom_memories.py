@@ -1,4 +1,6 @@
 import random
+import time
+
 import numpy as np
 import torch
 
@@ -188,7 +190,6 @@ class ArrayTorchMemory(BaseMemory):
 
     ArrayTorchMemory only handles numpy arrays (no nested structures).
     If your observations or actions are made of nested structures, you need to flatten them into homogeneous numpy arrays when using ArrayTorchMemory.
-    ArrayTorchMemory is computationally efficient, but not memory-optimized in general.
     """
     def __init__(self,
                  memory_size=1e6,
@@ -714,3 +715,270 @@ class MemoryTMFull(MemoryTM):
 
         return self
 
+
+class ArrayTorchMemoryTMFull(BaseMemory):
+    def __init__(self,
+                 memory_size=None,
+                 batch_size=None,
+                 dataset_path="",
+                 imgs_obs=4,
+                 act_buf_len=1,
+                 sample_preprocessor: callable = None,
+                 crc_debug=False,
+                 device="cpu",
+                 replace=False,
+                 shuffle=False):
+        self.replace = replace
+        self.shuffle = shuffle
+        self.data = []
+        self.rng = np.random.default_rng()
+        self.imgs_obs = imgs_obs
+        self.act_buf_len = act_buf_len
+        self.min_samples = max(self.imgs_obs, self.act_buf_len)
+        self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
+        self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
+
+        # benchmarks
+        self.nb_iterations = 0
+        self.index_time = 0.0
+        self.load_acts_time = 0.0
+        self.load_imgs_time = 0.0
+        self.move_to_device_time = 0.0
+        self.assemble_time = 0.0
+
+        super().__init__(memory_size=memory_size,
+                         batch_size=batch_size,
+                         dataset_path=dataset_path,
+                         sample_preprocessor=sample_preprocessor,
+                         crc_debug=crc_debug,
+                         device=device)
+
+    def __len__(self):
+        if len(self.data) == 0:
+            return 0
+        res = len(self.data[0]) - self.min_samples - 1
+        if res < 0:
+            return 0
+        else:
+            return res
+
+    def append_buffer(self, buffer):
+        """
+        buffer is a list of samples ( act, obs, rew, terminated, truncated, info)
+        don't forget to keep the info dictionary in the sample for CRC debugging
+        """
+
+        first_data_idx = self.data[0][-1] + 1 if self.__len__() > 0 else 0
+
+        d0 = np.stack([first_data_idx + i for i, _ in enumerate(buffer.memory)])  # indexes
+        d1 = np.stack([b[0] for b in buffer.memory])  # actions
+        d2 = np.stack([b[1][0] for b in buffer.memory])  # speeds
+        d3 = np.stack([b[1][3] for b in buffer.memory])  # images
+        d4 = np.stack([b[3] or b[4] for b in buffer.memory])  # eoes
+        d5 = np.stack([b[2] for b in buffer.memory])  # rewards
+        d6 = [b[5] for b in buffer.memory]  # infos
+        d7 = np.stack([b[1][1] for b in buffer.memory])  # gears
+        d8 = np.stack([b[1][2] for b in buffer.memory])  # rpms
+        d9 = np.stack([b[3] for b in buffer.memory])  # terminated
+        d10 = np.stack([b[4] for b in buffer.memory])  # truncated
+
+        if self.__len__() > 0:
+            self.data[0] = np.concatenate((self.data[0], d0))
+            self.data[1] = np.concatenate((self.data[1], d1))
+            self.data[2] = np.concatenate((self.data[2], d2))
+            self.data[3] = np.concatenate((self.data[3], d3))
+            self.data[4] = np.concatenate((self.data[4], d4))
+            self.data[5] = np.concatenate((self.data[5], d5))
+            self.data[6] += d6  # infos
+            self.data[7] = np.concatenate((self.data[7], d7))
+            self.data[8] = np.concatenate((self.data[8], d8))
+            self.data[9] = np.concatenate((self.data[9], d9))
+            self.data[10] = np.concatenate((self.data[10], d10))
+        else:
+            self.data.append(d0)
+            self.data.append(d1)
+            self.data.append(d2)
+            self.data.append(d3)
+            self.data.append(d4)
+            self.data.append(d5)
+            self.data.append(d6)
+            self.data.append(d7)
+            self.data.append(d8)
+            self.data.append(d9)
+            self.data.append(d10)
+
+        to_trim = self.__len__() - self.memory_size
+        if to_trim > 0:
+            self.data[0] = self.data[0][to_trim:]
+            self.data[1] = self.data[1][to_trim:]
+            self.data[2] = self.data[2][to_trim:]
+            self.data[3] = self.data[3][to_trim:]
+            self.data[4] = self.data[4][to_trim:]
+            self.data[5] = self.data[5][to_trim:]
+            self.data[6] = self.data[6][to_trim:]
+            self.data[7] = self.data[7][to_trim:]
+            self.data[8] = self.data[8][to_trim:]
+            self.data[9] = self.data[9][to_trim:]
+            self.data[10] = self.data[10][to_trim:]
+
+        return self
+
+    def load_batch_acts(self, indices):
+        offset_indices = indices + self.start_acts_offset
+        full_indices = offset_indices[:, np.newaxis] + np.arange(self.act_buf_len + 1)
+        res = self.data[1][full_indices]
+        return res
+
+    def load_batch_imgs(self, indices):
+        offset_indices = indices + self.start_imgs_offset
+        full_indices = offset_indices[:, np.newaxis] + np.arange(self.imgs_obs + 1)
+        res = self.data[3][full_indices]
+        return np.stack(res).astype(np.float32) / 256.0
+
+    def sample(self):
+        t_0 = time.perf_counter()
+
+        max_idx = len(self) - 1  # this takes self.min_samples into account
+
+        # sample indices in replay buffer:
+        indices = self.rng.choice(a=max_idx, size=self.batch_size, replace=self.replace if max_idx > self.batch_size else True, shuffle=self.shuffle)
+        dones = self.data[4][indices]
+
+        # resample indices that refer to invalid transitions from terminal to initial states:
+        # TODO: find a way to only index valid transitions instead
+        while np.any(dones):
+            to_resample = np.where(dones)[0]
+            indices[to_resample] = self.rng.choice(a=max_idx, size=len(to_resample), replace=self.replace if max_idx > len(to_resample) else True, shuffle=self.shuffle)
+            dones[to_resample] = self.data[4][indices[to_resample]]
+
+        idx_last = indices + self.min_samples - 1
+        idx_now = indices + self.min_samples
+
+        t_1 = time.perf_counter()
+
+        acts = self.load_batch_acts(indices)
+        last_act_buf = acts[:, :-1]
+        new_act_buf = acts[:, 1:]
+
+        t_2 = time.perf_counter()
+
+        # print(f"DEBUG: last_act_buf.shape: {last_act_buf.shape}")
+        # print(f"DEBUG: new_act_buf.shape: {new_act_buf.shape}")
+
+        imgs = self.load_batch_imgs(indices)
+        imgs_last_obs = imgs[:, :-1]
+        imgs_new_obs = imgs[:, 1:]
+
+        t_3 = time.perf_counter()
+
+        # print(f"DEBUG: imgs_last_obs.shape: {imgs_last_obs.shape}")
+        # print(f"DEBUG: imgs_new_obs.shape: {imgs_new_obs.shape}")
+
+        # OLD CODE:
+
+        # if self.data[4][item + self.min_samples - 1]:
+        #     if item == 0:  # if first item of the buffer
+        #         item += 1
+        #     elif item == self.__len__() - 1:  # if last item of the buffer
+        #         item -= 1
+        #     elif random.random() < 0.5:  # otherwise, sample randomly
+        #         item += 1
+        #     else:
+        #         item -= 1
+
+        # idx_last = item + self.min_samples - 1
+        # idx_now = item + self.min_samples
+        #
+        # acts = self.load_acts(item)
+        # last_act_buf = acts[:-1]
+        # new_act_buf = acts[1:]
+        #
+        # imgs = self.load_imgs(item)
+        # imgs_last_obs = imgs[:-1]
+        # imgs_new_obs = imgs[1:]
+
+        # TODO:
+        # if a reset transition has influenced the observation, special care must be taken
+        # last_eoes = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
+        # last_eoe_idx = last_true_in_list(last_eoes)  # last occurrence of True
+        #
+        # assert last_eoe_idx is None or last_eoes[last_eoe_idx], f"last_eoe_idx:{last_eoe_idx}"
+        #
+        # if last_eoe_idx is not None:
+        #     replace_hist_before_eoe(hist=new_act_buf, eoe_idx_in_hist=last_eoe_idx - self.start_acts_offset - 1)
+        #     replace_hist_before_eoe(hist=last_act_buf, eoe_idx_in_hist=last_eoe_idx - self.start_acts_offset)
+        #     replace_hist_before_eoe(hist=imgs_new_obs, eoe_idx_in_hist=last_eoe_idx - self.start_imgs_offset - 1)
+        #     replace_hist_before_eoe(hist=imgs_last_obs, eoe_idx_in_hist=last_eoe_idx - self.start_imgs_offset)
+
+        # CRC:  # TODO
+        # info = self.data[6][idx_now]
+
+        t1 = torch.tensor(self.data[2][idx_last], dtype=torch.float32).to(self.device)
+        t2 = torch.tensor(self.data[7][idx_last], dtype=torch.float32).to(self.device)
+        t3 = torch.tensor(self.data[8][idx_last], dtype=torch.float32).to(self.device)
+        t4 = torch.tensor(imgs_last_obs, dtype=torch.float32).to(self.device)
+        t5 = torch.tensor(last_act_buf.swapaxes(0, 1), dtype=torch.float32).to(self.device)
+        t6 = torch.tensor(self.data[1][idx_now], dtype=torch.float32).to(self.device)
+        t7 = torch.tensor(self.data[5][idx_now], dtype=torch.float32).to(self.device)
+        t8 = torch.tensor(self.data[2][idx_now], dtype=torch.float32).to(self.device)
+        t9 = torch.tensor(self.data[7][idx_now], dtype=torch.float32).to(self.device)
+        t10 = torch.tensor(self.data[8][idx_now], dtype=torch.float32).to(self.device)
+        t11 = torch.tensor(imgs_new_obs, dtype=torch.float32).to(self.device)
+        t12 = torch.tensor(new_act_buf.swapaxes(0, 1), dtype=torch.float32).to(self.device)
+        t13 = torch.tensor(self.data[9][idx_now], dtype=torch.float32).to(self.device)
+        t14 = torch.tensor(self.data[10][idx_now], dtype=torch.float32).to(self.device)
+
+        t_4 = time.perf_counter()
+
+        last_obs_batch = (t1, t2, t3, t4, *t5)
+        new_act_batch = t6
+        rew_batch = t7
+        new_obs_batch = (t8, t9, t10, t11, *t12)
+        terminated_batch = t13
+        truncated_batch = t14
+
+        t_5 = time.perf_counter()
+
+        # last_obs_batch = (self.data[2][idx_last], self.data[7][idx_last], self.data[8][idx_last], imgs_last_obs,
+        #                   *last_act_buf.swapaxes(0, 1))
+        # new_act_batch = self.data[1][idx_now]
+        # rew_batch = np.float32(self.data[5][idx_now])
+        # new_obs_batch = (self.data[2][idx_now], self.data[7][idx_now], self.data[8][idx_now], imgs_new_obs,
+        #                  *new_act_buf.swapaxes(0, 1))
+        # terminated_batch = self.data[9][idx_now]
+        # truncated_batch = self.data[10][idx_now]
+
+        # for o in last_obs_batch:
+        #     print(f"DEBUG: {o.shape}")
+
+        self.nb_iterations += 1
+        self.index_time += t_1 - t_0
+        self.load_acts_time += t_2 - t_1
+        self.load_imgs_time += t_3 - t_2
+        self.move_to_device_time += t_4 - t_3
+        self.assemble_time += t_5 - t_4
+
+        return last_obs_batch, new_act_batch, rew_batch, new_obs_batch, terminated_batch, truncated_batch
+
+    def get_benchmarks(self):
+
+        if self.nb_iterations == 0:
+            return 0.0, 0.0, 0.0, 0.0, 0.0
+        else:
+            index_time = self.index_time / self.nb_iterations
+            load_acts_time = self.load_acts_time / self.nb_iterations
+            load_imgs_time = self.load_imgs_time / self.nb_iterations
+            move_to_device_time = self.move_to_device_time / self.nb_iterations
+            assemble_time = self.assemble_time / self.nb_iterations
+
+            self.nb_iterations = 0
+            self.index_time = 0.0
+            self.load_acts_time = 0.0
+            self.load_imgs_time = 0.0
+            self.move_to_device_time = 0.0
+            self.assemble_time = 0.0
+
+            return index_time, load_acts_time, load_imgs_time, move_to_device_time, assemble_time
+
+    def get_benchmarks_names(self):
+        return "index", "load_acts", "load_imgs", "move_to_device", "assemble"
