@@ -9,9 +9,10 @@ import torch
 from torch.optim import Adam, AdamW, SGD
 
 # local imports
-import tmrl.custom.custom_models as core
-from tmrl.custom.utils.nn import copy_shared, no_grad
-from tmrl.util import cached_property, concat_collated
+import tmrl.custom.torch.custom_models as core
+from tmrl.custom.torch.utils.nn import copy_shared, no_grad
+from tmrl.util import cached_property
+from tmrl.torch.util import concat_collated
 from tmrl.training import TrainingAgent
 import tmrl.config.config_constants as cfg
 

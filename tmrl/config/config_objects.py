@@ -6,15 +6,15 @@ import rtgym
 
 # local imports
 import tmrl.config.config_constants as cfg
-from tmrl.training_offline import TorchTrainingOffline
+from tmrl.torch.training_offline import TorchTrainingOffline
 from tmrl.custom.tm.tm_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TM2020InterfaceLidarProgress
-from tmrl.custom.custom_memories import ArrayTorchMemoryTMFull, MemoryTMFull, MemoryTMLidar, MemoryTMLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
+from tmrl.custom.torch.custom_memories import ArrayTorchMemoryTMFull, MemoryTMLidar, MemoryTMLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
 from tmrl.custom.tm.tm_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_tm_lidar_progress_act_in_obs
 from tmrl.envs import GenericGymEnv
-from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianVanillaCNNActor, VanillaCNNActorCritic, SquashedGaussianVanillaColorCNNActor, VanillaColorCNNActorCritic, REDQVanillaCNNActorCritic
-from tmrl.custom.custom_algorithms import SpinupSACAgent as SAC_Agent
-from tmrl.custom.custom_algorithms import REDQSACAgent as REDQ_Agent
-from tmrl.custom.custom_checkpoints import update_run_instance
+from tmrl.custom.torch.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianVanillaCNNActor, VanillaCNNActorCritic, SquashedGaussianVanillaColorCNNActor, VanillaColorCNNActorCritic, REDQVanillaCNNActorCritic
+from tmrl.custom.torch.custom_algorithms import SpinupSACAgent as SAC_Agent
+from tmrl.custom.torch.custom_algorithms import REDQSACAgent as REDQ_Agent
+from tmrl.custom.torch.custom_checkpoints import update_run_instance
 from tmrl.util import partial
 
 

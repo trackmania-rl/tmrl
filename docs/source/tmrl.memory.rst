@@ -2,5 +2,5 @@ tmrl.memory module
 ==================
 
 .. automodule:: tmrl.memory
-   :members: Memory, TorchMemory
+   :members: Memory
    :show-inheritance:

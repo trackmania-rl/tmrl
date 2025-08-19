@@ -238,7 +238,7 @@ LOG_STD_MIN = -20
 # Let us import the ActorModule that we are supposed to implement.
 # We will use PyTorch in this tutorial.
 # TMRL readily provides a PyTorch-specific subclass of ActorModule:
-from tmrl.actor import TorchActorModule
+from tmrl.torch.actor import TorchActorModule
 
 # Plus a couple useful imports:
 import torch
@@ -630,7 +630,7 @@ from tmrl.training import TrainingAgent
 
 # We will also use a couple utilities, and the Adam optimizer:
 
-from tmrl.custom.utils.nn import copy_shared, no_grad
+from tmrl.custom.torch.utils import copy_shared, no_grad
 from tmrl.util import cached_property
 from copy import deepcopy
 import itertools

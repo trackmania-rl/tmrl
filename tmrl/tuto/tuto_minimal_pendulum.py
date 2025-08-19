@@ -13,10 +13,10 @@ from tmrl.networking import Server, RolloutWorker, Trainer
 from tmrl.util import partial
 from tmrl.envs import GenericGymEnv
 import tmrl.config.config_constants as cfg
-from tmrl.training_offline import TorchTrainingOffline
-from tmrl.custom.custom_algorithms import SpinupSACAgent
-from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic
-from tmrl.custom.custom_memories import GenericTorchMemory
+from tmrl.torch.training_offline import TorchTrainingOffline
+from tmrl.custom.torch.custom_algorithms import SpinupSACAgent
+from tmrl.custom.torch.custom_models import SquashedGaussianMLPActor, MLPActorCritic
+from tmrl.custom.torch.custom_memories import GenericTorchMemory
 
 
 # Set this to True only for debugging your pipeline.

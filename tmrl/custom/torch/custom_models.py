@@ -5,11 +5,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from math import floor, sqrt
-from torch.nn import Conv2d, Module, ModuleList
 
 # local imports
 from tmrl.util import prod
-from tmrl.actor import TorchActorModule
+from tmrl.torch.actor import TorchActorModule
 import tmrl.config.config_constants as cfg
 
 
@@ -174,7 +173,7 @@ class REDQMLPActorCritic(nn.Module):
 
         # build policy and value functions
         self.actor = SquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation, layer_norm=actor_layer_norm)
-        self.qs = ModuleList([MLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm) for _ in range(self.n)])
+        self.qs = nn.ModuleList([MLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm) for _ in range(self.n)])
 
     def act(self, obs, test=False):
         with torch.no_grad():
@@ -222,20 +221,20 @@ def conv2d_out_dims(conv_layer, h_in, w_in):
     return h_out, w_out
 
 
-class VanillaCNN(Module):
+class VanillaCNN(nn.Module):
     def __init__(self, q_net, dropout=0.0, layer_norm=False):
         super(VanillaCNN, self).__init__()
         self.q_net = q_net
         self.h_out, self.w_out = cfg.IMG_HEIGHT, cfg.IMG_WIDTH
         hist = cfg.IMG_HIST_LEN
 
-        self.conv1 = Conv2d(hist, 64, 8, stride=2)
+        self.conv1 = nn.Conv2d(hist, 64, 8, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv1, self.h_out, self.w_out)
-        self.conv2 = Conv2d(64, 64, 4, stride=2)
+        self.conv2 = nn.Conv2d(64, 64, 4, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv2, self.h_out, self.w_out)
-        self.conv3 = Conv2d(64, 128, 4, stride=2)
+        self.conv3 = nn.Conv2d(64, 128, 4, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv3, self.h_out, self.w_out)
-        self.conv4 = Conv2d(128, 128, 4, stride=2)
+        self.conv4 = nn.Conv2d(128, 128, 4, stride=2)
         self.h_out, self.w_out = conv2d_out_dims(self.conv4, self.h_out, self.w_out)
         self.out_channels = self.conv4.out_channels
         self.flat_features = self.out_channels * self.h_out * self.w_out
@@ -360,7 +359,7 @@ class REDQVanillaCNNActorCritic(nn.Module):
 
         # build policy and value functions
         self.actor = SquashedGaussianVanillaCNNActor(observation_space, action_space, layer_norm=actor_layer_norm)
-        self.qs = ModuleList([VanillaCNNQFunction(observation_space, action_space, dropout=critic_dropout, layer_norm=critic_layer_norm) for _ in range(self.n)])
+        self.qs = nn.ModuleList([VanillaCNNQFunction(observation_space, action_space, dropout=critic_dropout, layer_norm=critic_layer_norm) for _ in range(self.n)])
 
     def act(self, obs, test=False):
         with torch.no_grad():

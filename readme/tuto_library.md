@@ -375,11 +375,11 @@ Let us implement this module for our dummy drone environment.
 Here, we basically copy-paste the implementation of the SAC MLP actor from [OpenAI Spinup](https://github.com/openai/spinningup/blob/038665d62d569055401d91856abb287263096178/spinup/algos/pytorch/sac/core.py#L29) and adapt it to the `TorchActorModule` interface:
 
 ```python
-from tmrl.actor import TorchActorModule
+
+from tmrl.torch.actor import TorchActorModule
 from tmrl.util import prod
 import torch
 import torch.nn.functional as F
-
 
 LOG_STD_MAX = 2
 LOG_STD_MIN = -20
@@ -397,6 +397,7 @@ class MyActorModule(TorchActorModule):
     """
     Directly adapted from the Spinup implementation of SAC
     """
+
     def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU):
         super().__init__(observation_space, action_space)
         dim_obs = sum(prod(s for s in space.shape) for space in observation_space)
@@ -822,7 +823,7 @@ Let us implement our own `TorchMemory`.
 
 ```python
 import random
-from tmrl.memory import TorchMemory
+from tmrl.torch.memory import TorchMemory
 
 
 class MyMemory(TorchMemory):
@@ -1113,7 +1114,7 @@ Again, here, we simply adapt the SAC implementation from Spinup, but of course y
 
 ```python
 from tmrl.training import TrainingAgent
-from tmrl.custom.utils.nn import copy_shared, no_grad
+from tmrl.custom.torch.utils.nn import copy_shared, no_grad
 from tmrl.util import cached_property
 from torch.optim import Adam
 from copy import deepcopy
@@ -1306,7 +1307,8 @@ In particular, `profiling` enables profiling training (but this doesn't work wel
 We finally have our training class:
 
 ```python
-from tmrl.training_offline import TorchTrainingOffline
+
+from tmrl.torch.training_offline import TorchTrainingOffline
 
 training_cls = partial(
     TorchTrainingOffline,
