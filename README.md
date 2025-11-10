@@ -66,6 +66,7 @@
 - [Sponsors](#sponsors)
 
 
+
 # The TMRL project
 
 ## Introduction
@@ -161,160 +162,29 @@ Follow the link for information about the competition, including the current lea
 Regardless of whether they want to compete or not, ML developers will find the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/tuto/competition/custom_actor_module.py) handy for creating advanced training pipelines in TrackMania.
 
 ## TrackMania Gymnasium environment
-In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
+
+`tmrl` provides a Real-Time Gym environment for TrackMania that can be easily integrated into your own existing training gymnasium framework using the `get_environment()` method.
 
 _(NB: the game needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
+
+You can access the environment in your own code with:
 ```python
 from tmrl import get_environment
-from time import sleep
-import numpy as np
-
-# LIDAR observations are of shape: ((1,), (4, 19), (3,), (3,))
-# representing: (speed, 4 last LIDARs, 2 previous actions)
-# actions are [gas, break, steer], analog between -1.0 and +1.0
-def model(obs):
-    """
-    simplistic policy for LIDAR observations
-    """
-    deviation = obs[1].mean(0)
-    deviation /= (deviation.sum() + 0.001)
-    steer = 0
-    for i in range(19):
-        steer += (i - 9) * deviation[i]
-    steer = - np.tanh(steer * 4)
-    steer = min(max(steer, -1.0), 1.0)
-    return np.array([1.0, 0.0, steer])
-
-# Let us retrieve the TMRL Gymnasium environment.
-# The environment you get from get_environment() depends on the content of config.json
-env = get_environment()
-
-sleep(1.0)  # just so we have time to focus the TM20 window after starting the script
-
-obs, info = env.reset()  # reset environment
-for _ in range(200):  # rtgym ensures this runs at 20Hz by default
-    act = model(obs)  # compute action
-    obs, rew, terminated, truncated, info = env.step(act)  # step (rtgym ensures healthy time-steps)
-    if terminated or truncated:
-        break
-env.unwrapped.wait()  # rtgym-specific method to artificially 'pause' the environment when needed
+env = get_environment()  # Returns a Gymnasium-compatible environment
+obs, info = env.reset()
+obs, reward, terminated, truncated, info = env.step(action)
 ```
 
-The environment flavor can be chosen and customized by changing the content of the `ENV` entry in `TmrlData\config\config.json`:
+The environment supports multiple observation spaces:
 
-_(NB: do not copy-paste the examples, comments are not supported in vanilla .json files)_
+- **TM20FULL** - Raw screenshots (for CNN-based policies)
+- **TM20LIDAR** - 19-beam LIDAR measurements (for simple tracks)
+- **TM20LIDARPROGRESS** - LIDAR + track progress information
 
-### Full environment:
-This version of the environment features full screenshots to be processed with, e.g., a CNN.
-In addition, this version features the speed, gear and RPM.
-This works on any track, using any (sensible) camera configuration.
+All observations include velocity and action history. Actions use the format `[gas, brake, steer]` where gas/brake are binary (0 or 1) and steering is analog (-1.0 to 1.0).
 
-```json5
-{
-  "ENV": {
-    "RTGYM_INTERFACE": "TM20FULL",  // TrackMania 2020 with full screenshots
-    "WINDOW_WIDTH": 256,  // width of the game window (min: 256)
-    "WINDOW_HEIGHT": 128,  // height of the game window (min: 128)
-    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
-    "IMG_HIST_LEN": 4,  // length of the history of images in observations (set to 1 for RNNs)
-    "IMG_WIDTH": 64,  // actual (resized) width of the images in observations
-    "IMG_HEIGHT": 64,  // actual (resized) height of the images in observations
-    "IMG_GRAYSCALE": true,  // true for grayscale images, false for color images
-    "RTGYM_CONFIG": {
-      "time_step_duration": 0.05,  // duration of a time step
-      "start_obs_capture": 0.04,  // duration before an observation is captured
-      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
-      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
-      "benchmark": false,  // enables benchmarking your environment when true
-      "wait_on_done": true,  // true
-      "ep_max_length": 1000  // episodes are truncated after this number of time steps
-    },
-    "REWARD_CONFIG": {
-      "END_OF_TRACK": 100.0,  // reward for reaching the finish line
-      "CONSTANT_PENALTY": 0.0,  // constant reward at every time-step
-      "CHECK_FORWARD": 500,  // maximum computed cut from last point
-      "CHECK_BACKWARD": 10,  // maximum computed backtracking from last point
-      "FAILURE_COUNTDOWN": 10,  // early termination after this number time steps
-      "MIN_STEPS": 70,  // number of time steps before early termination kicks in
-      "MAX_STRAY": 100.0  // early termination if further away from the demo trajectory
-    }
-  }
-}
-```
-Note that human players can see or hear the features provided by this environment: we provide no "cheat" that would render the approach non-transferable to the real world.
-In case you do wish to cheat, though, you can easily take inspiration from our [rtgym interfaces](https://github.com/trackmania-rl/tmrl/blob/master/tmrl/custom/tm/tm_gym_interfaces.py) to build your own custom environment for TrackMania.
+For comprehensive setup instructions, detailed observation structures, configuration examples, and common troubleshooting, please refer to the [TrackMania Gymnasium Environment Guide](readme/tmrl_gym_environment.md).
 
-The `Full` environment is used in the official [TMRL competition](https://github.com/trackmania-rl/tmrl/blob/master/readme/competition.md), and custom environments are featured in the "off" competition :wink:
-
-### LIDAR environment:
-In this version of the environment, screenshots are reduced to 19-beam LIDARs to be processed with, e.g., an MLP.
-In addition, this version features the speed (that human players can see).
-This works only on plain road with black borders, using the front camera with car hidden.
-```json5
-{
-  "ENV": {
-    "RTGYM_INTERFACE": "TM20LIDAR",  // TrackMania 2020 with LIDAR observations
-    "WINDOW_WIDTH": 958,  // width of the game window (min: 256)
-    "WINDOW_HEIGHT": 488,  // height of the game window (min: 128)
-    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
-    "IMG_HIST_LEN": 4,  // length of the history of LIDAR measurements in observations (set to 1 for RNNs)
-    "RTGYM_CONFIG": {
-      "time_step_duration": 0.05,  // duration of a time step
-      "start_obs_capture": 0.04,  // duration before an observation is captured
-      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
-      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
-      "benchmark": false,  // enables benchmarking your environment when true
-      "wait_on_done": true,  // true
-      "ep_max_length": 1000  // episodes are truncated after this number of time steps
-    },
-    "REWARD_CONFIG": {
-      "END_OF_TRACK": 100.0,  // reward for reaching the finish line
-      "CONSTANT_PENALTY": 0.0,  // constant reward at every time-step
-      "CHECK_FORWARD": 500,  // maximum computed cut from last point
-      "CHECK_BACKWARD": 10,  // maximum computed backtracking from last point
-      "FAILURE_COUNTDOWN": 10,  // early termination after this number time steps
-      "MIN_STEPS": 70,  // number of time steps before early termination kicks in
-      "MAX_STRAY": 100.0  // early termination if further away from the demo trajectory
-    }
-  }
-}
-```
-
-### LIDAR with track progress
-
-If you have watched the [2022-06-08 episode](https://www.youtube.com/watch?v=c1xq7iJ3f9E) of the Underscore_ talk show (french), note that the policy you have seen has been trained in a slightly augmented version of the LIDAR environment: on top of LIDAR and speed value, we have added a value representing the percentage of completion of the track, so that the model can know the turns in advance similarly to humans practicing a given track.
-This environment will not be accepted in the competition, as it is de-facto less generalizable.
-However, if you wish to use this environment, e.g., to beat our results, you can use the following `config.json`:
-
-```json5
-{
-  "ENV": {
-    "RTGYM_INTERFACE": "TM20LIDARPROGRESS",  // TrackMania 2020 with LIDAR and percentage of completion
-    "WINDOW_WIDTH": 958,  // width of the game window (min: 256)
-    "WINDOW_HEIGHT": 488,  // height of the game window (min: 128)
-    "SLEEP_TIME_AT_RESET": 1.5,  // the environment sleeps for this amount of time after each reset
-    "IMG_HIST_LEN": 4,  // length of the history of LIDAR measurements in observations (set to 1 for RNNs)
-    "RTGYM_CONFIG": {
-      "time_step_duration": 0.05,  // duration of a time step
-      "start_obs_capture": 0.04,  // duration before an observation is captured
-      "time_step_timeout_factor": 1.0,  // maximum elasticity of a time step
-      "act_buf_len": 2,  // length of the history of actions in observations (set to 1 for RNNs)
-      "benchmark": false,  // enables benchmarking your environment when true
-      "wait_on_done": true,  // true
-      "ep_max_length": 1000  // episodes are truncated after this number of time steps
-    },
-    "REWARD_CONFIG": {
-      "END_OF_TRACK": 100.0,  // reward for reaching the finish line
-      "CONSTANT_PENALTY": 0.0,  // constant reward at every time-step
-      "CHECK_FORWARD": 500,  // maximum computed cut from last point
-      "CHECK_BACKWARD": 10,  // maximum computed backtracking from last point
-      "FAILURE_COUNTDOWN": 10,  // early termination after this number time steps
-      "MIN_STEPS": 70,  // number of time steps before early termination kicks in
-      "MAX_STRAY": 100.0  // early termination if further away from the demo trajectory
-    }
-  }
-}
-```
 
 ## TrackMania training details
 

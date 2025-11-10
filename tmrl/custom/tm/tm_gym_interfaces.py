@@ -201,7 +201,7 @@ class TM2020Interface(RealTimeGymInterface):
         imgs = np.array(list(self.img_hist))
         obs = [speed, gear, rpm, imgs]
         end_of_track = bool(data[8])
-        info = {}
+        info = {'reached_finishline': end_of_track}
         if end_of_track:
             terminated = True
             rew += self.finish_reward
@@ -284,7 +284,7 @@ class TM2020InterfaceLidar(TM2020Interface):
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, imgs]
         end_of_track = bool(data[8])
-        info = {}
+        info = {'reached_finishline': end_of_track}
         if end_of_track:
             rew += self.finish_reward
             terminated = True
@@ -332,7 +332,7 @@ class TM2020InterfaceLidarProgress(TM2020InterfaceLidar):
         imgs = np.array(list(self.img_hist), dtype='float32')
         obs = [speed, progress, imgs]
         end_of_track = bool(data[8])
-        info = {}
+        info = {'reached_finishline': end_of_track}
         if end_of_track:
             rew += self.finish_reward
             terminated = True
