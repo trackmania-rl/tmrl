@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import pickle
 
+
 __docformat__ = "google"
 
 
@@ -47,7 +48,7 @@ class ActorModule(ABC):
 
         This method loads your `ActorModule` from the binary file saved by your implementation of `save`
 
-        If not implemented, `load` defaults to returning this output of pickle.load(...).
+        If not implemented, `load` defaults to returning the output of pickle.load(...).
         By default, the `device` argument is ignored (but you may want to use it in your implementation).
 
         You need to override this method if your ActorModule is not picklable.
@@ -84,6 +85,7 @@ class ActorModule(ABC):
     def act(self, obs, test=False):
         """
         Must compute an action from an observation.
+        The output of act() is fed to the step() method of your Gymnasium environment.
         
         Args:
             obs (object): the observation

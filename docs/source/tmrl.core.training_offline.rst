@@ -1,6 +1,6 @@
 tmrl.training\_offline module
 =============================
 
-.. automodule:: tmrl.training_offline
+.. automodule:: tmrl.core.training_offline
    :members:
    :show-inheritance:

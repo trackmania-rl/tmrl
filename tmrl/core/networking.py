@@ -16,10 +16,9 @@ from requests import get
 from tlspyo import Relay, Endpoint
 
 # local imports
-from tmrl.actor import ActorModule
-from tmrl.util import dump, load, partial_to_dict
+from tmrl.core.actor import ActorModule
+from tmrl.core.util import dump, load, partial_to_dict
 import tmrl.config.config_constants as cfg
-import tmrl.config.config_objects as cfg_obj
 
 import logging
 
@@ -349,7 +348,7 @@ class Trainer:
     Typically, it can be located on a HPC cluster.
     """
     def __init__(self,
-                 training_cls=cfg_obj.TRAINER,
+                 training_cls,
                  server_ip=cfg.SERVER_IP_FOR_TRAINER,
                  server_port=cfg.PORT,
                  password=cfg.PASSWORD,
@@ -366,7 +365,7 @@ class Trainer:
                  updater_fn: callable = None):
         """
         Args:
-            training_cls (type): training class (subclass of tmrl.training_offline.TrainingOffline)
+            training_cls (type): training class (subclass of tmrl.core.training_offline.TrainingOffline)
             server_ip (str): ip of the central `Server`
             server_port (int): public port of the central `Server`
             password (str): password of the central `Server`

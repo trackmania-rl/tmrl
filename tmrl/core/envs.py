@@ -1,11 +1,10 @@
 # standard library imports
-from dataclasses import InitVar, dataclass
 
 # third-party imports
 import gymnasium
 
 # local imports
-from tmrl.wrappers import (AffineObservationWrapper, Float64ToFloat32)
+from tmrl.core.wrappers import (AffineObservationWrapper)
 
 
 __docformat__ = "google"

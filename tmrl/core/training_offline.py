@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pandas import DataFrame
 
 # local imports
-from tmrl.util import pandas_dict
+from tmrl.core.util import pandas_dict
 
 import logging
 

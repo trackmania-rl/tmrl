@@ -9,11 +9,11 @@ from threading import Thread
 import time
 
 # TMRL imports:
-from tmrl.networking import Server, RolloutWorker, Trainer
-from tmrl.util import partial
-from tmrl.envs import GenericGymEnv
+from tmrl.core.networking import Server, RolloutWorker, Trainer
+from tmrl.core.util import partial
+from tmrl.core.envs import GenericGymEnv
 import tmrl.config.config_constants as cfg
-from tmrl.torch.training_offline import TorchTrainingOffline
+from tmrl.core.torch.training_offline import TorchTrainingOffline
 from tmrl.custom.torch.custom_algorithms import SpinupSACAgent
 from tmrl.custom.torch.custom_models import SquashedGaussianMLPActor, MLPActorCritic
 from tmrl.custom.torch.custom_memories import GenericTorchMemory

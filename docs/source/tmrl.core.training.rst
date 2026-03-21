@@ -1,6 +1,6 @@
 tmrl.training module
 ====================
 
-.. automodule:: tmrl.training
+.. automodule:: tmrl.core.training
    :members:
    :show-inheritance:

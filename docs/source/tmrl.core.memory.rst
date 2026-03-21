@@ -1,6 +1,6 @@
 tmrl.memory module
 ==================
 
-.. automodule:: tmrl.memory
+.. automodule:: tmrl.core.memory
    :members: Memory
    :show-inheritance:

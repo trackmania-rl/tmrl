@@ -5,7 +5,7 @@ import torch
 
 
 def collate_torch(batch, device=None):
-    """Turns a batch of nested structures with numpy arrays as leaves into into a single element of the same nested structure with batched torch tensors as leaves"""
+    """Turns a batch of nested structures with numpy arrays as leaves into a single element of the same nested structure with batched torch tensors as leaves"""
     elem = batch[0]
     if isinstance(elem, torch.Tensor):
         # return torch.stack(batch, 0).to(device, non_blocking=non_blocking)

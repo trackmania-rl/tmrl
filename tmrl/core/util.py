@@ -2,7 +2,6 @@
 import functools
 import operator
 import inspect
-# import io
 import json
 import os
 import pickle
@@ -10,16 +9,15 @@ import signal
 import subprocess
 import weakref
 from pathlib import Path
-# from contextlib import contextmanager
-# from dataclasses import Field, dataclass, fields, is_dataclass, make_dataclass
 from importlib import import_module
-# from itertools import chain
 from typing import Dict, Type, TypeVar, Union
-# from weakref import WeakKeyDictionary
 
 # third-party imports
 import pandas as pd
+import numpy as np
+
 import logging
+
 
 T = TypeVar('T')  # helps with type inference in some editors
 
@@ -34,7 +32,7 @@ def shallow_copy(obj: T) -> T:
     return x
 
 
-# === catched property =================================================================================================
+# === cached property =================================================================================================
 
 
 # noinspection PyPep8Naming
@@ -58,6 +56,7 @@ class cached_property:
 
 
 # === partial ==========================================================================================================
+
 def default():
     raise ValueError("This is a dummy function and not meant to be called.")
 

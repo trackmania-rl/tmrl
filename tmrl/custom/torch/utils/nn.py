@@ -1,17 +1,16 @@
 # standard library imports
 from copy import deepcopy
-from dataclasses import InitVar, dataclass
 
 # third-party imports
 import numpy as np
 import torch
 from torch.distributions import Distribution, Normal
 from torch.nn import Module
-from torch.nn.init import calculate_gain, kaiming_uniform_, xavier_uniform_
+from torch.nn.init import kaiming_uniform_
 from torch.nn.parameter import Parameter
 
 # local imports
-from tmrl.util import partial
+from tmrl.core.util import partial
 
 
 def detach(x):

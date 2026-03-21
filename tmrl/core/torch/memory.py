@@ -1,7 +1,7 @@
 from abc import ABC
 
-from tmrl.memory import Memory
-from tmrl.torch.util import collate_torch
+from tmrl.core.memory import Memory
+from tmrl.core.torch.util import collate_torch
 
 
 class TorchMemory(Memory, ABC):

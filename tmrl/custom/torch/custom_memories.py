@@ -5,8 +5,8 @@ from typing import List, Tuple
 import numpy as np
 import torch
 
-from tmrl.memory import BaseMemory, check_samples_crc
-from tmrl.torch.memory import TorchMemory
+from tmrl.core.memory import BaseMemory, check_samples_crc
+from tmrl.core.torch.memory import TorchMemory
 
 
 # LOCAL BUFFER COMPRESSION ==============================

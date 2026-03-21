@@ -29,9 +29,8 @@ if platform.system() == "Windows":
 from tmrl.tools.init_package.init_tmrl import TMRL_FOLDER
 
 # do not remove this
-from dataclasses import dataclass
 
-from tmrl.envs import GenericGymEnv
+from tmrl.core.envs import GenericGymEnv
 from tmrl.config.config_objects import CONFIG_DICT
 
 

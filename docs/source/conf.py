@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'tmrl'
-copyright = '2022, Yann Bouteiller'
+copyright = '2019-2025, Yann Bouteiller'
 author = 'Yann Bouteiller'
 
 

@@ -7,9 +7,13 @@ from torch.distributions.normal import Normal
 from math import floor, sqrt
 
 # local imports
-from tmrl.util import prod
-from tmrl.torch.actor import TorchActorModule
+from tmrl.core.util import prod
+from tmrl.core.torch.actor import TorchActorModule
 import tmrl.config.config_constants as cfg
+
+
+LOG_STD_MAX = 2
+LOG_STD_MIN = -20
 
 
 # SUPPORTED ============================================================================================================
@@ -31,7 +35,7 @@ def mlp(sizes, activation, output_activation=nn.Identity, dropout=0.0, layer_nor
         dropout = [dropout, ] * (len(sizes) - 1)
     if not isinstance(layer_norm, list):
         layer_norm = [layer_norm, ] * (len(sizes) - 1)
-    elif len(dropout) != (len(sizes) - 1) or len(layer_norm) != (len(sizes) - 1):
+    if len(dropout) != (len(sizes) - 1) or len(layer_norm) != (len(sizes) - 1):
         raise RuntimeError(f"Invalid argument shapes. sizes:{len(sizes)}, dropout:{len(dropout)}, layer_norm:{len(layer_norm)}")
     for j in range(len(sizes) - 1):
         layer = [nn.Linear(sizes[j], sizes[j + 1])]
@@ -45,12 +49,8 @@ def mlp(sizes, activation, output_activation=nn.Identity, dropout=0.0, layer_nor
     return nn.Sequential(*layers)
 
 
-def count_vars(module):
-    return sum([np.prod(p.shape) for p in module.parameters()])
-
-
-LOG_STD_MAX = 2
-LOG_STD_MIN = -20
+# def count_vars(module):
+#     return sum([np.prod(p.shape) for p in module.parameters()])
 
 
 class SquashedGaussianMLPActor(TorchActorModule):
@@ -70,6 +70,10 @@ class SquashedGaussianMLPActor(TorchActorModule):
         self.act_limit = act_limit
 
     def forward(self, obs, test=False, with_logprob=True):
+        """
+        Note: this function assumes a batch dimension in obs.
+        Obs can be either a simple batched tensor, or a collated tuple of batched tensors.
+        """
         x = torch.cat(obs, -1) if self.tuple_obs else torch.flatten(obs, start_dim=1)
         net_out = self.net(x)
         mu = self.mu_layer(net_out)
@@ -145,13 +149,13 @@ class MLPActorCritic(nn.Module):
         self.q1 = MLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm)
         self.q2 = MLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm)
 
-    def act(self, obs, test=False):
-        with torch.no_grad():
-            a, _ = self.actor(obs, test, False)
-            res = a.squeeze().cpu().numpy()
-            if not len(res.shape):
-                res = np.expand_dims(res, 0)
-            return res
+    # def act(self, obs, test=False):
+    #     with torch.no_grad():
+    #         a, _ = self.actor(obs, test, False)
+    #         res = a.squeeze().cpu().numpy()
+    #         if not len(res.shape):
+    #             res = np.expand_dims(res, 0)
+    #         return res
 
 
 # Ensemble critic MLP: =====================================================
@@ -175,10 +179,10 @@ class REDQMLPActorCritic(nn.Module):
         self.actor = SquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation, layer_norm=actor_layer_norm)
         self.qs = nn.ModuleList([MLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm) for _ in range(self.n)])
 
-    def act(self, obs, test=False):
-        with torch.no_grad():
-            a, _ = self.actor(obs, test, False)
-            return a.squeeze().cpu().numpy()
+    # def act(self, obs, test=False):
+    #     with torch.no_grad():
+    #         a, _ = self.actor(obs, test, False)
+    #         return a.squeeze().cpu().numpy()
 
 
 # CNNs: ================================================================================================================
@@ -339,10 +343,10 @@ class VanillaCNNActorCritic(nn.Module):
         self.q1 = VanillaCNNQFunction(observation_space, action_space, dropout=critic_dropout, layer_norm=critic_layer_norm)
         self.q2 = VanillaCNNQFunction(observation_space, action_space, dropout=critic_dropout, layer_norm=critic_layer_norm)
 
-    def act(self, obs, test=False):
-        with torch.no_grad():
-            a, _ = self.actor(obs, test, False)
-            return a.squeeze().cpu().numpy()
+    # def act(self, obs, test=False):
+    #     with torch.no_grad():
+    #         a, _ = self.actor(obs, test, False)
+    #         return a.squeeze().cpu().numpy()
 
 
 class REDQVanillaCNNActorCritic(nn.Module):
@@ -361,10 +365,10 @@ class REDQVanillaCNNActorCritic(nn.Module):
         self.actor = SquashedGaussianVanillaCNNActor(observation_space, action_space, layer_norm=actor_layer_norm)
         self.qs = nn.ModuleList([VanillaCNNQFunction(observation_space, action_space, dropout=critic_dropout, layer_norm=critic_layer_norm) for _ in range(self.n)])
 
-    def act(self, obs, test=False):
-        with torch.no_grad():
-            a, _ = self.actor(obs, test, False)
-            return a.squeeze().cpu().numpy()
+    # def act(self, obs, test=False):
+    #     with torch.no_grad():
+    #         a, _ = self.actor(obs, test, False)
+    #         return a.squeeze().cpu().numpy()
 
 
 # Vanilla CNN FOR COLOR IMAGES: ========================================================================================
@@ -693,10 +697,10 @@ class EffNetActorCritic(nn.Module):
         self.q1 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
         self.q2 = MLPQFunction(observation_space, action_space, hidden_sizes, activation)
 
-    def act(self, obs, test=False):
-        with torch.no_grad():
-            a, _ = self.actor(obs, test, False)
-            return a.squeeze().cpu().numpy()
+    # def act(self, obs, test=False):
+    #     with torch.no_grad():
+    #         a, _ = self.actor(obs, test, False)
+    #         return a.squeeze().cpu().numpy()
 
 
 # RNN: ==========================================================

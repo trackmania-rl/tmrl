@@ -54,12 +54,12 @@ import tmrl.config.config_constants as cfg
 # Useful classes:
 import tmrl.config.config_objects as cfg_obj
 # The utility that TMRL uses to partially instantiate classes:
-from tmrl.util import partial
+from tmrl.core.util import partial
 # The TMRL three main entities (i.e., the Trainer, the RolloutWorker and the central Server):
-from tmrl.networking import Trainer, RolloutWorker, Server
+from tmrl.core.networking import Trainer, RolloutWorker, Server
 
 # The training class that we will customize with our own training algorithm in this tutorial:
-from tmrl.training_offline import TrainingOffline
+from tmrl.core.training_offline import TrainingOffline
 
 # And a couple external libraries:
 import numpy as np
@@ -238,7 +238,7 @@ LOG_STD_MIN = -20
 # Let us import the ActorModule that we are supposed to implement.
 # We will use PyTorch in this tutorial.
 # TMRL readily provides a PyTorch-specific subclass of ActorModule:
-from tmrl.torch.actor import TorchActorModule
+from tmrl.core.torch import TorchActorModule
 
 # Plus a couple useful imports:
 import torch
@@ -626,12 +626,12 @@ class VanillaCNNActorCritic(nn.Module):
 # this ActorModule. Let us now tackle the training algorithm per-se.
 # In TMRL, this is done by implementing a custom TrainingAgent.
 
-from tmrl.training import TrainingAgent
+from tmrl.core.training import TrainingAgent
 
 # We will also use a couple utilities, and the Adam optimizer:
 
-from tmrl.custom.torch.utils import copy_shared, no_grad
-from tmrl.util import cached_property
+from tmrl.custom.torch.utils.nn import copy_shared, no_grad
+from tmrl.core.util import cached_property
 from copy import deepcopy
 import itertools
 from torch.optim import Adam

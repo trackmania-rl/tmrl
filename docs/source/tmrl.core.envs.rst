@@ -1,6 +1,6 @@
 tmrl.envs module
 ================
 
-.. automodule:: tmrl.envs
+.. automodule:: tmrl.core.envs
    :members: GenericGymEnv
    :show-inheritance:

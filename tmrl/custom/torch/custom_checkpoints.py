@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from tmrl.config import config_constants as cfg
-from tmrl.util import dump, load
+from tmrl.core.util import dump, load
 import logging
 
 

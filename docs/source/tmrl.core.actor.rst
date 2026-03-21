@@ -1,6 +1,6 @@
 tmrl.actor module
 =================
 
-.. automodule:: tmrl.actor
+.. automodule:: tmrl.core.actor
    :members: ActorModule
    :show-inheritance:

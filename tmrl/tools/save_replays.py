@@ -6,9 +6,9 @@ import numpy as np
 # local imports
 import tmrl.config.config_constants as cfg
 import tmrl.config.config_objects as cfg_obj
-from tmrl.envs import GenericGymEnv
-from tmrl.networking import RolloutWorker
-from tmrl.util import partial
+from tmrl.core.envs import GenericGymEnv
+from tmrl.core.networking import RolloutWorker
+from tmrl.core.util import partial
 
 
 def save_replays(nb_replays=np.inf):

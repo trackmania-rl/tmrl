@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 
 
+__docformat__ = "google"
+
+
 class TrainingAgent(ABC):
     """
     Training algorithm.

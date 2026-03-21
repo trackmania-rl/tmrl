@@ -2,8 +2,8 @@ from abc import ABC
 
 import torch
 
-from tmrl.actor import ActorModule
-from tmrl.torch.util import collate_torch
+from tmrl.core.actor import ActorModule
+from tmrl.core.torch.util import collate_torch
 
 
 class TorchActorModule(ActorModule, torch.nn.Module, ABC):
@@ -42,6 +42,9 @@ class TorchActorModule(ActorModule, torch.nn.Module, ABC):
         return self
 
     def act_(self, obs, test=False):
+        """
+        Transforms obs into a tree of torch tensors
+        """
         obs = collate_torch([obs], device=self.device)
         with torch.no_grad():
             action = self.act(obs, test=test)

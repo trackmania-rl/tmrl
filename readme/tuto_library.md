@@ -67,7 +67,7 @@ We use this method a lot in `tmrl`, it enables partially initializing the kwargs
 Import this method into your script:
 
 ```python
-from tmrl.util import partial
+from tmrl.core.util import partial
 ```
 
 The method can then be used as:
@@ -148,7 +148,7 @@ _(NB: the `Server` does not know this, it listens to any incoming connection)_.
 Instantiating a `Server` object is straightforward:
 
 ```python
-from tmrl.networking import Server
+from tmrl.core.networking import Server
 
 # tmrl Server
 
@@ -328,10 +328,10 @@ Furthermore, this Gymnasium environment needs to be wrapped in the `GenericGymEn
 With our dummy drone environment, this translates to:
 
 ```python
-from tmrl.util import partial
-from tmrl.envs import GenericGymEnv
+from tmrl.core.util import partial
+from tmrl.core.envs import GenericGymEnv
 
-env_cls=partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_config})
+env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_config})
 ```
 
 We can create a dummy environment to retrieve the action and observation spaces:
@@ -376,8 +376,8 @@ Here, we basically copy-paste the implementation of the SAC MLP actor from [Open
 
 ```python
 
-from tmrl.torch.actor import TorchActorModule
-from tmrl.util import prod
+from tmrl.core.torch import TorchActorModule
+from tmrl.core.util import prod
 import torch
 import torch.nn.functional as F
 
@@ -573,7 +573,7 @@ We will see how to use it at the end of this tutorial, you can ignore it for now
 Now we can instantiate a `RolloutWorker`:
 
 ```python
-from tmrl.networking import RolloutWorker
+from tmrl.core.networking import RolloutWorker
 
 my_worker = RolloutWorker(
     env_cls=env_cls,
@@ -647,7 +647,7 @@ import tmrl.config.config_objects as cfg_obj
 
 class Trainer:
     def __init__(self,
-                 training_cls=cfg_obj.TRAINER,
+                 training_cls,
                  server_ip=cfg.SERVER_IP_FOR_TRAINER,
                  server_port=cfg.PORT,
                  password=cfg.PASSWORD,
@@ -729,8 +729,8 @@ _(Note: be careful when pairing `max_training_steps_per_env_step` with a similar
 `env_cls`: Most of the time, the dummy environment class that you need to pass here is the same class as for the `RolloutWorker` Gymnasium environment:
 
 ```python
-from tmrl.util import partial
-from tmrl.envs import GenericGymEnv
+from tmrl.core.util import partial
+from tmrl.core.envs import GenericGymEnv
 
 env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_config})
 ```
@@ -823,7 +823,7 @@ Let us implement our own `TorchMemory`.
 
 ```python
 import random
-from tmrl.torch.memory import TorchMemory
+from tmrl.core.torch.memory import TorchMemory
 
 
 class MyMemory(TorchMemory):
@@ -1113,9 +1113,9 @@ Our custom `TrainingAgent` subclass must take the aforementioned args/kwargs, an
 Again, here, we simply adapt the SAC implementation from Spinup, but of course you can implement whatever you want instead:
 
 ```python
-from tmrl.training import TrainingAgent
+from tmrl.core.training import TrainingAgent
 from tmrl.custom.torch.utils.nn import copy_shared, no_grad
-from tmrl.util import cached_property
+from tmrl.core.util import cached_property
 from torch.optim import Adam
 from copy import deepcopy
 import itertools
@@ -1308,7 +1308,7 @@ We finally have our training class:
 
 ```python
 
-from tmrl.torch.training_offline import TorchTrainingOffline
+from tmrl.core.torch.training_offline import TorchTrainingOffline
 
 training_cls = partial(
     TorchTrainingOffline,
@@ -1330,7 +1330,7 @@ training_cls = partial(
 We can now instantiate our `Trainer`.
 
 ```python
-from tmrl.networking import Trainer
+from tmrl.core.networking import Trainer
 
 my_trainer = Trainer(
     training_cls=training_cls,

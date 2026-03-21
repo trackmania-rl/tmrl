@@ -1,6 +1,6 @@
 import torch
 
-from tmrl.training_offline import TrainingOffline
+from tmrl.core.training_offline import TrainingOffline
 
 
 class TorchTrainingOffline(TrainingOffline):
