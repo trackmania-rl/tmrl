@@ -164,26 +164,29 @@ Regardless of whether they want to compete or not, ML developers will find the [
 In case you only wish to use the `tmrl` Real-Time Gym environment for TrackMania in your own training framework, this is made possible by the `get_environment()` method:
 
 _(NB: the game needs to be set up as described in the [getting started](readme/get_started.md) instructions)_
+
 ```python
-from tmrl import get_environment
+from custom_tmrl import get_environment
 from time import sleep
 import numpy as np
+
 
 # LIDAR observations are of shape: ((1,), (4, 19), (3,), (3,))
 # representing: (speed, 4 last LIDARs, 2 previous actions)
 # actions are [gas, break, steer], analog between -1.0 and +1.0
 def model(obs):
-    """
-    simplistic policy for LIDAR observations
-    """
-    deviation = obs[1].mean(0)
-    deviation /= (deviation.sum() + 0.001)
-    steer = 0
-    for i in range(19):
-        steer += (i - 9) * deviation[i]
-    steer = - np.tanh(steer * 4)
-    steer = min(max(steer, -1.0), 1.0)
-    return np.array([1.0, 0.0, steer])
+  """
+  simplistic policy for LIDAR observations
+  """
+  deviation = obs[1].mean(0)
+  deviation /= (deviation.sum() + 0.001)
+  steer = 0
+  for i in range(19):
+    steer += (i - 9) * deviation[i]
+  steer = - np.tanh(steer * 4)
+  steer = min(max(steer, -1.0), 1.0)
+  return np.array([1.0, 0.0, steer])
+
 
 # Let us retrieve the TMRL Gymnasium environment.
 # The environment you get from get_environment() depends on the content of config.json

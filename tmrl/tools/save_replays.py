@@ -1,34 +1,48 @@
-from argparse import ArgumentParser
+"""Save TrackMania replays by running a standalone rollout worker with save_replays enabled."""
 
-# third-party imports
+from dataclasses import dataclass
+
 import numpy as np
+import tyro
 
-# local imports
-import tmrl.config.config_constants as cfg
+import tmrl.config as cfg
 import tmrl.config.config_objects as cfg_obj
 from tmrl.envs import GenericGymEnv
 from tmrl.networking import RolloutWorker
 from tmrl.util import partial
 
 
-def save_replays(nb_replays=np.inf):
-    config = cfg_obj.CONFIG_DICT
-    config['interface_kwargs'] = {'save_replays': True}
-    rw = RolloutWorker(env_cls=partial(GenericGymEnv, id=cfg.RTGYM_VERSION, gym_kwargs={"config": config}),
-                       actor_module_cls=partial(cfg_obj.POLICY),
-                       sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
-                       device='cuda' if cfg.CUDA_INFERENCE else 'cpu',
-                       server_ip=cfg.SERVER_IP_FOR_WORKER,
-                       model_path=cfg.MODEL_PATH_WORKER,
-                       obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
-                       crc_debug=cfg.CRC_DEBUG,
-                       standalone=True)
+@dataclass
+class SaveReplaysCli:
+    """CLI for saving a fixed number of replays."""
 
-    rw.run_episodes(10000, nb_episodes=nb_replays)
+    nb_replays: int = 0
+    """Number of replays to record (0 = unlimited)."""
+
+
+def save_replays(nb_replays: float = np.inf) -> None:
+    """Run a standalone worker that saves TrackMania replays.
+
+    Args:
+        nb_replays: Maximum number of replays to save (default: no limit).
+    """
+    env_config = cfg_obj.CONFIG_DICT.copy()
+    env_config["interface_kwargs"] = {"save_replays": True}
+    rollout_worker = RolloutWorker(
+        env_cls=partial(GenericGymEnv, id=cfg.RTGYM_VERSION, gym_kwargs={"config": env_config}),
+        actor_module_cls=partial(cfg_obj.POLICY),
+        sample_compressor=cfg_obj.SAMPLE_COMPRESSOR,
+        device="cuda" if cfg.CUDA_INFERENCE else "cpu",
+        server_ip=cfg.SERVER_IP_FOR_WORKER,
+        model_path=cfg.MODEL_PATH_WORKER,
+        obs_preprocessor=cfg_obj.OBS_PREPROCESSOR,
+        crc_debug=cfg.CRC_DEBUG,
+        standalone=True,
+    )
+    limit = int(nb_replays) if nb_replays else np.inf
+    rollout_worker.run_episodes(10000, nb_episodes=limit)
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument('--nb_replays', type=int, default=np.inf, help='number of replays to record')
-    args = parser.parse_args()
-    save_replays(args.nb_replays)
+    cli = tyro.cli(SaveReplaysCli)
+    save_replays(np.inf if cli.nb_replays == 0 else float(cli.nb_replays))

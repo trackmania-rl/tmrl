@@ -82,6 +82,9 @@ instance/
 # Sphinx documentation
 docs/source/_build/
 
+# Reports and analysis files (not part of Sphinx docs)
+docs/reports/
+
 # PyBuilder
 target/
 
@@ -104,6 +107,9 @@ celerybeat-schedule
 # Environments
 .env
 .venv
+.venv-linux/
+.venv-windows/
+.venv_fetch/
 env/
 venv/
 ENV/
@@ -125,4 +131,18 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-*.idea
+plotRewardPoints.py
+
+# Generated output
+output_files/
+
+# Cursor workspace artifacts
+.cursor/
+.cursor-scripts/
+
+# Experiment tracking artifacts (wandb)
+wandb/
+tmrl/wandb/
+**/wandb/
+
+config.json

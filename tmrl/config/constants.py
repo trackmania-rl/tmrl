@@ -1,0 +1,391 @@
+"""Derived configuration constants.
+
+This module contains all configuration constants derived from the loaded
+TMRL configuration, organized by category.
+"""
+
+from __future__ import annotations
+
+import os
+import pickle
+
+from loguru import logger
+
+from tmrl.config.loader import (
+    DEBUGGER_CONFIG,
+    ENV_CONFIG,
+    TMRL_CONFIG,
+)
+from tmrl.config.paths import PLAYER_RUNS_FOLDER, REWARD_PATH
+from tmrl.config.spacing_lookahead import (
+    points_number_from_spacing_config,
+    polyline_arc_length_m,
+)
+
+# =============================================================================
+# Run Configuration
+# =============================================================================
+
+RUN_NAME = TMRL_CONFIG["RUN_NAME"]
+BUFFERS_MAXLEN = TMRL_CONFIG["BUFFERS_MAXLEN"]
+RW_MAX_SAMPLES_PER_EPISODE = TMRL_CONFIG["RW_MAX_SAMPLES_PER_EPISODE"]
+RW_TEST_EPISODE_INTERVAL = TMRL_CONFIG["RW_TEST_EPISODE_INTERVAL"]
+RW_TEST_EPISODES_PER_EVAL = TMRL_CONFIG["RW_TEST_EPISODES_PER_EVAL"]
+
+# =============================================================================
+# Hardware Configuration
+# =============================================================================
+
+CUDA_TRAINING = TMRL_CONFIG["CUDA_TRAINING"]
+CUDA_INFERENCE = TMRL_CONFIG["CUDA_INFERENCE"]
+USE_VIRTUAL_GAMEPAD = TMRL_CONFIG["VIRTUAL_GAMEPAD"]
+USE_RNN = False  # Legacy flag
+
+PRAGMA_RNN = USE_RNN
+PRAGMA_GAMEPAD = USE_VIRTUAL_GAMEPAD
+
+# =============================================================================
+# Network Configuration
+# =============================================================================
+
+LOCALHOST_WORKER = TMRL_CONFIG["LOCALHOST_WORKER"]
+LOCALHOST_TRAINER = TMRL_CONFIG["LOCALHOST_TRAINER"]
+PUBLIC_IP_SERVER = TMRL_CONFIG["PUBLIC_IP_SERVER"]
+SERVER_IP_FOR_WORKER = PUBLIC_IP_SERVER if not LOCALHOST_WORKER else "127.0.0.1"
+SERVER_IP_FOR_TRAINER = PUBLIC_IP_SERVER if not LOCALHOST_TRAINER else "127.0.0.1"
+
+PORT = TMRL_CONFIG["PORT"]
+LOCAL_PORT_SERVER = TMRL_CONFIG["LOCAL_PORT_SERVER"]
+LOCAL_PORT_TRAINER = TMRL_CONFIG["LOCAL_PORT_TRAINER"]
+LOCAL_PORT_WORKER = TMRL_CONFIG["LOCAL_PORT_WORKER"]
+PASSWORD = TMRL_CONFIG["PASSWORD"]
+SECURITY = "TLS" if TMRL_CONFIG["TLS"] else None
+CREDENTIALS_DIRECTORY = (
+    TMRL_CONFIG["TLS_CREDENTIALS_DIRECTORY"]
+    if TMRL_CONFIG.get("TLS_CREDENTIALS_DIRECTORY") != ""
+    else None
+)
+HOSTNAME = TMRL_CONFIG["TLS_HOSTNAME"]
+NB_WORKERS = None if TMRL_CONFIG["NB_WORKERS"] < 0 else TMRL_CONFIG["NB_WORKERS"]
+BUFFER_SIZE = TMRL_CONFIG["BUFFER_SIZE"]
+HEADER_SIZE = TMRL_CONFIG["HEADER_SIZE"]
+PRINT_BYTESIZES = True
+
+# =============================================================================
+# Weights & Biases Configuration
+# =============================================================================
+
+WANDB_RUN_ID = RUN_NAME
+WANDB_PROJECT = TMRL_CONFIG["WANDB_PROJECT"]
+WANDB_ENTITY = TMRL_CONFIG["WANDB_ENTITY"]
+WANDB_KEY = TMRL_CONFIG["WANDB_KEY"]
+WANDB_GRADIENTS = TMRL_CONFIG["WANDB_GRADIENTS"]
+WANDB_DEBUG_REWARD = TMRL_CONFIG["WANDB_DEBUG_REWARD"]
+WANDB_WORKER = TMRL_CONFIG.get("WANDB_WORKER", True)
+
+
+def ensure_wandb_api_key() -> None:
+    """Set WANDB_API_KEY in os.environ if not already present.
+
+    Call this before wandb.init() instead of mutating os.environ at import time.
+    """
+    if "WANDB_API_KEY" not in os.environ and WANDB_KEY:
+        os.environ["WANDB_API_KEY"] = WANDB_KEY
+
+
+# =============================================================================
+# Model Architecture Configuration
+# =============================================================================
+
+MODEL_CONFIG = TMRL_CONFIG["MODEL"]
+MODEL_HISTORY = MODEL_CONFIG["SAVE_MODEL_EVERY"]
+BEST_CHECKPOINT_CRITERION = MODEL_CONFIG.get("BEST_CHECKPOINT_CRITERION", "eval")
+BEST_CHECKPOINT_LAP_TIME = MODEL_CONFIG.get("BEST_CHECKPOINT_LAP_TIME", True)
+BEST_CHECKPOINT_MIN_FINISHES = MODEL_CONFIG.get("BEST_CHECKPOINT_MIN_FINISHES")
+COMPETITION_EVAL_CRASH_PENALTY_S = float(MODEL_CONFIG.get("COMPETITION_EVAL_CRASH_PENALTY_S", 10.0))
+COMPETITION_EVAL_MAX_CRASHES = int(MODEL_CONFIG.get("COMPETITION_EVAL_MAX_CRASHES", 3))
+
+# Training loop
+MAX_EPOCHS = MODEL_CONFIG["MAX_EPOCHS"]
+ROUNDS_PER_EPOCH = MODEL_CONFIG["ROUNDS_PER_EPOCH"]
+TRAINING_STEPS_PER_ROUND = MODEL_CONFIG["TRAINING_STEPS_PER_ROUND"]
+MAX_TRAINING_STEPS_PER_ENVIRONMENT_STEP = MODEL_CONFIG["MAX_TRAINING_STEPS_PER_ENVIRONMENT_STEP"]
+ENVIRONMENT_STEPS_BEFORE_TRAINING = MODEL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"]
+UPDATE_MODEL_INTERVAL = MODEL_CONFIG["UPDATE_MODEL_INTERVAL"]
+UPDATE_BUFFER_INTERVAL = MODEL_CONFIG["UPDATE_BUFFER_INTERVAL"]
+
+# Memory
+MEMORY_SIZE = MODEL_CONFIG["MEMORY_SIZE"]
+BATCH_SIZE = MODEL_CONFIG["BATCH_SIZE"]
+BATCHES_PER_STEP = MODEL_CONFIG["BATCHES_PER_STEP"]
+
+# Scheduler
+SCHEDULER_CONFIG = MODEL_CONFIG["SCHEDULER"]
+
+# Architecture - CNN
+CNN_FILTERS = MODEL_CONFIG["CNN_FILTERS"]
+CNN_OUTPUT_SIZE = MODEL_CONFIG["CNN_OUTPUT_SIZE"]
+
+# Architecture - RNN
+RNN_LENS = MODEL_CONFIG["RNN_LENS"]
+RNN_SIZES = MODEL_CONFIG["RNN_SIZES"]
+
+# Architecture - MLP
+API_MLP_SIZES = MODEL_CONFIG["API_MLP_SIZES"]
+API_LAYERNORM = MODEL_CONFIG["API_LAYERNORM"]
+MLP_LAYERNORM = MODEL_CONFIG["MLP_LAYERNORM"]
+
+# Architecture - Regularization
+NOISY_LINEAR_CRITIC = MODEL_CONFIG["NOISY_LINEAR_CRITIC"]
+NOISY_LINEAR_ACTOR = MODEL_CONFIG["NOISY_LINEAR_ACTOR"]
+OUTPUT_DROPOUT = MODEL_CONFIG["OUTPUT_DROPOUT"]
+RNN_DROPOUT = MODEL_CONFIG["RNN_DROPOUT"]
+
+# Architecture - Residual MLP
+USE_RESIDUAL_MLP = MODEL_CONFIG.get("USE_RESIDUAL_MLP", False)
+RESIDUAL_MLP_HIDDEN_DIM = MODEL_CONFIG.get("RESIDUAL_MLP_HIDDEN_DIM", 256)
+RESIDUAL_MLP_NUM_BLOCKS = MODEL_CONFIG.get("RESIDUAL_MLP_NUM_BLOCKS", 6)
+_RESIDUAL_MLP_NUM_BLOCKS_ACTOR = MODEL_CONFIG.get("RESIDUAL_MLP_NUM_BLOCKS_ACTOR", 0)
+_RESIDUAL_MLP_NUM_BLOCKS_CRITIC = MODEL_CONFIG.get("RESIDUAL_MLP_NUM_BLOCKS_CRITIC", 0)
+RESIDUAL_MLP_NUM_BLOCKS_ACTOR = (
+    _RESIDUAL_MLP_NUM_BLOCKS_ACTOR
+    if _RESIDUAL_MLP_NUM_BLOCKS_ACTOR > 0
+    else RESIDUAL_MLP_NUM_BLOCKS
+)
+RESIDUAL_MLP_NUM_BLOCKS_CRITIC = (
+    _RESIDUAL_MLP_NUM_BLOCKS_CRITIC
+    if _RESIDUAL_MLP_NUM_BLOCKS_CRITIC > 0
+    else RESIDUAL_MLP_NUM_BLOCKS
+)
+
+# Architecture - Sophy/Track
+USE_RESIDUAL_SOPHY = MODEL_CONFIG.get("USE_RESIDUAL_SOPHY", False)
+USE_TRACK_CONV1D = MODEL_CONFIG.get("USE_TRACK_CONV1D", True)
+USE_SIMBAV2 = MODEL_CONFIG.get("USE_SIMBAV2", False)
+TRACK_ENCODER = MODEL_CONFIG.get("TRACK_ENCODER", "conv1d")
+GNN_LAYERS = MODEL_CONFIG.get("GNN_LAYERS", 3)
+GNN_HIDDEN = MODEL_CONFIG.get("GNN_HIDDEN", 64)
+
+# Architecture - RNN variants
+USE_RNN_MODEL = MODEL_CONFIG.get("USE_RNN", False)
+_RNN_HIDDEN_SIZE = MODEL_CONFIG.get("RNN_HIDDEN_SIZE", 0)
+RNN_HIDDEN_SIZE = _RNN_HIDDEN_SIZE if _RNN_HIDDEN_SIZE > 0 else RESIDUAL_MLP_HIDDEN_DIM
+
+# Architecture - EfficientNet
+USE_EFFICIENTNET = MODEL_CONFIG.get("USE_EFFICIENTNET", True)
+USE_FROZEN_EFFNET = MODEL_CONFIG.get("USE_FROZEN_EFFNET", False)
+FROZEN_EFFNET_EMBED_DIM = MODEL_CONFIG.get("FROZEN_EFFNET_EMBED_DIM", 256)
+FROZEN_EFFNET_WIDTH_MULT = MODEL_CONFIG.get("FROZEN_EFFNET_WIDTH_MULT", 0.5)
+FROZEN_EFFNET_VARIANT = MODEL_CONFIG.get("FROZEN_EFFNET_VARIANT", "xs")
+FROZEN_EFFNET_USE_DW_STEM = MODEL_CONFIG.get("FROZEN_EFFNET_USE_DW_STEM", False)
+
+# Architecture - Action space
+BINARY_BRAKE = MODEL_CONFIG.get("BINARY_BRAKE", False)
+
+# =============================================================================
+# Environment Configuration
+# =============================================================================
+
+RTGYM_INTERFACE = str(ENV_CONFIG["RTGYM_INTERFACE"]).upper()
+
+# Interface flags
+USE_LIDAR_OBSERVATIONS = RTGYM_INTERFACE.endswith("LIDAR")
+USE_CUSTOM_BACKBONE = RTGYM_INTERFACE.endswith("MOBILEV3") or RTGYM_INTERFACE.endswith("CUSTOM")
+USE_LIDAR_PROGRESS = RTGYM_INTERFACE.endswith("LIDARPROGRESS")
+USE_LIDAR_PROGRESS_IMAGES = "LIDARPROGRESSIMAGES" in RTGYM_INTERFACE
+USE_TRACKMAP = RTGYM_INTERFACE.endswith("TRACKMAP")
+USE_TRACKMAP_IMAGES = "TRACKMAPIMAGES" in RTGYM_INTERFACE
+USE_BEST_INTERFACE = RTGYM_INTERFACE.endswith("BEST")
+USE_BEST_TQC = RTGYM_INTERFACE.endswith("BEST_TQC")
+USE_MBEST_TQC = RTGYM_INTERFACE.endswith("MTQC")
+USE_TQC_GRAB = "TQCGRAB" in RTGYM_INTERFACE
+USE_TQC_GRAB_IMAGES = "TQCGRAB_IMAGES" in RTGYM_INTERFACE
+
+# Pragma flags (for conditional code paths)
+PRAGMA_LIDAR = USE_LIDAR_OBSERVATIONS
+PRAGMA_CUSTOM = USE_CUSTOM_BACKBONE
+PRAGMA_PROGRESS = USE_LIDAR_PROGRESS
+PRAGMA_LIDAR_PROGRESS_IMAGES = USE_LIDAR_PROGRESS_IMAGES
+PRAGMA_TRACKMAP = USE_TRACKMAP
+PRAGMA_TRACKMAP_IMAGES = USE_TRACKMAP_IMAGES
+PRAGMA_BEST = USE_BEST_INTERFACE
+PRAGMA_BEST_TQC = USE_BEST_TQC
+PRAGMA_MBEST_TQC = USE_MBEST_TQC
+PRAGMA_TQC_GRAB = USE_TQC_GRAB
+PRAGMA_TQC_GRAB_IMAGES = USE_TQC_GRAB_IMAGES
+
+# Propagate lidar flag
+if USE_LIDAR_PROGRESS or USE_TRACKMAP or USE_LIDAR_PROGRESS_IMAGES or USE_TRACKMAP_IMAGES:
+    USE_LIDAR_OBSERVATIONS = True
+    PRAGMA_LIDAR = True
+
+# Environment parameters
+SEED = ENV_CONFIG["SEED"]
+MIN_NB_ZERO_REW_BEFORE_FAILURE = ENV_CONFIG["MIN_NB_ZERO_REW_BEFORE_FAILURE"]
+MAX_NB_ZERO_REW_BEFORE_FAILURE = ENV_CONFIG["MAX_NB_ZERO_REW_BEFORE_FAILURE"]
+MIN_NB_STEPS_BEFORE_FAILURE = ENV_CONFIG["MIN_NB_STEPS_BEFORE_FAILURE"]
+MAX_NB_STEPS_BEFORE_FAILURE = MIN_NB_STEPS_BEFORE_FAILURE  # Alias for backward compatibility
+OSCILLATION_PERIOD = ENV_CONFIG["OSCILLATION_PERIOD"]
+NB_OBS_FORWARD = ENV_CONFIG["NB_OBS_FORWARD"]
+CRASH_PENALTY = ENV_CONFIG["CRASH_PENALTY"]
+CRASH_COOLDOWN = ENV_CONFIG["CRASH_COOLDOWN"]
+CONSTANT_PENALTY = ENV_CONFIG["CONSTANT_PENALTY"]
+LAP_REWARD = ENV_CONFIG["LAP_REWARD"]
+LAP_COOLDOWN = ENV_CONFIG["LAP_COOLDOWN"]
+CHECKPOINT_REWARD = ENV_CONFIG["CHECKPOINT_REWARD"]
+CHECKPOINT_COOLDOWN = 0  # Default for backward compatibility
+END_OF_TRACK_REWARD = ENV_CONFIG["END_OF_TRACK_REWARD"]
+USE_IMAGES = ENV_CONFIG["USE_IMAGES"]
+SLEEP_TIME_AT_RESET = ENV_CONFIG["SLEEP_TIME_AT_RESET"]
+IMG_HIST_LEN = ENV_CONFIG["IMG_HIST_LEN"]
+ACT_BUF_LEN = ENV_CONFIG["RTGYM_CONFIG"]["act_buf_len"]
+WINDOW_WIDTH = ENV_CONFIG["WINDOW_WIDTH"]
+WINDOW_HEIGHT = ENV_CONFIG["WINDOW_HEIGHT"]
+GRAYSCALE = ENV_CONFIG.get("IMG_GRAYSCALE", False)
+IMG_WIDTH = ENV_CONFIG.get("IMG_WIDTH", 64)
+IMG_HEIGHT = ENV_CONFIG.get("IMG_HEIGHT", 64)
+LINUX_X_OFFSET = ENV_CONFIG.get("LINUX_X_OFFSET", 64)
+LINUX_Y_OFFSET = ENV_CONFIG.get("LINUX_Y_OFFSET", 70)
+IMG_SCALE_CHECK_ENV = ENV_CONFIG.get("IMG_SCALE_CHECK_ENV", 1.0)
+INIT_GAS_BIAS = ENV_CONFIG.get("INIT_GAS_BIAS", 0.0)
+OBS_SPEED_SCALE = float(ENV_CONFIG.get("OBS_SPEED_SCALE", 1.0))
+OBS_TRACK_SCALE = float(ENV_CONFIG.get("OBS_TRACK_SCALE", 1.0))
+
+# Lidar specific
+LIDAR_BLACK_THRESHOLD = [55, 55, 55]
+
+# Reward configuration
+REWARD_CONFIG = ENV_CONFIG.get("REWARD_CONFIG", {})
+MAX_SPEED_KMH = (
+    float(REWARD_CONFIG.get("MAX_SPEED_KMH", 300.0)) if isinstance(REWARD_CONFIG, dict) else 300.0
+)
+
+# Calculate track points number based on trajectory length
+TRACK_POINTS_NUMBER = None
+_reward_cfg = ENV_CONFIG.get("REWARD_CONFIG", {})
+_track_pct = float(_reward_cfg.get("TRACK_LOOK_AHEAD_PCT", 0.0))
+_track_spacing = float(_reward_cfg.get("TRACK_POINT_SPACING_M", 0.0))
+if _track_pct > 0 and _track_spacing > 0 and os.path.exists(REWARD_PATH):
+    try:
+        with open(REWARD_PATH, "rb") as _f:
+            _traj = pickle.load(_f)
+        _L = polyline_arc_length_m(_traj)
+        if _L is not None:
+            TRACK_POINTS_NUMBER = points_number_from_spacing_config(_L, _track_pct, _track_spacing)
+            if TRACK_POINTS_NUMBER is not None:
+                logger.info(
+                    "Track look-ahead: TRACK_LOOK_AHEAD_PCT={:.2f}%, "
+                    "TRACK_POINT_SPACING_M={:.2f} m, "
+                    "trajectory length={:.1f} m -> POINTS_NUMBER={}",
+                    _track_pct,
+                    _track_spacing,
+                    _L,
+                    TRACK_POINTS_NUMBER,
+                )
+    except (FileNotFoundError, pickle.UnpicklingError, ValueError, OSError) as e:
+        logger.warning(f"Failed to load reward trajectory for POINTS_NUMBER calculation: {e}")
+elif _track_pct > 0 and _track_spacing > 0:
+    logger.warning(
+        f"TRACK_LOOK_AHEAD_PCT={_track_pct} is set but reward file {REWARD_PATH} is missing! "
+        f"POINTS_NUMBER will fallback to default NUMBER_OF_POINTS. "
+        "This will cause shape mismatches if other processes (e.g. Worker) have the file."
+    )
+
+# =============================================================================
+# Algorithm Configuration
+# =============================================================================
+
+ALG_CONFIG = TMRL_CONFIG["ALG"]
+
+# Algorithm parameters
+QUANTILES_NUMBER = ALG_CONFIG["QUANTILES_NUMBER"]
+
+# Algorithm hyperparameters (exported directly for convenience)
+GAMMA = ALG_CONFIG["GAMMA"]
+POLYAK = ALG_CONFIG["POLYAK"]
+TARGET_ENTROPY = ALG_CONFIG["TARGET_ENTROPY"]
+TOP_QUANTILES_TO_DROP = ALG_CONFIG["TOP_QUANTILES_TO_DROP"]
+N_STEPS = 1 if ALG_CONFIG["N_STEPS"] <= 0 else ALG_CONFIG["N_STEPS"]
+
+# Weight clipping
+WEIGHT_CLIPPING_ENABLED = ALG_CONFIG["CLIPPING_WEIGHTS"]
+WEIGHT_CLIPPING_VALUE = 1.0 if not WEIGHT_CLIPPING_ENABLED else ALG_CONFIG["CLIP_WEIGHTS_VALUE"]
+
+# Regularization
+ACTOR_WEIGHT_DECAY = ALG_CONFIG["ACTOR_WEIGHT_DECAY"]
+CRITIC_WEIGHT_DECAY = ALG_CONFIG["CRITIC_WEIGHT_DECAY"]
+
+# Track points
+POINTS_NUMBER = (
+    TRACK_POINTS_NUMBER if TRACK_POINTS_NUMBER is not None else ALG_CONFIG["NUMBER_OF_POINTS"]
+)
+POINTS_DISTANCE = ALG_CONFIG["POINTS_DISTANCE"]
+
+# Speed rewards
+SPEED_BONUS = ALG_CONFIG["SPEED_BONUS"]
+SPEED_MIN_THRESHOLD = ALG_CONFIG["SPEED_MIN_THRESHOLD"]
+SPEED_MEDIUM_THRESHOLD = ALG_CONFIG["SPEED_MEDIUM_THRESHOLD"]
+
+# Optimizer
+ADAM_EPS = ALG_CONFIG["ADAM_EPS"]
+GRAD_CLIP_ACTOR = float(ALG_CONFIG.get("GRAD_CLIP_ACTOR", 1.0))
+GRAD_CLIP_CRITIC = float(ALG_CONFIG.get("GRAD_CLIP_CRITIC", 1.0))
+BACKUP_CLIP_RANGE = float(ALG_CONFIG.get("BACKUP_CLIP_RANGE", 100.0))
+
+# gSDE exploration
+USE_SDE = bool(ALG_CONFIG.get("USE_SDE", True))
+LOG_STD_INIT = float(ALG_CONFIG.get("LOG_STD_INIT", -3.0))
+SDE_CLIP_MEAN = float(ALG_CONFIG.get("SDE_CLIP_MEAN", 2.0))
+SDE_SAMPLE_FREQ = int(ALG_CONFIG.get("SDE_SAMPLE_FREQ", 100))
+
+# Entropy schedule
+ENTROPY_FLOOR = float(ALG_CONFIG.get("ENTROPY_FLOOR", 0.02))
+ENTROPY_SCHEDULE = str(ALG_CONFIG.get("ENTROPY_SCHEDULE", "learnable"))
+ENTROPY_COSINE_T0 = int(ALG_CONFIG.get("ENTROPY_COSINE_T0", 300))
+ENTROPY_COSINE_TMULT = float(ALG_CONFIG.get("ENTROPY_COSINE_TMULT", 1.5))
+ENTROPY_COSINE_DECAY = float(ALG_CONFIG.get("ENTROPY_COSINE_DECAY", 0.7))
+
+# PER-TD
+PER_TD_ENABLED = bool(ALG_CONFIG.get("PER_TD_ENABLED", False))
+PER_TD_ALPHA = float(ALG_CONFIG.get("PER_TD_ALPHA", 0.6))
+PER_TD_EPS = float(ALG_CONFIG.get("PER_TD_EPS", 1.0e-6))
+
+# =============================================================================
+# Debug Configuration
+# =============================================================================
+
+DEBUG_MODE = DEBUGGER_CONFIG.DEBUG_MODE
+CRC_DEBUG = DEBUGGER_CONFIG.CRC_DEBUG
+CRC_DEBUG_SAMPLES = DEBUGGER_CONFIG.CRC_DEBUG_SAMPLES
+PROFILE_TRAINER = DEBUGGER_CONFIG.PROFILE_TRAINER
+SYNCHRONIZE_CUDA = PROFILE_TRAINER
+WANDB_DEBUG = DEBUGGER_CONFIG.WANDB_DEBUG
+PYTORCH_PROFILER = DEBUGGER_CONFIG.PYTORCH_PROFILER
+OBSERVATION_BOUNDS_CHECK = getattr(DEBUGGER_CONFIG, "OBSERVATION_BOUNDS_CHECK", False)
+
+# =============================================================================
+# Player Runs Configuration
+# =============================================================================
+
+_player_runs_cfg = TMRL_CONFIG.get("PLAYER_RUNS", {})
+PLAYER_RUNS_ONLINE_INJECTION = bool(_player_runs_cfg.get("ONLINE_INJECTION", False))
+PLAYER_RUNS_SOURCE_PATH = (
+    str(_player_runs_cfg.get("SOURCE_PATH"))
+    if _player_runs_cfg.get("SOURCE_PATH")
+    else str(PLAYER_RUNS_FOLDER)
+)
+PLAYER_RUNS_CONSUME_ON_READ = bool(_player_runs_cfg.get("CONSUME_ON_READ", False))
+PLAYER_RUNS_MAX_FILES_PER_UPDATE = int(_player_runs_cfg.get("MAX_FILES_PER_UPDATE", 1))
+PLAYER_RUNS_DEMO_INJECTION_REPEAT = max(1, int(_player_runs_cfg.get("DEMO_INJECTION_REPEAT", 1)))
+PLAYER_RUNS_PER_ALPHA = max(0.0, float(_player_runs_cfg.get("PER_ALPHA", 0.0)))
+DEMO_MAX_BATCH_FRACTION = max(
+    0.0, min(1.0, float(_player_runs_cfg.get("DEMO_MAX_BATCH_FRACTION", 1.0)))
+)
+DEMO_MIN_BATCH_FRACTION = max(
+    0.0, min(1.0, float(_player_runs_cfg.get("DEMO_MIN_BATCH_FRACTION", 0.0)))
+)
+DEMO_SAMPLING_WEIGHT = max(0.0, float(_player_runs_cfg.get("DEMO_SAMPLING_WEIGHT", 1.0)))
+DEMO_WEIGHT_DECAY_SAMPLES = max(0, int(_player_runs_cfg.get("DEMO_WEIGHT_DECAY_SAMPLES", 0)))
+DEMO_WEIGHT_DECAY_SLOWDOWN = max(
+    0.0, float(_player_runs_cfg.get("DEMO_WEIGHT_DECAY_SLOWDOWN", 1.0))
+)
