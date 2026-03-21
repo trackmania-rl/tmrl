@@ -1,29 +1,29 @@
+import itertools
 import random
-import numpy as np
-import torch
-from torch.optim import Adam
+from collections.abc import Callable
 from copy import deepcopy
-
 from threading import Thread
+from typing import Any
 
-from tmrl.networking import Server, RolloutWorker, Trainer
-from tmrl.util import partial, cached_property
-from tmrl.envs import GenericGymEnv
-
+import numpy as np
+import tmrl.config as cfg
+import torch
+import torch.nn.functional as F
 from tmrl.actor import TorchActorModule
-from tmrl.util import prod
-
-import tmrl.config.config_constants as cfg
-from tmrl.training_offline import TorchTrainingOffline
-from tmrl.training import TrainingAgent
 from tmrl.custom.utils.nn import copy_shared, no_grad
-
+from tmrl.networking import RolloutWorker, Server, Trainer
+from tmrl.training import TrainingAgent
+from tmrl.util import cached_property, partial, prod
+from torch.optim import Adam
 from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
 
+from envs import GenericGymEnv
+from memory import TorchMemory
+from training_offline import TorchTrainingOffline
 
 CRC_DEBUG = False
 
-# === Networking parameters ============================================================================================
+# === Networking parameters ===
 
 security = None
 password = cfg.PASSWORD
@@ -32,13 +32,13 @@ server_ip = "127.0.0.1"
 server_port = 6666
 
 
-# === Server ===========================================================================================================
+# === Server ===
 
 if __name__ == "__main__":
     my_server = Server(security=security, password=password, port=server_port)
 
 
-# === Environment ======================================================================================================
+# === Environment ===
 
 # rtgym interface:
 
@@ -59,9 +59,7 @@ print(f"action space: {act_space}")
 print(f"observation space: {obs_space}")
 
 
-# === Worker ===========================================================================================================
-
-import torch.nn.functional as F
+# === Worker ===
 
 # ActorModule:
 
@@ -81,12 +79,15 @@ class MyActorModule(TorchActorModule):
     """
     Directly adapted from the Spinup implementation of SAC
     """
-    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU):
+
+    def __init__(
+        self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU
+    ):
         super().__init__(observation_space, action_space)
         dim_obs = sum(prod(s for s in space.shape) for space in observation_space)
         dim_act = action_space.shape[0]
         act_limit = action_space.high[0]
-        self.net = mlp([dim_obs] + list(hidden_sizes), activation, activation)
+        self.net = mlp([dim_obs, *list(hidden_sizes)], activation, activation)
         self.mu_layer = torch.nn.Linear(hidden_sizes[-1], dim_act)
         self.log_std_layer = torch.nn.Linear(hidden_sizes[-1], dim_act)
         self.act_limit = act_limit
@@ -98,10 +99,7 @@ class MyActorModule(TorchActorModule):
         log_std = torch.clamp(log_std, LOG_STD_MIN, LOG_STD_MAX)
         std = torch.exp(log_std)
         pi_distribution = torch.distributions.normal.Normal(mu, std)
-        if test:
-            pi_action = mu
-        else:
-            pi_action = pi_distribution.rsample()
+        pi_action = mu if test else pi_distribution.rsample()
         if with_logprob:
             logp_pi = pi_distribution.log_prob(pi_action).sum(axis=-1)
             logp_pi -= (2 * (np.log(2) - pi_action - F.softplus(-2 * pi_action))).sum(axis=1)
@@ -123,6 +121,7 @@ actor_module_cls = partial(MyActorModule)
 
 # Sample compression
 
+
 def my_sample_compressor(prev_act, obs, rew, terminated, truncated, info):
     """
     Compresses samples before sending over network.
@@ -134,7 +133,7 @@ def my_sample_compressor(prev_act, obs, rew, terminated, truncated, info):
     This decompressor is the append() or get_transition() method of the memory.
 
     Args:
-        prev_act: action computed from a previous observation and applied to yield obs in the transition
+        prev_act: action from previous observation that yielded obs
         obs, rew, terminated, truncated, info: outcome of the transition
     Returns:
         prev_act_mod: compressed prev_act
@@ -144,7 +143,14 @@ def my_sample_compressor(prev_act, obs, rew, terminated, truncated, info):
         truncated_mod: compressed truncated
         info_mod: compressed info
     """
-    prev_act_mod, obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod = prev_act, obs, rew, terminated, truncated, info
+    prev_act_mod, obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod = (
+        prev_act,
+        obs,
+        rew,
+        terminated,
+        truncated,
+        info,
+    )
     obs_mod = obs_mod[:4]  # here we remove the action buffer from observations
     return prev_act_mod, obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod
 
@@ -154,7 +160,7 @@ sample_compressor = my_sample_compressor
 
 # Device
 
-device = "cpu"
+device: str | None = "cpu"
 
 
 # Networking
@@ -187,12 +193,13 @@ if __name__ == "__main__":
         model_path=model_path,
         model_path_history=model_path_history,
         model_history=model_history,
-        crc_debug=CRC_DEBUG)
+        crc_debug=CRC_DEBUG,
+    )
 
     # my_worker.run(test_episode_interval=10)  # this would block the script here!
 
 
-# === Trainer ==========================================================================================================
+# === Trainer ===
 
 # --- Networking and files ---
 
@@ -213,8 +220,6 @@ env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config":
 
 # Memory:
 
-from tmrl.memory import TorchMemory
-
 
 def last_true_in_list(li):
     """
@@ -227,28 +232,33 @@ def last_true_in_list(li):
 
 
 class MyMemory(TorchMemory):
-    def __init__(self,
-                 act_buf_len=None,
-                 device=None,
-                 nb_steps=None,
-                 sample_preprocessor: callable = None,
-                 memory_size=1000000,
-                 batch_size=32,
-                 dataset_path=""):
+    def __init__(
+        self,
+        act_buf_len=None,
+        device=None,
+        nb_steps=None,
+        sample_preprocessor: Callable[..., Any] | None = None,
+        memory_size=1000000,
+        batch_size=32,
+        dataset_path="",
+    ):
 
         self.act_buf_len = act_buf_len  # length of the action buffer
 
-        super().__init__(device=device,
-                         nb_steps=nb_steps,
-                         sample_preprocessor=sample_preprocessor,
-                         memory_size=memory_size,
-                         batch_size=batch_size,
-                         dataset_path=dataset_path,
-                         crc_debug=CRC_DEBUG)
+        super().__init__(
+            device=device,
+            nb_steps=nb_steps,
+            sample_preprocessor=sample_preprocessor,
+            memory_size=memory_size,
+            batch_size=batch_size,
+            dataset_path=dataset_path,
+            crc_debug=CRC_DEBUG,
+        )
 
     def append_buffer(self, buffer):
         """
-        buffer.memory is a list of compressed (act_mod, new_obs_mod, rew_mod, terminated_mod, truncated_mod, info_mod) samples
+        buffer.memory: list of compressed (act_mod, new_obs_mod, rew_mod,
+            terminated_mod, truncated_mod, info_mod) samples.
         """
 
         # decompose compressed samples into their relevant components:
@@ -321,7 +331,6 @@ class MyMemory(TorchMemory):
             full transition: (last_obs, new_act, rew, new_obs, terminated, truncated, info)
         """
         while True:  # this enables modifying item in edge cases
-
             # if item corresponds to a transition from a terminal state to a reset state
             if self.data[9][item + self.act_buf_len - 1]:
                 # this wouldn't make sense in RL, so we replace item by a neighbour transition
@@ -338,20 +347,22 @@ class MyMemory(TorchMemory):
             idx_now = item + self.act_buf_len  # index of new observation
 
             # rebuild the action buffer of both observations:
-            actions = self.data[0][item:(item + self.act_buf_len + 1)]
+            actions = self.data[0][item : (item + self.act_buf_len + 1)]
             last_act_buf = actions[:-1]  # action buffer of previous observation
             new_act_buf = actions[1:]  # action buffer of new observation
 
             # correct the action buffer when it goes over a reset transition:
             # (NB: we have eliminated the case where the transition *is* the reset transition)
-            eoe = last_true_in_list(self.data[9][item:(item + self.act_buf_len)])  # the last one is not important
+            eoe = last_true_in_list(
+                self.data[9][item : (item + self.act_buf_len)]
+            )  # the last one is not important
             if eoe is not None:
                 # either one or both action buffers are passing over a reset transition
                 if eoe < self.act_buf_len - 1:
                     # last_act_buf is concerned
                     if item == 0:
-                        # we have a problem: the previous action has been discarded; we cannot recover the buffer
-                        # in this edge case, we randomly sample another item
+                        # Previous action discarded; cannot recover buffer.
+                        # In this edge case, randomly sample another item.
                         item = random.randint(1, self.__len__())
                         continue
                     last_act_buf_eoe = eoe
@@ -372,18 +383,22 @@ class MyMemory(TorchMemory):
                         prev_act = act_tmp
 
             # rebuild the previous observation:
-            last_obs = (self.data[1][idx_last],  # x position
-                        self.data[2][idx_last],  # y position
-                        self.data[3][idx_last],  # x target
-                        self.data[4][idx_last],  # y target
-                        *last_act_buf)  # action buffer
+            last_obs = (
+                self.data[1][idx_last],  # x position
+                self.data[2][idx_last],  # y position
+                self.data[3][idx_last],  # x target
+                self.data[4][idx_last],  # y target
+                *last_act_buf,
+            )  # action buffer
 
             # rebuild the new observation:
-            new_obs = (self.data[1][idx_now],  # x position
-                       self.data[2][idx_now],  # y position
-                       self.data[3][idx_now],  # x target
-                       self.data[4][idx_now],  # y target
-                       *new_act_buf)  # action buffer
+            new_obs = (
+                self.data[1][idx_now],  # x position
+                self.data[2][idx_now],  # y position
+                self.data[3][idx_now],  # x target
+                self.data[4][idx_now],  # y target
+                *new_act_buf,
+            )  # action buffer
 
             # other components of the transition:
             new_act = self.data[0][idx_now]  # action
@@ -397,19 +412,20 @@ class MyMemory(TorchMemory):
         return last_obs, new_act, rew, new_obs, terminated, truncated, info
 
 
-memory_cls = partial(MyMemory,
-                     act_buf_len=my_config["act_buf_len"])
+memory_cls = partial(MyMemory, act_buf_len=my_config["act_buf_len"])
 
 
 # Training agent:
 
 
 class MyCriticModule(torch.nn.Module):
-    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU):
+    def __init__(
+        self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU
+    ):
         super().__init__()
         obs_dim = sum(prod(s for s in space.shape) for space in observation_space)
         act_dim = action_space.shape[0]
-        self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation)
+        self.q = mlp([obs_dim + act_dim, *list(hidden_sizes), 1], activation)
 
     def forward(self, obs, act):
         x = torch.cat((*obs, act), -1)
@@ -418,36 +434,42 @@ class MyCriticModule(torch.nn.Module):
 
 
 class MyActorCriticModule(torch.nn.Module):
-    def __init__(self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU):
+    def __init__(
+        self, observation_space, action_space, hidden_sizes=(256, 256), activation=torch.nn.ReLU
+    ):
         super().__init__()
-        self.actor = MyActorModule(observation_space, action_space, hidden_sizes, activation)  # our ActorModule :)
-        self.q1 = MyCriticModule(observation_space, action_space, hidden_sizes, activation)  # Q network 1
-        self.q2 = MyCriticModule(observation_space, action_space, hidden_sizes, activation)  # Q network 2
-
-
-import itertools
+        self.actor = MyActorModule(
+            observation_space, action_space, hidden_sizes, activation
+        )  # our ActorModule :)
+        self.q1 = MyCriticModule(
+            observation_space, action_space, hidden_sizes, activation
+        )  # Q network 1
+        self.q2 = MyCriticModule(
+            observation_space, action_space, hidden_sizes, activation
+        )  # Q network 2
 
 
 class MyTrainingAgent(TrainingAgent):
-
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
-    def __init__(self,
-                 observation_space=None,
-                 action_space=None,
-                 device=None,
-                 model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
-                 gamma=0.99,  # discount factor
-                 polyak=0.995,  # exponential averaging factor for the target critic
-                 alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
-                 lr_actor=1e-3,  # learning rate for the actor
-                 lr_critic=1e-3,  # learning rate for the critic
-                 lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
-                 learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
-                 target_entropy=None):  # if None, the target entropy for SAC v2 is set automatically
-        super().__init__(observation_space=observation_space,
-                         action_space=action_space,
-                         device=device)
+    def __init__(
+        self,
+        observation_space=None,
+        action_space=None,
+        device=None,
+        model_cls=MyActorCriticModule,  # an actor-critic module, encapsulating our ActorModule
+        gamma=0.99,  # discount factor
+        polyak=0.995,  # exponential averaging factor for the target critic
+        alpha=0.2,  # fixed (SAC v1) or initial (SAC v2) value of the entropy coefficient
+        lr_actor=1e-3,  # learning rate for the actor
+        lr_critic=1e-3,  # learning rate for the critic
+        lr_entropy=1e-3,  # entropy autotuning coefficient (SAC v2)
+        learn_entropy_coef=True,  # if True, SAC v2 is used, else, SAC v1 is used
+        target_entropy=None,
+    ):  # if None, the target entropy for SAC v2 is set automatically
+        super().__init__(
+            observation_space=observation_space, action_space=action_space, device=device
+        )
         model = model_cls(observation_space, action_space)
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
@@ -457,7 +479,7 @@ class MyTrainingAgent(TrainingAgent):
         self.lr_actor = lr_actor
         self.lr_critic = lr_critic
         self.lr_entropy = lr_entropy
-        self.learn_entropy_coef=learn_entropy_coef
+        self.learn_entropy_coef = learn_entropy_coef
         self.target_entropy = target_entropy
         self.q_params = itertools.chain(self.model.q1.parameters(), self.model.q2.parameters())
         self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
@@ -467,7 +489,9 @@ class MyTrainingAgent(TrainingAgent):
         else:
             self.target_entropy = float(self.target_entropy)
         if self.learn_entropy_coef:
-            self.log_alpha = torch.log(torch.ones(1, device=self.device) * self.alpha).requires_grad_(True)
+            self.log_alpha = torch.log(
+                torch.ones(1, device=self.device) * self.alpha
+            ).requires_grad_(True)
             self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.lr_entropy)
         else:
             self.alpha_t = torch.tensor(float(self.alpha)).to(self.device)
@@ -496,8 +520,8 @@ class MyTrainingAgent(TrainingAgent):
             q2_pi_targ = self.model_target.q2(o2, a2)
             q_pi_targ = torch.min(q1_pi_targ, q2_pi_targ)
             backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
-        loss_q1 = ((q1 - backup)**2).mean()
-        loss_q2 = ((q2 - backup)**2).mean()
+        loss_q1 = ((q1 - backup) ** 2).mean()
+        loss_q2 = ((q2 - backup) ** 2).mean()
         loss_q = loss_q1 + loss_q2
         self.q_optimizer.zero_grad()
         loss_q.backward()
@@ -514,29 +538,33 @@ class MyTrainingAgent(TrainingAgent):
         for p in self.q_params:
             p.requires_grad = True
         with torch.no_grad():
-            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
+            for p, p_targ in zip(
+                self.model.parameters(), self.model_target.parameters(), strict=True
+            ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
-        ret_dict = dict(
-            loss_actor=loss_pi.detach().item(),
-            loss_critic=loss_q.detach().item(),
-        )
+        ret_dict = {
+            "loss_actor": loss_pi.detach().item(),
+            "loss_critic": loss_q.detach().item(),
+        }
         if self.learn_entropy_coef:
             ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
             ret_dict["entropy_coef"] = alpha_t.item()
         return ret_dict
 
 
-training_agent_cls = partial(MyTrainingAgent,
-                             model_cls=MyActorCriticModule,
-                             gamma=0.99,
-                             polyak=0.995,
-                             alpha=0.2,
-                             lr_actor=1e-3,
-                             lr_critic=1e-3,
-                             lr_entropy=1e-3,
-                             learn_entropy_coef=True,
-                             target_entropy=None)
+training_agent_cls = partial(
+    MyTrainingAgent,
+    model_cls=MyActorCriticModule,
+    gamma=0.99,
+    polyak=0.995,
+    alpha=0.2,
+    lr_actor=1e-3,
+    lr_critic=1e-3,
+    lr_entropy=1e-3,
+    learn_entropy_coef=True,
+    target_entropy=None,
+)
 
 
 # Training parameters:
@@ -565,7 +593,8 @@ training_cls = partial(
     update_model_interval=update_model_interval,
     max_training_steps_per_env_step=max_training_steps_per_env_step,
     start_training=start_training,
-    device=device)
+    device=device,
+)
 
 if __name__ == "__main__":
     my_trainer = Trainer(
@@ -574,7 +603,8 @@ if __name__ == "__main__":
         server_port=server_port,
         password=password,
         model_path=model_path,
-        checkpoint_path=checkpoints_path)  # None for not saving training checkpoints
+        checkpoint_path=checkpoints_path,
+    )  # None for not saving training checkpoints
 
 
 # Separate threads for running the RolloutWorker and Trainer:
@@ -589,7 +619,7 @@ def run_trainer(trainer):
 
 
 if __name__ == "__main__":
-    daemon_thread_worker = Thread(target=run_worker, args=(my_worker, ), kwargs={}, daemon=True)
+    daemon_thread_worker = Thread(target=run_worker, args=(my_worker,), kwargs={}, daemon=True)
     daemon_thread_worker.start()  # start the worker daemon thread
 
     run_trainer(my_trainer)
