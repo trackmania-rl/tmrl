@@ -8,7 +8,7 @@ from flax import nnx
 
 from tmrl.core.util import prod
 
-from tmrl.core.jax.util import default_rngs
+from tmrl.core.jax.util import get_rngs
 from tmrl.core.jax.actor import NNXActorModule
 
 import tmrl.config.config_constants as cfg
@@ -30,7 +30,7 @@ def mlp(
     rngs: nnx.Rngs | None = None,
 ) -> nnx.Sequential:
 
-    rngs = rngs or default_rngs()
+    rngs = rngs or get_rngs()
     layers = []
 
     if not isinstance(dropout, (list, tuple)):
@@ -59,7 +59,8 @@ class NNXSquashedGaussianMLPActor(NNXActorModule):
                  activation=nnx.relu,
                  layer_norm=False,
                  rngs: nnx.Rngs = None):
-        rngs = rngs or default_rngs()
+        super().__init__(observation_space, action_space)
+        rngs = rngs or get_rngs()
         try:
             dim_obs = sum(prod(s for s in space.shape) for space in observation_space)
             self.tuple_obs = True
@@ -96,7 +97,7 @@ class NNXSquashedGaussianMLPActor(NNXActorModule):
             # Only used for evaluating policy at test time.
             pi_action = mu
         else:
-            rngs = rngs or default_rngs()
+            rngs = rngs or get_rngs()
             eps = jax.random.normal(rngs.noise(), mu.shape)
             pi_action = mu + std * eps
 
@@ -131,7 +132,7 @@ class NNXMLPQFunction(nnx.Module):
                  dropout=0.0,
                  layer_norm=False,
                  rngs: nnx.Rngs = None):
-        rngs = rngs or default_rngs()
+        rngs = rngs or get_rngs()
         try:
             obs_dim = sum(prod(s for s in space.shape) for space in observation_space)
             self.tuple_obs = True
@@ -149,43 +150,30 @@ class NNXMLPQFunction(nnx.Module):
         return q.squeeze(-1)
 
 
-class NNXMLPActorCritic(nnx.Module):
-    def __init__(self,
-                 observation_space,
-                 action_space,
-                 hidden_sizes=(256, 256),
-                 activation=nnx.relu,
-                 critic_dropout=0.0,
-                 critic_layer_norm=False,
-                 actor_layer_norm=False,
-                 rngs: nnx.Rngs = None):
-        rngs = rngs or default_rngs()
-
-        # build policy and value functions
-        self.actor = NNXSquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation, layer_norm=actor_layer_norm, rngs=rngs)
-        self.q1 = NNXMLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm, rngs=rngs)
-        self.q2 = NNXMLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm, rngs=rngs)
-
-
 class NNXREDQMLPActorCritic(nnx.Module):
+    """
+    By default, this holds 2 critics for SAC.
+    Set n to a higher value for REDQ-SAC.
+    """
     def __init__(self,
                  observation_space,
                  action_space,
+                 n=2,
                  hidden_sizes=(256, 256),
                  activation=nnx.relu,
-                 n=10,
                  critic_dropout=0.0,
                  critic_layer_norm=False,
                  actor_layer_norm=False,
                  rngs: nnx.Rngs = None):
-        rngs = rngs or default_rngs()
+        rngs = rngs or get_rngs()
         self.n = n
 
         # build policy and value functions
         self.actor = NNXSquashedGaussianMLPActor(observation_space, action_space, hidden_sizes, activation, layer_norm=actor_layer_norm, rngs=rngs)
-        self.qs = [NNXMLPQFunction(observation_space, action_space, hidden_sizes, activation, dropout=critic_dropout, layer_norm=critic_layer_norm, rngs=rngs) for _ in range(self.n)]
-
-
+        self.qs = nnx.List([
+            NNXMLPQFunction(observation_space=observation_space, action_space=action_space, hidden_sizes=hidden_sizes, activation=activation, dropout=critic_dropout, layer_norm=critic_layer_norm, rngs=rngs)
+            for _ in range(self.n)
+        ])
 
 if __name__ == "__main__":
     import jax.numpy as jnp
@@ -195,7 +183,7 @@ if __name__ == "__main__":
     act_space = env.action_space
     obs_space = env.observation_space
 
-    ac = NNXMLPActorCritic(observation_space=obs_space, action_space=act_space)
+    ac = NNXREDQMLPActorCritic(observation_space=obs_space, action_space=act_space)
 
     # Forward pass
     x = obs_space.sample()

@@ -36,7 +36,7 @@ class NNXActorModule(ActorModule, nnx.Module, ABC):
             observation_space (gymnasium.spaces.Space): observation space (here for your convenience)
             action_space (gymnasium.spaces.Space): action space (here for your convenience)
         """
-        ActorModule.__init__(observation_space, action_space)  # ActorModule
+        ActorModule.__init__(self, observation_space, action_space)  # ActorModule
         self.device = device or jax.devices()[0]
 
     def save(self, path):
