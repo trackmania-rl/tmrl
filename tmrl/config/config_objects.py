@@ -1,22 +1,48 @@
+# standard library imports
+from typing import Any
+
 # third-party imports
 # from tmrl.custom.custom_checkpoints import load_run_instance_images_dataset, dump_run_instance_images_dataset
 # third-party imports
-
 import rtgym
 
 # local imports
 import tmrl.config.config_constants as cfg
-from tmrl.training_offline import TorchTrainingOffline
-from tmrl.custom.tm.tm_gym_interfaces import TM2020Interface, TM2020InterfaceLidar, TM2020InterfaceLidarProgress
-from tmrl.custom.custom_memories import MemoryTMFull, MemoryTMLidar, MemoryTMLidarProgress, get_local_buffer_sample_lidar, get_local_buffer_sample_lidar_progress, get_local_buffer_sample_tm20_imgs
-from tmrl.custom.tm.tm_preprocessors import obs_preprocessor_tm_act_in_obs, obs_preprocessor_tm_lidar_act_in_obs, obs_preprocessor_tm_lidar_progress_act_in_obs
-from tmrl.envs import GenericGymEnv
-from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic, REDQMLPActorCritic, RNNActorCritic, SquashedGaussianRNNActor, SquashedGaussianVanillaCNNActor, VanillaCNNActorCritic, SquashedGaussianVanillaColorCNNActor, VanillaColorCNNActorCritic
-from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
 from tmrl.custom.custom_algorithms import REDQSACAgent as REDQ_Agent
+from tmrl.custom.custom_algorithms import SpinupSacAgent as SAC_Agent
 from tmrl.custom.custom_checkpoints import update_run_instance
+from tmrl.custom.custom_memories import (
+    MemoryTMFull,
+    MemoryTMLidar,
+    MemoryTMLidarProgress,
+    get_local_buffer_sample_lidar,
+    get_local_buffer_sample_lidar_progress,
+    get_local_buffer_sample_tm20_imgs,
+)
+from tmrl.custom.custom_models import (
+    MLPActorCritic,
+    REDQMLPActorCritic,
+    RNNActorCritic,
+    SquashedGaussianMLPActor,
+    SquashedGaussianRNNActor,
+    SquashedGaussianVanillaCNNActor,
+    SquashedGaussianVanillaColorCNNActor,
+    VanillaCNNActorCritic,
+    VanillaColorCNNActorCritic,
+)
+from tmrl.custom.tm.tm_gym_interfaces import (
+    TM2020Interface,
+    TM2020InterfaceLidar,
+    TM2020InterfaceLidarProgress,
+)
+from tmrl.custom.tm.tm_preprocessors import (
+    obs_preprocessor_tm_act_in_obs,
+    obs_preprocessor_tm_lidar_act_in_obs,
+    obs_preprocessor_tm_lidar_progress_act_in_obs,
+)
+from tmrl.envs import GenericGymEnv
+from tmrl.training_offline import TorchTrainingOffline
 from tmrl.util import partial
-
 
 ALG_CONFIG = cfg.TMRL_CONFIG["ALG"]
 ALG_NAME = ALG_CONFIG["ALGORITHM"]
@@ -24,6 +50,9 @@ assert ALG_NAME in ["SAC", "REDQSAC"], f"If you wish to implement {ALG_NAME}, do
 
 
 # MODEL, GYM ENVIRONMENT, REPLAY MEMORY AND TRAINING: ===========
+
+TRAIN_MODEL: type[Any]
+POLICY: type[Any]
 
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
@@ -45,11 +74,13 @@ if cfg.PRAGMA_LIDAR:
     else:
         INT = partial(TM2020InterfaceLidar, img_hist_len=cfg.IMG_HIST_LEN, gamepad=cfg.PRAGMA_GAMEPAD)
 else:
-    INT = partial(TM2020Interface,
-                  img_hist_len=cfg.IMG_HIST_LEN,
-                  gamepad=cfg.PRAGMA_GAMEPAD,
-                  grayscale=cfg.GRAYSCALE,
-                  resize_to=(cfg.IMG_WIDTH, cfg.IMG_HEIGHT))
+    INT = partial(
+        TM2020Interface,
+        img_hist_len=cfg.IMG_HIST_LEN,
+        gamepad=cfg.PRAGMA_GAMEPAD,
+        grayscale=cfg.GRAYSCALE,
+        resize_to=(cfg.IMG_WIDTH, cfg.IMG_HEIGHT),
+    )
 
 CONFIG_DICT = rtgym.DEFAULT_CONFIG_DICT.copy()
 CONFIG_DICT["interface"] = INT
@@ -79,9 +110,10 @@ SAMPLE_PREPROCESSOR = None
 
 assert not cfg.PRAGMA_RNN, "RNNs not supported yet"
 
+MEM: type[Any]
 if cfg.PRAGMA_LIDAR:
     if cfg.PRAGMA_RNN:
-        assert False, "not implemented"
+        raise AssertionError("not implemented")
     else:
         if cfg.PRAGMA_PROGRESS:
             MEM = MemoryTMLidarProgress
@@ -90,21 +122,23 @@ if cfg.PRAGMA_LIDAR:
 else:
     MEM = MemoryTMFull
 
-MEMORY = partial(MEM,
-                 memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
-                 batch_size=cfg.TMRL_CONFIG["BATCH_SIZE"],
-                 sample_preprocessor=SAMPLE_PREPROCESSOR,
-                 dataset_path=cfg.DATASET_PATH,
-                 imgs_obs=cfg.IMG_HIST_LEN,
-                 act_buf_len=cfg.ACT_BUF_LEN,
-                 crc_debug=cfg.CRC_DEBUG)
+MEMORY = partial(
+    MEM,
+    memory_size=cfg.TMRL_CONFIG["MEMORY_SIZE"],
+    batch_size=cfg.TMRL_CONFIG["BATCH_SIZE"],
+    sample_preprocessor=SAMPLE_PREPROCESSOR,
+    dataset_path=cfg.DATASET_PATH,
+    imgs_obs=cfg.IMG_HIST_LEN,
+    act_buf_len=cfg.ACT_BUF_LEN,
+    crc_debug=cfg.CRC_DEBUG,
+)
 
 # ALGORITHM: ===================================================
 
 if ALG_NAME == "SAC":
     AGENT = partial(
         SAC_Agent,
-        device='cuda' if cfg.CUDA_TRAINING else 'cpu',
+        device="cuda" if cfg.CUDA_TRAINING else "cpu",
         model_cls=TRAIN_MODEL,
         lr_actor=ALG_CONFIG["LR_ACTOR"],
         lr_critic=ALG_CONFIG["LR_CRITIC"],
@@ -119,12 +153,12 @@ if ALG_NAME == "SAC":
         betas_actor=ALG_CONFIG["BETAS_ACTOR"] if "BETAS_ACTOR" in ALG_CONFIG else None,
         betas_critic=ALG_CONFIG["BETAS_CRITIC"] if "BETAS_CRITIC" in ALG_CONFIG else None,
         l2_actor=ALG_CONFIG["L2_ACTOR"] if "L2_ACTOR" in ALG_CONFIG else None,
-        l2_critic=ALG_CONFIG["L2_CRITIC"] if "L2_CRITIC" in ALG_CONFIG else None
+        l2_critic=ALG_CONFIG["L2_CRITIC"] if "L2_CRITIC" in ALG_CONFIG else None,
     )
 else:
     AGENT = partial(
         REDQ_Agent,
-        device='cuda' if cfg.CUDA_TRAINING else 'cpu',
+        device="cuda" if cfg.CUDA_TRAINING else "cpu",
         model_cls=TRAIN_MODEL,
         lr_actor=ALG_CONFIG["LR_ACTOR"],
         lr_critic=ALG_CONFIG["LR_CRITIC"],
@@ -136,7 +170,7 @@ else:
         alpha=ALG_CONFIG["ALPHA"],  # inverse of reward scale
         n=ALG_CONFIG["REDQ_N"],  # number of Q networks
         m=ALG_CONFIG["REDQ_M"],  # number of Q targets
-        q_updates_per_policy_update=ALG_CONFIG["REDQ_Q_UPDATES_PER_POLICY_UPDATE"]
+        q_updates_per_policy_update=ALG_CONFIG["REDQ_Q_UPDATES_PER_POLICY_UPDATE"],
     )
 
 # TRAINER: =====================================================
@@ -166,7 +200,8 @@ if cfg.PRAGMA_LIDAR:  # lidar
         profiling=cfg.PROFILE_TRAINER,
         training_agent_cls=AGENT,
         agent_scheduler=None,  # sac_v2_entropy_scheduler
-        start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"])  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
+        start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"],
+    )  # set this > 0 to start from an existing policy (fills the buffer up to this number of samples before starting training)
 else:  # images
     TRAINER = partial(
         TorchTrainingOffline,
@@ -181,7 +216,8 @@ else:  # images
         profiling=cfg.PROFILE_TRAINER,
         training_agent_cls=AGENT,
         agent_scheduler=None,  # sac_v2_entropy_scheduler
-        start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"])
+        start_training=cfg.TMRL_CONFIG["ENVIRONMENT_STEPS_BEFORE_TRAINING"],
+    )
 
 # CHECKPOINTS: ===================================================
 

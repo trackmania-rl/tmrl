@@ -2,7 +2,6 @@
 import platform
 
 if platform.system() in ("Windows", "Linux"):
-
     import time
 
     def control_gamepad(gamepad, control):

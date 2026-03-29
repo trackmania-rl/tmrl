@@ -1,8 +1,10 @@
 import random
+from collections.abc import Callable
+from typing import Any
+
 import numpy as np
 
 from tmrl.memory import TorchMemory
-
 
 # LOCAL BUFFER COMPRESSION ==============================
 
@@ -92,21 +94,25 @@ def replace_hist_before_eoe(hist, eoe_idx_in_hist):
 
 
 class GenericTorchMemory(TorchMemory):
-    def __init__(self,
-                 memory_size=1e6,
-                 batch_size=1,
-                 dataset_path="",
-                 nb_steps=1,
-                 sample_preprocessor: callable = None,
-                 crc_debug=False,
-                 device="cpu"):
-        super().__init__(memory_size=memory_size,
-                         batch_size=batch_size,
-                         dataset_path=dataset_path,
-                         nb_steps=nb_steps,
-                         sample_preprocessor=sample_preprocessor,
-                         crc_debug=crc_debug,
-                         device=device)
+    def __init__(
+        self,
+        memory_size=1e6,
+        batch_size=1,
+        dataset_path="",
+        nb_steps=1,
+        sample_preprocessor: Callable[..., Any] | None = None,
+        crc_debug=False,
+        device="cpu",
+    ):
+        super().__init__(
+            memory_size=memory_size,
+            batch_size=batch_size,
+            dataset_path=dataset_path,
+            nb_steps=nb_steps,
+            sample_preprocessor=sample_preprocessor,
+            crc_debug=crc_debug,
+            device=device,
+        )
 
     def append_buffer(self, buffer):
 
@@ -179,28 +185,32 @@ class GenericTorchMemory(TorchMemory):
 
 
 class MemoryTM(TorchMemory):
-    def __init__(self,
-                 memory_size=None,
-                 batch_size=None,
-                 dataset_path="",
-                 imgs_obs=4,
-                 act_buf_len=1,
-                 nb_steps=1,
-                 sample_preprocessor: callable = None,
-                 crc_debug=False,
-                 device="cpu"):
+    def __init__(
+        self,
+        memory_size=None,
+        batch_size=None,
+        dataset_path="",
+        imgs_obs=4,
+        act_buf_len=1,
+        nb_steps=1,
+        sample_preprocessor: Callable[..., Any] | None = None,
+        crc_debug=False,
+        device="cpu",
+    ):
         self.imgs_obs = imgs_obs
         self.act_buf_len = act_buf_len
         self.min_samples = max(self.imgs_obs, self.act_buf_len)
         self.start_imgs_offset = max(0, self.min_samples - self.imgs_obs)
         self.start_acts_offset = max(0, self.min_samples - self.act_buf_len)
-        super().__init__(memory_size=memory_size,
-                         batch_size=batch_size,
-                         dataset_path=dataset_path,
-                         nb_steps=nb_steps,
-                         sample_preprocessor=sample_preprocessor,
-                         crc_debug=crc_debug,
-                         device=device)
+        super().__init__(
+            memory_size=memory_size,
+            batch_size=batch_size,
+            dataset_path=dataset_path,
+            nb_steps=nb_steps,
+            sample_preprocessor=sample_preprocessor,
+            crc_debug=crc_debug,
+            device=device,
+        )
 
     def append_buffer(self, buffer):
         raise NotImplementedError
@@ -250,7 +260,7 @@ class MemoryTMLidar(MemoryTM):
         imgs_new_obs = imgs[1:]
 
         # if a reset transition has influenced the observation, special care must be taken
-        last_eoes = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
+        last_eoes = self.data[4][idx_now - self.min_samples : idx_now]  # self.min_samples values
         last_eoe_idx = last_true_in_list(last_eoes)  # last occurrence of True
 
         assert last_eoe_idx is None or last_eoes[last_eoe_idx], f"last_eoe_idx:{last_eoe_idx}"
@@ -274,11 +284,11 @@ class MemoryTMLidar(MemoryTM):
         return last_obs, new_act, rew, new_obs, terminated, truncated, info
 
     def load_imgs(self, item):
-        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
+        res = self.data[3][(item + self.start_imgs_offset) : (item + self.start_imgs_offset + self.imgs_obs + 1)]
         return np.stack(res)
 
     def load_acts(self, item):
-        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        res = self.data[1][(item + self.start_acts_offset) : (item + self.start_acts_offset + self.act_buf_len + 1)]
         return res
 
     def append_buffer(self, buffer):
@@ -367,7 +377,7 @@ class MemoryTMLidarProgress(MemoryTM):
         imgs_new_obs = imgs[1:]
 
         # if a reset transition has influenced the observation, special care must be taken
-        last_eoes = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
+        last_eoes = self.data[4][idx_now - self.min_samples : idx_now]  # self.min_samples values
         last_eoe_idx = last_true_in_list(last_eoes)  # last occurrence of True
 
         assert last_eoe_idx is None or last_eoes[last_eoe_idx], f"last_eoe_idx:{last_eoe_idx}"
@@ -391,11 +401,11 @@ class MemoryTMLidarProgress(MemoryTM):
         return last_obs, new_act, rew, new_obs, terminated, truncated, info
 
     def load_imgs(self, item):
-        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
+        res = self.data[3][(item + self.start_imgs_offset) : (item + self.start_imgs_offset + self.imgs_obs + 1)]
         return np.stack(res)
 
     def load_acts(self, item):
-        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        res = self.data[1][(item + self.start_acts_offset) : (item + self.start_acts_offset + self.act_buf_len + 1)]
         return res
 
     def append_buffer(self, buffer):
@@ -488,7 +498,7 @@ class MemoryTMFull(MemoryTM):
         imgs_new_obs = imgs[1:]
 
         # if a reset transition has influenced the observation, special care must be taken
-        last_eoes = self.data[4][idx_now - self.min_samples:idx_now]  # self.min_samples values
+        last_eoes = self.data[4][idx_now - self.min_samples : idx_now]  # self.min_samples values
         last_eoe_idx = last_true_in_list(last_eoes)  # last occurrence of True
 
         assert last_eoe_idx is None or last_eoes[last_eoe_idx], f"last_eoe_idx:{last_eoe_idx}"
@@ -499,21 +509,33 @@ class MemoryTMFull(MemoryTM):
             replace_hist_before_eoe(hist=imgs_new_obs, eoe_idx_in_hist=last_eoe_idx - self.start_imgs_offset - 1)
             replace_hist_before_eoe(hist=imgs_last_obs, eoe_idx_in_hist=last_eoe_idx - self.start_imgs_offset)
 
-        last_obs = (self.data[2][idx_last], self.data[7][idx_last], self.data[8][idx_last], imgs_last_obs, *last_act_buf)
+        last_obs = (
+            self.data[2][idx_last],
+            self.data[7][idx_last],
+            self.data[8][idx_last],
+            imgs_last_obs,
+            *last_act_buf,
+        )
         new_act = self.data[1][idx_now]
         rew = np.float32(self.data[5][idx_now])
-        new_obs = (self.data[2][idx_now], self.data[7][idx_now], self.data[8][idx_now], imgs_new_obs, *new_act_buf)
+        new_obs = (
+            self.data[2][idx_now],
+            self.data[7][idx_now],
+            self.data[8][idx_now],
+            imgs_new_obs,
+            *new_act_buf,
+        )
         terminated = self.data[9][idx_now]
         truncated = self.data[10][idx_now]
         info = self.data[6][idx_now]
         return last_obs, new_act, rew, new_obs, terminated, truncated, info
 
     def load_imgs(self, item):
-        res = self.data[3][(item + self.start_imgs_offset):(item + self.start_imgs_offset + self.imgs_obs + 1)]
+        res = self.data[3][(item + self.start_imgs_offset) : (item + self.start_imgs_offset + self.imgs_obs + 1)]
         return np.stack(res).astype(np.float32) / 256.0
 
     def load_acts(self, item):
-        res = self.data[1][(item + self.start_acts_offset):(item + self.start_acts_offset + self.act_buf_len + 1)]
+        res = self.data[1][(item + self.start_acts_offset) : (item + self.start_acts_offset + self.act_buf_len + 1)]
         return res
 
     def append_buffer(self, buffer):

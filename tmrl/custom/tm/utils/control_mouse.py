@@ -2,7 +2,6 @@
 import platform
 
 if platform.system() == "Windows":
-
     # third-party imports
     from pyautogui import click, mouseUp
 

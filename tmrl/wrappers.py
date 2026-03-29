@@ -1,5 +1,5 @@
 # standard library imports
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 # third-party imports
 import gymnasium
@@ -12,7 +12,11 @@ class AffineObservationWrapper(gymnasium.ObservationWrapper):
         assert isinstance(env.observation_space, gymnasium.spaces.Box)
         self.shift = shift
         self.scale = scale
-        self.observation_space = gymnasium.spaces.Box(self.observation(env.observation_space.low), self.observation(env.observation_space.high), dtype=env.observation_space.dtype)
+        self.observation_space = gymnasium.spaces.Box(
+            self.observation(env.observation_space.low),
+            self.observation(env.observation_space.high),
+            dtype=env.observation_space.dtype,
+        )
 
     def observation(self, obs):
         return (obs + self.shift) * self.scale
@@ -23,10 +27,15 @@ class Float64ToFloat32(gymnasium.ObservationWrapper):
 
     # TODO: change observation/action spaces to correct dtype
     def observation(self, observation):
-        observation = deepmap({np.ndarray: float64_to_float32,
-                               float: float_to_float32,
-                               np.float32: float_to_float32,
-                               np.float64: float_to_float32}, observation)
+        observation = deepmap(
+            {
+                np.ndarray: float64_to_float32,
+                float: float_to_float32,
+                np.float32: float_to_float32,
+                np.float64: float_to_float32,
+            },
+            observation,
+        )
         return observation
 
     def step(self, action):
@@ -51,8 +60,22 @@ def deepmap(f, m):
 
 
 def float64_to_float32(x):
-    return np.asarray([x, ], np.float32) if x.dtype == np.float64 else x
+    return (
+        np.asarray(
+            [
+                x,
+            ],
+            np.float32,
+        )
+        if x.dtype == np.float64
+        else x
+    )
 
 
 def float_to_float32(x):
-    return np.asarray([x, ], np.float32)
+    return np.asarray(
+        [
+            x,
+        ],
+        np.float32,
+    )

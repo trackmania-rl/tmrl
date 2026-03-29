@@ -5,19 +5,19 @@ This script works out-of-the-box for Gymnasium environments with flat continuous
 """
 
 # tutorial imports:
-from threading import Thread
 import time
+from threading import Thread
+
+import tmrl.config.config_constants as cfg
+from tmrl.custom.custom_algorithms import SpinupSacAgent
+from tmrl.custom.custom_memories import GenericTorchMemory
+from tmrl.custom.custom_models import MLPActorCritic, SquashedGaussianMLPActor
+from tmrl.envs import GenericGymEnv
 
 # TMRL imports:
-from tmrl.networking import Server, RolloutWorker, Trainer
-from tmrl.util import partial
-from tmrl.envs import GenericGymEnv
-import tmrl.config.config_constants as cfg
+from tmrl.networking import RolloutWorker, Server, Trainer
 from tmrl.training_offline import TorchTrainingOffline
-from tmrl.custom.custom_algorithms import SpinupSacAgent
-from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic
-from tmrl.custom.custom_memories import GenericTorchMemory
-
+from tmrl.util import partial
 
 # Set this to True only for debugging your pipeline.
 CRC_DEBUG = False
@@ -29,13 +29,13 @@ my_run_name = "tutorial_minimal_pendulum"
 
 # === Environment ======================================================================================================
 
-# Environment class:
+# Environment class (worker instantiates this; trainer uses spaces tuple below).
 
-env_cls = partial(GenericGymEnv, id="Pendulum-v1", gym_kwargs={"render_mode": None})
+rollout_env_cls = partial(GenericGymEnv, id="Pendulum-v1", gym_kwargs={"render_mode": None})
 
 # Observation and action space:
 
-dummy_env = env_cls()
+dummy_env = rollout_env_cls()
 act_space = dummy_env.action_space
 obs_space = dummy_env.observation_space
 
@@ -86,7 +86,7 @@ model_history = -1  # let us not save a model history.
 
 if __name__ == "__main__":
     my_worker = RolloutWorker(
-        env_cls=env_cls,
+        env_cls=rollout_env_cls,
         actor_module_cls=actor_module_cls,
         sample_compressor=None,
         device="cpu",
@@ -97,7 +97,8 @@ if __name__ == "__main__":
         model_path=model_path,
         # model_path_history=model_path_history,  # not used when model_history is -1
         model_history=model_history,
-        crc_debug=CRC_DEBUG)
+        crc_debug=CRC_DEBUG,
+    )
 
     # Note: at this point, the RolloutWorker is not collecting samples yet.
     # Nevertheless, it connects to the Server.
@@ -125,27 +126,26 @@ model_path = str(weights_folder / (my_run_name + "_t.tmod"))
 checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.tcpt"))
 
 # Dummy environment OR (observation space, action space) tuple:
-env_cls = (obs_space, act_space)
+trainer_env_cls = (obs_space, act_space)
 
 # Memory:
 
-memory_cls = partial(GenericTorchMemory,
-                     memory_size=1e6,
-                     batch_size=32,
-                     crc_debug=CRC_DEBUG)
+memory_cls = partial(GenericTorchMemory, memory_size=1e6, batch_size=32, crc_debug=CRC_DEBUG)
 
 # Training agent:
 
-training_agent_cls = partial(SpinupSacAgent,
-                             model_cls=MLPActorCritic,
-                             gamma=0.99,
-                             polyak=0.995,
-                             alpha=0.2,
-                             lr_actor=1e-3,
-                             lr_critic=1e-3,
-                             lr_entropy=1e-3,
-                             learn_entropy_coef=True,
-                             target_entropy=None)
+training_agent_cls = partial(
+    SpinupSacAgent,
+    model_cls=MLPActorCritic,
+    gamma=0.99,
+    polyak=0.995,
+    alpha=0.2,
+    lr_actor=1e-3,
+    lr_critic=1e-3,
+    lr_entropy=1e-3,
+    learn_entropy_coef=True,
+    target_entropy=None,
+)
 
 # Training parameters:
 
@@ -156,13 +156,13 @@ update_buffer_interval = 1  # the trainer checks for incoming samples at this in
 update_model_interval = 1  # the trainer broadcasts its updated model at this interval of training steps
 max_training_steps_per_env_step = 0.2  # Trainer synchronization ratio (max training steps per collected env step)
 start_training = 100  # minimum number of collected environment steps before training starts
-device = None  # training device (None for auto selection)
+device: str | None = None  # training device (None for auto selection)
 
 # Training class:
 
 training_cls = partial(
     TorchTrainingOffline,
-    env_cls=env_cls,
+    env_cls=trainer_env_cls,
     memory_cls=memory_cls,
     training_agent_cls=training_agent_cls,
     epochs=epochs,
@@ -172,7 +172,8 @@ training_cls = partial(
     update_model_interval=update_model_interval,
     max_training_steps_per_env_step=max_training_steps_per_env_step,
     start_training=start_training,
-    device=device)
+    device=device,
+)
 
 # Trainer instance:
 
@@ -183,7 +184,8 @@ if __name__ == "__main__":
         server_port=server_port,
         password=password,
         model_path=model_path,
-        checkpoint_path=checkpoints_path)  # None for not saving training checkpoints
+        checkpoint_path=checkpoints_path,
+    )  # None for not saving training checkpoints
 
 
 # === Running the pipeline =============================================================================================
@@ -206,10 +208,12 @@ def run_worker(worker):
     # end_episodes relaxes synchronization: the worker run episodes until they are terminated/truncated before waiting.
 
     # collect training samples synchronously:
-    worker.run_synchronous(test_episode_interval=10,  # collect one test episode every 10 train episodes
-                           initial_steps=100,  # initial number of samples
-                           max_steps_per_update=10,  # synchronization ratio of 10 environment steps per training step
-                           end_episodes=True)  # wait for the episodes to end before updating the model
+    worker.run_synchronous(
+        test_episode_interval=10,  # collect one test episode every 10 train episodes
+        initial_steps=100,  # initial number of samples
+        max_steps_per_update=10,  # synchronization ratio of 10 environment steps per training step
+        end_episodes=True,
+    )  # wait for the episodes to end before updating the model
 
 
 def run_trainer(trainer):
@@ -217,8 +221,7 @@ def run_trainer(trainer):
 
 
 if __name__ == "__main__":
-
-    daemon_thread_worker = Thread(target=run_worker, args=(my_worker, ), kwargs={}, daemon=True)
+    daemon_thread_worker = Thread(target=run_worker, args=(my_worker,), kwargs={}, daemon=True)
     daemon_thread_worker.start()  # start the worker daemon thread
 
     run_trainer(my_trainer)
@@ -235,6 +238,7 @@ if __name__ == "__main__":
         sample_compressor=None,
         device="cpu",
         max_samples_per_episode=1000,
-        model_path=model_path)
+        model_path=model_path,
+    )
 
     rendering_worker.run_episodes()
