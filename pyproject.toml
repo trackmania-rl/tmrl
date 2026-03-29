@@ -73,7 +73,6 @@ dependencies = [
 dev = [
     "mypy>=1.8",
     "ruff>=0.4",
-    "pytest>=7.0",
     "types-requests>=2.31",
 ]
 
@@ -81,7 +80,6 @@ dev = [
 dev = [
     "mypy>=1.8",
     "ruff>=0.4",
-    "pytest>=7.0",
     "types-requests>=2.31",
 ]
 
@@ -145,12 +143,6 @@ ignore = [
     "SIM105",
     "SIM115",
 ]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
 
 [tool.mypy]
 python_version = "3.12"

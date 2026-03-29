@@ -1,4 +1,4 @@
-.PHONY: fmt lint types check test tests install-dev kill-server server trainer worker record-episode
+.PHONY: fmt lint types check install-dev kill-server server trainer worker record-episode
 
 # Unix: .venv | Windows: .venv-windows (override with e.g. UV_ENV=.venv-other make server)
 UV_ENV ?= $(if $(filter Windows_NT,$(OS)),.venv-windows,.venv)
@@ -16,12 +16,6 @@ types:
 	uv run mypy tmrl
 
 check: lint types
-
-test:
-	uv run pytest
-
-tests:
-	uv run pytest tests/ -v
 
 install-dev:
 	uv sync --group dev
