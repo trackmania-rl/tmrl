@@ -23,8 +23,7 @@ install-dev:
 kill-server:
 ifeq ($(OS),Windows_NT)
 	@echo Checking for processes on port 55555...
-	@for /f "tokens=5" %%a in ('netstat -aon ^| findstr :55555') do @taskkill /F /PID %%a 2>nul
-	@exit 0
+	@-powershell.exe -NoProfile -NonInteractive -Command 'Get-NetTCPConnection -LocalPort 55555 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $$_ -Force -ErrorAction SilentlyContinue }'
 else
 	@echo "Checking for processes on port 55555..."
 	@-command -v fuser >/dev/null 2>&1 && fuser -k 55555/tcp 2>/dev/null || true
