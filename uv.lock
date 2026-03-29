@@ -4748,7 +4748,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/46/68/eaecd83c142abca86
 
 [[package]]
 name = "tmrl"
-version = "0.7.1"
+version = "0.7.2"
 source = { editable = "." }
 dependencies = [
     { name = "chardet" },

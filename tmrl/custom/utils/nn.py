@@ -58,7 +58,7 @@ class PopArt(Module):
         bias0 = cast(torch.Tensor, self.output_layers[0].bias)
         shape = tuple(int(s) for s in bias0.shape)
         device: torch.device | str = bias0.device
-        assert all(shape == tuple(int(s) for s in x.bias.shape) for x in self.output_layers)
+        assert all(shape == tuple(int(s) for s in cast(torch.Size, x.bias.shape)) for x in self.output_layers)
         self.mean = Parameter(torch.zeros(shape, device=device), requires_grad=False)
         self.mean_square = Parameter(torch.ones(shape, device=device), requires_grad=False)
         self.std = Parameter(torch.ones(shape, device=device), requires_grad=False)

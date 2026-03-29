@@ -14,7 +14,6 @@ from tmrl.envs import GenericGymEnv
 from tmrl.networking import RolloutWorker, Server, Trainer
 from tmrl.tools.check_environment import check_env_tm20full, check_env_tm20lidar
 from tmrl.tools.record import record_reward_dist
-from tmrl.tools.save_replays import save_replays
 from tmrl.util import partial
 
 
@@ -38,8 +37,6 @@ class TmrlCLI:
     """Runs a benchmark of the environment."""
     record_reward: bool = False
     """Record a reward function in TM20."""
-    record_episode: bool = False
-    """Record TrackMania replays (standalone worker)."""
     use_keyboard: bool = False
     """Modifier for --record-reward."""
     check_environment: bool = False
@@ -107,8 +104,6 @@ def main(args: TmrlCLI) -> None:
             trainer.run()
     elif args.record_reward:
         record_reward_dist(path_reward=cfg.REWARD_PATH, use_keyboard=args.use_keyboard)
-    elif args.record_episode:
-        save_replays(nb_replays=args.record_episode_count)
     elif args.check_environment:
         if cfg.PRAGMA_LIDAR:
             check_env_tm20lidar()

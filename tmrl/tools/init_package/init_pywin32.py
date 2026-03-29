@@ -698,7 +698,7 @@ def fix_pywin32():
     install(destination)
 
 
-def main():
+def main() -> None:
     global silent, verbose
 
     from dataclasses import dataclass, field

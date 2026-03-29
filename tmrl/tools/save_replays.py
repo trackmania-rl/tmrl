@@ -37,7 +37,11 @@ class SaveReplaysCLI:
     """Number of replays to record; use -1 for unlimited."""
 
 
-if __name__ == "__main__":
+def main() -> None:
     args = tyro.cli(SaveReplaysCLI)
     n = np.inf if args.nb_replays < 0 else args.nb_replays
     save_replays(n)
+
+
+if __name__ == "__main__":
+    main()
