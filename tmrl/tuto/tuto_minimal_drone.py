@@ -6,18 +6,18 @@ This script works out-of-the-box for real-time environments with flat continuous
 
 # tutorial imports:
 from threading import Thread
-from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
+
+import tmrl.config.config_constants as cfg
+from tmrl.custom.custom_algorithms import SpinupSacAgent
+from tmrl.custom.custom_memories import GenericTorchMemory
+from tmrl.custom.custom_models import MLPActorCritic, SquashedGaussianMLPActor
+from tmrl.envs import GenericGymEnv
 
 # TMRL imports:
-from tmrl.networking import Server, RolloutWorker, Trainer
-from tmrl.util import partial
-from tmrl.envs import GenericGymEnv
-import tmrl.config.config_constants as cfg
+from tmrl.networking import RolloutWorker, Server, Trainer
 from tmrl.training_offline import TorchTrainingOffline
-from tmrl.custom.custom_algorithms import SpinupSacAgent
-from tmrl.custom.custom_models import SquashedGaussianMLPActor, MLPActorCritic
-from tmrl.custom.custom_memories import GenericTorchMemory
-
+from tmrl.util import partial
+from tuto_envs.dummy_rc_drone_interface import DUMMY_RC_DRONE_CONFIG
 
 # Set this to True only for debugging your pipeline.
 CRC_DEBUG = False
@@ -38,13 +38,13 @@ my_run_name = "tutorial_minimal_drone"
 
 my_rtgym_config = DUMMY_RC_DRONE_CONFIG
 
-# Environment class:
+# Environment class (worker instantiates this; trainer uses spaces tuple below).
 
-env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_rtgym_config})
+rollout_env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_rtgym_config})
 
 # Observation and action space:
 
-dummy_env = env_cls()
+dummy_env = rollout_env_cls()
 act_space = dummy_env.action_space
 obs_space = dummy_env.observation_space
 
@@ -95,7 +95,7 @@ model_history = -1  # let us not save a model history.
 
 if __name__ == "__main__":
     my_worker = RolloutWorker(
-        env_cls=env_cls,
+        env_cls=rollout_env_cls,
         actor_module_cls=actor_module_cls,
         sample_compressor=None,
         device="cpu",
@@ -106,7 +106,8 @@ if __name__ == "__main__":
         model_path=model_path,
         # model_path_history=model_path_history,  # not used when model_history is -1
         model_history=model_history,
-        crc_debug=CRC_DEBUG)
+        crc_debug=CRC_DEBUG,
+    )
 
     # Note: at this point, the RolloutWorker is not collecting samples yet.
     # Nevertheless, it connects to the Server.
@@ -134,28 +135,27 @@ model_path = str(weights_folder / (my_run_name + "_t.tmod"))
 checkpoints_path = str(checkpoints_folder / (my_run_name + "_t.tcpt"))
 
 # Dummy environment OR (observation space, action space) tuple:
-# env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_rtgym_config})
-env_cls = (obs_space, act_space)
+# rollout_env_cls = partial(GenericGymEnv, id="real-time-gym-ts-v1", gym_kwargs={"config": my_rtgym_config})
+trainer_env_cls = (obs_space, act_space)
 
 # Memory:
 
-memory_cls = partial(GenericTorchMemory,
-                     memory_size=1e6,
-                     batch_size=32,
-                     crc_debug=CRC_DEBUG)
+memory_cls = partial(GenericTorchMemory, memory_size=1e6, batch_size=32, crc_debug=CRC_DEBUG)
 
 # Training agent:
 
-training_agent_cls = partial(SpinupSacAgent,
-                             model_cls=MLPActorCritic,
-                             gamma=0.99,
-                             polyak=0.995,
-                             alpha=0.2,
-                             lr_actor=1e-3,
-                             lr_critic=1e-3,
-                             lr_entropy=1e-3,
-                             learn_entropy_coef=True,
-                             target_entropy=None)
+training_agent_cls = partial(
+    SpinupSacAgent,
+    model_cls=MLPActorCritic,
+    gamma=0.99,
+    polyak=0.995,
+    alpha=0.2,
+    lr_actor=1e-3,
+    lr_critic=1e-3,
+    lr_entropy=1e-3,
+    learn_entropy_coef=True,
+    target_entropy=None,
+)
 
 # Training parameters:
 
@@ -172,7 +172,7 @@ device = None
 
 training_cls = partial(
     TorchTrainingOffline,
-    env_cls=env_cls,
+    env_cls=trainer_env_cls,
     memory_cls=memory_cls,
     training_agent_cls=training_agent_cls,
     epochs=epochs,
@@ -182,7 +182,8 @@ training_cls = partial(
     update_model_interval=update_model_interval,
     max_training_steps_per_env_step=max_training_steps_per_env_step,
     start_training=start_training,
-    device=device)
+    device=device,
+)
 
 # Trainer instance:
 
@@ -193,7 +194,8 @@ if __name__ == "__main__":
         server_port=server_port,
         password=password,
         model_path=model_path,
-        checkpoint_path=checkpoints_path)  # None for not saving training checkpoints
+        checkpoint_path=checkpoints_path,
+    )  # None for not saving training checkpoints
 
 
 # === Running the pipeline =============================================================================================
@@ -216,7 +218,7 @@ def run_trainer(trainer):
 
 
 if __name__ == "__main__":
-    daemon_thread_worker = Thread(target=run_worker, args=(my_worker, ), kwargs={}, daemon=True)
+    daemon_thread_worker = Thread(target=run_worker, args=(my_worker,), kwargs={}, daemon=True)
     daemon_thread_worker.start()  # start the worker daemon thread
 
     run_trainer(my_trainer)

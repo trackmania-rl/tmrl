@@ -3,12 +3,11 @@
 # standard library imports
 import platform
 
-
 if platform.system() == "Windows":
     # standard library imports
     import ctypes
 
-    SendInput = ctypes.windll.user32.SendInput
+    SendInput = ctypes.windll.user32.SendInput  # type: ignore[attr-defined]
 
     # constants:
 
@@ -24,13 +23,30 @@ if platform.system() == "Windows":
     PUL = ctypes.POINTER(ctypes.c_ulong)
 
     class KeyBdInput(ctypes.Structure):
-        _fields_ = [("wVk", ctypes.c_ushort), ("wScan", ctypes.c_ushort), ("dwFlags", ctypes.c_ulong), ("time", ctypes.c_ulong), ("dwExtraInfo", PUL)]
+        _fields_ = [
+            ("wVk", ctypes.c_ushort),
+            ("wScan", ctypes.c_ushort),
+            ("dwFlags", ctypes.c_ulong),
+            ("time", ctypes.c_ulong),
+            ("dwExtraInfo", PUL),
+        ]
 
     class HardwareInput(ctypes.Structure):
-        _fields_ = [("uMsg", ctypes.c_ulong), ("wParamL", ctypes.c_short), ("wParamH", ctypes.c_ushort)]
+        _fields_ = [
+            ("uMsg", ctypes.c_ulong),
+            ("wParamL", ctypes.c_short),
+            ("wParamH", ctypes.c_ushort),
+        ]
 
     class MouseInput(ctypes.Structure):
-        _fields_ = [("dx", ctypes.c_long), ("dy", ctypes.c_long), ("mouseData", ctypes.c_ulong), ("dwFlags", ctypes.c_ulong), ("time", ctypes.c_ulong), ("dwExtraInfo", PUL)]
+        _fields_ = [
+            ("dx", ctypes.c_long),
+            ("dy", ctypes.c_long),
+            ("mouseData", ctypes.c_ulong),
+            ("dwFlags", ctypes.c_ulong),
+            ("time", ctypes.c_ulong),
+            ("dwExtraInfo", PUL),
+        ]
 
     class Input_I(ctypes.Union):
         _fields_ = [("ki", KeyBdInput), ("mi", MouseInput), ("hi", HardwareInput)]
@@ -45,29 +61,29 @@ if platform.system() == "Windows":
         ii_ = Input_I()
         ii_.ki = KeyBdInput(0, hexKeyCode, 0x0008, 0, ctypes.pointer(extra))
         x = Input(ctypes.c_ulong(1), ii_)
-        ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+        ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))  # type: ignore[attr-defined]
 
     def ReleaseKey(hexKeyCode):
         extra = ctypes.c_ulong(0)
         ii_ = Input_I()
         ii_.ki = KeyBdInput(0, hexKeyCode, 0x0008 | 0x0002, 0, ctypes.pointer(extra))
         x = Input(ctypes.c_ulong(1), ii_)
-        ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+        ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))  # type: ignore[attr-defined]
 
-    def apply_control(action):  # move_fast
-        if 'f' in action:
+    def apply_control(action, window_id=None):  # move_fast; window_id unused on Windows
+        if "f" in action:
             PressKey(W)
         else:
             ReleaseKey(W)
-        if 'b' in action:
+        if "b" in action:
             PressKey(S)
         else:
             ReleaseKey(S)
-        if 'l' in action:
+        if "l" in action:
             PressKey(A)
         else:
             ReleaseKey(A)
-        if 'r' in action:
+        if "r" in action:
             PressKey(D)
         else:
             ReleaseKey(D)
@@ -79,7 +95,8 @@ if platform.system() == "Windows":
 
 elif platform.system() == "Linux":
     import subprocess
-    import logging
+
+    from loguru import logger
 
     KEY_UP = "Up"
     KEY_DOWN = "Down"
@@ -92,37 +109,37 @@ elif platform.system() == "Linux":
     def execute_command(c):
         global process
         if process is None or process.poll() is not None:
-            logging.debug("(re-)create process")
-            process = subprocess.Popen('/bin/bash', stdin=subprocess.PIPE)
+            logger.debug("(re-)create process")
+            process = subprocess.Popen("/bin/bash", stdin=subprocess.PIPE)
         process.stdin.write(c.encode())
         process.stdin.flush()
 
     def PressKey(key):
-        c = f"xdotool keydown {str(key)}\n"
+        c = f"xdotool keydown {key!s}\n"
         execute_command(c)
 
     def ReleaseKey(key):
-        c = f"xdotool keyup {str(key)}\n"
+        c = f"xdotool keyup {key!s}\n"
         execute_command(c)
 
     def apply_control(action, window_id=None):  # move_fast
         if window_id is not None:
-            c_focus = f"xdotool windowfocus {str(window_id)}"
+            c_focus = f"xdotool windowfocus {window_id!s}"
             execute_command(c_focus)
 
-        if 'f' in action:
+        if "f" in action:
             PressKey(KEY_UP)
         else:
             ReleaseKey(KEY_UP)
-        if 'b' in action:
+        if "b" in action:
             PressKey(KEY_DOWN)
         else:
             ReleaseKey(KEY_DOWN)
-        if 'l' in action:
+        if "l" in action:
             PressKey(KEY_LEFT)
         else:
             ReleaseKey(KEY_LEFT)
-        if 'r' in action:
+        if "r" in action:
             PressKey(KEY_RIGHT)
         else:
             ReleaseKey(KEY_RIGHT)
@@ -133,7 +150,7 @@ elif platform.system() == "Linux":
 
 else:
 
-    def apply_control(action):
+    def apply_control(action, window_id=None):
         pass
 
     def keyres():

@@ -6,6 +6,7 @@
 #
 # copies PyWinTypesxx.dll and PythonCOMxx.dll into the system directory,
 # and creates a pth file
+import builtins
 import os
 import sys
 import glob
@@ -68,40 +69,39 @@ silent = 0
 # Verbosity of output messages.
 verbose = 1
 
-root_key_name = "Software\\Python\\PythonCore\\" + sys.winver
+root_key_name = "Software\\Python\\PythonCore\\" + getattr(sys, "winver", "")
 
-try:
-    # When this script is run from inside the bdist_wininst installer,
-    # file_created() and directory_created() are additional builtin
-    # functions which write lines to Python23\pywin32-install.log. This is
-    # a list of actions for the uninstaller, the format is inspired by what
-    # the Wise installer also creates.
-    file_created
+# When run from bdist_wininst, file_created / directory_created may be extra builtins.
+if hasattr(builtins, "file_created"):
     is_bdist_wininst = True
-except NameError:
+    file_created = builtins.file_created
+    directory_created = getattr(builtins, "directory_created", lambda _d: None)
+else:
     is_bdist_wininst = False  # we know what it is not - but not what it is :)
 
     def file_created(file):
         pass
 
-    def directory_created(directory):
+    def directory_created(_directory):
         pass
 
-    def get_root_hkey():
-        try:
-            winreg.OpenKey(
-                winreg.HKEY_LOCAL_MACHINE, root_key_name, 0, winreg.KEY_CREATE_SUB_KEY
-            )
-            return winreg.HKEY_LOCAL_MACHINE
-        except OSError:
-            # Either not exist, or no permissions to create subkey means
-            # must be HKCU
-            return winreg.HKEY_CURRENT_USER
+
+def get_root_hkey():
+    try:
+        winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE, root_key_name, 0, winreg.KEY_CREATE_SUB_KEY
+        )
+        return winreg.HKEY_LOCAL_MACHINE
+    except OSError:
+        # Either not exist, or no permissions to create subkey means
+        # must be HKCU
+        return winreg.HKEY_CURRENT_USER
 
 
-try:
-    create_shortcut
-except NameError:
+if hasattr(builtins, "create_shortcut"):
+    create_shortcut = builtins.create_shortcut
+    get_special_folder_path = getattr(builtins, "get_special_folder_path")
+else:
     # Create a function with the same signature as create_shortcut provided
     # by bdist_wininst
     def create_shortcut(
@@ -577,7 +577,7 @@ def install(lib_dir):
     # importing win32com.client ensures the gen_py dir created - not strictly
     # necessary to do now, but this makes the installation "complete"
     try:
-        import win32com.client  # noqa
+        import win32com.client
     except ImportError:
         # Don't let this error sound fatal
         pass
@@ -682,9 +682,9 @@ def uninstall(lib_dir):
 # this from the bdist_wininst C code?)
 
 
-def verify_destination(location):
+def verify_destination(location: str) -> str:
     if not os.path.isdir(location):
-        raise argparse.ArgumentTypeError('Path "{}" does not exist!'.format(location))
+        raise ValueError('Path "{}" does not exist!'.format(location))
     return location
 
 
@@ -699,64 +699,44 @@ def fix_pywin32():
 
 
 def main():
-    import argparse
+    global silent, verbose
 
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="""A post-install script for the pywin32 extensions.
-    * Typical usage:
-    > python pywin32_postinstall.py -install
-    If you installed pywin32 via a .exe installer, this should be run
-    automatically after installation, but if it fails you can run it again.
-    If you installed pywin32 via PIP, you almost certainly need to run this to
-    setup the environment correctly.
-    Execute with script with a '-install' parameter, to ensure the environment
-    is setup correctly.
-    """,
-    )
-    parser.add_argument(
-        "-install",
-        default=False,
-        action="store_true",
-        help="Configure the Python environment correctly for pywin32.",
-    )
-    parser.add_argument(
-        "-remove",
-        default=False,
-        action="store_true",
-        help="Try and remove everything that was installed or copied.",
-    )
-    parser.add_argument(
-        "-wait",
-        type=int,
-        help="Wait for the specified process to terminate before starting.",
-    )
-    parser.add_argument(
-        "-silent",
-        default=False,
-        action="store_true",
-        help='Don\'t display the "Abort/Retry/Ignore" dialog for files in use.',
-    )
-    parser.add_argument(
-        "-quiet",
-        default=False,
-        action="store_true",
-        help="Don't display progress messages.",
-    )
-    parser.add_argument(
-        "-destination",
-        default=sysconfig.get_paths()["platlib"],
-        type=verify_destination,
-        help="Location of the PyWin32 installation",
-    )
+    from dataclasses import dataclass, field
 
-    args = parser.parse_args()
+    import tyro
+
+    @dataclass
+    class Pywin32PostinstallCLI:
+        """Post-install script for the pywin32 extensions.
+
+        Typical usage: ``python ... --install``. Pip installs often need this once.
+        """
+
+        install: bool = False
+        """Configure the Python environment for pywin32."""
+        remove: bool = False
+        """Remove what this script installed or copied."""
+        wait: int | None = None
+        """Wait for this process ID to exit before starting."""
+        silent: bool = False
+        """Do not show the files-in-use dialog on Windows."""
+        quiet: bool = False
+        """Do not print progress messages."""
+        destination: str = field(default_factory=lambda: sysconfig.get_paths()["platlib"])
+        """PyWin32 installation (platlib) path."""
+
+    args = tyro.cli(Pywin32PostinstallCLI)
+
+    try:
+        verify_destination(args.destination)
+    except ValueError as e:
+        raise SystemExit(str(e)) from e
 
     if not args.quiet:
         print("Parsed arguments are: {}".format(args))
 
     if not args.install ^ args.remove:
-        parser.error("You need to either choose to -install or -remove!")
+        raise SystemExit("Choose exactly one of --install or --remove.")
 
     if args.wait is not None:
         try:
@@ -765,8 +745,8 @@ def main():
             # child already dead
             pass
 
-    silent = args.silent
-    verbose = not args.quiet
+    silent = int(args.silent)
+    verbose = 0 if args.quiet else 1
 
     if args.install:
         install(args.destination)

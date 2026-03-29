@@ -4,20 +4,23 @@ import pickle
 
 # third-party imports
 import numpy as np
-import logging
+from loguru import logger
 
 
 class RewardFunction:
     """
     Computes a reward from the Openplanet API for Trackmania 2020.
     """
-    def __init__(self,
-                 reward_data_path,
-                 nb_obs_forward=10,
-                 nb_obs_backward=10,
-                 nb_zero_rew_before_failure=10,
-                 min_nb_steps_before_failure=int(3.5 * 20),
-                 max_dist_from_traj=60.0):
+
+    def __init__(
+        self,
+        reward_data_path,
+        nb_obs_forward=10,
+        nb_obs_backward=10,
+        nb_zero_rew_before_failure=10,
+        min_nb_steps_before_failure=int(3.5 * 20),
+        max_dist_from_traj=60.0,
+    ):
         """
         Instantiates a reward function for TM2020.
 
@@ -30,10 +33,10 @@ class RewardFunction:
             max_dist_from_traj: the reward is 0 if the car is further than this distance from the demo trajectory
         """
         if not os.path.exists(reward_data_path):
-            logging.debug(f" reward not found at path:{reward_data_path}")
+            logger.debug(f" reward not found at path:{reward_data_path}")
             self.data = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])  # dummy reward
         else:
-            with open(reward_data_path, 'rb') as f:
+            with open(reward_data_path, "rb") as f:
                 self.data = pickle.load(f)
 
         self.cur_idx = 0

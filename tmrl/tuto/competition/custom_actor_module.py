@@ -50,21 +50,23 @@ IMPORTANT: Set a custom 'RUN_NAME' in config.json, otherwise this script will no
 # Let us start our tutorial by importing some useful stuff.
 
 # The constants that are defined in config.json:
+import os
+
+# And a couple external libraries:
+import numpy as np
 import tmrl.config.config_constants as cfg
+
 # Useful classes:
 import tmrl.config.config_objects as cfg_obj
-# The utility that TMRL uses to partially instantiate classes:
-from tmrl.util import partial
+
 # The TMRL three main entities (i.e., the Trainer, the RolloutWorker and the central Server):
-from tmrl.networking import Trainer, RolloutWorker, Server
+from tmrl.networking import RolloutWorker, Server, Trainer
 
 # The training class that we will customize with our own training algorithm in this tutorial:
 from tmrl.training_offline import TrainingOffline
 
-# And a couple external libraries:
-import numpy as np
-import os
-
+# The utility that TMRL uses to partially instantiate classes:
+from tmrl.util import partial
 
 # Now, let us look into the content of config.json:
 
@@ -101,7 +103,7 @@ update_model_interval = cfg.TMRL_CONFIG["UPDATE_MODEL_INTERVAL"]
 update_buffer_interval = cfg.TMRL_CONFIG["UPDATE_BUFFER_INTERVAL"]
 
 # Training device (e.g., "cuda:0"):
-device_trainer = 'cuda' if cfg.CUDA_TRAINING else 'cpu'
+device_trainer = "cuda" if cfg.CUDA_TRAINING else "cpu"
 
 # Maximum size of the replay buffer:
 memory_size = cfg.TMRL_CONFIG["MEMORY_SIZE"]
@@ -118,7 +120,7 @@ wandb_project = cfg.TMRL_CONFIG["WANDB_PROJECT"]  # name of the wandb project in
 wandb_entity = cfg.TMRL_CONFIG["WANDB_ENTITY"]  # wandb account
 wandb_key = cfg.TMRL_CONFIG["WANDB_KEY"]  # wandb API key
 
-os.environ['WANDB_API_KEY'] = wandb_key  # this line sets your wandb API key as the active key
+os.environ["WANDB_API_KEY"] = wandb_key  # this line sets your wandb API key as the active key
 
 # Number of time-steps after which episodes collected by the worker are truncated:
 max_samples_per_episode = cfg.TMRL_CONFIG["RW_MAX_SAMPLES_PER_EPISODE"]
@@ -168,7 +170,7 @@ obs_preprocessor = cfg_obj.OBS_PREPROCESSOR
 env_cls = cfg_obj.ENV_CLS
 
 # Device used for inference on workers (change if you like but keep in mind that the competition evaluation is on CPU)
-device_worker = 'cpu'
+device_worker = "cpu"
 
 
 # =====================================================================
@@ -207,14 +209,16 @@ act_buf_len = cfg.ACT_BUF_LEN
 # If you need a custom memory, change the relevant advanced parameters.
 # Custom memories are described in the full TMRL tutorial.
 
-memory_cls = partial(memory_base_cls,
-                     memory_size=memory_size,
-                     batch_size=batch_size,
-                     sample_preprocessor=sample_preprocessor,
-                     dataset_path=cfg.DATASET_PATH,
-                     imgs_obs=imgs_buf_len,
-                     act_buf_len=act_buf_len,
-                     crc_debug=False)
+memory_cls = partial(
+    memory_base_cls,
+    memory_size=memory_size,
+    batch_size=batch_size,
+    sample_preprocessor=sample_preprocessor,
+    dataset_path=cfg.DATASET_PATH,
+    imgs_obs=imgs_buf_len,
+    act_buf_len=act_buf_len,
+    crc_debug=False,
+)
 
 
 # =====================================================================
@@ -238,15 +242,14 @@ LOG_STD_MIN = -20
 # Let us import the ActorModule that we are supposed to implement.
 # We will use PyTorch in this tutorial.
 # TMRL readily provides a PyTorch-specific subclass of ActorModule:
-from tmrl.actor import TorchActorModule
+from math import floor
 
 # Plus a couple useful imports:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from tmrl.actor import TorchActorModule
 from torch.distributions.normal import Normal
-from math import floor
-
 
 # In the full version of the TrackMania 2020 environment, the
 # observation-space comprises a history of screenshots. Thus, we need
@@ -301,7 +304,7 @@ class VanillaCNN(nn.Module):
         Args:
             q_net (bool): indicates whether this neural net is a critic network
         """
-        super(VanillaCNN, self).__init__()
+        super().__init__()
 
         self.q_net = q_net
 
@@ -366,11 +369,13 @@ class VanillaCNN(nn.Module):
         # Now we will flatten our output feature map.
         # Let us double-check that our dimensions are what we expect them to be:
         flat_features = num_flat_features(x)
-        assert flat_features == self.flat_features, f"x.shape:{x.shape},\
+        assert flat_features == self.flat_features, (
+            f"x.shape:{x.shape},\
                                                     flat_features:{flat_features},\
                                                     self.out_channels:{self.out_channels},\
                                                     self.h_out:{self.h_out},\
                                                     self.w_out:{self.w_out}"
+        )
         # All good, let us flatten our output feature map:
         x = x.view(-1, flat_features)
 
@@ -402,6 +407,7 @@ class TorchJSONEncoder(json.JSONEncoder):
     """
     Custom JSON encoder for torch tensors, used in the custom save() method of our ActorModule.
     """
+
     def default(self, obj):
         if isinstance(obj, torch.Tensor):
             return obj.cpu().detach().numpy().tolist()
@@ -412,11 +418,12 @@ class TorchJSONDecoder(json.JSONDecoder):
     """
     Custom JSON decoder for torch tensors, used in the custom load() method of our ActorModule.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, dct):
-        for key in dct.keys():
+        for key in dct:
             if isinstance(dct[key], list):
                 dct[key] = torch.Tensor(dct[key])
         return dct
@@ -431,6 +438,7 @@ class MyActorModule(TorchActorModule):
 
     (Note: TorchActorModule is a subclass of ActorModule and torch.nn.Module)
     """
+
     def __init__(self, observation_space, action_space):
         """
         When implementing __init__, we need to take the observation_space and action_space arguments.
@@ -467,7 +475,7 @@ class MyActorModule(TorchActorModule):
         Args:
             path: pathlib.Path: path to where the object will be stored.
         """
-        with open(path, 'w') as json_file:
+        with open(path, "w") as json_file:
             json.dump(self.state_dict(), json_file, cls=TorchJSONEncoder)
         # torch.save(self.state_dict(), path)
 
@@ -485,7 +493,7 @@ class MyActorModule(TorchActorModule):
             The loaded ActorModule instance
         """
         self.device = device
-        with open(path, 'r') as json_file:
+        with open(path) as json_file:
             state_dict = json.load(json_file, cls=TorchJSONDecoder)
         self.load_state_dict(state_dict)
         self.to_device(device)
@@ -574,6 +582,7 @@ class VanillaCNNQFunction(nn.Module):
     """
     Critic module for SAC.
     """
+
     def __init__(self, observation_space, action_space):
         super().__init__()
         self.net = VanillaCNN(q_net=True)  # q_net is True for a critic module
@@ -605,6 +614,7 @@ class VanillaCNNActorCritic(nn.Module):
     """
     Actor-critic module for the SAC algorithm.
     """
+
     def __init__(self, observation_space, action_space):
         super().__init__()
 
@@ -626,22 +636,21 @@ class VanillaCNNActorCritic(nn.Module):
 # this ActorModule. Let us now tackle the training algorithm per-se.
 # In TMRL, this is done by implementing a custom TrainingAgent.
 
-from tmrl.training import TrainingAgent
+import itertools
+from copy import deepcopy
 
 # We will also use a couple utilities, and the Adam optimizer:
-
 from tmrl.custom.utils.nn import copy_shared, no_grad
+from tmrl.training import TrainingAgent
 from tmrl.util import cached_property
-from copy import deepcopy
-import itertools
 from torch.optim import Adam
-
 
 # A TrainingAgent must implement two methods:
 # -> train(batch): optimizes the model from a batch of RL samples
 # -> get_actor(): outputs a copy of the current ActorModule
 # In this tutorial, we implement the Soft Actor-Critic algorithm
 # by adapting the OpenAI Spinup implementation.
+
 
 class SACTrainingAgent(TrainingAgent):
     """
@@ -661,21 +670,21 @@ class SACTrainingAgent(TrainingAgent):
     # no-grad copy of the model used to send the Actor weights in get_actor():
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
-    def __init__(self,
-                 observation_space=None,  # Gymnasium observation space (required argument here for your convenience)
-                 action_space=None,  # Gymnasium action space (required argument here for your convenience)
-                 device=None,  # Device our TrainingAgent should use for training (required argument)
-                 model_cls=VanillaCNNActorCritic,  # An actor-critic module, encapsulating our ActorModule
-                 gamma=0.99,  # Discount factor
-                 polyak=0.995,  # Exponential averaging factor for the target critic
-                 alpha=0.2,  # Value of the entropy coefficient
-                 lr_actor=1e-3,  # Learning rate for the actor
-                 lr_critic=1e-3):  # Learning rate for the critic
+    def __init__(
+        self,
+        observation_space=None,  # Gymnasium observation space (required argument here for your convenience)
+        action_space=None,  # Gymnasium action space (required argument here for your convenience)
+        device=None,  # Device our TrainingAgent should use for training (required argument)
+        model_cls=VanillaCNNActorCritic,  # An actor-critic module, encapsulating our ActorModule
+        gamma=0.99,  # Discount factor
+        polyak=0.995,  # Exponential averaging factor for the target critic
+        alpha=0.2,  # Value of the entropy coefficient
+        lr_actor=1e-3,  # Learning rate for the actor
+        lr_critic=1e-3,
+    ):  # Learning rate for the critic
 
         # required arguments passed to the superclass:
-        super().__init__(observation_space=observation_space,
-                         action_space=action_space,
-                         device=device)
+        super().__init__(observation_space=observation_space, action_space=action_space, device=device)
 
         # custom stuff:
         model = model_cls(observation_space, action_space)
@@ -745,8 +754,8 @@ class SACTrainingAgent(TrainingAgent):
             backup = r + self.gamma * (1 - d) * (q_pi_targ - self.alpha_t * logp_a2)
 
         # This gives us our critic loss, as the difference between the target and the estimate:
-        loss_q1 = ((q1 - backup)**2).mean()
-        loss_q2 = ((q2 - backup)**2).mean()
+        loss_q1 = ((q1 - backup) ** 2).mean()
+        loss_q2 = ((q2 - backup) ** 2).mean()
         loss_q = loss_q1 + loss_q2
 
         # We can now take an optimization step to train our critics in the opposite direction of this loss' gradient:
@@ -777,15 +786,15 @@ class SACTrainingAgent(TrainingAgent):
 
         # Finally, we update our target model with a slowly moving exponential average:
         with torch.no_grad():
-            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
+            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters(), strict=False):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
         # TMRL enables us to log training metrics to wandb:
-        ret_dict = dict(
-            loss_actor=loss_pi.detach().item(),
-            loss_critic=loss_q.detach().item(),
-        )
+        ret_dict = {
+            "loss_actor": loss_pi.detach().item(),
+            "loss_critic": loss_q.detach().item(),
+        }
         return ret_dict
 
 
@@ -795,13 +804,15 @@ class SACTrainingAgent(TrainingAgent):
 # The following have shown reasonable results in the past, using the full TrackMania environment.
 # Note however that training a policy with SAC in this environment is a matter of several days!
 
-training_agent_cls = partial(SACTrainingAgent,
-                             model_cls=VanillaCNNActorCritic,
-                             gamma=0.995,
-                             polyak=0.995,
-                             alpha=0.01,
-                             lr_actor=0.00001,
-                             lr_critic=0.00005)
+training_agent_cls = partial(
+    SACTrainingAgent,
+    model_cls=VanillaCNNActorCritic,
+    gamma=0.995,
+    polyak=0.995,
+    alpha=0.01,
+    lr_actor=0.00001,
+    lr_critic=0.00005,
+)
 
 
 # =====================================================================
@@ -820,7 +831,8 @@ training_cls = partial(
     update_model_interval=update_model_interval,
     max_training_steps_per_env_step=max_training_steps_per_env_step,
     start_training=start_training,
-    device=device_trainer)
+    device=device_trainer,
+)
 
 
 # =====================================================================
@@ -838,21 +850,31 @@ training_cls = partial(
 # Let us instantiate these via an argument that we will pass when calling this script:
 
 if __name__ == "__main__":
-    from argparse import ArgumentParser
+    from dataclasses import dataclass
 
-    parser = ArgumentParser()
-    parser.add_argument('--server', action='store_true', help='launches the server')
-    parser.add_argument('--trainer', action='store_true', help='launches the trainer')
-    parser.add_argument('--worker', action='store_true', help='launches a rollout worker')
-    parser.add_argument('--test', action='store_true', help='launches a rollout worker in standalone mode')
-    args = parser.parse_args()
+    import tyro
+
+    @dataclass
+    class CompetitionCLI:
+        server: bool = False
+        """Launches the server."""
+        trainer: bool = False
+        """Launches the trainer."""
+        worker: bool = False
+        """Launches a rollout worker."""
+        test: bool = False
+        """Launches a rollout worker in standalone mode."""
+
+    args = tyro.cli(CompetitionCLI)
 
     if args.trainer:
-        my_trainer = Trainer(training_cls=training_cls,
-                             server_ip=server_ip_for_trainer,
-                             server_port=server_port,
-                             password=password,
-                             security=security)
+        my_trainer = Trainer(
+            training_cls=training_cls,
+            server_ip=server_ip_for_trainer,
+            server_port=server_port,
+            password=password,
+            security=security,
+        )
         my_trainer.run()
 
         # Note: if you want to log training metrics to wandb, replace my_trainer.run() with:
@@ -861,22 +883,23 @@ if __name__ == "__main__":
         #                           run_id=wandb_run_id)
 
     elif args.worker or args.test:
-        rw = RolloutWorker(env_cls=env_cls,
-                           actor_module_cls=MyActorModule,
-                           sample_compressor=sample_compressor,
-                           device=device_worker,
-                           server_ip=server_ip_for_worker,
-                           server_port=server_port,
-                           password=password,
-                           security=security,
-                           max_samples_per_episode=max_samples_per_episode,
-                           obs_preprocessor=obs_preprocessor,
-                           standalone=args.test)
+        rw = RolloutWorker(
+            env_cls=env_cls,
+            actor_module_cls=MyActorModule,
+            sample_compressor=sample_compressor,
+            device=device_worker,
+            server_ip=server_ip_for_worker,
+            server_port=server_port,
+            password=password,
+            security=security,
+            max_samples_per_episode=max_samples_per_episode,
+            obs_preprocessor=obs_preprocessor,
+            standalone=args.test,
+        )
         rw.run(test_episode_interval=10)
     elif args.server:
         import time
-        serv = Server(port=server_port,
-                      password=password,
-                      security=security)
+
+        serv = Server(port=server_port, password=password, security=security)
         while True:
             time.sleep(1.0)

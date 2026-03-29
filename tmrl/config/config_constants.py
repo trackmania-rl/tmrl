@@ -1,13 +1,12 @@
 # standard library imports
 
-import logging
-
-import os
-from pathlib import Path
 import json
+import os
 import platform
-from packaging import version
+from pathlib import Path
 
+from loguru import logger
+from packaging import version
 
 __compatibility__ = "0.6.0"
 
@@ -36,8 +35,7 @@ with open(CONFIG_FILE) as f:
 __err_msg = "Perform a clean installation:\n(1) Uninstall TMRL,\n(2) Delete the TmrlData folder,\n(3) Reinstall TMRL."
 assert "__VERSION__" in TMRL_CONFIG, "config.json is outdated. " + __err_msg
 CONFIG_VERSION = TMRL_CONFIG["__VERSION__"]
-assert version.parse(CONFIG_VERSION) >= version.parse(__compatibility__), \
-    f"config.json version ({CONFIG_VERSION}) must be >= {__compatibility__}. " + __err_msg
+assert version.parse(CONFIG_VERSION) >= version.parse(__compatibility__), f"config.json version ({CONFIG_VERSION}) must be >= {__compatibility__}. " + __err_msg
 
 # GENERAL: ===========================================================
 
@@ -87,12 +85,12 @@ CRC_DEBUG = False  # Only for checking the consistency of the custom networking 
 CRC_DEBUG_SAMPLES = 100  # Number of samples collected in CRC_DEBUG mode
 PROFILE_TRAINER = False  # Will profile each epoch in the Trainer when True
 SYNCHRONIZE_CUDA = False  # Set to True for profiling, False otherwise
-DEBUG_MODE = TMRL_CONFIG["DEBUG_MODE"] if "DEBUG_MODE" in TMRL_CONFIG.keys() else False
+DEBUG_MODE = TMRL_CONFIG["DEBUG_MODE"] if "DEBUG_MODE" in TMRL_CONFIG else False
 
 # FILE SYSTEM: =================================================
 
 PATH_DATA = TMRL_FOLDER
-logging.debug(f" PATH_DATA:{PATH_DATA}")
+logger.debug(f" PATH_DATA:{PATH_DATA}")
 
 MODEL_HISTORY = TMRL_CONFIG["SAVE_MODEL_EVERY"]  # 0 for not saving history, x for saving model history every x new model received by RolloutWorker
 
@@ -110,7 +108,7 @@ WANDB_PROJECT = TMRL_CONFIG["WANDB_PROJECT"]
 WANDB_ENTITY = TMRL_CONFIG["WANDB_ENTITY"]
 WANDB_KEY = TMRL_CONFIG["WANDB_KEY"]
 
-os.environ['WANDB_API_KEY'] = WANDB_KEY
+os.environ["WANDB_API_KEY"] = WANDB_KEY
 
 # NETWORKING: ==================================================
 

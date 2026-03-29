@@ -3,31 +3,39 @@ import os
 import pickle
 import zlib
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from pathlib import Path
 from random import randint
-import logging
+from typing import Any
 
 # third-party imports
 import numpy as np
-# from torch.utils.data import DataLoader, Dataset, Sampler
+from loguru import logger
 
+# from torch.utils.data import DataLoader, Dataset, Sampler
 # local imports
 from tmrl.util import collate_torch
-
 
 __docformat__ = "google"
 
 
 def check_samples_crc(original_po, original_a, original_o, original_r, original_d, original_t, rebuilt_po, rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, rebuilt_t, debug_ts, debug_ts_res):
-    assert original_po is None or str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_d) == str(rebuilt_d), f"terminated don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
-    assert str(original_t) == str(rebuilt_t), f"truncated don't match:\noriginal:\n{original_t}\n!= rebuilt:\n{rebuilt_t}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+    _dbg_ts = f"\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+    assert original_po is None or str(original_po) == str(rebuilt_po), f"previous observations don't match:\noriginal:\n{original_po}\n!= rebuilt:\n{rebuilt_po}{_dbg_ts}"
+    assert str(original_a) == str(rebuilt_a), f"actions don't match:\noriginal:\n{original_a}\n!= rebuilt:\n{rebuilt_a}{_dbg_ts}"
+    assert str(original_o) == str(rebuilt_o), f"observations don't match:\noriginal:\n{original_o}\n!= rebuilt:\n{rebuilt_o}{_dbg_ts}"
+    assert str(original_r) == str(rebuilt_r), f"rewards don't match:\noriginal:\n{original_r}\n!= rebuilt:\n{rebuilt_r}{_dbg_ts}"
+    assert str(original_d) == str(rebuilt_d), f"terminated don't match:\noriginal:\n{original_d}\n!= rebuilt:\n{rebuilt_d}{_dbg_ts}"
+    assert str(original_t) == str(rebuilt_t), f"truncated don't match:\noriginal:\n{original_t}\n!= rebuilt:\n{rebuilt_t}{_dbg_ts}"
     original_crc = zlib.crc32(str.encode(str((original_a, original_o, original_r, original_d, original_t))))
     crc = zlib.crc32(str.encode(str((rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d, rebuilt_t))))
-    assert crc == original_crc, f"CRC failed: new crc:{crc} != old crc:{original_crc}.\nEither the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\noriginal sample:\n{(original_a, original_o, original_r, original_d)}\n!= rebuilt sample:\n{(rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)}\nTime step: {debug_ts}, since reset: {debug_ts_res}"
+    assert crc == original_crc, (
+        f"CRC failed: new crc:{crc} != old crc:{original_crc}.\n"
+        f"Either the custom pipeline is corrupted, or crc_debug is False in the rollout worker.\n"
+        f"original sample:\n{(original_a, original_o, original_r, original_d)}\n"
+        f"!= rebuilt sample:\n{(rebuilt_a, rebuilt_o, rebuilt_r, rebuilt_d)}\n"
+        f"Time step: {debug_ts}, since reset: {debug_ts_res}"
+    )
     print(f"DEBUG: CRC check passed. Time step: {debug_ts}, since reset: {debug_ts_res}")
 
 
@@ -39,14 +47,8 @@ class Memory(ABC):
        When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
        Your `__init__` method needs to take at least all the arguments of the superclass.
     """
-    def __init__(self,
-                 device,
-                 nb_steps,
-                 sample_preprocessor: callable = None,
-                 memory_size=1000000,
-                 batch_size=256,
-                 dataset_path="",
-                 crc_debug=False):
+
+    def __init__(self, device, nb_steps, sample_preprocessor: Callable[..., Any] | None = None, memory_size=1000000, batch_size=256, dataset_path="", crc_debug=False):
         """
         Args:
             device (str): output tensors will be collated to this device
@@ -72,17 +74,17 @@ class Memory(ABC):
 
         # init memory
         self.path = Path(dataset_path)
-        logging.debug(f"Memory self.path:{self.path}")
-        if os.path.isfile(self.path / 'data.pkl'):
-            with open(self.path / 'data.pkl', 'rb') as f:
+        logger.debug(f"Memory self.path:{self.path}")
+        if os.path.isfile(self.path / "data.pkl"):
+            with open(self.path / "data.pkl", "rb") as f:
                 self.data = list(pickle.load(f))
         else:
-            logging.info("no data found, initializing empty replay memory")
+            logger.info("no data found, initializing empty replay memory")
             self.data = []
 
         if len(self) > self.memory_size:
             # TODO: crop to memory_size
-            logging.warning(f"the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
+            logger.warning(f"the dataset length ({len(self)}) is longer than memory_size ({self.memory_size})")
 
     def __iter__(self):
         for _ in range(self.nb_steps):
@@ -164,8 +166,8 @@ class Memory(ABC):
     def __getitem__(self, item):
         prev_obs, new_act, rew, new_obs, terminated, truncated, info = self.get_transition(item)
         if self.crc_debug:
-            po, a, o, r, d, t = info['crc_sample']
-            debug_ts, debug_ts_res = info['crc_sample_ts']
+            po, a, o, r, d, t = info["crc_sample"]
+            debug_ts, debug_ts_res = info["crc_sample_ts"]
             check_samples_crc(po, a, o, r, d, t, prev_obs, new_act, new_obs, rew, terminated, truncated, debug_ts, debug_ts_res)
         if self.sample_preprocessor is not None:
             prev_obs, new_act, rew, new_obs, terminated, truncated = self.sample_preprocessor(prev_obs, new_act, rew, new_obs, terminated, truncated)
@@ -185,14 +187,8 @@ class TorchMemory(Memory, ABC):
        When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
        Your `__init__` method needs to take at least all the arguments of the superclass.
     """
-    def __init__(self,
-                 device,
-                 nb_steps,
-                 sample_preprocessor: callable = None,
-                 memory_size=1000000,
-                 batch_size=256,
-                 dataset_path="",
-                 crc_debug=False):
+
+    def __init__(self, device, nb_steps, sample_preprocessor: Callable[..., Any] | None = None, memory_size=1000000, batch_size=256, dataset_path="", crc_debug=False):
         """
         Args:
             device (str): output tensors will be collated to this device
@@ -203,13 +199,7 @@ class TorchMemory(Memory, ABC):
             dataset_path (str): an offline dataset may be provided here to initialize the memory
             crc_debug (bool): False usually, True when using CRC debugging of the pipeline
         """
-        super().__init__(memory_size=memory_size,
-                         batch_size=batch_size,
-                         dataset_path=dataset_path,
-                         nb_steps=nb_steps,
-                         sample_preprocessor=sample_preprocessor,
-                         crc_debug=crc_debug,
-                         device=device)
+        super().__init__(memory_size=memory_size, batch_size=batch_size, dataset_path=dataset_path, nb_steps=nb_steps, sample_preprocessor=sample_preprocessor, crc_debug=crc_debug, device=device)
 
     def collate(self, batch, device):
         return collate_torch(batch, device)

@@ -126,3 +126,6 @@ venv.bak/
 dmypy.json
 
 *.idea
+
+# pytest: fake TmrlData tree (see tests/conftest.py)
+tests/_pytest_tmrl_fake_home/

@@ -1,10 +1,8 @@
 # standard library imports
 import math
-import os
 import socket
 import struct
 import time
-from pathlib import Path
 from threading import Lock, Thread
 
 # third-party imports
@@ -16,10 +14,10 @@ from tmrl.config.config_constants import LIDAR_BLACK_THRESHOLD
 
 
 class TM2020OpenPlanetClient:
-    def __init__(self, host='127.0.0.1', port=9000, struct_str='<' + 'f' * 11):
+    def __init__(self, host="127.0.0.1", port=9000, struct_str="<" + "f" * 11):
         self._struct_str = struct_str
-        self.nb_floats = self._struct_str.count('f')
-        self.nb_uint64 = self._struct_str.count('Q')
+        self.nb_floats = self._struct_str.count("f")
+        self.nb_uint64 = self._struct_str.count("Q")
         self._nb_bytes = self.nb_floats * 4 + self.nb_uint64 * 8
 
         self._host = host
@@ -39,13 +37,13 @@ class TM2020OpenPlanetClient:
         """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((self._host, self._port))
-            data_raw = b''
+            data_raw = b""
             while True:  # main loop
                 while len(data_raw) < self._nb_bytes:
                     data_raw += s.recv(1024)
                 div = len(data_raw) // self._nb_bytes
-                data_used = data_raw[(div - 1) * self._nb_bytes:div * self._nb_bytes]
-                data_raw = data_raw[div * self._nb_bytes:]
+                data_used = data_raw[(div - 1) * self._nb_bytes : div * self._nb_bytes]
+                data_raw = data_raw[div * self._nb_bytes :]
                 self.__lock.acquire()
                 self.__data = data_used
                 self.__lock.release()
@@ -74,7 +72,7 @@ class TM2020OpenPlanetClient:
         return data
 
 
-def save_ghost(host='127.0.0.1', port=10000):
+def save_ghost(host="127.0.0.1", port=10000):
     """
     Saves the current ghost
 
@@ -103,7 +101,7 @@ class Lidar:
         h, w, _ = im.shape
         self.h = h
         self.w = w
-        self.road_point = (44*h//49, w//2)
+        self.road_point = (44 * h // 49, w // 2)
         min_dist = 20
         list_ax_x = []
         list_ax_y = []
@@ -139,10 +137,16 @@ class Lidar:
             color = (255, 0, 0)
             thickness = 4
             img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
-        for axis_x, axis_y in zip(self.list_axis_x, self.list_axis_y):
+        for axis_x, axis_y in zip(self.list_axis_x, self.list_axis_y, strict=False):
             index = armin(np.all(img[axis_x, axis_y] < self.black_threshold, axis=1))
             if show:
-                img = cv2.line(img, (self.road_point[1], self.road_point[0]), (axis_y[index], axis_x[index]), color, thickness)
+                img = cv2.line(
+                    img,
+                    (self.road_point[1], self.road_point[0]),
+                    (axis_y[index], axis_x[index]),
+                    color,
+                    thickness,
+                )
             index = np.float32(index)
             distances.append(index)
         res = np.array(distances, dtype=np.float32)

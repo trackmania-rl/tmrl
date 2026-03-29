@@ -2,30 +2,30 @@
 import itertools
 from copy import deepcopy
 from dataclasses import dataclass
+from typing import Any
 
 # third-party imports
 import numpy as np
 import torch
-from torch.optim import Adam, AdamW, SGD
+from loguru import logger
+from torch.optim import SGD, Adam, AdamW
+
+import tmrl.config.config_constants as cfg
 
 # local imports
 import tmrl.custom.custom_models as core
 from tmrl.custom.utils.nn import copy_shared, no_grad
-from tmrl.util import cached_property
 from tmrl.training import TrainingAgent
-import tmrl.config.config_constants as cfg
-
-import logging
-
+from tmrl.util import cached_property
 
 # Soft Actor-Critic ====================================================================================================
 
 
-@dataclass(eq=0)
+@dataclass(eq=False)
 class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
-    observation_space: type
-    action_space: type
-    device: str = None  # device where the model will live (None for auto)
+    observation_space: Any
+    action_space: Any
+    device: str | None = None  # device where the model will live (None for auto)
     model_cls: type = core.MLPActorCritic
     gamma: float = 0.99
     polyak: float = 0.995
@@ -34,13 +34,13 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
     lr_critic: float = 1e-3  # learning rate
     lr_entropy: float = 1e-3  # entropy autotuning (SAC v2)
     learn_entropy_coef: bool = True  # if True, SAC v2 is used, else, SAC v1 is used
-    target_entropy: float = None  # if None, the target entropy for SAC v2 is set automatically
+    target_entropy: float | None = None  # if None, the target entropy for SAC v2 is set automatically
     optimizer_actor: str = "adam"  # one of ["adam", "adamw", "sgd"]
     optimizer_critic: str = "adam"  # one of ["adam", "adamw", "sgd"]
-    betas_actor: tuple = None  # for Adam and AdamW
-    betas_critic: tuple = None  # for Adam and AdamW
-    l2_actor: float = None  # weight decay
-    l2_critic: float = None  # weight decay
+    betas_actor: tuple[Any, ...] | None = None  # for Adam and AdamW
+    betas_critic: tuple[Any, ...] | None = None  # for Adam and AdamW
+    l2_actor: float | None = None  # weight decay
+    l2_critic: float | None = None  # weight decay
 
     model_nograd = cached_property(lambda self: no_grad(copy_shared(self.model)))
 
@@ -48,7 +48,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         observation_space, action_space = self.observation_space, self.action_space
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         model = self.model_cls(observation_space, action_space)
-        logging.debug(f" device SAC: {device}")
+        logger.debug(f" device SAC: {device}")
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
 
@@ -57,9 +57,9 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
         self.optimizer_actor = self.optimizer_actor.lower()
         self.optimizer_critic = self.optimizer_critic.lower()
         if self.optimizer_actor not in ["adam", "adamw", "sgd"]:
-            logging.warning(f"actor optimizer {self.optimizer_actor} is not valid, defaulting to sgd")
+            logger.warning(f"actor optimizer {self.optimizer_actor} is not valid, defaulting to sgd")
         if self.optimizer_critic not in ["adam", "adamw", "sgd"]:
-            logging.warning(f"critic optimizer {self.optimizer_critic} is not valid, defaulting to sgd")
+            logger.warning(f"critic optimizer {self.optimizer_critic} is not valid, defaulting to sgd")
         if self.optimizer_actor == "adam":
             pi_optimizer_cls = Adam
         elif self.optimizer_actor == "adamw":
@@ -85,7 +85,10 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             q_optimizer_kwargs["weight_decay"] = self.l2_critic
 
         self.pi_optimizer = pi_optimizer_cls(self.model.actor.parameters(), **pi_optimizer_kwargs)
-        self.q_optimizer = q_optimizer_cls(itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()), **q_optimizer_kwargs)
+        self.q_optimizer = q_optimizer_cls(
+            itertools.chain(self.model.q1.parameters(), self.model.q2.parameters()),
+            **q_optimizer_kwargs,
+        )
 
         # entropy coefficient:
 
@@ -150,8 +153,8 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
             backup = r + self.gamma * (1 - d) * (q_pi_targ - alpha_t * logp_a2)
 
         # MSE loss against Bellman backup
-        loss_q1 = ((q1 - backup)**2).mean()
-        loss_q2 = ((q2 - backup)**2).mean()
+        loss_q1 = ((q1 - backup) ** 2).mean()
+        loss_q2 = ((q2 - backup) ** 2).mean()
         loss_q = (loss_q1 + loss_q2) / 2  # averaged for homogeneity with REDQ
 
         self.q_optimizer.zero_grad()
@@ -185,7 +188,7 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
         # Finally, update target networks by polyak averaging.
         with torch.no_grad():
-            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
+            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters(), strict=False):
                 # NB: We use an in-place operations "mul_", "add_" to update target
                 # params, as opposed to "mul" and "add", which would make new tensors.
                 p_targ.data.mul_(self.polyak)
@@ -193,12 +196,11 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
         # FIXME: remove debug info
         with torch.no_grad():
-
             if not cfg.DEBUG_MODE:
-                ret_dict = dict(
-                    loss_actor=loss_pi.detach().item(),
-                    loss_critic=loss_q.detach().item(),
-                )
+                ret_dict = {
+                    "loss_actor": loss_pi.detach().item(),
+                    "loss_critic": loss_q.detach().item(),
+                }
             else:
                 q1_o2_a2 = self.model.q1(o2, a2)
                 q2_o2_a2 = self.model.q2(o2, a2)
@@ -220,71 +222,71 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
                 diff_q1_backup_r = (q1 - backup + r).detach()
                 diff_q2_backup_r = (q2 - backup + r).detach()
 
-                ret_dict = dict(
-                    loss_actor=loss_pi.detach().item(),
-                    loss_critic=loss_q.detach().item(),
+                ret_dict = {
+                    "loss_actor": loss_pi.detach().item(),
+                    "loss_critic": loss_q.detach().item(),
                     # debug:
-                    debug_log_pi=logp_pi.detach().mean().item(),
-                    debug_log_pi_std=logp_pi.detach().std().item(),
-                    debug_logp_a2=logp_a2.detach().mean().item(),
-                    debug_logp_a2_std=logp_a2.detach().std().item(),
-                    debug_q_a1=q_pi.detach().mean().item(),
-                    debug_q_a1_std=q_pi.detach().std().item(),
-                    debug_q_a1_targ=q_pi_targ.detach().mean().item(),
-                    debug_q_a1_targ_std=q_pi_targ.detach().std().item(),
-                    debug_backup=backup.detach().mean().item(),
-                    debug_backup_std=backup.detach().std().item(),
-                    debug_q1=q1.detach().mean().item(),
-                    debug_q1_std=q1.detach().std().item(),
-                    debug_q2=q2.detach().mean().item(),
-                    debug_q2_std=q2.detach().std().item(),
-                    debug_diff_q1=diff_q1_backup.mean().item(),
-                    debug_diff_q1_std=diff_q1_backup.std().item(),
-                    debug_diff_q2=diff_q2_backup.mean().item(),
-                    debug_diff_q2_std=diff_q2_backup.std().item(),
-                    debug_diff_r_q1=diff_q1_backup_r.mean().item(),
-                    debug_diff_r_q1_std=diff_q1_backup_r.std().item(),
-                    debug_diff_r_q2=diff_q2_backup_r.mean().item(),
-                    debug_diff_r_q2_std=diff_q2_backup_r.std().item(),
-                    debug_diff_q1pt_qpt=diff_q1pt_qpt.mean().item(),
-                    debug_diff_q2pt_qpt=diff_q2pt_qpt.mean().item(),
-                    debug_diff_q1_q1t_a2=diff_q1_q1t_a2.mean().item(),
-                    debug_diff_q2_q2t_a2=diff_q2_q2t_a2.mean().item(),
-                    debug_diff_q1_q1t_pi=diff_q1_q1t_pi.mean().item(),
-                    debug_diff_q2_q2t_pi=diff_q2_q2t_pi.mean().item(),
-                    debug_diff_q1_q1t_a=diff_q1_q1t_a.mean().item(),
-                    debug_diff_q2_q2t_a=diff_q2_q2t_a.mean().item(),
-                    debug_diff_q1pt_qpt_std=diff_q1pt_qpt.std().item(),
-                    debug_diff_q2pt_qpt_std=diff_q2pt_qpt.std().item(),
-                    debug_diff_q1_q1t_a2_std=diff_q1_q1t_a2.std().item(),
-                    debug_diff_q2_q2t_a2_std=diff_q2_q2t_a2.std().item(),
-                    debug_diff_q1_q1t_pi_std=diff_q1_q1t_pi.std().item(),
-                    debug_diff_q2_q2t_pi_std=diff_q2_q2t_pi.std().item(),
-                    debug_diff_q1_q1t_a_std=diff_q1_q1t_a.std().item(),
-                    debug_diff_q2_q2t_a_std=diff_q2_q2t_a.std().item(),
-                    debug_r=r.detach().mean().item(),
-                    debug_r_std=r.detach().std().item(),
-                    debug_d=d.detach().mean().item(),
-                    debug_d_std=d.detach().std().item(),
-                    debug_a_0=a[:, 0].detach().mean().item(),
-                    debug_a_0_std=a[:, 0].detach().std().item(),
-                    debug_a_1=a[:, 1].detach().mean().item(),
-                    debug_a_1_std=a[:, 1].detach().std().item(),
-                    debug_a_2=a[:, 2].detach().mean().item(),
-                    debug_a_2_std=a[:, 2].detach().std().item(),
-                    debug_a1_0=pi[:, 0].detach().mean().item(),
-                    debug_a1_0_std=pi[:, 0].detach().std().item(),
-                    debug_a1_1=pi[:, 1].detach().mean().item(),
-                    debug_a1_1_std=pi[:, 1].detach().std().item(),
-                    debug_a1_2=pi[:, 2].detach().mean().item(),
-                    debug_a1_2_std=pi[:, 2].detach().std().item(),
-                    debug_a2_0=a2[:, 0].detach().mean().item(),
-                    debug_a2_0_std=a2[:, 0].detach().std().item(),
-                    debug_a2_1=a2[:, 1].detach().mean().item(),
-                    debug_a2_1_std=a2[:, 1].detach().std().item(),
-                    debug_a2_2=a2[:, 2].detach().mean().item(),
-                    debug_a2_2_std=a2[:, 2].detach().std().item(),
-                )
+                    "debug_log_pi": logp_pi.detach().mean().item(),
+                    "debug_log_pi_std": logp_pi.detach().std().item(),
+                    "debug_logp_a2": logp_a2.detach().mean().item(),
+                    "debug_logp_a2_std": logp_a2.detach().std().item(),
+                    "debug_q_a1": q_pi.detach().mean().item(),
+                    "debug_q_a1_std": q_pi.detach().std().item(),
+                    "debug_q_a1_targ": q_pi_targ.detach().mean().item(),
+                    "debug_q_a1_targ_std": q_pi_targ.detach().std().item(),
+                    "debug_backup": backup.detach().mean().item(),
+                    "debug_backup_std": backup.detach().std().item(),
+                    "debug_q1": q1.detach().mean().item(),
+                    "debug_q1_std": q1.detach().std().item(),
+                    "debug_q2": q2.detach().mean().item(),
+                    "debug_q2_std": q2.detach().std().item(),
+                    "debug_diff_q1": diff_q1_backup.mean().item(),
+                    "debug_diff_q1_std": diff_q1_backup.std().item(),
+                    "debug_diff_q2": diff_q2_backup.mean().item(),
+                    "debug_diff_q2_std": diff_q2_backup.std().item(),
+                    "debug_diff_r_q1": diff_q1_backup_r.mean().item(),
+                    "debug_diff_r_q1_std": diff_q1_backup_r.std().item(),
+                    "debug_diff_r_q2": diff_q2_backup_r.mean().item(),
+                    "debug_diff_r_q2_std": diff_q2_backup_r.std().item(),
+                    "debug_diff_q1pt_qpt": diff_q1pt_qpt.mean().item(),
+                    "debug_diff_q2pt_qpt": diff_q2pt_qpt.mean().item(),
+                    "debug_diff_q1_q1t_a2": diff_q1_q1t_a2.mean().item(),
+                    "debug_diff_q2_q2t_a2": diff_q2_q2t_a2.mean().item(),
+                    "debug_diff_q1_q1t_pi": diff_q1_q1t_pi.mean().item(),
+                    "debug_diff_q2_q2t_pi": diff_q2_q2t_pi.mean().item(),
+                    "debug_diff_q1_q1t_a": diff_q1_q1t_a.mean().item(),
+                    "debug_diff_q2_q2t_a": diff_q2_q2t_a.mean().item(),
+                    "debug_diff_q1pt_qpt_std": diff_q1pt_qpt.std().item(),
+                    "debug_diff_q2pt_qpt_std": diff_q2pt_qpt.std().item(),
+                    "debug_diff_q1_q1t_a2_std": diff_q1_q1t_a2.std().item(),
+                    "debug_diff_q2_q2t_a2_std": diff_q2_q2t_a2.std().item(),
+                    "debug_diff_q1_q1t_pi_std": diff_q1_q1t_pi.std().item(),
+                    "debug_diff_q2_q2t_pi_std": diff_q2_q2t_pi.std().item(),
+                    "debug_diff_q1_q1t_a_std": diff_q1_q1t_a.std().item(),
+                    "debug_diff_q2_q2t_a_std": diff_q2_q2t_a.std().item(),
+                    "debug_r": r.detach().mean().item(),
+                    "debug_r_std": r.detach().std().item(),
+                    "debug_d": d.detach().mean().item(),
+                    "debug_d_std": d.detach().std().item(),
+                    "debug_a_0": a[:, 0].detach().mean().item(),
+                    "debug_a_0_std": a[:, 0].detach().std().item(),
+                    "debug_a_1": a[:, 1].detach().mean().item(),
+                    "debug_a_1_std": a[:, 1].detach().std().item(),
+                    "debug_a_2": a[:, 2].detach().mean().item(),
+                    "debug_a_2_std": a[:, 2].detach().std().item(),
+                    "debug_a1_0": pi[:, 0].detach().mean().item(),
+                    "debug_a1_0_std": pi[:, 0].detach().std().item(),
+                    "debug_a1_1": pi[:, 1].detach().mean().item(),
+                    "debug_a1_1_std": pi[:, 1].detach().std().item(),
+                    "debug_a1_2": pi[:, 2].detach().mean().item(),
+                    "debug_a1_2_std": pi[:, 2].detach().std().item(),
+                    "debug_a2_0": a2[:, 0].detach().mean().item(),
+                    "debug_a2_0_std": a2[:, 0].detach().std().item(),
+                    "debug_a2_1": a2[:, 1].detach().mean().item(),
+                    "debug_a2_1_std": a2[:, 1].detach().std().item(),
+                    "debug_a2_2": a2[:, 2].detach().mean().item(),
+                    "debug_a2_2_std": a2[:, 2].detach().std().item(),
+                }
 
         if self.learn_entropy_coef:
             ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()
@@ -295,11 +297,12 @@ class SpinupSacAgent(TrainingAgent):  # Adapted from Spinup
 
 # REDQ-SAC =============================================================================================================
 
-@dataclass(eq=0)
+
+@dataclass(eq=False)
 class REDQSACAgent(TrainingAgent):
-    observation_space: type
-    action_space: type
-    device: str = None  # device where the model will live (None for auto)
+    observation_space: Any
+    action_space: Any
+    device: str | None = None  # device where the model will live (None for auto)
     model_cls: type = core.REDQMLPActorCritic
     gamma: float = 0.99
     polyak: float = 0.995
@@ -308,7 +311,7 @@ class REDQSACAgent(TrainingAgent):
     lr_critic: float = 1e-3  # learning rate
     lr_entropy: float = 1e-3  # entropy autotuning
     learn_entropy_coef: bool = True
-    target_entropy: float = None  # if None, the target entropy is set automatically
+    target_entropy: float | None = None  # if None, the target entropy is set automatically
     n: int = 10  # number of REDQ parallel Q networks
     m: int = 2  # number of REDQ randomly sampled target networks
     q_updates_per_policy_update: int = 1  # in REDQ, this is the "UTD ratio" (20), this interplays with lr_actor
@@ -319,7 +322,7 @@ class REDQSACAgent(TrainingAgent):
         observation_space, action_space = self.observation_space, self.action_space
         device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         model = self.model_cls(observation_space, action_space)
-        logging.debug(f" device REDQ-SAC: {device}")
+        logger.debug(f" device REDQ-SAC: {device}")
         self.model = model.to(device)
         self.model_target = no_grad(deepcopy(self.model))
         self.pi_optimizer = Adam(self.model.actor.parameters(), lr=self.lr_actor)
@@ -346,7 +349,7 @@ class REDQSACAgent(TrainingAgent):
     def train(self, batch):
 
         self.i_update += 1
-        update_policy = (self.i_update % self.q_updates_per_policy_update == 0)
+        update_policy = self.i_update % self.q_updates_per_policy_update == 0
 
         o, a, r, o2, d, _ = batch
 
@@ -407,16 +410,16 @@ class REDQSACAgent(TrainingAgent):
             self.pi_optimizer.step()
 
         with torch.no_grad():
-            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters()):
+            for p, p_targ in zip(self.model.parameters(), self.model_target.parameters(), strict=False):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
         if update_policy:
             self.loss_pi = loss_pi.detach()
-        ret_dict = dict(
-            loss_actor=self.loss_pi.detach().item(),
-            loss_critic=loss_q.detach().item(),
-        )
+        ret_dict = {
+            "loss_actor": self.loss_pi.detach().item(),
+            "loss_critic": loss_q.detach().item(),
+        }
 
         if self.learn_entropy_coef:
             ret_dict["loss_entropy_coef"] = loss_alpha.detach().item()

@@ -1,9 +1,9 @@
-from abc import ABC, abstractmethod
-import torch
 import pickle
+from abc import ABC, abstractmethod
+
+import torch
 
 from tmrl.util import collate_torch
-
 
 __docformat__ = "google"
 
@@ -17,6 +17,7 @@ class ActorModule(ABC):
        `observation_space` and `action_space`.
        When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
     """
+
     def __init__(self, observation_space, action_space):
         """
         Args:
@@ -42,7 +43,7 @@ class ActorModule(ABC):
         Args:
             path (pathlib.Path): a filepath to save your `ActorModule` to
         """
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             pickle.dump(obj=self, file=f)
 
     def load(self, path, device):
@@ -66,7 +67,7 @@ class ActorModule(ABC):
         Returns:
             ActorModule: An instance of your ActorModule
         """
-        with open(path, 'wb') as f:
+        with open(path, "rb") as f:
             res = pickle.load(file=f)
         return res
 
@@ -88,7 +89,7 @@ class ActorModule(ABC):
     def act(self, obs, test=False):
         """
         Must compute an action from an observation.
-        
+
         Args:
             obs (object): the observation
             test (bool): True at test time, False otherwise
@@ -118,6 +119,7 @@ class TorchActorModule(ActorModule, torch.nn.Module, ABC):
        `observation_space` and `action_space`.
        When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
     """
+
     def __init__(self, observation_space, action_space, device="cpu"):
         """
         Args:

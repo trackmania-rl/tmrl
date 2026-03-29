@@ -7,10 +7,8 @@ class TrainingAgent(ABC):
 
     CAUTION: When overriding `__init__`, don't forget to call `super().__init__` in the subclass.
     """
-    def __init__(self,
-                 observation_space,
-                 action_space,
-                 device):
+
+    def __init__(self, observation_space, action_space, device):
         """
         Args:
             observation_space (gymnasium.spaces.Space): observation space (here for your convenience)
@@ -43,5 +41,3 @@ class TrainingAgent(ABC):
              ActorModule: current actor to be broadcast
         """
         raise NotImplementedError
-
-
