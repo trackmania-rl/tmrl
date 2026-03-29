@@ -1,4 +1,4 @@
-.PHONY: fmt lint types check install-dev kill-server server trainer worker record-episode
+.PHONY: fmt lint types check install-dev kill-server server trainer worker
 
 # Unix: .venv | Windows: .venv-windows (override with e.g. UV_ENV=.venv-other make server)
 UV_ENV ?= $(if $(filter Windows_NT,$(OS)),.venv-windows,.venv)
@@ -51,14 +51,3 @@ ifeq ($(OS),Windows_NT)
 else
 	@UV_PROJECT_ENVIRONMENT=$(UV_ENV) uv run python -m tmrl --worker
 endif
-
-record-episode:
-ifeq ($(OS),Windows_NT)
-	@set "UV_PROJECT_ENVIRONMENT=$(UV_ENV)" && uv run python -m tmrl --record-episode --record-episode-count $(if $(word 2,$(MAKECMDGOALS)),$(word 2,$(MAKECMDGOALS)),2)
-else
-	@UV_PROJECT_ENVIRONMENT=$(UV_ENV) uv run python -m tmrl --record-episode --record-episode-count $(if $(word 2,$(MAKECMDGOALS)),$(word 2,$(MAKECMDGOALS)),2)
-endif
-
-# Allow: make record-episode 5
-%:
-	@:

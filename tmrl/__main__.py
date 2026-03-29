@@ -40,8 +40,6 @@ class TmrlCLI:
     """Record a reward function in TM20."""
     record_episode: bool = False
     """Record TrackMania replays (standalone worker)."""
-    record_episode_count: int = 2
-    """Number of replays to record with --record-episode."""
     use_keyboard: bool = False
     """Modifier for --record-reward."""
     check_environment: bool = False
