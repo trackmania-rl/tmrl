@@ -82,7 +82,7 @@ class NNXSquashedGaussianMLPActor(NNXActorModule):
         Note: this function assumes a batch dimension in obs.
         Obs can be either a simple batched tensor, or a collated tuple of batched tensors.
         """
-        print(obs)
+        print("call")
         print(obs.shape)
         x = jnp.concatenate(obs, axis=-1) if self.tuple_obs else obs.reshape(obs.shape[0], -1)
         print(x.shape)

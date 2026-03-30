@@ -754,6 +754,9 @@ def fix_batch_history_around_eoes_torch(batch_history, eoes):
 
 # sampling: 0.055, training: 0.068
 class NumpyArrayTorchMemoryTMFull(BaseMemory):
+    """
+    data is stored as concatenated numpy arrays
+    """
     def __init__(self,
                  memory_size=None,
                  batch_size=None,
@@ -1046,6 +1049,9 @@ class NumpyArrayTorchMemoryTMFull(BaseMemory):
 
 # sampling: 0.0248, training: 0.069
 class ArrayTorchMemoryTMFull(BaseMemory):
+    """
+    data stored as concatenated torch tensors
+    """
     def __init__(self,
                  memory_size=None,
                  batch_size=None,

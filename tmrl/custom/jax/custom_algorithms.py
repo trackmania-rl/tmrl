@@ -211,18 +211,23 @@ if __name__ == "__main__":
     agent = NNXSACAgent(observation_space=env.observation_space, action_space=env.action_space)
 
     o, _ = env.reset()
-    a = env.action_space.sample()
-    o2, r, terminated, truncated, info = env.step(a)
+    for _ in range(3):
+        a = env.action_space.sample()
+        o2, r, terminated, truncated, info = env.step(a)
 
-    batch_size = 256
+        batch_size = 256
 
-    agent.train(
-        (
-            jnp.array([o] * batch_size),
-            jnp.array([a] * batch_size),
-            jnp.array([r] * batch_size),
-            jnp.array([o2] * batch_size),
-            jnp.array([terminated] * batch_size),
-            jnp.array([truncated] * batch_size)
+        agent.train(
+            (
+                jnp.array([o] * batch_size),
+                jnp.array([a] * batch_size),
+                jnp.array([r] * batch_size),
+                jnp.array([o2] * batch_size),
+                jnp.array([terminated] * batch_size),
+                jnp.array([truncated] * batch_size)
+            )
         )
-    )
+        o = o2
+        print(r)
+        if terminated or truncated:
+            break
