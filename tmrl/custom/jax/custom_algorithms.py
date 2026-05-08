@@ -1,21 +1,16 @@
-# third-party imports
 import numpy as np
 import jax
 import jax.numpy as jnp
 import optax
 from flax import nnx
 
-# local imports
-import tmrl.custom.jax.custom_models as models
-from tmrl.core.jax.util import get_rngs
 from tmrl.core.training import TrainingAgent
-import tmrl.config.config_constants as cfg
 
-# logging
-import logging
+from tmrl.core.jax.util import get_rngs
+import tmrl.custom.jax.custom_models as models
 
 
-MAX_SEED = 2**32
+# === Agent ===
 
 
 class _AlphaModule(nnx.Module):
@@ -52,7 +47,8 @@ class NNXSACAgent(nnx.Module, TrainingAgent):
                  betas_critic: tuple = None,  # for Adam and AdamW
                  l2_actor: float = None,  # weight decay
                  l2_critic: float = None,  # weight decay
-                 rngs_seed: int = None  # used to initialize random generators
+                 rngs_seed: int = None,  # used to initialize random generators
+                 internal_rngs_seed: int = None  # used to initialize random generators
                  ):
         super().__init__(observation_space, action_space, device)
         self.model_cls = model_cls
@@ -72,13 +68,11 @@ class NNXSACAgent(nnx.Module, TrainingAgent):
         self.l2_critic = l2_critic
 
         # random seeds by default
-        seed_0 = rngs_seed if rngs_seed else np.random.randint(0, MAX_SEED, dtype=np.uint32)
-        seed_1 = seed_0 + 1 if rngs_seed else np.random.randint(0, MAX_SEED, dtype=np.uint32)
-        seed_2 = seed_0 + 2 if rngs_seed else np.random.randint(0, MAX_SEED, dtype=np.uint32)
-        self._rngs = get_rngs(seed_0, seed_1, seed_2)
+        self._rngs = get_rngs(internal_rngs_seed, internal_rngs_seed + 1, internal_rngs_seed + 2) if internal_rngs_seed else get_rngs()
+        rngs = get_rngs(rngs_seed, rngs_seed + 1, rngs_seed + 2) if rngs_seed else get_rngs()
 
         # initialize trained model and target model
-        model = self.model_cls(observation_space, action_space, rngs=self._rngs)
+        model = self.model_cls(observation_space, action_space, rngs=rngs)
         model_target = nnx.clone(model)
         self.actor = model.actor
         self.qs = model.qs
@@ -127,6 +121,7 @@ class NNXSACAgent(nnx.Module, TrainingAgent):
 
     @nnx.jit
     def train(self, batch):
+
         o, a, r, o2, d, _ = batch
 
         # Dynamic from self:

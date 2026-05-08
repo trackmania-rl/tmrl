@@ -63,7 +63,7 @@ class ActorModule(ABC):
         Returns:
             ActorModule: An instance of your ActorModule
         """
-        with open(path, 'wb') as f:
+        with open(path, 'rb') as f:
             res = pickle.load(file=f)
         return res
 

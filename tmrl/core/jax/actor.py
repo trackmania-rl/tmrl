@@ -1,8 +1,7 @@
 from abc import ABC
+import pickle as pkl
 
 import jax
-import jax.numpy as jnp
-import orbax
 from flax import nnx
 import gymnasium
 
@@ -37,33 +36,38 @@ class NNXActorModule(ActorModule, nnx.Module, ABC):
             action_space (gymnasium.spaces.Space): action space (here for your convenience)
         """
         ActorModule.__init__(self, observation_space, action_space)  # ActorModule
-        self.device = device or jax.devices()[0]
+        self.device = device  # or jax.devices()[0]  # FIXME: not picklable
 
     def save(self, path):
         _, state = nnx.split(self)
-        with orbax.checkpoint.StandardCheckpointer() as checkpointer:
-            checkpointer.save(path, state)
+        with open(path, 'wb') as f:
+            pkl.dump(state, f)
 
     def load(self, path, device):
-        if device is not None:
-            self.device = device
         _, abs_state = nnx.split(self)
-        with orbax.checkpoint.StandardCheckpointer() as checkpointer:
-            state = checkpointer.restore(path, abs_state)
+        with open(path, 'rb') as f:
+            state = pkl.load(f)
         nnx.update(self, state)
+        if device is not None:
+            self.to_device(device)
         return self
 
     def act_(self, obs, test=False):
         """
         Transforms obs into a tree of jax arrays
         """
-        obs = collate_jax([obs], device=self.device)
+        device = self.device
+        if device is not None:
+            device = jax.devices(device)[0]
+        obs = collate_jax([obs], device=device)
         action = self.act(obs, test=test)
         return action
     
-    def to_device(self, device):
-        self.device = device
+    def to_device(self, device:str):
+        self.device = device  # store as string
         _, state = nnx.split(self)
-        state = jax.device_put(state, device)
+        if device is not None:
+            device = jax.devices(device)[0]
+            state = jax.device_put(state, device)
         nnx.update(self, state)
         return self

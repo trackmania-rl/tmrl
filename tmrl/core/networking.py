@@ -591,8 +591,8 @@ class RolloutWorker:
             # Faster than hasattr() in real-time environments
             act = self.env.unwrapped.default_action  # .astype(np.float32)
         except AttributeError:
-            # In non-real-time environments, act is None on reset
-            act = None
+            # In non-real-time environments, we sample a dummy action for the buffer at reset
+            act = self.env.action_space.sample()
         new_obs, info = self.env.reset()
         if self.obs_preprocessor is not None:
             new_obs = self.obs_preprocessor(new_obs)

@@ -14,7 +14,8 @@ from typing import Dict, Type, TypeVar, Union
 
 # third-party imports
 import pandas as pd
-import numpy as np
+# import numpy as np
+import cloudpickle
 
 import logging
 
@@ -175,6 +176,20 @@ def dump(obj, path):
 def load(path):
     with open(path, 'rb') as f:
         return pickle.load(f)
+
+
+def cloudpickle_dump(obj, path):
+    path = Path(path)
+    tmp_path = path.with_suffix('.tmp')
+    with DelayInterrupt():  # Continue to save even if SIGINT or SIGTERM is sent and raise KeyboardInterrupt afterwards.
+        with open(tmp_path, 'wb') as f:
+            cloudpickle.dump(obj, f)  # dump temporary file (can fail)
+        os.replace(tmp_path, path)  # replace with definitive name (this is supposedly atomic)
+
+
+def cloudpickle_load(path):
+    with open(path, 'rb') as f:
+        return cloudpickle.load(f)
 
 
 def save_json(d, path):

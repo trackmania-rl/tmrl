@@ -225,8 +225,8 @@ class ArrayTorchMemory(BaseMemory):
     def append_buffer(self, buffer):
 
         elt = buffer.memory[0]
-        assert isinstance(elt[0], np.ndarray), f"Actions must be numpy arrays. Found {type(buffer.memory[0][0])}"
-        assert isinstance(elt[1], np.ndarray), f"Observations must be numpy arrays. Found {type(buffer.memory[0][0])}"
+        assert isinstance(elt[0], np.ndarray), f"Actions must be numpy arrays. Found {type(elt[0])}"
+        assert isinstance(elt[1], np.ndarray), f"Observations must be numpy arrays. Found {type(elt[1])}"
 
         # parse:
         d0 = np.stack([b[0] for b in buffer.memory], dtype=np.float32)  # actions

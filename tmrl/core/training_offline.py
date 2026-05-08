@@ -86,7 +86,6 @@ class TrainingOffline:
 
     def run_epoch(self, interface):
         stats = []
-        state = None
 
         benchmarks_names = self.memory.get_benchmarks_names()
 
@@ -97,11 +96,20 @@ class TrainingOffline:
             logging.info(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
             logging.debug(f"(Training): current memory size:{len(self.memory)}")
 
+            # round benchmarks
+            update_buffer_duration = 0.0
+            sampling_duration = 0.0
+            training_step_duration = 0.0
+            model_broadcast_duration = 0.0
+            idle_duration = 0.0
+
             stats_training = []
 
             t0 = time.perf_counter()
             self.check_ratio(interface)
             t1 = time.perf_counter()
+
+            idle_duration += t1 - t0
 
             if self.profiling:
                 from pyinstrument import Profiler
@@ -110,19 +118,19 @@ class TrainingOffline:
 
             t2 = time.perf_counter()
 
-            t_sample_prev = t2
-
             for _ in range(self.steps):
 
-                batch = self.memory.sample()
-
-                t_sample = time.perf_counter()
+                t_round_start = time.perf_counter()
 
                 if self.total_updates % self.update_buffer_interval == 0:
                     # retrieve local buffer in replay memory
                     self.update_buffer(interface)
 
                 t_update_buffer = time.perf_counter()
+
+                batch = self.memory.sample()
+
+                t_sample = time.perf_counter()
 
                 if self.total_updates == 0:
                     logging.info(f"starting training")
@@ -131,6 +139,17 @@ class TrainingOffline:
 
                 t_train = time.perf_counter()
 
+                self.total_updates += 1
+                if self.total_updates % self.update_model_interval == 0:
+                    # broadcast model weights
+                    interface.broadcast_model(self.agent.get_actor())
+
+                t_broadcast = time.perf_counter()
+
+                self.check_ratio(interface)
+
+                t_round_end = time.perf_counter()
+
                 # RolloutWorker performance:
                 stats_training_dict["return_test"] = self.memory.stat_test_return
                 stats_training_dict["return_train"] = self.memory.stat_train_return
@@ -138,7 +157,6 @@ class TrainingOffline:
                 stats_training_dict["episode_length_train"] = self.memory.stat_train_steps
 
                 # Memory time benchmarks:
-                stats_training_dict["sampling_duration"] = t_sample - t_sample_prev
                 memory_benchmarks = self.memory.get_benchmarks()
                 if memory_benchmarks is not None:
                     if benchmarks_names is not None:
@@ -147,29 +165,29 @@ class TrainingOffline:
                     else:
                         for i, benchmark in enumerate(memory_benchmarks):
                             stats_training_dict[f"memory_benchmark_{i}"] = benchmark
+                
+                # Round time benchmarks:
+                update_buffer_duration += t_update_buffer - t_round_start
+                sampling_duration += t_sample - t_update_buffer
+                training_step_duration += t_train - t_sample
+                model_broadcast_duration += t_broadcast- t_train
+                idle_duration += t_round_end - t_broadcast
 
-                # Training time benchmarks:
-                stats_training_dict["training_step_duration"] = t_train - t_update_buffer
-
-                stats_training += stats_training_dict,
-                self.total_updates += 1
-                if self.total_updates % self.update_model_interval == 0:
-                    # broadcast model weights
-                    interface.broadcast_model(self.agent.get_actor())
-                self.check_ratio(interface)
-
-                t_sample_prev = time.perf_counter()
+                stats_training += stats_training_dict
 
             t3 = time.perf_counter()
 
-            round_time = t3 - t0
-            idle_time = t1 - t0
-            update_buf_time = t2 - t1
-            train_time = t3 - t2
-            logging.debug(f"round_time:{round_time}, idle_time:{idle_time}, update_buf_time:{update_buf_time}, train_time:{train_time}")
-            stats += pandas_dict(memory_len=len(self.memory), round_time=round_time, idle_time=idle_time, **DataFrame(stats_training).mean(skipna=True)),
+            round_duration = t3 - t0
+            stats += pandas_dict(memory_len=len(self.memory),
+                                 round_duration=round_duration,
+                                 idle_duration=idle_duration,
+                                 sampling_duration=sampling_duration,
+                                 update_buffer_duration=update_buffer_duration,
+                                 training_step_duration=training_step_duration,
+                                 model_broadcast_duration=model_broadcast_duration,
+                                 **DataFrame(stats_training).mean(skipna=True)),
 
-            logging.info(stats[-1].add_prefix("  ").to_string() + '\n')
+            logging.info("Round statistics:\n" + stats[-1].add_prefix("  ").to_string() + '\n')
 
             if self.profiling:
                 pro.stop()

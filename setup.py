@@ -122,7 +122,8 @@ install_req = [
     'pyinstrument',
     'tlspyo>=0.2.5',
     'chardet',  # requests dependency
-    'packaging'
+    'packaging',
+    'cloudpickle'
 ]
 
 # Dependencies for the TrackMania pipeline

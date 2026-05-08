@@ -29,8 +29,9 @@ def mlp(
     layer_norm: bool | Sequence[bool] = False,
     rngs: nnx.Rngs | None = None,
 ) -> nnx.Sequential:
-
+    
     rngs = rngs or get_rngs()
+
     layers = []
 
     if not isinstance(dropout, (list, tuple)):
@@ -58,9 +59,13 @@ class NNXSquashedGaussianMLPActor(NNXActorModule):
                  hidden_sizes=(256, 256),
                  activation=nnx.relu,
                  layer_norm=False,
-                 rngs: nnx.Rngs = None):
+                 rngs: nnx.Rngs=None,
+                 internal_rngs_seed: int=None):
         super().__init__(observation_space, action_space)
+
         rngs = rngs or get_rngs()
+        self._rngs = get_rngs() if internal_rngs_seed is None else get_rngs(internal_rngs_seed, internal_rngs_seed+1, internal_rngs_seed+2)
+
         try:
             dim_obs = sum(prod(s for s in space.shape) for space in observation_space)
             self.tuple_obs = True
@@ -76,16 +81,14 @@ class NNXSquashedGaussianMLPActor(NNXActorModule):
                        rngs=rngs)
         self.mu_layer = nnx.Linear(hidden_sizes[-1], dim_act, rngs=rngs)
         self.log_std_layer = nnx.Linear(hidden_sizes[-1], dim_act, rngs=rngs)
-
-    def __call__(self, obs, test=False, with_logprob=True, epsilon=1e-8, rngs: nnx.Rngs=None):
+    
+    # jit-able:
+    def __call__(self, obs, rngs: nnx.Rngs, test=False, with_logprob=True, epsilon=1e-8):
         """
         Note: this function assumes a batch dimension in obs.
         Obs can be either a simple batched tensor, or a collated tuple of batched tensors.
         """
-        print("call")
-        print(obs.shape)
         x = jnp.concatenate(obs, axis=-1) if self.tuple_obs else obs.reshape(obs.shape[0], -1)
-        print(x.shape)
         net_out = self.net(x)
         mu = self.mu_layer(net_out)
         log_std = self.log_std_layer(net_out)
@@ -97,7 +100,6 @@ class NNXSquashedGaussianMLPActor(NNXActorModule):
             # Only used for evaluating policy at test time.
             pi_action = mu
         else:
-            rngs = rngs or get_rngs()
             eps = jax.random.normal(rngs.noise(), mu.shape)
             pi_action = mu + std * eps
 
@@ -116,7 +118,7 @@ class NNXSquashedGaussianMLPActor(NNXActorModule):
         return pi_action, logp_pi
 
     def act(self, obs, test=False):
-        a, _ = self.__call__(obs, test, False)
+        a, _ = self.__call__(obs=obs, rngs=self._rngs, test=test, with_logprob=False)
         res = np.array(a.squeeze())
         if not len(res.shape):
             res = np.expand_dims(res, 0)
@@ -132,7 +134,9 @@ class NNXMLPQFunction(nnx.Module):
                  dropout=0.0,
                  layer_norm=False,
                  rngs: nnx.Rngs = None):
+        
         rngs = rngs or get_rngs()
+
         try:
             obs_dim = sum(prod(s for s in space.shape) for space in observation_space)
             self.tuple_obs = True
@@ -165,6 +169,7 @@ class NNXREDQMLPActorCritic(nnx.Module):
                  critic_layer_norm=False,
                  actor_layer_norm=False,
                  rngs: nnx.Rngs = None):
+        
         rngs = rngs or get_rngs()
         self.n = n
 
