@@ -156,7 +156,8 @@ training_agent_cls = partial(NNXSACAgent,
 
 epochs = 2  # maximum number of epochs, usually set this to np.inf
 rounds = 2  # number of rounds per epoch
-steps = 1000  # number of training steps per round
+steps = 100  # number of training steps per round
+jit_substeps = 100  # number of jitted sub-steps per step
 update_buffer_interval = 1  # the trainer checks for incoming samples at this interval of training steps
 update_model_interval = 1  # the trainer broadcasts its updated model at this interval of training steps
 max_training_steps_per_env_step = 100  # Trainer synchronization ratio (max training steps per collected env step)
@@ -178,7 +179,9 @@ training_cls = partial(
     max_training_steps_per_env_step=max_training_steps_per_env_step,
     start_training=start_training,
     device=device,
-    jit_sampling=True)
+    jit_sampling=True,
+    jit_substeps=100,
+    profiling=True)
 
 # Trainer instance:
 
@@ -216,7 +219,7 @@ def run_worker(worker):
     # collect training samples synchronously:
     worker.run_synchronous(test_episode_interval=10,  # collect one test episode every 10 train episodes
                            initial_steps=1000,  # initial number of samples
-                           max_steps_per_update=10,  # synchronization ratio of 10 environment steps per training step
+                           max_steps_per_update=1000,  # max environment steps per training step
                            end_episodes=True)  # wait for the episodes to end before updating the model
 
 
