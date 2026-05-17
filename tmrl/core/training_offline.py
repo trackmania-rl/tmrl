@@ -173,7 +173,7 @@ class TrainingOffline:
                 model_broadcast_duration += t_broadcast- t_train
                 idle_duration += t_round_end - t_broadcast
 
-                stats_training += stats_training_dict
+                stats_training += stats_training_dict,  # the comma matters
 
             t3 = time.perf_counter()
 
