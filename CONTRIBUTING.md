@@ -16,7 +16,7 @@ For instance, let us say you want to refactor the codebase and add support for t
 - (c) One PR that only implements support for algorithm 2, based on PR (b).
 
 ### :two: Keep each PR line count minimal:
-Roughly speaking, a PR should change less that 10 lines if fixing a small concern and less than 250 lines if introducing a major feature. Of course this may vary depending on what the PR is implementing, but in most cases a PR of more than 250 lines should probably be broken into several smaller PRs by following guideline :one: .
+Roughly speaking, a PR should change less that 10 lines if fixing a small concern and less than 250 lines if introducing a major feature. Of course this may vary depending on what the PR is implementing, but in most cases a PR of more than 250 lines should probably be broken into several smaller PRs by following guideline (1).
 
 ### :three: No AI-generated code:
 We insist that **we do manually and thoroughly review each single line of code** that your submit in your PRs.
@@ -27,15 +27,15 @@ Whenever asking an LLM to draft a feature, please re-write each line of generate
 You can (and should) however ask LLMs to help debug your code before submitting a PR.
 
 ### :four: Do use AI to debug your code.
-See guideline :three: .
+See guideline (3).
 
 ### :five: No reformatting / linter / etc.:
 Do not submit any line change that doesn't do anything functionally useful, as typically generated automatically by linters. PRs that include such changes will most likely be rejected or manually re-implemented.
 
-If you do think that the existing codebase would benefit from reformatting, please open a discussion about this and/or a PR that does **only this and nothing else**, according to guildeline :one: .
+If you do think that the existing codebase would benefit from reformatting, please open a discussion about this and/or a PR that does **only this and nothing else**, according to guildeline (1).
 
 ### :six: Additional guidelines for comments, documentation and code formatting:
-Adding documentation and comments to existing code is welcome, but please make sure that your PR follows guildelines :one: and :three: .
+Adding documentation and comments to existing code is welcome, but please make sure that your PR follows guildelines (1) and (3).
 
 Of course, when your PR is adding a feature or modifiying existing code, it should include the corresponding docstrings and comments.
 
