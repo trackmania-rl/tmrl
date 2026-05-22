@@ -31,7 +31,8 @@ You can (and should) however ask LLMs to help debug your code before submitting 
 See guideline (3).
 
 ### :five: No reformatting / linter / etc.:
-Do not submit any line change that doesn't do anything functionally useful, as typically generated automatically by linters. PRs that include such changes will most likely be rejected or manually re-implemented.
+Do not submit any line change that doesn't do anything functionally useful, as typically generated automatically by formatting tools.
+PRs that include such changes will most likely be rejected or manually re-implemented.
 
 If you do think that the existing code would benefit from reformatting, please open a discussion about this and/or a PR that does **only this and nothing else**, according to guildeline (1).
 
