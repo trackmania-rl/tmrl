@@ -1,7 +1,5 @@
 # TMRL
 
-_Training Machines with Reinforcement Learning_
-
 [![PyPI version](https://badge.fury.io/py/tmrl.svg)](https://badge.fury.io/py/tmrl)
 [![PyPI - License](https://img.shields.io/pypi/l/tmrl?color=blue)](https://github.com/trackmania-rl/tmrl/blob/master/LICENSE)
 [![DOI](https://zenodo.org/badge/277973609.svg)](https://zenodo.org/badge/latestdoi/277973609)
@@ -11,7 +9,8 @@ _Training Machines with Reinforcement Learning_
 | [![Documentation Status](https://readthedocs.org/projects/tmrl/badge/?version=latest)](https://tmrl.readthedocs.io/en/latest/?badge=latest) |
 
 
-`tmrl` is a fully-fledged distributed RL framework for robotics, designed to help you train Deep Reinforcement Learning agents in real-time applications.
+`tmrl` is a network-based distributed RL framework for robotics, designed to help you train Deep Reinforcement Learning agents in real-time applications.
+`tmrl` supports Pytorch, JAX, Gymnasium and Real-Time Gym.
 
 `tmrl` comes with an example self-driving pipeline for the TrackMania 2020 video game.
 
@@ -28,9 +27,6 @@ _Training Machines with Reinforcement Learning_
 
 - :ok_hand: **ML developers who are TM enthusiasts with no interest in learning this huge thing:**\
 `tmrl` provides a Gymnasium environment for TrackMania that is easy to use. Fast-track for you guys [here](#trackmania-gymnasium-environment).
-
-- :earth_americas: **Everyone:**\
-`tmrl` hosts the [TrackMania Roborace League](readme/competition.md), an informal vision-based AI competition where participants design real-time self-racing AIs in TrackMania 2020.
 
 
 ## Quick links
@@ -65,7 +61,7 @@ _Training Machines with Reinforcement Learning_
     - [Real-time Gym framework](#real-time-gym-framework)
       - [rtgym repo](https://github.com/yannbouteiller/rtgym)
   - [Remote training architecture](#remote-training-architecture)
-- [Contribute](#authors)
+- [Contribute](CONTRIBUTING.md)
 - [Sponsors](#sponsors)
 
 
@@ -73,11 +69,11 @@ _Training Machines with Reinforcement Learning_
 
 ## Introduction
 
-`tmrl` is a python framework designed to help you train Artificial Intelligences (AIs) through deep Reinforcement Learning (RL) in real-time applications (robots, video-games, high-frequency control...).
+`tmrl` is a python framework designed to help you train Artificial Intelligences (AIs) through deep Reinforcement Learning (RL) in real-time applications (robots, video-games, high-frequency control...). `tmrl` supports Pytorch and JAX.
 
 As a fun and safe robot proxy for vision-based autonomous driving, `tmrl` features a readily-implemented example pipeline for the TrackMania 2020 racing video game.
 
-_Note: In the context of RL, an AI is called a "policy" or an "actor"._
+:information_source: _In the context of RL, an AI is called a "policy" or an "actor"._
 
 ### User features (TrackMania example pipeline):
 
@@ -164,7 +160,7 @@ This is because, without TLS encryption, this password will be readable in the p
 ## TrackMania Roborace League
 
 We host the [TrackMania Roborace League](readme/competition.md) to benchmark real-time self-racing approaches in the TrackMania 2020 video game.
-So far this competition has failed to gain much traction, so in case you are interested in organizing something cooler, please reach us :sparkles:
+So far, this informal competition has failed to gain much traction, so in case you are interested in organizing something cooler, please reach us :sparkles:
 
 Regardless of whether they want to compete or not, ML developers will find the [competition tutorial script](https://github.com/trackmania-rl/tmrl/blob/master/tutorial/competition/custom_actor_module.py) handy for creating advanced training pipelines in TrackMania.
 
@@ -550,28 +546,18 @@ These mechanics are summarized in the following figure:
 # Development roadmap:
 Contributions to `tmrl` are welcome.
 Please consider the following:
-- JAX support
+- Integrating the RL algorithms implemented in torch from [PR 140](https://github.com/trackmania-rl/tmrl/pull/140)
+- Translating all algorithms to JAX (Flax NNX)
 - Further profiling and code optimization
 
 You can discuss contribution projects in the [discussions section](https://github.com/trackmania-rl/tmrl/discussions).
 
+Please adhere to our [contribution guidelines](CONTRIBUTING.md).
 
-# Authors:
-
-When contributing, please submit a PR with your name in the contributors list with a short caption.
-
-## Maintainers:
-- Yann Bouteiller
-- Edouard Geze
-
-## Contributors:
-- Simon Ramstedt - initial code base
-- AndrejGobeX - optimization of screen capture (TrackMania)
-- Pius - Linux support (TrackMania)
 
 # License
 
-MIT, Bouteiller and Geze.
+[MIT](LICENSE)
 
 # Sponsors:
 

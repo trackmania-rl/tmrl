@@ -30,23 +30,23 @@ You can (and should) however ask LLMs to help debug your code before submitting 
 ### :four: Do use AI to debug your code.
 See guideline (3).
 
-### :five: No reformatting / linter / etc.:
-Do not submit any line change that doesn't do anything functionally useful, as typically generated automatically by formatting tools.
-PRs that include such changes will most likely be rejected or manually re-implemented.
+### :five: No automated re-formatting:
+Do not submit any line change that doesn't do anything functionally useful, as typically generated automatically by formatting tools like Ruff.
+PRs that include such changes will most likely be rejected.
 
-If you do think that the existing code would benefit from reformatting, please open a discussion about this and/or a PR that does **only this and nothing else**, according to guildeline (1).
+If you believe that the codebase would benefit from changes in formatting, please discuss this in the [discussion section](https://github.com/trackmania-rl/tmrl/discussions).
 
 ### :six: Additional guidelines for comments, documentation and code formatting:
-Adding documentation and comments to existing code is welcome, but please make sure that your PR follows guildelines (1) and (3).
+Adding/improving documentation and comments in the existing code is welcome, but please make sure that your PR follows guildelines (1) and (3).
 
 Of course, when your PR is adding a feature or modifiying existing code, it should include the corresponding docstrings and comments.
 
 **Docstrings format**: Please follow the [Google style format](https://gist.github.com/redlotus/3bc387c2591e3e908c9b63b97b11d24e) for documentation.
 
 **No PEP8 79-character line cuts in code instructions:**
-The `tmrl` codebase **does not** follow the 79-characters limit defined in PEP8, and your code should not actively attempt to stick to this rule when contributing to this repository.
+The `tmrl` codebase **does not** follow the 79-character limit defined in PEP8, and your code should not actively attempt to stick to this rule when contributing to this repository.
 Instead, please try to stick to 1 instruction per line when reasonable, and cut lines only for optimal readability.
-In general, avoid using `\`.
+In general, do not use `\`.
 For instance:
 
 ```python
@@ -66,7 +66,6 @@ self.array_with_a_long_name = np.array([variable_1 + variable_2, (variable_3 \
     * variable_4) ** variable_5])
 ```
 
-
 **PEP8 for everything else:**
 ```python
 # OK:
@@ -74,3 +73,6 @@ self.array_with_a_long_name = np.array([variable_1 + variable_2, (variable_3 * v
 
 # NOT OK:
 self.arrayWithWLongName = np.array([variable1+variable2,(variable3*variable4)**variable5])
+```
+
+The [Google Python style guide](https://google.github.io/styleguide/pyguide.html) is a good resource for `tmrl` code formatting, just ignore the 80-character limit.
