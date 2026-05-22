@@ -2,15 +2,16 @@
 
 Thank you for contributing to the `tmrl` library.
 
-We do manually review each and every line in your PRs before merging anything in the main codebase.
-Therefore, we ask that you stick as much as possible to the following guidelines when contributing, in order to minimize our workload:
+We do manually review each and every line in your PRs before merging anything.
+Therefore, we ask that you stick as much as possible to the following guidelines in order to minimize our workload.
 
 ## Important guidelines for Pull Requests (PRs):
 
-### :one: Only one concern per PR:
-Your PRs will most likely be rejected or manually re-implemented if they fix several concerns at once.
+### :one: One self-contained concern per PR:
+Your PRs will most likely be rejected or manually re-implemented if they tackle several concerns at once.
 
-For instance, let us say you want to refactor the codebase and add support for two new algorithms. Then you should create:
+For instance, let us imagine that you want to refactor part of the codebase and add support for two new RL algorithms.
+Then you should create:
 - (a) One PR that only implements refactoring,
 - (b) One PR that only implements support for algorithm 1, based on PR (a),
 - (c) One PR that only implements support for algorithm 2, based on PR (b).
@@ -32,14 +33,14 @@ See guideline (3).
 ### :five: No reformatting / linter / etc.:
 Do not submit any line change that doesn't do anything functionally useful, as typically generated automatically by linters. PRs that include such changes will most likely be rejected or manually re-implemented.
 
-If you do think that the existing codebase would benefit from reformatting, please open a discussion about this and/or a PR that does **only this and nothing else**, according to guildeline (1).
+If you do think that the existing code would benefit from reformatting, please open a discussion about this and/or a PR that does **only this and nothing else**, according to guildeline (1).
 
 ### :six: Additional guidelines for comments, documentation and code formatting:
 Adding documentation and comments to existing code is welcome, but please make sure that your PR follows guildelines (1) and (3).
 
 Of course, when your PR is adding a feature or modifiying existing code, it should include the corresponding docstrings and comments.
 
-**Docstrings format**: We aim at following the [Google format](https://gist.github.com/redlotus/3bc387c2591e3e908c9b63b97b11d24e) for documentation.
+**Docstrings format**: Please follow the [Google style format](https://gist.github.com/redlotus/3bc387c2591e3e908c9b63b97b11d24e) for documentation.
 
 **No PEP8 79-character line cuts in code instructions:**
 The `tmrl` codebase **does not** follow the 79-characters limit defined in PEP8, and your code should not actively attempt to stick to this rule when contributing to this repository.
