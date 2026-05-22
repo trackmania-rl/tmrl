@@ -43,9 +43,9 @@ Of course, when your PR is adding a feature or modifiying existing code, it shou
 
 **Docstrings format**: Please follow the [Google style format](https://gist.github.com/redlotus/3bc387c2591e3e908c9b63b97b11d24e) for documentation.
 
-**No PEP8 79-character line cuts in code instructions:**
+**No PEP8 79-character line breaks in code instructions:**
 The `tmrl` codebase **does not** follow the 79-character limit defined in PEP8, and your code should not actively attempt to stick to this rule when contributing to this repository.
-Instead, please try to stick to 1 instruction per line when reasonable, and cut lines only for optimal readability.
+Instead, please try to stick to 1 instruction per line when reasonable, and break lines only for optimal readability.
 In general, do not use `\`.
 For instance:
 
