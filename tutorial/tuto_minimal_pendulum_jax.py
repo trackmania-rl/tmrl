@@ -1,6 +1,8 @@
 """
 Tutorial: a minimal TMRL pipeline for non-real-time environments.
 
+This tutorial is based on JAX (NNX).
+
 This script works out-of-the-box for Gymnasium environments with flat continuous observations and actions.
 """
 
@@ -32,8 +34,13 @@ my_run_name = "tutorial_minimal_pendulum_jax"
 
 # Environment class:
 
-wrappers = [(FlattenObservation, (), {})]  # Wrapper to flatten observations
-env_cls = partial(GenericGymEnv, id="Pendulum-v1", gym_kwargs={"render_mode": None}, wrappers=wrappers)
+wrappers = [
+    (FlattenObservation, (), {})  # This tuto uses a flat-observation pipeline
+]
+env_cls = partial(GenericGymEnv,
+                  id="Pendulum-v1",
+                  gym_kwargs={"render_mode": None},
+                  wrappers=wrappers)
 
 
 # Observation and action space:
@@ -155,13 +162,13 @@ training_agent_cls = partial(NNXSACAgent,
 # Training parameters:
 
 epochs = 2  # maximum number of epochs, usually set this to np.inf
-rounds = 2  # number of rounds per epoch
-steps = 100  # number of training steps per round
+rounds = 10  # number of rounds per epoch
+steps = 10  # number of training steps per round
 jit_substeps = 100  # number of jitted sub-steps per step
 update_buffer_interval = 1  # the trainer checks for incoming samples at this interval of training steps
 update_model_interval = 1  # the trainer broadcasts its updated model at this interval of training steps
-max_training_steps_per_env_step = 100  # Trainer synchronization ratio (max training steps per collected env step)
-start_training = 1000  # minimum number of collected environment steps before training starts
+max_training_steps_per_env_step = 0.2  # Trainer synchronization ratio (max training steps per collected env step)
+start_training = 100  # minimum number of collected environment steps before training starts
 device = None  # training device (None for auto selection)
 
 # Training class:
@@ -180,7 +187,7 @@ training_cls = partial(
     start_training=start_training,
     device=device,
     jit_sampling=True,
-    jit_substeps=100,
+    jit_substeps=jit_substeps,
     profiling=True)
 
 # Trainer instance:
@@ -219,7 +226,7 @@ def run_worker(worker):
     # collect training samples synchronously:
     worker.run_synchronous(test_episode_interval=10,  # collect one test episode every 10 train episodes
                            initial_steps=1000,  # initial number of samples
-                           max_steps_per_update=1000,  # max environment steps per training step
+                           max_steps_per_update=1000,  # synchronization ratio of 10 environment steps per model update
                            end_episodes=True)  # wait for the episodes to end before updating the model
 
 

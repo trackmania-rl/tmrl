@@ -1,5 +1,6 @@
 import time
 import logging
+import math
 
 from pandas import DataFrame
 from flax import nnx
@@ -93,8 +94,15 @@ class NNXTrainingOffline(TrainingOffline):
             start_training (int): minimum number of samples in the replay buffer before starting training
             device (str): device to use (None for automatic)
             jit_sampling (bool): whether to jit the sampling method from memory_cls with nnx.jit
-            jit_substeps (int): if jit_sampling is true, sampling + training is iterated jit_substeps times in a single jitted loop to alleviate python-XLA transfer bottlenecks
+            jit_substeps (int): when jit_sampling is true, sampling + training steps are clubbed into jitted blocks of jit_substeps iterations to alleviate python-XLA transfer bottlenecks
         """
+        if jit_sampling:
+            # When jit_sampling is true, every "training step" contains jit_substeps actual training step.
+            # Therefore, the following values must be adapted to remain consistent:
+            update_model_interval = math.ceil(update_model_interval / jit_substeps)
+            update_buffer_interval = math.ceil(update_buffer_interval / jit_substeps)
+            max_training_steps_per_env_step = math.ceil(max_training_steps_per_env_step / jit_substeps)
+
         super().__init__(env_cls,
                          memory_cls,
                          training_agent_cls,

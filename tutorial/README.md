@@ -12,7 +12,7 @@ These scripts describe straightforward ways of implementing TMRL pipelines with 
 - `GenericTorchMemory` works with arbitrary (nested) observation/action spaces, but sampling is slow due to the collate function.
 - `ArrayTorchMemory` is much faster at sampling, but works only with homogeneous numpy array.
 
-[tuto_minimal_pendulum.py](tuto_minimal_pendulum.py) describes how TMRL can be used for training policies in classic (non-real-time) environments.
+[tuto_minimal_pendulum_torch.py](tuto_minimal_pendulum_torch.py) describes how TMRL can be used for training policies in classic (non-real-time) environments.
 While TMRL primarily targets real-time environments, this scripts illustrates optional synchronization mechanisms capabilities.
 
 ## Ad-hoc optimized TMRL pipelines:
