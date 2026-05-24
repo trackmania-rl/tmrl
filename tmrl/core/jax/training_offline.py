@@ -57,6 +57,7 @@ class NNXTrainingOffline(TrainingOffline):
     """
     TrainingOffline for trainers based on Flax NNX, with jit-able train() method.
     Optionally, NNXTrainingOffline can be used with memories that have a jit-able sample() method.
+    This enables jitting the sampling and training loop over jit_substeps iterations within a single JIT block.
     """
     def __init__(self,
                  env_cls: type = None,
@@ -74,7 +75,7 @@ class NNXTrainingOffline(TrainingOffline):
                  start_training: int = 0,
                  device: str = None,
                  jit_sampling: bool = False,
-                 jit_substeps: int = 100):
+                 jit_substeps: int = 1):
         """
         Args:
             env_cls (type): class of a dummy environment, used only to retrieve observation and action spaces if needed. Alternatively, this can be a tuple of the form (observation_space, action_space).
@@ -212,7 +213,7 @@ class NNXTrainingOffline(TrainingOffline):
                 else:  # both method are jit-able
                     stats_training_dict = _sample_and_train_jit(self.memory, self.agent, self.jit_substeps)
                     t_train = time.perf_counter()
-                    sampling_and_training_duration += t_train - t_update_buffer
+                    sampling_and_training_duration += (t_train - t_update_buffer) / self.jit_substeps
                 stats_training_dict = {k: float(jnp.mean(v)) for k, v in stats_training_dict.items()}  # mean() is for the jit_sampling path
 
                 self.total_updates += 1
