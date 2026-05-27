@@ -93,7 +93,7 @@ class TrainingOffline:
             self.agent_scheduler(self.agent, self.epoch)
 
         for rnd in range(self.rounds):
-            logging.info(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
+            logging.info(f"=== epoch {self.epoch + 1}/{self.epochs} ".ljust(20, '=') + f" round {rnd + 1}/{self.rounds} ".ljust(50, '='))
             logging.debug(f"(Training): current memory size:{len(self.memory)}")
 
             # round benchmarks
@@ -180,11 +180,11 @@ class TrainingOffline:
             round_duration = t3 - t0
             stats += pandas_dict(memory_len=len(self.memory),
                                  round_duration=round_duration,
-                                 idle_duration=idle_duration,
-                                 sampling_duration=sampling_duration,
-                                 update_buffer_duration=update_buffer_duration,
-                                 training_step_duration=training_step_duration,
-                                 model_broadcast_duration=model_broadcast_duration,
+                                 time_spent_waiting=idle_duration,
+                                 time_spent_sampling=sampling_duration,
+                                 time_spent_updating_buffer=update_buffer_duration,
+                                 time_spent_training=training_step_duration,
+                                 time_spent_broadcasting_model=model_broadcast_duration,
                                  **DataFrame(stats_training).mean(skipna=True)),
 
             logging.info("Round statistics:\n" + stats[-1].add_prefix("  ").to_string() + '\n')

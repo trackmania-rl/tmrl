@@ -123,7 +123,10 @@ install_req = [
     'tlspyo>=0.2.5',
     'chardet',  # requests dependency
     'packaging',
-    'cloudpickle'
+    'cloudpickle',
+    'jax',
+    'jaxlib',
+    'flax'
 ]
 
 # Dependencies for the TrackMania pipeline

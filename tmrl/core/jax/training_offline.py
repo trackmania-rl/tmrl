@@ -12,9 +12,6 @@ from tmrl.core.util import pandas_dict
 import tmrl.config.config_constants as cst
 
 
-PROFILE = True
-
-
 @nnx.jit
 def _train_jit(batch, agent):
     return agent.train(batch)
@@ -126,7 +123,7 @@ class NNXTrainingOffline(TrainingOffline):
         # === JAX profiling tool ===
 
         if self.profiling:
-            nb_profiling_steps = 100
+            nb_profiling_steps = 10
             output_trace_path = cst.TMRL_FOLDER / "jax" / "trace"
 
             logging.info(f"PROFILING...")
@@ -155,10 +152,10 @@ class NNXTrainingOffline(TrainingOffline):
 
             logging.info(f"RUNNING JAX PROFILER FOR {nb_profiling_steps} STEPS...")
 
-            options = jax.profiler.ProfileOptions()
-            options.host_tracer_level = 1
+            # options = jax.profiler.ProfileOptions()
+            # options.host_tracer_level = 1
 
-            with jax.profiler.trace(output_trace_path, profiler_options=options):
+            with jax.profiler.trace(output_trace_path):
                 for _ in range(nb_profiling_steps):
                     if not self.jit_sampling:
                         batch = self.memory.sample()
@@ -179,7 +176,7 @@ class NNXTrainingOffline(TrainingOffline):
             self.agent_scheduler(self.agent, self.epoch)
 
         for rnd in range(self.rounds):
-            logging.info(f"=== epoch {self.epoch}/{self.epochs} ".ljust(20, '=') + f" round {rnd}/{self.rounds} ".ljust(50, '='))
+            logging.info(f"=== epoch {self.epoch + 1}/{self.epochs} ".ljust(20, '=') + f" round {rnd + 1}/{self.rounds} ".ljust(50, '='))
             logging.debug(f"(Training): current memory size:{len(self.memory)}")
 
             # round benchmarks
@@ -221,7 +218,7 @@ class NNXTrainingOffline(TrainingOffline):
                 else:  # both method are jit-able
                     stats_training_dict = _sample_and_train_jit(self.memory, self.agent, self.jit_substeps)
                     t_train = time.perf_counter()
-                    sampling_and_training_duration += (t_train - t_update_buffer) / self.jit_substeps
+                    sampling_and_training_duration += t_train - t_update_buffer
                 stats_training_dict = {k: float(jnp.mean(v)) for k, v in stats_training_dict.items()}  # mean() is for the jit_sampling path
 
                 self.total_updates += 1
@@ -263,14 +260,14 @@ class NNXTrainingOffline(TrainingOffline):
             round_duration = t3 - t0
             stats += pandas_dict(memory_len=len(self.memory),
                                  round_duration=round_duration,
-                                 idle_duration=idle_duration,
-                                 update_buffer_duration=update_buffer_duration,
+                                 time_spent_waiting=idle_duration,
+                                 time_spent_updating_buffer=update_buffer_duration,
                                  **(
-                                     dict(sampling_duration=sampling_duration, training_step_duration=training_step_duration)
+                                     dict(time_spent_sampling=sampling_duration, time_spent_training=training_step_duration)
                                      if not self.jit_sampling else
-                                     dict(sampling_and_training_duration=sampling_and_training_duration)
+                                     dict(time_spent_sampling_and_training=sampling_and_training_duration)
                                     ),
-                                 model_broadcast_duration=model_broadcast_duration,
+                                 time_spent_broadcasting_model=model_broadcast_duration,
                                  **DataFrame(stats_training).mean(skipna=True)),
 
             logging.info("Round statistics:\n" + stats[-1].add_prefix("  ").to_string() + '\n')

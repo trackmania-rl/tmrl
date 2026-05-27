@@ -22,8 +22,13 @@ from tmrl.custom.jax.custom_models import NNXSquashedGaussianMLPActor, NNXREDQML
 from tmrl.custom.jax.custom_memories import ArrayNNXMemory
 
 
-# Alternative are not yet supported with NNX, do not change this.
+# CRC_DEBUG is not supported with NNX yet, do not change this.
 CRC_DEBUG = False
+
+# Set this to True if you want to run the JAX profiler on your sampling/training methods.
+# The output with be located in TmrlData/jax/trace, you can visualize it using XProf.
+# This is particularly useful, e.g., to visualize whether your pipeline has Python-XLA transfer bottlenecks.
+PROFILE = False
 
 # Name used for training checkpoints and models saved in the TmrlData folder.
 # If you change anything, also change this name (or delete the saved files in TmrlData).
@@ -163,8 +168,10 @@ training_agent_cls = partial(NNXSACAgent,
 
 epochs = 2  # maximum number of epochs, usually set this to np.inf
 rounds = 10  # number of rounds per epoch
-steps = 10  # number of training steps per round
-jit_substeps = 100  # number of jitted sub-steps per step
+steps = 1  # number of training steps per round
+jit_substeps = 1000  # number of jitted sub-steps per step - set this high to alleviate python-XLA transfer overhead;
+                     # note: incoming environment samples are buffered while these jit_substeps complete,
+                     # the memory is updated after they complete.
 update_buffer_interval = 1  # the trainer checks for incoming samples at this interval of training steps
 update_model_interval = 1  # the trainer broadcasts its updated model at this interval of training steps
 max_training_steps_per_env_step = 0.2  # Trainer synchronization ratio (max training steps per collected env step)
@@ -188,7 +195,7 @@ training_cls = partial(
     device=device,
     jit_sampling=True,
     jit_substeps=jit_substeps,
-    profiling=True)
+    profiling=PROFILE)
 
 # Trainer instance:
 

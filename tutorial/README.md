@@ -15,6 +15,9 @@ These scripts describe straightforward ways of implementing TMRL pipelines with 
 [tuto_minimal_pendulum_torch.py](tuto_minimal_pendulum_torch.py) describes how TMRL can be used for training policies in classic (non-real-time) environments.
 While TMRL primarily targets real-time environments, this scripts illustrates optional synchronization mechanisms capabilities.
 
+[tuto_minimal_pendulum_jax.py](tuto_minimal_pendulum_jax.py) is an equivalent of the previous script, using the TMRL pipeline for JAX / Flax NNX instead of torch.
+It illustrates how to leverage TMRL JAX support to develop extremely optimized training pipelines that can run on TPUs.
+
 ## Ad-hoc optimized TMRL pipelines:
 
 [tuto.py](tuto.py) is the script discussed in the [long TMRL tutorial](https://github.com/trackmania-rl/tmrl/blob/master/readme/tuto_library.md). 
