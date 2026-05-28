@@ -166,7 +166,7 @@ training_agent_cls = partial(NNXSACAgent,
 
 # Training parameters:
 
-epochs = 2  # maximum number of epochs, usually set this to np.inf
+epochs = 5  # maximum number of epochs, usually set this to np.inf
 rounds = 10  # number of rounds per epoch
 steps = 1  # number of training steps per round
 jit_substeps = 1000  # number of jitted sub-steps per step - set this high to alleviate python-XLA transfer overhead;
