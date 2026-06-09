@@ -209,8 +209,8 @@ def run_worker(worker):
 
     # collect training samples synchronously:
     worker.run_synchronous(test_episode_interval=10,  # collect one test episode every 10 train episodes
-                           initial_steps=1000,  # initial number of samples
-                           max_steps_per_update=1000,  # synchronization ratio of 10 environment steps per model update
+                           initial_steps=100,  # initial number of samples
+                           max_steps_per_update=10,  # synchronization ratio of 10 environment steps per model update
                            end_episodes=True)  # wait for the episodes to end before updating the model
 
 

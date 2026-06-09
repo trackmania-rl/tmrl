@@ -117,7 +117,7 @@ class Server:
                  header_size=cfg.HEADER_SIZE,
                  security=cfg.SECURITY,
                  keys_dir=cfg.CREDENTIALS_DIRECTORY,
-                 max_workers=cfg.NB_WORKERS):
+                 accepted_groups : None | dict = None):
         """
         Args:
             port (int): tlspyo public port
@@ -126,17 +126,11 @@ class Server:
             header_size (int): tlspyo header size (bytes)
             security (Union[str, None]): tlspyo security type (None or "TLS")
             keys_dir (str): tlspyo credentials directory
-            max_workers (int): max number of accepted workers
+            accepted_groups (Union[None, dict]): `tlspyo` accepted groups (None to accept all groups)
         """
         self.__relay = Relay(port=port,
                              password=password,
-                             accepted_groups={
-                                 'trainers': {
-                                     'max_count': 1,
-                                     'max_consumables': None},
-                                 'workers': {
-                                     'max_count': max_workers,
-                                     'max_consumables': None}},
+                             accepted_groups=accepted_groups,
                              local_com_port=local_port,
                              header_size=header_size,
                              security=security,
@@ -168,14 +162,18 @@ class TrainerInterface:
                  security=cfg.SECURITY,
                  keys_dir=cfg.CREDENTIALS_DIRECTORY,
                  hostname=cfg.HOSTNAME,
-                 model_path=cfg.MODEL_PATH_TRAINER):
-
+                 model_path=cfg.MODEL_PATH_TRAINER,
+                 groups="trainers",
+                 target_groups="workers"):
+        
+        self.groups = (groups,) if isinstance(groups, str) else groups
+        self.target_groups = target_groups
         self.model_path = model_path
         self.server_ip = server_ip if server_ip is not None else '127.0.0.1'
         self.__endpoint = Endpoint(ip_server=self.server_ip,
                                    port=server_port,
                                    password=password,
-                                   groups="trainers",
+                                   groups=groups,
                                    local_com_port=local_com_port,
                                    header_size=header_size,
                                    max_buf_len=max_buf_len,
@@ -185,7 +183,11 @@ class TrainerInterface:
 
         print_with_timestamp(f"server IP: {self.server_ip}")
 
-        self.__endpoint.notify(groups={'trainers': -1})  # retrieve everything
+        self._notify()
+    
+    def _notify(self):
+        groups = {g: -1 for g in self.groups}  # retrieve everything for all member groups
+        self.__endpoint.notify(groups=groups)
 
     def stop(self):
         """
@@ -201,7 +203,7 @@ class TrainerInterface:
         model.save(self.model_path)
         with open(self.model_path, 'rb') as f:
             weights = f.read()
-        self.__endpoint.broadcast(weights, "workers")
+        self.__endpoint.broadcast(weights, self.target_groups)
 
     def retrieve_buffer(self):
         """
@@ -211,7 +213,7 @@ class TrainerInterface:
         res = Buffer()
         for buf in buffers:
             res += buf
-        self.__endpoint.notify(groups={'trainers': -1})  # retrieve everything
+        self._notify()
         return res
 
 
@@ -362,7 +364,9 @@ class Trainer:
                  checkpoint_path=cfg.CHECKPOINT_PATH,
                  dump_run_instance_fn: callable = None,
                  load_run_instance_fn: callable = None,
-                 updater_fn: callable = None):
+                 updater_fn: callable = None,
+                 groups: str | tuple[str] = "trainers",
+                 target_groups: str | tuple[str] = "workers"):
         """
         Args:
             training_cls (type): training class (subclass of tmrl.core.training_offline.TrainingOffline)
@@ -372,7 +376,7 @@ class Trainer:
             local_com_port (int): port used by `tlspyo` for local communication
             header_size (int): number of bytes used for `tlspyo` headers
             max_buf_len (int): maximum number of messages queued by `tlspyo`
-            security (str): `tlspyo security type` (None or "TLS")
+            security (str): `tlspyo` security type (None or "TLS")
             keys_dir (str): custom credentials directory for `tlspyo` TLS security
             hostname (str): custom TLS hostname
             model_path (str): path where a local copy of the model will be saved
@@ -380,8 +384,12 @@ class Trainer:
             dump_run_instance_fn (callable): custom serializer (`None` = pickle.dump)
             load_run_instance_fn (callable): custom deserializer (`None` = pickle.load)
             updater_fn (callable): custom updater (`None` = no updater). If provided, this must be a function \
-            that takes a checkpoint and training_cls as argument and returns an updated checkpoint. \
-            The updater is called after a checkpoint is loaded, e.g., to update your checkpoint with new arguments.
+                that takes a checkpoint and training_cls as argument and returns an updated checkpoint. \
+                The updater is called after a checkpoint is loaded, e.g., to update your checkpoint with new arguments.
+            groups (Union[str, Tuple[str]]): `tlspyo` groups this `Trainer` endpoint belongs to; \
+                `RolloutWorker` instances must produce experience buffers targeting these groups.
+            target_groups (Union[str, Tuple[str]]): `tlspyo` groups to which model weights are broadcast \
+                (i.e., groups `RolloutWorker` instances belong to)
         """
         self.checkpoint_path = checkpoint_path
         self.dump_run_instance_fn = dump_run_instance_fn
@@ -397,7 +405,9 @@ class Trainer:
                                           security=security,
                                           keys_dir=keys_dir,
                                           hostname=hostname,
-                                          model_path=model_path)
+                                          model_path=model_path,
+                                          groups=groups,
+                                          target_groups=target_groups)
 
     def stop(self):
         """
@@ -476,25 +486,27 @@ class RolloutWorker:
             max_buf_len=cfg.BUFFER_SIZE,
             security=cfg.SECURITY,
             keys_dir=cfg.CREDENTIALS_DIRECTORY,
-            hostname=cfg.HOSTNAME
+            hostname=cfg.HOSTNAME,
+            groups: str | tuple[str] = "workers",
+            target_groups: str | tuple[str] = "trainers"
     ):
         """
         Args:
             env_cls (type): class of the Gymnasium environment (subclass of tmrl.envs.GenericGymEnv)
             actor_module_cls (type): class of the module containing the policy (subclass of tmrl.actor.ActorModule)
             sample_compressor (callable): compressor for sending samples over the Internet; \
-            when not `None`, `sample_compressor` must be a function that takes the following arguments: \
-            (prev_act, obs, rew, terminated, truncated, info), and that returns them (modified) in the same order: \
-            when not `None`, a `sample_compressor` works with a corresponding decompression scheme in the `Memory` class
+                when not `None`, `sample_compressor` must be a function that takes the following arguments: \
+                (prev_act, obs, rew, terminated, truncated, info), and that returns them (modified) in the same order: \
+                when not `None`, a `sample_compressor` works with a corresponding decompression scheme in the `Memory` class
             device (str): device on which the policy is running
             max_samples_per_episode (int): if an episode gets longer than this, it is reset
             model_path (str): path where a local copy of the policy will be stored
             obs_preprocessor (callable): utility for modifying observations retrieved from the environment; \
-            when not `None`, `obs_preprocessor` must be a function that takes an observation as input and outputs the \
-            modified observation
+                when not `None`, `obs_preprocessor` must be a function that takes an observation as input and outputs the \
+                modified observation
             crc_debug (bool): useful for debugging custom pipelines; leave to False otherwise
             model_path_history (str): (include the filename but omit .tmod) path to the saved history of policies; \
-            we recommend you leave this to the default
+                we recommend you leave this to the default
             model_history (int): policies are saved every `model_history` new policies (0: not saved)
             standalone (bool): if True, the worker will not try to connect to a server
             server_ip (str): ip of the central server
@@ -506,7 +518,12 @@ class RolloutWorker:
             security (str): tlspyo security type (None or "TLS")
             keys_dir (str): tlspyo credentials directory; usually, leave this to the default
             hostname (str): tlspyo hostname; usually, leave this to the default
+            groups (Union[str, Tuple[str]]): `tlspyo` group(s) this `RolloutWorker` endpoint belongs to; \
+                the `Trainer` must notify the relay targeting these groups to receive experience buffers
+            target_groups (Union[str, Tuple[str]]): `tlspyo` group(s) to which experience buffers are produced; \
+                typically the group that `TrainerInterface` instances belong to
         """
+        self.target_groups = target_groups
         self.obs_preprocessor = obs_preprocessor
         self.get_local_buffer_sample = sample_compressor
         self.env = env_cls()
@@ -540,7 +557,7 @@ class RolloutWorker:
             self.__endpoint = Endpoint(ip_server=self.server_ip,
                                        port=server_port,
                                        password=password,
-                                       groups="workers",
+                                       groups=groups,
                                        local_com_port=local_port,
                                        header_size=header_size,
                                        max_buf_len=max_buf_len,
@@ -731,6 +748,9 @@ class RolloutWorker:
         This method sends episodes continuously to the Server, and checks for new weights between episodes.
         For synchronous or more fine-grained sampling, use synchronous or lower-level APIs.
         For deployment, use `run_episodes` rather than `run`.
+        
+        Note:
+            This method does not work in standalone mode.
 
         Args:
             test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes;
@@ -739,6 +759,9 @@ class RolloutWorker:
             verbose (bool): whether to log INFO messages.
             expert (bool): experts send training samples without updating their model nor running test episodes.
         """
+
+        if self.standalone:
+            raise RuntimeError("In standalone mode, use the run_episodes() method.")
 
         iterator = range(nb_episodes) if nb_episodes != np.inf else itertools.count()
 
@@ -793,7 +816,9 @@ class RolloutWorker:
         This method is useful for traditional (non-real-time) environments that can be stepped fast.
         It also works for rtgym environments with `wait_on_done` enabled, just set `end_episodes` to `True`.
 
-        Note: This method does not collect test episodes. Periodically use `run_episode(train=False)` if you wish to.
+        Note:
+            This method does not collect test episodes. Periodically use `run_episode(train=False)` if you wish to.
+            This method does not work in standalone mode.
 
         Args:
             test_episode_interval (int): a test episode is collected for every `test_episode_interval` train episodes;
@@ -806,6 +831,11 @@ class RolloutWorker:
                 When False (default), pauses whenever the max_steps_per_update ratio is exceeded.
             verbose (bool): whether to log INFO messages.
         """
+
+        if self.standalone:
+            raise RuntimeError("In standalone mode, use the run_episodes() method.")
+        if self.initial_steps < 1:
+            raise RuntimeError("initial_steps must be >= 1.")
 
         # collect initial samples
 
@@ -854,8 +884,9 @@ class RolloutWorker:
 
         iteration = 0
         episode = 0
-        steps = 0
-        ret = 0.0
+        if done:
+            steps = 0
+            ret = 0.0
 
         while iteration < nb_steps:
 
@@ -950,7 +981,7 @@ class RolloutWorker:
         """
         Sends the buffered samples to the `Server`.
         """
-        self.__endpoint.produce(self.buffer, "trainers")
+        self.__endpoint.produce(self.buffer, self.target_groups)
         self.buffer.clear()
 
     def update_actor_weights(self, verbose=True, blocking=False):

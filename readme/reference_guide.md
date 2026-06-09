@@ -34,7 +34,6 @@ All parameters are described below.
   "TLS": false,  // IMPORTANT: true when using tmrl on a public network (read the Security section)
   "TLS_HOSTNAME": "default",  // TLS hostname (for custom tlspyo configuration only)
   "TLS_CREDENTIALS_DIRECTORY": "",  // TLS credential directory (for custom tlspyo configuration only)
-  "NB_WORKERS": -1,  // maximum number of Workers that can connect to the Server (-1 for infinite)
   "WANDB_PROJECT": "tmrl",  // your wandb project name
   "WANDB_ENTITY": "tmrl",  // your wandb entity name
   "WANDB_KEY": "YourWandbApiKey",  // your wandb key
