@@ -68,7 +68,7 @@ class SpinupSACAgent(TrainingAgent):  # Adapted from Spinup
         else:
             pi_optimizer_cls = SGD
         pi_optimizer_kwargs = {"lr": self.lr_actor}
-        if self.optimizer_actor in ["adam, adamw"] and self.betas_actor is not None:
+        if self.optimizer_actor in ["adam" , "adamw"] and self.betas_actor is not None:
             pi_optimizer_kwargs["betas"] = tuple(self.betas_actor)
         if self.l2_actor is not None:
             pi_optimizer_kwargs["weight_decay"] = self.l2_actor
@@ -80,7 +80,7 @@ class SpinupSACAgent(TrainingAgent):  # Adapted from Spinup
         else:
             q_optimizer_cls = SGD
         q_optimizer_kwargs = {"lr": self.lr_critic}
-        if self.optimizer_critic in ["adam, adamw"] and self.betas_critic is not None:
+        if self.optimizer_critic in ["adam", "adamw"] and self.betas_critic is not None:
             q_optimizer_kwargs["betas"] = tuple(self.betas_critic)
         if self.l2_critic is not None:
             q_optimizer_kwargs["weight_decay"] = self.l2_critic
@@ -345,7 +345,7 @@ class REDQSACAgent(TrainingAgent):
         else:
             pi_optimizer_cls = SGD
         pi_optimizer_kwargs = {"lr": self.lr_actor}
-        if self.optimizer_actor in ["adam, adamw"] and self.betas_actor is not None:
+        if self.optimizer_actor in ["adam", "adamw"] and self.betas_actor is not None:
             pi_optimizer_kwargs["betas"] = tuple(self.betas_actor)
         if self.l2_actor is not None:
             pi_optimizer_kwargs["weight_decay"] = self.l2_actor
@@ -357,7 +357,7 @@ class REDQSACAgent(TrainingAgent):
         else:
             q_optimizer_cls = SGD
         q_optimizer_kwargs = {"lr": self.lr_critic}
-        if self.optimizer_critic in ["adam, adamw"] and self.betas_critic is not None:
+        if self.optimizer_critic in ["adam", "adamw"] and self.betas_critic is not None:
             q_optimizer_kwargs["betas"] = tuple(self.betas_critic)
         if self.l2_critic is not None:
             q_optimizer_kwargs["weight_decay"] = self.l2_critic
